@@ -1,0 +1,14 @@
+__pycache__/
+*.pyc
+.env
+*.egg-info/
+.venv/
+venv/
+
+# PyInstaller outputs
+build/
+dist/
+*.spec
+
+# Claude Code internal
+.claude/
