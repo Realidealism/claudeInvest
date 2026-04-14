@@ -2,38 +2,50 @@ from datetime import date, timedelta
 
 from db.connection import get_cursor
 from utils.classifier import classify_tw_security
-from utils.http_client import fetch_json
+from utils.format_shift import ScrapeResult
+from utils.http_client import fetch_json_retry
 
-BASE_URL = "https://www.tpex.org.tw/web/stock/aftertrading/daily_close_quotes"
-
-
-def _to_roc_date(d: date) -> str:
-    """Convert date to ROC calendar format (e.g. 115/04/02)."""
-    roc_year = d.year - 1911
-    return f"{roc_year}/{d.strftime('%m/%d')}"
+BASE_URL = "https://www.tpex.org.tw/www/zh-tw/afterTrading/dailyQuotes"
 
 
-def fetch_daily_prices(trade_date: date):
+def _to_ad_date(d: date) -> str:
+    """Convert date to AD slash format (e.g. 2026/04/02)."""
+    return d.strftime("%Y/%m/%d")
+
+
+def fetch_daily_prices(trade_date: date) -> tuple:
     """
     Fetch all TPEx-listed (OTC) stock prices for a given date.
-    Source: stk_quote_result.php (上櫃每日收盤行情)
+    Source: dailyQuotes (上櫃每日收盤行情)
+    Returns (records, api_rows, parse_errors).
     """
-    roc_date = _to_roc_date(trade_date)
-    print(f"Fetching TPEx daily prices for {trade_date} (ROC: {roc_date}) ...")
+    ad_date = _to_ad_date(trade_date)
+    print(f"Fetching TPEx daily prices for {trade_date} ...")
 
-    data = fetch_json(
-        f"{BASE_URL}/stk_quote_result.php",
-        params={"l": "zh-tw", "d": roc_date},
+    data = fetch_json_retry(
+        BASE_URL,
+        params={"date": ad_date, "response": "json"},
+        validate=lambda d: d.get("stat") == "ok" and d.get("tables"),
     )
     if not data or data.get("stat") != "ok" or not data.get("tables"):
         print(f"  API returned stat={data.get('stat') if data else 'no response'}")
-        return []
+        return [], 0, 0
+
+    # Verify the API returned data for the requested date (TPEx silently returns
+    # today's data if it doesn't recognize the date format).
+    api_date = str(data.get("date", "")).strip()
+    expected = trade_date.strftime("%Y%m%d")
+    if api_date and api_date != expected:
+        print(f"  Date mismatch: requested {expected}, API returned {api_date} — skipping")
+        return [], 0, 0
 
     # Data is in tables[0]
     table = data["tables"][0]
     rows = table.get("data", [])
     print(f"  Found {len(rows)} records.")
 
+    api_rows = len(rows)
+    parse_errors = 0
     results = []
     for row in rows:
         try:
@@ -46,20 +58,28 @@ def fetch_daily_prices(trade_date: date):
                 continue
 
             def parse_num(val):
-                if not val or val == "---" or val == "--" or val == "----":
-                    return None
+                """Return float or None. Tolerates dashes, blanks, and non-numeric
+                strings (e.g. '除息', '除權息') used by the API on ex-div days."""
                 s = str(val).replace(",", "").strip()
-                if not s:
+                if not s or set(s) == {"-"}:
                     return None
-                return float(s)
+                try:
+                    return float(s)
+                except ValueError:
+                    return None
+
+            # Skip rows with no trading volume — those rows have OHLC = '---'
+            # and offer no useful data beyond the previous-day reference price.
+            volume = int(parse_num(row[8]) or 0)
+            if volume == 0:
+                continue
 
             close_price = parse_num(row[2])
-            change_val = parse_num(row[3])
+            change_val = parse_num(row[3])  # may be None on ex-dividend days
             open_price = parse_num(row[4])
             high_price = parse_num(row[5])
             low_price = parse_num(row[6])
             # [7]=均價, [8]=成交股數, [9]=成交金額, [10]=成交筆數
-            volume = int(parse_num(row[8]) or 0)
             turnover = int(parse_num(row[9]) or 0)
             tx_count = int(parse_num(row[10]) or 0)
 
@@ -86,9 +106,10 @@ def fetch_daily_prices(trade_date: date):
             })
         except (ValueError, TypeError, IndexError) as e:
             print(f"  Skipping row parse error: {e}")
+            parse_errors += 1
             continue
 
-    return results
+    return results, api_rows, parse_errors
 
 
 def save_daily_prices(records: list):
@@ -115,15 +136,15 @@ def save_daily_prices(records: list):
                 VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                 ON CONFLICT (stock_id, trade_date)
                 DO UPDATE SET
-                    open_price = EXCLUDED.open_price,
-                    high_price = EXCLUDED.high_price,
-                    low_price = EXCLUDED.low_price,
-                    close_price = EXCLUDED.close_price,
-                    volume = EXCLUDED.volume,
-                    turnover = EXCLUDED.turnover,
-                    transaction_count = EXCLUDED.transaction_count,
-                    change = EXCLUDED.change,
-                    change_pct = EXCLUDED.change_pct
+                    open_price = COALESCE(EXCLUDED.open_price, tw.daily_prices.open_price),
+                    high_price = COALESCE(EXCLUDED.high_price, tw.daily_prices.high_price),
+                    low_price = COALESCE(EXCLUDED.low_price, tw.daily_prices.low_price),
+                    close_price = COALESCE(EXCLUDED.close_price, tw.daily_prices.close_price),
+                    volume = COALESCE(EXCLUDED.volume, tw.daily_prices.volume),
+                    turnover = COALESCE(EXCLUDED.turnover, tw.daily_prices.turnover),
+                    transaction_count = COALESCE(EXCLUDED.transaction_count, tw.daily_prices.transaction_count),
+                    change = COALESCE(EXCLUDED.change, tw.daily_prices.change),
+                    change_pct = COALESCE(EXCLUDED.change_pct, tw.daily_prices.change_pct)
             """, (
                 r["stock_id"], r["trade_date"],
                 r["open_price"], r["high_price"], r["low_price"],
@@ -134,11 +155,11 @@ def save_daily_prices(records: list):
     print(f"Saved {len(records)} records to database.")
 
 
-def scrape_date(trade_date: date):
+def scrape_date(trade_date: date) -> ScrapeResult:
     """Fetch and save daily prices for a single date."""
-    records = fetch_daily_prices(trade_date)
+    records, api_rows, errors = fetch_daily_prices(trade_date)
     save_daily_prices(records)
-    return len(records)
+    return ScrapeResult(records=len(records), api_rows=api_rows, parse_errors=errors)
 
 
 def scrape_date_range(start_date: date, end_date: date):
@@ -148,8 +169,8 @@ def scrape_date_range(start_date: date, end_date: date):
 
     while current <= end_date:
         if current.weekday() < 5:
-            count = scrape_date(current)
-            total += count
+            result = scrape_date(current)
+            total += result.records
         current += timedelta(days=1)
 
     print(f"\nDone. Total records saved: {total}")

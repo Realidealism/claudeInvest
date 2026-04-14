@@ -12,7 +12,8 @@ from datetime import date, timedelta
 
 from db.connection import get_cursor
 from utils.classifier import classify_tw_security
-from utils.http_client import fetch_json, get_session, _wait_for_rate_limit, _get_domain, MAX_RETRIES, BACKOFF_BASE
+from utils.format_shift import ScrapeResult
+from utils.http_client import fetch_json_retry, get_session, _wait_for_rate_limit, _get_domain, MAX_RETRIES, BACKOFF_BASE
 
 # TWSE
 TWSE_OL_URL    = "https://www.twse.com.tw/rwd/zh/afterTrading/TWTC7U"
@@ -23,12 +24,12 @@ TPEX_OL_URL    = "https://www.tpex.org.tw/www/zh-tw/afterTrading/oddQuote"
 TPEX_OL_AH_URL = "https://www.tpex.org.tw/www/zh-tw/afterTrading/odd"
 
 
-def _to_roc_date(d: date) -> str:
-    return f"{d.year - 1911}/{d.strftime('%m/%d')}"
+def _to_ad_date(d: date) -> str:
+    return d.strftime("%Y/%m/%d")
 
 
 def _post(url: str, data: dict) -> dict | None:
-    """POST with rate limiting and retry."""
+    """POST with rate limiting and retry (including soft failures)."""
     import time, random
     session = get_session()
     domain = _get_domain(url)
@@ -41,7 +42,10 @@ def _post(url: str, data: dict) -> dict | None:
             result = resp.json()
             if result.get("stat") == "ok":
                 return result
-            return None
+            # Soft failure — stat != "ok", retry
+            print(f"  Soft failure (stat={result.get('stat')}), attempt {attempt + 1}/{MAX_RETRIES}")
+            if attempt < MAX_RETRIES - 1:
+                time.sleep(BACKOFF_BASE + random.uniform(1, 3))
         except Exception as e:
             print(f"  Attempt {attempt + 1} failed: {e}")
             if attempt < MAX_RETRIES - 1:
@@ -63,93 +67,124 @@ def _parse_num(val) -> float | None:
 # TWSE
 # ---------------------------------------------------------------------------
 
-def _parse_twse_ol(rows: list, fields: list) -> list:
+def _parse_twse_ol(rows: list, fields: list) -> tuple:
     """
     TWTC7U fields: 證券代號, 證券名稱, 成交股數, 成交筆數, 成交金額,
                    成交均價, 最後揭示買價, ..., 最後揭示賣價, ...
+    Returns (records, parse_errors).
     """
     results = []
+    errors = 0
     for row in rows:
         try:
             record = dict(zip(fields, row))
             stock_id = record.get("證券代號", "").strip()
-            if not stock_id or not classify_tw_security(stock_id):
+            security_type = classify_tw_security(stock_id)
+            if not stock_id or not security_type:
                 continue
             volume = _parse_num(record.get("成交股數"))
             if not volume:
                 continue
             results.append({
                 "stock_id": stock_id,
+                "name":     record.get("證券名稱", "").strip(),
+                "security_type": security_type,
                 "ol_price":    _parse_num(record.get("成交均價")),
                 "ol_volume":   int(volume),
                 "ol_turnover": int(_parse_num(record.get("成交金額")) or 0),
                 "ol_tx_count": int(_parse_num(record.get("成交筆數")) or 0),
             })
-        except (ValueError, TypeError):
+        except (ValueError, TypeError) as e:
+            print(f"  Skipping TWSE odd-lot row: {e}")
+            errors += 1
             continue
-    return results
+    return results, errors
 
 
-def _parse_twse_ol_ah(rows: list, fields: list) -> list:
+def _parse_twse_ol_ah(rows: list, fields: list) -> tuple:
     """
     TWT53U fields: 證券代號, 證券名稱, 成交股數, 成交筆數, 成交金額,
                    成交價格, 最後揭示買價, ...
+    Returns (records, parse_errors).
     """
     results = []
+    errors = 0
     for row in rows:
         try:
             record = dict(zip(fields, row))
             stock_id = record.get("證券代號", "").strip()
-            if not stock_id or not classify_tw_security(stock_id):
+            security_type = classify_tw_security(stock_id)
+            if not stock_id or not security_type:
                 continue
             volume = _parse_num(record.get("成交股數"))
             if not volume:
                 continue
             results.append({
                 "stock_id":      stock_id,
+                "name":          record.get("證券名稱", "").strip(),
+                "security_type": security_type,
                 "ol_ah_price":    _parse_num(record.get("成交價格")),
                 "ol_ah_volume":   int(volume),
                 "ol_ah_turnover": int(_parse_num(record.get("成交金額")) or 0),
                 "ol_ah_tx_count": int(_parse_num(record.get("成交筆數")) or 0),
             })
-        except (ValueError, TypeError):
+        except (ValueError, TypeError) as e:
+            print(f"  Skipping TWSE odd-lot AH row: {e}")
+            errors += 1
             continue
-    return results
+    return results, errors
 
 
-def fetch_twse_odd_lot(trade_date: date) -> tuple[list, list]:
-    """Fetch TWSE odd-lot regular + after-hours for a date."""
+def fetch_twse_odd_lot(trade_date: date) -> tuple:
+    """
+    Fetch TWSE odd-lot regular + after-hours for a date.
+    Returns (ol, ol_ah, api_rows, parse_errors).
+    """
     date_str = trade_date.strftime("%Y%m%d")
     params = {"date": date_str, "selectType": "ALL", "response": "json"}
 
     print(f"Fetching TWSE odd-lot (regular) for {trade_date} ...")
-    d1 = fetch_json(TWSE_OL_URL, params=params)
-    ol = []
+    d1 = fetch_json_retry(TWSE_OL_URL, params=params,
+                          validate=lambda d: d.get("stat") == "OK")
+    ol, ol_rows, ol_errors = [], 0, 0
     if d1 and d1.get("stat") == "OK" and d1.get("data"):
-        print(f"  Found {len(d1['data'])} records.")
-        ol = _parse_twse_ol(d1["data"], d1.get("fields", []))
+        api_date = str(d1.get("date", "")).strip()
+        if api_date and api_date != date_str:
+            print(f"  Date mismatch: requested {date_str}, API returned {api_date} — skipping")
+        else:
+            ol_rows = len(d1["data"])
+            print(f"  Found {ol_rows} records.")
+            ol, ol_errors = _parse_twse_ol(d1["data"], d1.get("fields", []))
 
     print(f"Fetching TWSE odd-lot (after-hours) for {trade_date} ...")
-    d2 = fetch_json(TWSE_OL_AH_URL, params=params)
-    ol_ah = []
+    d2 = fetch_json_retry(TWSE_OL_AH_URL, params=params,
+                          validate=lambda d: d.get("stat") == "OK")
+    ol_ah, ah_rows, ah_errors = [], 0, 0
     if d2 and d2.get("stat") == "OK" and d2.get("data"):
-        print(f"  Found {len(d2['data'])} records.")
-        ol_ah = _parse_twse_ol_ah(d2["data"], d2.get("fields", []))
+        api_date = str(d2.get("date", "")).strip()
+        if api_date and api_date != date_str:
+            print(f"  Date mismatch: requested {date_str}, API returned {api_date} — skipping")
+        else:
+            ah_rows = len(d2["data"])
+            print(f"  Found {ah_rows} records.")
+            ol_ah, ah_errors = _parse_twse_ol_ah(d2["data"], d2.get("fields", []))
 
-    return ol, ol_ah
+    return ol, ol_ah, ol_rows + ah_rows, ol_errors + ah_errors
 
 
 # ---------------------------------------------------------------------------
 # TPEx
 # ---------------------------------------------------------------------------
 
-def _parse_tpex_ol(rows: list) -> list:
+def _parse_tpex_ol(rows: list) -> tuple:
     """
     oddQuote fields (by index):
     [0] code, [1] name, [2] close, [3] change, [4] open, [5] high, [6] low,
     [7] volume, [8] turnover, [9] tx_count, ...
+    Returns (records, parse_errors).
     """
     results = []
+    errors = 0
     for row in rows:
         try:
             stock_id = str(row[0]).strip()
@@ -167,17 +202,21 @@ def _parse_tpex_ol(rows: list) -> list:
                 "ol_turnover": int(_parse_num(row[8]) or 0),
                 "ol_tx_count": int(_parse_num(row[9]) or 0),
             })
-        except (ValueError, TypeError, IndexError):
+        except (ValueError, TypeError, IndexError) as e:
+            print(f"  Skipping TPEx odd-lot row: {e}")
+            errors += 1
             continue
-    return results
+    return results, errors
 
 
-def _parse_tpex_ol_ah(rows: list) -> list:
+def _parse_tpex_ol_ah(rows: list) -> tuple:
     """
     odd fields (by index):
     [0] code, [1] name, [2] volume, [3] tx_count, [4] turnover, [5] price, ...
+    Returns (records, parse_errors).
     """
     results = []
+    errors = 0
     for row in rows:
         try:
             stock_id = str(row[0]).strip()
@@ -195,47 +234,63 @@ def _parse_tpex_ol_ah(rows: list) -> list:
                 "ol_ah_turnover": int(_parse_num(row[4]) or 0),
                 "ol_ah_tx_count": int(_parse_num(row[3]) or 0),
             })
-        except (ValueError, TypeError, IndexError):
+        except (ValueError, TypeError, IndexError) as e:
+            print(f"  Skipping TPEx odd-lot AH row: {e}")
+            errors += 1
             continue
-    return results
+    return results, errors
 
 
-def fetch_tpex_odd_lot(trade_date: date) -> tuple[list, list]:
-    """Fetch TPEx odd-lot regular + after-hours for a date."""
-    roc = _to_roc_date(trade_date)
+def fetch_tpex_odd_lot(trade_date: date) -> tuple:
+    """
+    Fetch TPEx odd-lot regular + after-hours for a date.
+    Returns (ol, ol_ah, api_rows, parse_errors).
+    """
+    ad = _to_ad_date(trade_date)
+    expected = trade_date.strftime("%Y%m%d")
 
     print(f"Fetching TPEx odd-lot (regular) for {trade_date} ...")
-    d1 = _post(TPEX_OL_URL, {"d": roc})
-    ol = []
+    d1 = _post(TPEX_OL_URL, {"date": ad, "response": "json"})
+    ol, ol_rows, ol_errors = [], 0, 0
     if d1 and d1.get("tables"):
-        rows = d1["tables"][0].get("data", [])
-        print(f"  Found {len(rows)} records.")
-        ol = _parse_tpex_ol(rows)
+        api_date = str(d1.get("date", "")).strip()
+        if api_date and api_date != expected:
+            print(f"  Date mismatch: requested {expected}, API returned {api_date} — skipping")
+        else:
+            rows = d1["tables"][0].get("data", [])
+            ol_rows = len(rows)
+            print(f"  Found {ol_rows} records.")
+            ol, ol_errors = _parse_tpex_ol(rows)
 
     print(f"Fetching TPEx odd-lot (after-hours) for {trade_date} ...")
-    d2 = _post(TPEX_OL_AH_URL, {"date": roc, "type": "Daily"})
-    ol_ah = []
+    d2 = _post(TPEX_OL_AH_URL, {"date": ad, "type": "Daily", "response": "json"})
+    ol_ah, ah_rows, ah_errors = [], 0, 0
     if d2 and d2.get("tables"):
-        rows = d2["tables"][0].get("data", [])
-        print(f"  Found {len(rows)} records.")
-        ol_ah = _parse_tpex_ol_ah(rows)
+        api_date = str(d2.get("date", "")).strip()
+        if api_date and api_date != expected:
+            print(f"  Date mismatch: requested {expected}, API returned {api_date} — skipping")
+        else:
+            rows = d2["tables"][0].get("data", [])
+            ah_rows = len(rows)
+            print(f"  Found {ah_rows} records.")
+            ol_ah, ah_errors = _parse_tpex_ol_ah(rows)
 
-    return ol, ol_ah
+    return ol, ol_ah, ol_rows + ah_rows, ol_errors + ah_errors
 
 
 # ---------------------------------------------------------------------------
 # Save
 # ---------------------------------------------------------------------------
 
-def _upsert_tpex_stocks(cur, records: list):
-    """Ensure TPEx stocks exist before upserting prices."""
+def _upsert_stocks(cur, records: list, market: str):
+    """Ensure stocks exist before upserting prices."""
     for r in records:
         if r.get("name") and r.get("security_type"):
             cur.execute("""
                 INSERT INTO tw.stocks (stock_id, name, market, security_type)
-                VALUES (%s, %s, 'TPEx', %s)
+                VALUES (%s, %s, %s, %s)
                 ON CONFLICT (stock_id) DO UPDATE SET name = EXCLUDED.name, updated_at = NOW()
-            """, (r["stock_id"], r["name"], r["security_type"]))
+            """, (r["stock_id"], r["name"], market, r["security_type"]))
 
 
 def save_odd_lot(
@@ -245,8 +300,10 @@ def save_odd_lot(
 ):
     """Upsert all odd-lot data into tw.daily_prices."""
     with get_cursor() as cur:
-        _upsert_tpex_stocks(cur, tpex_ol)
-        _upsert_tpex_stocks(cur, tpex_ol_ah)
+        _upsert_stocks(cur, twse_ol, "TWSE")
+        _upsert_stocks(cur, twse_ol_ah, "TWSE")
+        _upsert_stocks(cur, tpex_ol, "TPEx")
+        _upsert_stocks(cur, tpex_ol_ah, "TPEx")
 
         for r in twse_ol + tpex_ol:
             cur.execute("""
@@ -254,10 +311,10 @@ def save_odd_lot(
                 VALUES (%s, %s, %s, %s, %s, %s)
                 ON CONFLICT (stock_id, trade_date)
                 DO UPDATE SET
-                    ol_price    = EXCLUDED.ol_price,
-                    ol_volume   = EXCLUDED.ol_volume,
-                    ol_turnover = EXCLUDED.ol_turnover,
-                    ol_tx_count = EXCLUDED.ol_tx_count
+                    ol_price    = COALESCE(EXCLUDED.ol_price,    tw.daily_prices.ol_price),
+                    ol_volume   = COALESCE(EXCLUDED.ol_volume,   tw.daily_prices.ol_volume),
+                    ol_turnover = COALESCE(EXCLUDED.ol_turnover, tw.daily_prices.ol_turnover),
+                    ol_tx_count = COALESCE(EXCLUDED.ol_tx_count, tw.daily_prices.ol_tx_count)
             """, (
                 r["stock_id"], trade_date,
                 r.get("ol_price"), r.get("ol_volume"),
@@ -270,10 +327,10 @@ def save_odd_lot(
                 VALUES (%s, %s, %s, %s, %s, %s)
                 ON CONFLICT (stock_id, trade_date)
                 DO UPDATE SET
-                    ol_ah_price    = EXCLUDED.ol_ah_price,
-                    ol_ah_volume   = EXCLUDED.ol_ah_volume,
-                    ol_ah_turnover = EXCLUDED.ol_ah_turnover,
-                    ol_ah_tx_count = EXCLUDED.ol_ah_tx_count
+                    ol_ah_price    = COALESCE(EXCLUDED.ol_ah_price,    tw.daily_prices.ol_ah_price),
+                    ol_ah_volume   = COALESCE(EXCLUDED.ol_ah_volume,   tw.daily_prices.ol_ah_volume),
+                    ol_ah_turnover = COALESCE(EXCLUDED.ol_ah_turnover, tw.daily_prices.ol_ah_turnover),
+                    ol_ah_tx_count = COALESCE(EXCLUDED.ol_ah_tx_count, tw.daily_prices.ol_ah_tx_count)
             """, (
                 r["stock_id"], trade_date,
                 r.get("ol_ah_price"), r.get("ol_ah_volume"),
@@ -285,21 +342,29 @@ def save_odd_lot(
           f"TPEx regular={len(tpex_ol)}, TPEx after={len(tpex_ol_ah)} (total={total})")
 
 
-def scrape_date(trade_date: date):
+def scrape_date(trade_date: date) -> ScrapeResult:
     """Fetch and save all odd-lot data for a single date."""
-    twse_ol, twse_ol_ah = fetch_twse_odd_lot(trade_date)
-    tpex_ol, tpex_ol_ah = fetch_tpex_odd_lot(trade_date)
+    twse_ol, twse_ol_ah, twse_api, twse_err = fetch_twse_odd_lot(trade_date)
+    tpex_ol, tpex_ol_ah, tpex_api, tpex_err = fetch_tpex_odd_lot(trade_date)
     save_odd_lot(twse_ol, twse_ol_ah, tpex_ol, tpex_ol_ah, trade_date)
+    total_records = len(twse_ol) + len(twse_ol_ah) + len(tpex_ol) + len(tpex_ol_ah)
+    return ScrapeResult(
+        records=total_records,
+        api_rows=twse_api + tpex_api,
+        parse_errors=twse_err + tpex_err,
+    )
 
 
 def scrape_date_range(start_date: date, end_date: date):
     """Fetch and save odd-lot data for a date range (skips weekends)."""
     current = start_date
+    total = 0
     while current <= end_date:
         if current.weekday() < 5:
-            scrape_date(current)
+            result = scrape_date(current)
+            total += result.records
         current += timedelta(days=1)
-    print("Done.")
+    print(f"Done. Total records saved: {total}")
 
 
 if __name__ == "__main__":

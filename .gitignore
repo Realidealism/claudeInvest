@@ -10,5 +10,17 @@ build/
 dist/
 *.spec
 
+# Generated reports
+*.xlsx
+
+# Logs
+shioaji.log
+
+# Temp files
+tmp/
+
+# pip install artifacts
+=*
+
 # Claude Code internal
 .claude/

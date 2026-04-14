@@ -1,0 +1,2 @@
+ALTER TABLE tw.monthly_revenue
+ADD COLUMN IF NOT EXISTS note TEXT;

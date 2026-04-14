@@ -2,26 +2,35 @@ from datetime import date, timedelta
 
 from db.connection import get_cursor
 from utils.classifier import classify_tw_security
-from utils.http_client import fetch_json
+from utils.format_shift import ScrapeResult
+from utils.http_client import fetch_json_retry
 
 BASE_URL = "https://www.twse.com.tw/rwd/zh/afterTrading"
 
 
-def fetch_daily_prices(trade_date: date):
+def fetch_daily_prices(trade_date: date) -> tuple:
     """
     Fetch all TWSE-listed stock prices for a given date.
     Source: MI_INDEX endpoint (每日收盤行情)
+    Returns (records, api_rows, parse_errors).
     """
     date_str = trade_date.strftime("%Y%m%d")
     print(f"Fetching TWSE daily prices for {trade_date} ...")
 
-    data = fetch_json(
+    data = fetch_json_retry(
         f"{BASE_URL}/MI_INDEX",
         params={"date": date_str, "type": "ALLBUT0999", "response": "json"},
+        validate=lambda d: d.get("stat") == "OK",
     )
     if not data or data.get("stat") != "OK":
         print(f"  API returned stat={data.get('stat') if data else 'no response'}")
-        return []
+        return [], 0, 0
+
+    # Verify the API returned data for the requested date.
+    api_date = str(data.get("date", "")).strip()
+    if api_date and api_date != date_str:
+        print(f"  Date mismatch: requested {date_str}, API returned {api_date} — skipping")
+        return [], 0, 0
 
     # Find the table containing stock price data
     tables = data.get("tables", [])
@@ -34,12 +43,14 @@ def fetch_daily_prices(trade_date: date):
 
     if not price_table:
         print("  Could not find price table in response.")
-        return []
+        return [], 0, 0
 
     fields = price_table.get("fields", [])
     rows = price_table.get("data", [])
     print(f"  Found {len(rows)} records.")
 
+    api_rows = len(rows)
+    parse_errors = 0
     results = []
     for row in rows:
         record = dict(zip(fields, row))
@@ -52,17 +63,28 @@ def fetch_daily_prices(trade_date: date):
             if not stock_id or not security_type:
                 continue
 
-            # Parse numeric fields (remove commas)
+            # Parse numeric fields. Tolerates dashes, blanks, HTML tags, and
+            # non-numeric strings (e.g. '除息', '<p>除權息</p>') used by the API
+            # on ex-dividend days.
             def parse_num(val):
-                if not val or val == "--" or val == "---":
+                import re
+                s = re.sub(r"<[^>]+>", "", str(val))
+                s = s.replace(",", "").replace("X", "").strip()
+                if not s or set(s) == {"-"}:
                     return None
-                return float(val.replace(",", "").replace("X", "").strip())
+                try:
+                    return float(s)
+                except ValueError:
+                    return None
 
-            volume_str = record.get("成交股數", "0")
-            turnover_str = record.get("成交金額", "0")
-            tx_count_str = record.get("成交筆數", "0")
+            # Skip rows with no trading volume (no useful OHLC data either).
+            volume = int(parse_num(record.get("成交股數", "0")) or 0)
+            if volume == 0:
+                continue
 
-            # Determine price change
+            # Determine price change. On ex-dividend days the API returns
+            # '除息'/'除權息' here, in which case change_val is None and
+            # change_pct should be computed later from ref_price - close_price.
             change_sign = record.get("漲跌(+/-)", "").strip()
             change_val = parse_num(record.get("漲跌價差"))
             if change_val is not None and change_sign == "-":
@@ -84,17 +106,18 @@ def fetch_daily_prices(trade_date: date):
                 "high_price": parse_num(record.get("最高價")),
                 "low_price": parse_num(record.get("最低價")),
                 "close_price": close_price,
-                "volume": int(parse_num(volume_str) or 0),
-                "turnover": int(parse_num(turnover_str) or 0),
-                "transaction_count": int(parse_num(tx_count_str) or 0),
+                "volume": volume,
+                "turnover": int(parse_num(record.get("成交金額", "0")) or 0),
+                "transaction_count": int(parse_num(record.get("成交筆數", "0")) or 0),
                 "change": change_val,
                 "change_pct": change_pct,
             })
         except (ValueError, TypeError) as e:
             print(f"  Skipping row parse error: {e}")
+            parse_errors += 1
             continue
 
-    return results
+    return results, api_rows, parse_errors
 
 
 def save_daily_prices(records: list):
@@ -123,15 +146,15 @@ def save_daily_prices(records: list):
                 VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                 ON CONFLICT (stock_id, trade_date)
                 DO UPDATE SET
-                    open_price = EXCLUDED.open_price,
-                    high_price = EXCLUDED.high_price,
-                    low_price = EXCLUDED.low_price,
-                    close_price = EXCLUDED.close_price,
-                    volume = EXCLUDED.volume,
-                    turnover = EXCLUDED.turnover,
-                    transaction_count = EXCLUDED.transaction_count,
-                    change = EXCLUDED.change,
-                    change_pct = EXCLUDED.change_pct
+                    open_price = COALESCE(EXCLUDED.open_price, tw.daily_prices.open_price),
+                    high_price = COALESCE(EXCLUDED.high_price, tw.daily_prices.high_price),
+                    low_price = COALESCE(EXCLUDED.low_price, tw.daily_prices.low_price),
+                    close_price = COALESCE(EXCLUDED.close_price, tw.daily_prices.close_price),
+                    volume = COALESCE(EXCLUDED.volume, tw.daily_prices.volume),
+                    turnover = COALESCE(EXCLUDED.turnover, tw.daily_prices.turnover),
+                    transaction_count = COALESCE(EXCLUDED.transaction_count, tw.daily_prices.transaction_count),
+                    change = COALESCE(EXCLUDED.change, tw.daily_prices.change),
+                    change_pct = COALESCE(EXCLUDED.change_pct, tw.daily_prices.change_pct)
             """, (
                 r["stock_id"], r["trade_date"],
                 r["open_price"], r["high_price"], r["low_price"],
@@ -142,11 +165,11 @@ def save_daily_prices(records: list):
     print(f"Saved {len(records)} records to database.")
 
 
-def scrape_date(trade_date: date):
+def scrape_date(trade_date: date) -> ScrapeResult:
     """Fetch and save daily prices for a single date."""
-    records = fetch_daily_prices(trade_date)
+    records, api_rows, errors = fetch_daily_prices(trade_date)
     save_daily_prices(records)
-    return len(records)
+    return ScrapeResult(records=len(records), api_rows=api_rows, parse_errors=errors)
 
 
 def scrape_date_range(start_date: date, end_date: date):
@@ -156,8 +179,8 @@ def scrape_date_range(start_date: date, end_date: date):
 
     while current <= end_date:
         if current.weekday() < 5:
-            count = scrape_date(current)
-            total += count
+            result = scrape_date(current)
+            total += result.records
         current += timedelta(days=1)
 
     print(f"\nDone. Total records saved: {total}")

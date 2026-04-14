@@ -20,7 +20,7 @@ DEFAULT_HEADERS = {
 _last_request_time: dict[str, float] = {}
 
 # Minimum interval between requests to the same domain (seconds)
-MIN_INTERVAL = 3.0
+MIN_INTERVAL = 5.0
 # Random jitter added on top of minimum interval (seconds)
 MAX_JITTER = 2.0
 # Max retries on failure
@@ -115,3 +115,35 @@ def fetch_json(url: str, params: dict = None, timeout: int = 30) -> dict | None:
     except ValueError as e:
         print(f"  JSON parse error: {e}")
         return None
+
+
+# Soft-failure retry settings
+SOFT_RETRY_COUNT = 2
+SOFT_RETRY_WAIT  = 10  # seconds
+
+
+def fetch_json_retry(
+    url: str,
+    params: dict = None,
+    timeout: int = 30,
+    retries: int = SOFT_RETRY_COUNT,
+    wait: float = SOFT_RETRY_WAIT,
+    validate=None,
+) -> dict | None:
+    """
+    Fetch JSON with retry on soft failures (HTTP 200 but invalid data).
+
+    validate(data) -> bool: returns True if the response is considered valid.
+    When validate is given and the fetched data fails validation, the call is
+    retried up to `retries` times (total attempts = retries + 1).
+    """
+    data = None
+    for attempt in range(retries + 1):
+        data = fetch_json(url, params=params, timeout=timeout)
+        if data is not None and (validate is None or validate(data)):
+            return data
+        if attempt < retries:
+            print(f"  [RETRY] Soft failure (attempt {attempt + 1}/{retries + 1}), "
+                  f"retrying in {wait}s ...")
+            time.sleep(wait)
+    return data

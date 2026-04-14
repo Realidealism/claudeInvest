@@ -1,3 +1,11 @@
+numpy>=1.24.0
 psycopg2-binary==2.9.9
 requests==2.32.3
 python-dotenv==1.0.1
+matplotlib>=3.7.0
+plotly>=5.18.0
+dash>=2.14.0
+
+# esun_marketdata is distributed by E.Sun as a platform-specific wheel, not
+# on PyPI. Install it manually before running intraday_update.py:
+#   pip install esun_marketdata-<version>-<platform>.whl

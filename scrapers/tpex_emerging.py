@@ -23,14 +23,15 @@ from datetime import date, timedelta
 
 from db.connection import get_cursor
 from utils.classifier import classify_tw_security
-from utils.http_client import fetch_json
+from utils.format_shift import ScrapeResult
+from utils.http_client import fetch_json_retry
 from scrapers.price_limits import fill_ref_price_from_prev_close
 
 BASE_URL = "https://www.tpex.org.tw/www/zh-tw/emerging/latest"
 
 
-def _to_roc_date(d: date) -> str:
-    return f"{d.year - 1911}/{d.strftime('%m/%d')}"
+def _to_ad_date(d: date) -> str:
+    return d.strftime("%Y/%m/%d")
 
 
 def _parse_num(val) -> float | None:
@@ -43,24 +44,44 @@ def _parse_num(val) -> float | None:
         return None
 
 
-def fetch_emerging(trade_date: date) -> list:
-    """Fetch TPEx emerging market daily data for a given date."""
-    roc = _to_roc_date(trade_date)
+def fetch_emerging(trade_date: date) -> tuple:
+    """
+    Fetch TPEx emerging market daily data for a given date.
+
+    NOTE: The /emerging/latest endpoint only returns the latest trading day's
+    data and ignores any date parameter. Historical emerging data requires
+    a separate per-stock endpoint, which is not implemented here.
+    To avoid corrupting historical rows, this scraper only writes data when
+    the requested date is within 3 days of today.
+
+    Returns (records, api_rows, parse_errors).
+    """
+    ad = _to_ad_date(trade_date)
     print(f"Fetching TPEx emerging market for {trade_date} ...")
 
-    data = fetch_json(BASE_URL, params={"d": roc, "o": "json"})
+    # Refuse historical dates: API ignores date parameter
+    days_old = (date.today() - trade_date).days
+    if days_old > 3:
+        print(f"  Skipped: emerging /latest endpoint cannot fetch historical dates "
+              f"(requested {trade_date}, {days_old} days old).")
+        return [], 0, 0
+
+    data = fetch_json_retry(BASE_URL, params={"date": ad, "response": "json"},
+                            validate=lambda d: d.get("stat") == "ok")
     if not data or data.get("stat") != "ok":
         print(f"  No data (stat={data.get('stat') if data else 'none'})")
-        return []
+        return [], 0, 0
 
     tables = data.get("tables", [])
     if not tables:
         print("  Unexpected response structure.")
-        return []
+        return [], 0, 0
 
     rows = tables[0].get("data", [])
     print(f"  Found {len(rows)} records.")
 
+    api_rows = len(rows)
+    parse_errors = 0
     results = []
     for row in rows:
         try:
@@ -87,10 +108,12 @@ def fetch_emerging(trade_date: date) -> list:
                 "low_price":     _parse_num(row[8]),
                 "volume":        int(volume),
             })
-        except (IndexError, ValueError, TypeError):
+        except (IndexError, ValueError, TypeError) as e:
+            print(f"  Skipping row: {e}")
+            parse_errors += 1
             continue
 
-    return results
+    return results, api_rows, parse_errors
 
 
 def save_emerging(records: list, trade_date: date):
@@ -118,10 +141,10 @@ def save_emerging(records: list, trade_date: date):
                 )
                 VALUES (%s, %s, %s, %s, %s, %s)
                 ON CONFLICT (stock_id, trade_date) DO UPDATE SET
-                    close_price = EXCLUDED.close_price,
-                    high_price  = EXCLUDED.high_price,
-                    low_price   = EXCLUDED.low_price,
-                    volume      = EXCLUDED.volume
+                    close_price = COALESCE(EXCLUDED.close_price, tw.daily_prices.close_price),
+                    high_price  = COALESCE(EXCLUDED.high_price,  tw.daily_prices.high_price),
+                    low_price   = COALESCE(EXCLUDED.low_price,   tw.daily_prices.low_price),
+                    volume      = COALESCE(EXCLUDED.volume,      tw.daily_prices.volume)
             """, (
                 r["stock_id"], trade_date,
                 r.get("close_price"), r.get("high_price"),
@@ -132,17 +155,18 @@ def save_emerging(records: list, trade_date: date):
     fill_ref_price_from_prev_close(trade_date)
 
 
-def scrape_date(trade_date: date) -> int:
-    records = fetch_emerging(trade_date)
+def scrape_date(trade_date: date) -> ScrapeResult:
+    records, api_rows, errors = fetch_emerging(trade_date)
     save_emerging(records, trade_date)
-    return len(records)
+    return ScrapeResult(records=len(records), api_rows=api_rows, parse_errors=errors)
 
 
 def scrape_date_range(start_date: date, end_date: date) -> int:
     current, total = start_date, 0
     while current <= end_date:
         if current.weekday() < 5:
-            total += scrape_date(current)
+            result = scrape_date(current)
+            total += result.records
         current += timedelta(days=1)
     print(f"\nDone. Total records saved: {total}")
     return total

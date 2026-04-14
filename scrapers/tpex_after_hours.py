@@ -2,18 +2,19 @@ from datetime import date, timedelta
 
 from db.connection import get_cursor
 from utils.classifier import classify_tw_security
+from utils.format_shift import ScrapeResult
 from utils.http_client import get_session, _wait_for_rate_limit, _get_domain, MAX_RETRIES, BACKOFF_BASE
 
 BASE_URL = "https://www.tpex.org.tw/www/zh-tw/afterTrading/fixPricing"
 
 
-def _to_roc_date(d: date) -> str:
-    """Convert date to ROC calendar format (e.g. 115/04/02)."""
-    return f"{d.year - 1911}/{d.strftime('%m/%d')}"
+def _to_ad_date(d: date) -> str:
+    """Convert date to AD slash format (e.g. 2026/04/02)."""
+    return d.strftime("%Y/%m/%d")
 
 
 def _post(url: str, data: dict) -> dict | None:
-    """POST request with rate limiting and retry."""
+    """POST request with rate limiting and retry (including soft failures)."""
     import time, random
     session = get_session()
     domain = _get_domain(url)
@@ -26,7 +27,10 @@ def _post(url: str, data: dict) -> dict | None:
             result = resp.json()
             if result.get("stat") == "ok":
                 return result
-            return None
+            # Soft failure — stat != "ok", retry
+            print(f"  Soft failure (stat={result.get('stat')}), attempt {attempt + 1}/{MAX_RETRIES}")
+            if attempt < MAX_RETRIES - 1:
+                time.sleep(BACKOFF_BASE + random.uniform(1, 3))
         except Exception as e:
             print(f"  Attempt {attempt + 1} failed: {e}")
             if attempt < MAX_RETRIES - 1:
@@ -34,25 +38,35 @@ def _post(url: str, data: dict) -> dict | None:
     return None
 
 
-def fetch_after_hours(trade_date: date) -> list:
+def fetch_after_hours(trade_date: date) -> tuple:
     """
     Fetch TPEx after-hours fixed-price trading data for a given date.
     Source: /www/zh-tw/afterTrading/fixPricing (POST)
     Fields: [0] code, [1] name, [2] bid_count, [3] bid_lots, [4] ask_count, [5] ask_lots,
             [6] price, [7] tx_count, [8] volume(lots), [9] turnover, ...
     Volume is reported in lots (張); multiply by 1000 to convert to shares (股).
+    Returns (records, api_rows, parse_errors).
     """
-    roc_date = _to_roc_date(trade_date)
-    print(f"Fetching TPEx after-hours for {trade_date} (ROC: {roc_date}) ...")
+    ad_date = _to_ad_date(trade_date)
+    print(f"Fetching TPEx after-hours for {trade_date} ...")
 
-    data = _post(BASE_URL, {"d": roc_date})
+    data = _post(BASE_URL, {"date": ad_date, "response": "json"})
     if not data:
         print("  No data returned.")
-        return []
+        return [], 0, 0
+
+    # Verify the API returned data for the requested date.
+    api_date = str(data.get("date", "")).strip()
+    expected = trade_date.strftime("%Y%m%d")
+    if api_date and api_date != expected:
+        print(f"  Date mismatch: requested {expected}, API returned {api_date} — skipping")
+        return [], 0, 0
 
     rows = data["tables"][0].get("data", [])
     print(f"  Found {len(rows)} records.")
 
+    api_rows = len(rows)
+    parse_errors = 0
     results = []
     for row in rows:
         try:
@@ -79,9 +93,10 @@ def fetch_after_hours(trade_date: date) -> list:
             })
         except (ValueError, TypeError, IndexError) as e:
             print(f"  Skipping parse error: {e}")
+            parse_errors += 1
             continue
 
-    return results
+    return results, api_rows, parse_errors
 
 
 def save_after_hours(records: list, trade_date: date):
@@ -105,10 +120,10 @@ def save_after_hours(records: list, trade_date: date):
                 VALUES (%s, %s, %s, %s, %s, %s)
                 ON CONFLICT (stock_id, trade_date)
                 DO UPDATE SET
-                    ah_price    = EXCLUDED.ah_price,
-                    ah_volume   = EXCLUDED.ah_volume,
-                    ah_turnover = EXCLUDED.ah_turnover,
-                    ah_tx_count = EXCLUDED.ah_tx_count
+                    ah_price    = COALESCE(EXCLUDED.ah_price,    tw.daily_prices.ah_price),
+                    ah_volume   = COALESCE(EXCLUDED.ah_volume,   tw.daily_prices.ah_volume),
+                    ah_turnover = COALESCE(EXCLUDED.ah_turnover, tw.daily_prices.ah_turnover),
+                    ah_tx_count = COALESCE(EXCLUDED.ah_tx_count, tw.daily_prices.ah_tx_count)
             """, (
                 r["stock_id"], trade_date,
                 r.get("ah_price"), r.get("ah_volume"),
@@ -118,17 +133,18 @@ def save_after_hours(records: list, trade_date: date):
     print(f"Saved {len(records)} TPEx after-hours records.")
 
 
-def scrape_date(trade_date: date) -> int:
-    records = fetch_after_hours(trade_date)
+def scrape_date(trade_date: date) -> ScrapeResult:
+    records, api_rows, errors = fetch_after_hours(trade_date)
     save_after_hours(records, trade_date)
-    return len(records)
+    return ScrapeResult(records=len(records), api_rows=api_rows, parse_errors=errors)
 
 
 def scrape_date_range(start_date: date, end_date: date) -> int:
     current, total = start_date, 0
     while current <= end_date:
         if current.weekday() < 5:
-            total += scrape_date(current)
+            result = scrape_date(current)
+            total += result.records
         current += timedelta(days=1)
     print(f"\nDone. Total records saved: {total}")
     return total

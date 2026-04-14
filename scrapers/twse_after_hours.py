@@ -2,7 +2,8 @@ from datetime import date
 
 from db.connection import get_cursor
 from utils.classifier import classify_tw_security
-from utils.http_client import fetch_json
+from utils.format_shift import ScrapeResult
+from utils.http_client import fetch_json, fetch_json_retry
 
 # TWSE Open Data API (latest day only, no date param)
 OPENDATA_URL = "https://openapi.twse.com.tw/v1/exchangeReport/BFT41U"
@@ -26,27 +27,38 @@ def fetch_after_hours_latest():
     return _parse_opendata(data)
 
 
-def fetch_after_hours_by_date(trade_date: date):
-    """Fetch TWSE after-hours fixed-price data for a specific date."""
+def fetch_after_hours_by_date(trade_date: date) -> tuple:
+    """
+    Fetch TWSE after-hours fixed-price data for a specific date.
+    Returns (records, api_rows, parse_errors).
+    """
     date_str = trade_date.strftime("%Y%m%d")
     print(f"Fetching TWSE after-hours for {trade_date} ...")
 
-    data = fetch_json(
+    data = fetch_json_retry(
         RWD_URL,
         params={"date": date_str, "selectType": "ALL", "response": "json"},
+        validate=lambda d: d.get("stat") == "OK",
     )
     if not data or data.get("stat") != "OK":
         print(f"  API returned stat={data.get('stat') if data else 'no response'}")
-        return []
+        return [], 0, 0
+
+    # Verify the API returned data for the requested date.
+    api_date = str(data.get("date", "")).strip()
+    if api_date and api_date != date_str:
+        print(f"  Date mismatch: requested {date_str}, API returned {api_date} — skipping")
+        return [], 0, 0
 
     rows = data.get("data", [])
     fields = data.get("fields", [])
     if not rows:
         print("  No data for this date.")
-        return []
+        return [], 0, 0
 
     print(f"  Found {len(rows)} records.")
-    return _parse_rwd(rows, fields)
+    records, errors = _parse_rwd(rows, fields)
+    return records, len(rows), errors
 
 
 def _parse_opendata(data: list) -> list:
@@ -79,16 +91,20 @@ def _parse_opendata(data: list) -> list:
     return results
 
 
-def _parse_rwd(rows: list, fields: list) -> list:
-    """Parse rwd API format (list of lists).
+def _parse_rwd(rows: list, fields: list) -> tuple:
+    """
+    Parse rwd API format (list of lists).
     Fields: 證券代號, 證券名稱, 成交數量, 成交筆數, 成交金額, 成交價, ...
+    Returns (records, parse_errors).
     """
     results = []
+    errors = 0
     for row in rows:
         try:
             record = dict(zip(fields, row))
             stock_id = record.get("證券代號", "").strip()
-            if not stock_id or not classify_tw_security(stock_id):
+            security_type = classify_tw_security(stock_id)
+            if not stock_id or not security_type:
                 continue
 
             def parse_num(val):
@@ -102,14 +118,18 @@ def _parse_rwd(rows: list, fields: list) -> list:
 
             results.append({
                 "stock_id": stock_id,
+                "name":     record.get("證券名稱", "").strip(),
+                "security_type": security_type,
                 "ah_price": parse_num(record.get("成交價")),
                 "ah_volume": int(volume),
                 "ah_turnover": int(parse_num(record.get("成交金額")) or 0),
                 "ah_tx_count": int(parse_num(record.get("成交筆數")) or 0),
             })
-        except (ValueError, TypeError):
+        except (ValueError, TypeError) as e:
+            print(f"  Skipping row parse error: {e}")
+            errors += 1
             continue
-    return results
+    return results, errors
 
 
 def save_after_hours(records: list, trade_date: date):
@@ -120,15 +140,23 @@ def save_after_hours(records: list, trade_date: date):
 
     with get_cursor() as cur:
         for r in records:
+            if r.get("name") and r.get("security_type"):
+                cur.execute("""
+                    INSERT INTO tw.stocks (stock_id, name, market, security_type)
+                    VALUES (%s, %s, 'TWSE', %s)
+                    ON CONFLICT (stock_id) DO UPDATE SET name = EXCLUDED.name, updated_at = NOW()
+                """, (r["stock_id"], r["name"], r["security_type"]))
+
+        for r in records:
             cur.execute("""
                 INSERT INTO tw.daily_prices (stock_id, trade_date, ah_price, ah_volume, ah_turnover, ah_tx_count)
                 VALUES (%s, %s, %s, %s, %s, %s)
                 ON CONFLICT (stock_id, trade_date)
                 DO UPDATE SET
-                    ah_price    = EXCLUDED.ah_price,
-                    ah_volume   = EXCLUDED.ah_volume,
-                    ah_turnover = EXCLUDED.ah_turnover,
-                    ah_tx_count = EXCLUDED.ah_tx_count
+                    ah_price    = COALESCE(EXCLUDED.ah_price,    tw.daily_prices.ah_price),
+                    ah_volume   = COALESCE(EXCLUDED.ah_volume,   tw.daily_prices.ah_volume),
+                    ah_turnover = COALESCE(EXCLUDED.ah_turnover, tw.daily_prices.ah_turnover),
+                    ah_tx_count = COALESCE(EXCLUDED.ah_tx_count, tw.daily_prices.ah_tx_count)
             """, (
                 r["stock_id"], trade_date,
                 r.get("ah_price"), r.get("ah_volume"),
@@ -146,12 +174,12 @@ def scrape_latest():
     return len(records)
 
 
-def scrape_date(trade_date: date):
+def scrape_date(trade_date: date) -> ScrapeResult:
     """Fetch and save after-hours data for a specific date."""
-    records = fetch_after_hours_by_date(trade_date)
+    records, api_rows, errors = fetch_after_hours_by_date(trade_date)
     if records:
         save_after_hours(records, trade_date)
-    return len(records)
+    return ScrapeResult(records=len(records), api_rows=api_rows, parse_errors=errors)
 
 
 if __name__ == "__main__":

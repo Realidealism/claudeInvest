@@ -3,7 +3,7 @@
 CREATE SCHEMA IF NOT EXISTS us;
 
 -- Stock basic info
-CREATE TABLE us.stocks (
+CREATE TABLE IF NOT EXISTS us.stocks (
     ticker      VARCHAR(10) PRIMARY KEY,    -- e.g. 'AAPL'
     name        VARCHAR(200) NOT NULL,       -- e.g. 'Apple Inc.'
     exchange    VARCHAR(20),                 -- 'NYSE', 'NASDAQ', 'AMEX'
@@ -15,7 +15,7 @@ CREATE TABLE us.stocks (
 );
 
 -- Daily price data
-CREATE TABLE us.daily_prices (
+CREATE TABLE IF NOT EXISTS us.daily_prices (
     ticker          VARCHAR(10) NOT NULL REFERENCES us.stocks(ticker),
     trade_date      DATE NOT NULL,
     open_price      NUMERIC(12, 4),
@@ -28,7 +28,7 @@ CREATE TABLE us.daily_prices (
 );
 
 -- Dividend records
-CREATE TABLE us.dividends (
+CREATE TABLE IF NOT EXISTS us.dividends (
     id              SERIAL PRIMARY KEY,
     ticker          VARCHAR(10) NOT NULL REFERENCES us.stocks(ticker),
     ex_date         DATE NOT NULL,
@@ -37,5 +37,5 @@ CREATE TABLE us.dividends (
 );
 
 -- Index for common queries
-CREATE INDEX idx_us_daily_prices_date ON us.daily_prices (trade_date);
-CREATE INDEX idx_us_dividends_ticker ON us.dividends (ticker, ex_date);
+CREATE INDEX IF NOT EXISTS idx_us_daily_prices_date ON us.daily_prices (trade_date);
+CREATE INDEX IF NOT EXISTS idx_us_dividends_ticker ON us.dividends (ticker, ex_date);

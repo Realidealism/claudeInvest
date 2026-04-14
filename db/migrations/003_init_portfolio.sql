@@ -3,7 +3,7 @@
 CREATE SCHEMA IF NOT EXISTS portfolio;
 
 -- Portfolio groups
-CREATE TABLE portfolio.portfolios (
+CREATE TABLE IF NOT EXISTS portfolio.portfolios (
     id          SERIAL PRIMARY KEY,
     name        VARCHAR(100) NOT NULL,      -- e.g. 'Main', 'Speculative'
     description TEXT,
@@ -11,7 +11,7 @@ CREATE TABLE portfolio.portfolios (
 );
 
 -- Transaction records
-CREATE TABLE portfolio.transactions (
+CREATE TABLE IF NOT EXISTS portfolio.transactions (
     id              SERIAL PRIMARY KEY,
     portfolio_id    INTEGER NOT NULL REFERENCES portfolio.portfolios(id),
     market          VARCHAR(10) NOT NULL,    -- 'TW' or 'US'
@@ -28,7 +28,7 @@ CREATE TABLE portfolio.transactions (
 );
 
 -- Watchlist
-CREATE TABLE portfolio.watchlist (
+CREATE TABLE IF NOT EXISTS portfolio.watchlist (
     id          SERIAL PRIMARY KEY,
     market      VARCHAR(10) NOT NULL,       -- 'TW' or 'US'
     symbol      VARCHAR(10) NOT NULL,
@@ -38,7 +38,7 @@ CREATE TABLE portfolio.watchlist (
 );
 
 -- Research notes
-CREATE TABLE portfolio.notes (
+CREATE TABLE IF NOT EXISTS portfolio.notes (
     id          SERIAL PRIMARY KEY,
     market      VARCHAR(10) NOT NULL,
     symbol      VARCHAR(10) NOT NULL,
@@ -49,6 +49,6 @@ CREATE TABLE portfolio.notes (
 );
 
 -- Index
-CREATE INDEX idx_portfolio_tx_symbol ON portfolio.transactions (market, symbol);
-CREATE INDEX idx_portfolio_tx_date ON portfolio.transactions (trade_date);
-CREATE INDEX idx_portfolio_watchlist_market ON portfolio.watchlist (market);
+CREATE INDEX IF NOT EXISTS idx_portfolio_tx_symbol ON portfolio.transactions (market, symbol);
+CREATE INDEX IF NOT EXISTS idx_portfolio_tx_date ON portfolio.transactions (trade_date);
+CREATE INDEX IF NOT EXISTS idx_portfolio_watchlist_market ON portfolio.watchlist (market);

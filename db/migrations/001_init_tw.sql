@@ -4,7 +4,7 @@
 CREATE SCHEMA IF NOT EXISTS tw;
 
 -- Stock basic info
-CREATE TABLE tw.stocks (
+CREATE TABLE IF NOT EXISTS tw.stocks (
     stock_id    VARCHAR(10) PRIMARY KEY,   -- e.g. '2330'
     name        VARCHAR(100) NOT NULL,      -- e.g. '台積電'
     market      VARCHAR(10) NOT NULL,       -- 'TWSE' (上市) or 'TPEx' (上櫃)
@@ -17,7 +17,7 @@ CREATE TABLE tw.stocks (
 );
 
 -- Daily price data (regular session + after-hours + odd-lot)
-CREATE TABLE tw.daily_prices (
+CREATE TABLE IF NOT EXISTS tw.daily_prices (
     stock_id        VARCHAR(10) NOT NULL REFERENCES tw.stocks(stock_id),
     trade_date      DATE NOT NULL,
     -- Regular session (一般交易)
@@ -49,7 +49,7 @@ CREATE TABLE tw.daily_prices (
 );
 
 -- Dividend records (除權除息)
-CREATE TABLE tw.dividends (
+CREATE TABLE IF NOT EXISTS tw.dividends (
     id              SERIAL PRIMARY KEY,
     stock_id        VARCHAR(10) NOT NULL REFERENCES tw.stocks(stock_id),
     ex_date         DATE NOT NULL,          -- 除權/除息日
@@ -59,16 +59,16 @@ CREATE TABLE tw.dividends (
 );
 
 -- Monthly revenue (月營收)
-CREATE TABLE tw.monthly_revenue (
+CREATE TABLE IF NOT EXISTS tw.monthly_revenue (
     stock_id        VARCHAR(10) NOT NULL REFERENCES tw.stocks(stock_id),
     year_month      VARCHAR(7) NOT NULL,    -- e.g. '2026-03'
     revenue         BIGINT NOT NULL,        -- monthly revenue (thousands NTD)
-    mom_pct         NUMERIC(8, 2),          -- month-over-month %
-    yoy_pct         NUMERIC(8, 2),          -- year-over-year %
+    mom_pct         NUMERIC(12, 2),         -- month-over-month %
+    yoy_pct         NUMERIC(12, 2),         -- year-over-year %
     PRIMARY KEY (stock_id, year_month)
 );
 
 -- Index for common queries
-CREATE INDEX idx_tw_daily_prices_date ON tw.daily_prices (trade_date);
-CREATE INDEX idx_tw_dividends_stock ON tw.dividends (stock_id, ex_date);
-CREATE INDEX idx_tw_monthly_revenue_date ON tw.monthly_revenue (year_month);
+CREATE INDEX IF NOT EXISTS idx_tw_daily_prices_date ON tw.daily_prices (trade_date);
+CREATE INDEX IF NOT EXISTS idx_tw_dividends_stock ON tw.dividends (stock_id, ex_date);
+CREATE INDEX IF NOT EXISTS idx_tw_monthly_revenue_date ON tw.monthly_revenue (year_month);

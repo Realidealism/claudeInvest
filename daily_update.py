@@ -13,6 +13,8 @@ import sys
 import traceback
 from datetime import date, timedelta
 
+from db.connection import get_cursor
+
 # ---------------------------------------------------------------------------
 # Scraper registry — order matters (prices first, derived data last)
 # ---------------------------------------------------------------------------
@@ -33,18 +35,124 @@ SCRAPERS = [
 ]
 
 
+SCRAPER_MAX_RETRIES = 3
+SCRAPER_RETRY_WAIT  = 10  # seconds
+
+
 def run_scraper(label: str, module_path: str, func_name: str, trade_date: date) -> bool:
-    """Import and run a single scraper. Returns True on success."""
-    try:
-        import importlib
-        mod = importlib.import_module(module_path)
-        fn  = getattr(mod, func_name)
-        fn(trade_date)
-        return True
-    except Exception:
-        print(f"\n  [ERROR] {label} failed:")
-        traceback.print_exc()
-        return False
+    """Import and run a single scraper. Retries up to SCRAPER_MAX_RETRIES times."""
+    import time
+    import importlib
+    mod = importlib.import_module(module_path)
+    fn  = getattr(mod, func_name)
+
+    for attempt in range(1, SCRAPER_MAX_RETRIES + 1):
+        try:
+            fn(trade_date)
+            return True
+        except Exception:
+            print(f"\n  [ERROR] {label} (attempt {attempt}/{SCRAPER_MAX_RETRIES}):")
+            traceback.print_exc()
+            if attempt < SCRAPER_MAX_RETRIES:
+                print(f"  Retrying in {SCRAPER_RETRY_WAIT}s ...")
+                time.sleep(SCRAPER_RETRY_WAIT)
+
+    return False
+
+
+DELIST_THRESHOLD_DAYS = 20  # consecutive trading days absent before marking delisted
+DELIST_RECENT_DAYS    = 7   # only run delist detection when trade_date is within this many days of today
+
+
+def detect_delisted(trade_date: date):
+    """
+    Compare today's API stock list against DB active stocks.
+    Mark stocks as delisted only if they have been absent for
+    DELIST_THRESHOLD_DAYS consecutive trading days, to avoid false
+    positives from temporary halts (重訊停牌, 減資換發, 處置等).
+
+    TWSE/TPEx daily price APIs return ALL listed stocks (even with no trades),
+    so any active stock missing from the list is not currently trading.
+
+    Only runs when trade_date is recent (within DELIST_RECENT_DAYS of today),
+    because the cutoff is derived from the latest TAIEX dates in DB and
+    historical backfills would otherwise mark currently-active stocks as
+    delisted (their last_seen would be far in the past relative to "now").
+    """
+    days_old = (date.today() - trade_date).days
+    if days_old > DELIST_RECENT_DAYS:
+        print(f"  [SKIP] Delist detection: {trade_date} is {days_old} days old "
+              f"(threshold {DELIST_RECENT_DAYS}); historical backfills cannot "
+              f"reliably detect delistings.")
+        return
+
+    with get_cursor() as cur:
+        # Get stock_ids that were scraped today (appeared in API)
+        cur.execute("""
+            SELECT DISTINCT stock_id FROM tw.daily_prices
+            WHERE trade_date = %s AND close_price IS NOT NULL
+        """, (trade_date,))
+        today_ids = {r["stock_id"] for r in cur.fetchall()}
+
+        if not today_ids:
+            print("  [SKIP] No price data for today, cannot detect delistings.")
+            return
+
+        # Get currently active stocks in DB
+        cur.execute("""
+            SELECT stock_id, name, market FROM tw.stocks
+            WHERE is_active = TRUE AND market IN ('TWSE', 'TPEx')
+        """)
+        active = cur.fetchall()
+
+        # Stocks active in DB but missing from today's API
+        missing = [s for s in active if s["stock_id"] not in today_ids]
+
+        if not missing:
+            print(f"  All {len(active)} active stocks found in today's data.")
+            return
+
+        # Check how many recent trading days each missing stock has been absent
+        # Use the last N trading days from index_prices as calendar reference
+        cur.execute("""
+            SELECT DISTINCT trade_date FROM tw.index_prices
+            WHERE index_id = 'TAIEX'
+            ORDER BY trade_date DESC
+            LIMIT %s
+        """, (DELIST_THRESHOLD_DAYS,))
+        recent_days = [r["trade_date"] for r in cur.fetchall()]
+
+        if len(recent_days) < DELIST_THRESHOLD_DAYS:
+            print(f"  [SKIP] Only {len(recent_days)} trading days in DB, need {DELIST_THRESHOLD_DAYS} for delist detection.")
+            return
+
+        cutoff_date = recent_days[-1]  # oldest of the recent N days
+        delisted, suspended = [], []
+
+        for s in missing:
+            cur.execute("""
+                SELECT MAX(trade_date) AS last_seen FROM tw.daily_prices
+                WHERE stock_id = %s AND close_price IS NOT NULL
+            """, (s["stock_id"],))
+            row = cur.fetchone()
+            last_seen = row["last_seen"] if row else None
+
+            if last_seen is None or last_seen < cutoff_date:
+                # Absent for >= threshold days -> mark delisted
+                cur.execute("""
+                    UPDATE tw.stocks
+                    SET is_active = FALSE, delisted_date = %s, updated_at = NOW()
+                    WHERE stock_id = %s
+                """, (last_seen or trade_date, s["stock_id"]))
+                delisted.append(s)
+                print(f"  [DELISTED] {s['stock_id']} {s['name']} ({s['market']}) last seen: {last_seen}")
+            else:
+                suspended.append(s)
+
+        if suspended:
+            print(f"  {len(suspended)} stock(s) temporarily absent (< {DELIST_THRESHOLD_DAYS} days, likely suspended).")
+        if delisted:
+            print(f"  Marked {len(delisted)} stock(s) as delisted.")
 
 
 def update_date(trade_date: date):
@@ -66,6 +174,30 @@ def update_date(trade_date: date):
         else:
             failed.append(label)
 
+    # Monthly revenue: fetch during the publication window (1st–12th)
+    if trade_date.day <= 13:
+        print(f"\n--- Monthly revenue ---")
+        try:
+            from scrapers.revenue import scrape_month
+            # Fetch previous month's revenue
+            m = trade_date.month - 1
+            y = trade_date.year
+            if m == 0:
+                m = 12
+                y -= 1
+            scrape_month(y, m)
+        except Exception:
+            print("  [ERROR] Monthly revenue scraper failed:")
+            traceback.print_exc()
+
+    # Detect delisted stocks after all price scrapers have run
+    print(f"\n--- Delist detection ---")
+    try:
+        detect_delisted(trade_date)
+    except Exception:
+        print("  [ERROR] Delist detection failed:")
+        traceback.print_exc()
+
     print(f"\n{'='*60}")
     print(f"  Done: {ok}/{len(SCRAPERS)} scrapers succeeded.")
     if failed:
@@ -84,14 +216,25 @@ def update_range(start: date, end: date):
 # Entry point
 # ---------------------------------------------------------------------------
 if __name__ == "__main__":
+    from db.connection import init_db
+    print("Initializing database schema ...")
+    init_db()
+    print()
+
     args = sys.argv[1:]
 
-    if len(args) == 0:
-        update_date(date.today())
-    elif len(args) == 1:
-        update_date(date.fromisoformat(args[0]))
-    elif len(args) == 2:
-        update_range(date.fromisoformat(args[0]), date.fromisoformat(args[1]))
-    else:
-        print("Usage: python daily_update.py [start_date] [end_date]")
-        sys.exit(1)
+    try:
+        if len(args) == 0:
+            update_date(date.today())
+        elif len(args) == 1:
+            update_date(date.fromisoformat(args[0]))
+        elif len(args) == 2:
+            update_range(date.fromisoformat(args[0]), date.fromisoformat(args[1]))
+        else:
+            print("Usage: python daily_update.py [start_date] [end_date]")
+            sys.exit(1)
+    except Exception as e:
+        print(f"\n[ERROR] {e}")
+        traceback.print_exc()
+
+    input("\nPress Enter to exit...")

@@ -1,3 +1,4 @@
+import sys
 import psycopg2
 from psycopg2.extras import RealDictCursor
 from contextlib import contextmanager
@@ -31,7 +32,9 @@ def init_db():
     """Run all migration files to initialize the database."""
     import os
 
-    migration_dir = os.path.join(os.path.dirname(__file__), "migrations")
+    # Support PyInstaller bundled paths
+    base = getattr(sys, '_MEIPASS', os.path.dirname(__file__))
+    migration_dir = os.path.join(base, "db", "migrations") if hasattr(sys, '_MEIPASS') else os.path.join(os.path.dirname(__file__), "migrations")
     migration_files = sorted(
         f for f in os.listdir(migration_dir) if f.endswith(".sql")
     )
