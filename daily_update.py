@@ -32,6 +32,8 @@ SCRAPERS = [
     ("Institutional investors", "scrapers.institutional",    "scrape_date"),
     # Index
     ("Market indices",          "scrapers.index_prices",     "scrape_date"),
+    # ETF holdings
+    ("ETF holdings",            "scrapers.etf_holdings",     "scrape_date"),
 ]
 
 
@@ -175,7 +177,7 @@ def update_date(trade_date: date):
             failed.append(label)
 
     # Monthly revenue: fetch during the publication window (1st–12th)
-    if trade_date.day <= 13:
+    if trade_date.day <= 15:
         print(f"\n--- Monthly revenue ---")
         try:
             from scrapers.revenue import scrape_month
