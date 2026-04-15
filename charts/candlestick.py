@@ -8,7 +8,10 @@ and accepts signal markers to overlay on the chart.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Optional
+from typing import Optional, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from charts.signals import SignalDef
 
 import numpy as np
 import plotly.graph_objects as go
@@ -35,7 +38,10 @@ def build_candlestick_figure(
     sub_value: np.ndarray,
     is_index: bool = False,
     signals: Optional[list[SignalMarker]] = None,
+    all_signal_defs: Optional[list] = None,
+    enabled_signals: Optional[set[str]] = None,
     sma_lines: Optional[dict[str, np.ndarray]] = None,
+    enabled_ma: Optional[set[str]] = None,
     wave_lines: Optional[list[dict]] = None,
     wave_visible: Optional[set[str]] = None,
     title: str = "",
@@ -83,25 +89,33 @@ def build_candlestick_figure(
         row=1, col=1,
     )
 
-    # -- MA lines --
-    if sma_lines:
-        ma_colors = [
-            "#ff9800", "#2196f3", "#9c27b0", "#4caf50",
-            "#f44336", "#00bcd4", "#795548", "#607d8b",
-        ]
-        for i, (label, values) in enumerate(sma_lines.items()):
-            color = ma_colors[i % len(ma_colors)]
-            fig.add_trace(
-                go.Scatter(
-                    x=dates,
-                    y=values,
-                    mode="lines",
-                    name=label,
-                    line=dict(width=1, color=color),
-                    hovertemplate=f"{label}: %{{y:.2f}}<extra></extra>",
-                ),
-                row=1, col=1,
-            )
+    # -- MA lines (always add all 10 slots for stable trace count) --
+    _ma_periods = ["3", "5", "8", "13", "21", "34", "55", "89", "144", "233"]
+    _ma_colors = [
+        "#ff9800", "#2196f3", "#9c27b0", "#4caf50",
+        "#f44336", "#00bcd4", "#795548", "#607d8b", "#e91e63", "#cddc39",
+    ]
+    _enabled_ma = enabled_ma or set()
+    if not sma_lines:
+        sma_lines = {}
+    for i, p in enumerate(_ma_periods):
+        label = f"MA{p}"
+        values = sma_lines.get(label)
+        has_data = values is not None
+        vis = has_data and p in _enabled_ma
+        fig.add_trace(
+            go.Scatter(
+                x=dates if has_data else [],
+                y=values if has_data else [],
+                mode="lines",
+                name=label,
+                visible=vis,
+                showlegend=vis,
+                line=dict(width=1, color=_ma_colors[i]),
+                hovertemplate=f"{label}: %{{y:.2f}}<extra></extra>",
+            ),
+            row=1, col=1,
+        )
 
     # -- Sub chart bars (volume or turnover) --
     bar_colors = np.where(
@@ -129,44 +143,77 @@ def build_candlestick_figure(
         row=2, col=1,
     )
 
-    # -- Signal markers --
+    # -- Signal markers (always add ALL defined signals for stable trace count) --
+    _enabled_sigs = enabled_signals or set()
+    signals_by_label: dict[str, list[SignalMarker]] = {}
     if signals:
-        _add_signal_markers(fig, signals)
-
-    # -- Wave lines (visibility controlled by wave_visible set) --
-    _wave_group = {"Wave": "wave", "浪瀑(多)": "wf", "浪瀑(空)": "wf", "浪溝": "wf"}
-    _wv = wave_visible or set()
-    if wave_lines:
-        for wl in wave_lines:
-            is_line = len(wl["dates"]) > 1 and wl["name"] == "Wave"
-            group = _wave_group.get(wl["name"], "")
-            vis = group in _wv
+        for s in signals:
+            signals_by_label.setdefault(s.label, []).append(s)
+    if all_signal_defs:
+        for sd in all_signal_defs:
+            markers_for_key = signals_by_label.get(sd.label, [])
+            has_data = len(markers_for_key) > 0
+            vis = has_data and sd.key in _enabled_sigs
             fig.add_trace(
                 go.Scatter(
-                    x=wl["dates"],
-                    y=wl["prices"],
-                    mode="lines+markers" if is_line else "markers",
-                    name=wl["name"],
+                    x=[m.date for m in markers_for_key] if has_data else [],
+                    y=[m.price for m in markers_for_key] if has_data else [],
+                    mode="markers",
+                    name=f"sig_{sd.key}",
                     visible=vis,
                     showlegend=False,
-                    line=dict(width=1.5, color=wl["color"], dash="dot") if is_line else None,
                     marker=dict(
-                        size=4 if is_line else 10,
-                        color=wl["color"],
-                        symbol="circle" if is_line else "diamond",
-                        line=dict(width=1, color="white") if not is_line else None,
+                        symbol=sd.symbol,
+                        size=sd.size,
+                        color=sd.color,
+                        line=dict(width=1, color="white"),
                     ),
-                    hovertemplate="%{y:.2f}<extra>" + wl["name"] + "</extra>",
+                    hovertemplate=f"{sd.label}<br>%{{x}}<br>%{{y:.2f}}<extra></extra>",
                 ),
                 row=1, col=1,
             )
+
+    # -- Wave lines (always add 4 slots for stable trace count) --
+    _wave_slots = [
+        ("Wave", "wave", "#ffd54f", True),
+        ("浪瀑(多)", "wf", "#ef5350", False),
+        ("浪瀑(空)", "wf", "#26a69a", False),
+        ("浪溝", "wf", "#9e9e9e", False),
+    ]
+    _wv = wave_visible or set()
+    wave_data = {}
+    if wave_lines:
+        for wl in wave_lines:
+            wave_data[wl["name"]] = wl
+    for wname, wgroup, wcolor, is_line_type in _wave_slots:
+        wl = wave_data.get(wname)
+        has_data = wl is not None and len(wl["dates"]) > 0
+        vis = has_data and wgroup in _wv
+        fig.add_trace(
+            go.Scatter(
+                x=wl["dates"] if has_data else [],
+                y=wl["prices"] if has_data else [],
+                mode="lines+markers" if is_line_type else "markers",
+                name=wname,
+                visible=vis,
+                showlegend=False,
+                line=dict(width=1.5, color=wcolor, dash="dot") if is_line_type else None,
+                marker=dict(
+                    size=4 if is_line_type else 10,
+                    color=wcolor,
+                    symbol="circle" if is_line_type else "diamond",
+                    line=dict(width=1, color=wcolor) if not is_line_type else None,
+                ),
+                hovertemplate="%{y:.2f}<extra>" + wname + "</extra>",
+            ),
+            row=1, col=1,
+        )
 
     # -- Layout --
     fig.update_layout(
         title=dict(text=title, x=0.5),
         template="plotly_dark",
         xaxis_rangeslider_visible=False,
-        uirevision="keep",   # preserve zoom/pan across figure rebuilds
         height=700,
         autosize=True,
         margin=dict(l=80, r=40, t=80, b=30, autoexpand=False),
@@ -192,48 +239,46 @@ def build_candlestick_figure(
         ),
     )
 
+    n = len(dates)
     fig.update_xaxes(
         type="category",
         categoryorder="array",
         categoryarray=dates,
+        range=[-0.5, n - 0.5] if n > 0 else None,
+        autorange=False if n > 0 else None,
         row=1, col=1,
     )
     fig.update_xaxes(
         type="category",
         categoryorder="array",
         categoryarray=dates,
+        range=[-0.5, n - 0.5] if n > 0 else None,
+        autorange=False if n > 0 else None,
         row=2, col=1,
     )
-    fig.update_yaxes(title_text="Price", tickformat=",", automargin=False, row=1, col=1)
-    fig.update_yaxes(title_text="成交金額 (億)" if is_index else "Volume",
-                     tickformat=",", automargin=False, row=2, col=1)
+    # Lock y-axis ranges to prevent autorange recalculation when
+    # signal markers or wave traces change visibility
+    if len(high) > 0:
+        y_min, y_max = float(np.min(low)), float(np.max(high))
+        pad = (y_max - y_min) * 0.06
+        fig.update_yaxes(title_text="Price", tickformat=",", automargin=False,
+                         range=[y_min - pad, y_max + pad], autorange=False,
+                         row=1, col=1)
+    else:
+        fig.update_yaxes(title_text="Price", tickformat=",", automargin=False, row=1, col=1)
+
+    if len(sub_value) > 0:
+        sub_max = float(np.max(bar_y))
+        fig.update_yaxes(title_text="成交金額 (億)" if is_index else "Volume",
+                         tickformat=",", automargin=False,
+                         range=[0, sub_max * 1.1], autorange=False,
+                         row=2, col=1)
+    else:
+        fig.update_yaxes(title_text="成交金額 (億)" if is_index else "Volume",
+                         tickformat=",", automargin=False, row=2, col=1)
 
     return fig
 
-
-def _add_signal_markers(fig: go.Figure, signals: list[SignalMarker]) -> None:
-    """Group signals by label and add as scatter traces."""
-    grouped: dict[str, list[SignalMarker]] = {}
-    for s in signals:
-        grouped.setdefault(s.label, []).append(s)
-
-    for label, markers in grouped.items():
-        fig.add_trace(
-            go.Scatter(
-                x=[m.date for m in markers],
-                y=[m.price for m in markers],
-                mode="markers",
-                name=label,
-                marker=dict(
-                    symbol=markers[0].symbol,
-                    size=markers[0].size,
-                    color=markers[0].color,
-                    line=dict(width=1, color="white"),
-                ),
-                hovertemplate=f"{label}<br>%{{x}}<br>%{{y:.2f}}<extra></extra>",
-            ),
-            row=1, col=1,
-        )
 
 
 # Drawing tool config for Dash / standalone usage

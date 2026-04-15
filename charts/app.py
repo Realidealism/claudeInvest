@@ -14,6 +14,7 @@ Features:
 
 from __future__ import annotations
 
+import json
 from datetime import date, timedelta
 
 import numpy as np
@@ -90,7 +91,6 @@ def _remove_watchlist_item(stock_id: str) -> None:
         cur.execute("DELETE FROM tw.watchlist WHERE stock_id = %s", (stock_id,))
 
 
-import json as _json
 
 
 def _load_signal_setting(key: str, default):
@@ -100,12 +100,12 @@ def _load_signal_setting(key: str, default):
         row = cur.fetchone()
     if row is None:
         return default
-    return _json.loads(row["value"])
+    return json.loads(row["value"])
 
 
 def _save_signal_setting(key: str, value) -> None:
     """Save a signal setting to the database."""
-    val_json = _json.dumps(value, ensure_ascii=False)
+    val_json = json.dumps(value, ensure_ascii=False)
     with get_cursor() as cur:
         cur.execute(
             """
@@ -117,12 +117,15 @@ def _save_signal_setting(key: str, value) -> None:
         )
 
 
-from analysis import calculate_close, calculate_candle, calculate_volume
+from analysis.close import calculate_close
+from analysis.candle import calculate_candle
+from analysis.volume import calculate_volume
 from analysis.wave import calculate_wave
 from charts.candlestick import build_candlestick_figure, DRAWING_BUTTONS
 from charts.signals import (
     get_signal_categories,
     generate_markers,
+    SIGNAL_DEFS,
 )
 
 
@@ -273,6 +276,90 @@ app.index_string = """<!DOCTYPE html>
             {%renderer%}
         </footer>
         <script>
+        // Trace index mapping (must match build_candlestick_figure order)
+        // 0: Candlestick, 1-10: MA, 11: Volume, 12-31: Signals, 32-35: Wave
+        var _maIndices = {
+            '3':1, '5':2, '8':3, '13':4, '21':5, '34':6, '55':7, '89':8, '144':9, '233':10
+        };
+        var _sigKeys = ['jump','squat','short_hl','medium_hl','long_hl','red_long','black_long',
+            'upper_shadow','lower_shadow','trigger_high1','trigger_low1','trigger_high2',
+            'trigger_low2','trigger_high3','trigger_low3','creep_high1','creep_low1',
+            'vol_burst','vol_sleep','vol_flood'];
+        var _sigBaseIdx = 12;
+        var _waveSlots = [
+            {name:'Wave', group:'wave', idx:32},
+            {name:'浪瀑(多)', group:'wf', idx:33},
+            {name:'浪瀑(空)', group:'wf', idx:34},
+            {name:'浪溝', group:'wf', idx:35}
+        ];
+
+        function _getGraph() {
+            return document.querySelector('#chart .js-plotly-plot');
+        }
+
+        function _restyle(traceIdx, vis) {
+            var g = _getGraph();
+            if (!g || !g.data || traceIdx >= g.data.length) return;
+            // Only restyle if trace has data
+            var hasData = g.data[traceIdx].x && g.data[traceIdx].x.length > 0;
+            Plotly.restyle(g, {visible: [hasData && vis]}, [traceIdx]);
+        }
+
+        // MA toggle
+        document.addEventListener('click', function(e) {
+            var c = document.getElementById('ma-select');
+            if (!c || !c.contains(e.target)) return;
+            setTimeout(function() {
+                var checked = new Set();
+                c.querySelectorAll('input').forEach(function(inp) {
+                    if (inp.checked) checked.add(inp.value);
+                });
+                Object.keys(_maIndices).forEach(function(p) {
+                    _restyle(_maIndices[p], checked.has(p));
+                });
+            }, 50);
+        });
+
+        // Signal toggle
+        document.addEventListener('click', function(e) {
+            var modal = document.getElementById('signal-modal-backdrop');
+            if (!modal) return;
+            // Check if click is inside any signals- checklist
+            var found = false;
+            _sigKeys.forEach(function() {}); // just need to check container
+            var checklists = modal.querySelectorAll('[id^="signals-"]');
+            checklists.forEach(function(cl) {
+                if (cl.contains(e.target)) found = true;
+            });
+            if (!found) return;
+            setTimeout(function() {
+                var enabled = new Set();
+                checklists.forEach(function(cl) {
+                    cl.querySelectorAll('input').forEach(function(inp) {
+                        if (inp.checked) enabled.add(inp.value);
+                    });
+                });
+                _sigKeys.forEach(function(key, i) {
+                    _restyle(_sigBaseIdx + i, enabled.has(key));
+                });
+            }, 50);
+        });
+
+        // Wave toggle
+        document.addEventListener('click', function(e) {
+            var c = document.getElementById('wave-select');
+            if (!c || !c.contains(e.target)) return;
+            setTimeout(function() {
+                var checked = new Set();
+                c.querySelectorAll('input').forEach(function(inp) {
+                    if (inp.checked) checked.add(inp.value);
+                });
+                _waveSlots.forEach(function(w) {
+                    _restyle(w.idx, checked.has(w.group));
+                });
+            }, 50);
+        });
+
         // Delete key removes selected shape
         document.addEventListener('keydown', function(e) {
             if (e.key !== 'Delete') return;
@@ -483,6 +570,12 @@ app.layout = html.Div(
                                         "padding": "8px 0", "cursor": "pointer",
                                         "fontSize": "13px", "color": "#eee",
                                         "borderBottom": "2px solid #2196f3"}),
+                        html.Div("庫存", id="tab-inventory-btn", n_clicks=0,
+                                 className="sidebar-tab",
+                                 style={"flex": "1", "textAlign": "center",
+                                        "padding": "8px 0", "cursor": "pointer",
+                                        "fontSize": "13px", "color": "#888",
+                                        "borderBottom": "2px solid transparent"}),
                         html.Div("選股結果", id="tab-screener-btn", n_clicks=0,
                                  className="sidebar-tab",
                                  style={"flex": "1", "textAlign": "center",
@@ -532,6 +625,19 @@ app.layout = html.Div(
                         ),
                         html.Div(id="watchlist-container"),
                         dcc.Store(id="watchlist-store"),
+                    ],
+                ),
+
+                # Tab content: 庫存
+                html.Div(
+                    id="tab-inventory-content",
+                    style={"padding": "12px", "display": "none"},
+                    children=[
+                        html.Div(id="inventory-container", children=[
+                            html.Div("尚未連接券商 API",
+                                     style={"color": "#666", "fontSize": "13px",
+                                            "textAlign": "center", "marginTop": "20px"}),
+                        ]),
                     ],
                 ),
 
@@ -613,10 +719,79 @@ def _render_pinned_index(q: dict) -> list:
     ]
 
 
-# Load watchlist + TAIEX quote + signal settings from DB on page load
+def _load_inventory() -> list[dict]:
+    """Load inventory positions from database."""
+    with get_cursor(commit=False) as cur:
+        cur.execute(
+            """
+            SELECT symbol, symbol_name, current_quantity,
+                   unrealized_pnl, unrealized_pnl_rate
+            FROM tw.inventory
+            WHERE current_quantity > 0
+            ORDER BY symbol
+            """
+        )
+        return [dict(r) for r in cur.fetchall()]
+
+
+def _render_inventory(positions: list[dict]) -> list:
+    """Build inventory list UI."""
+    if not positions:
+        return [html.Div("尚未連接券商 API",
+                         style={"color": "#666", "fontSize": "13px",
+                                "textAlign": "center", "marginTop": "20px"})]
+    items = []
+    for pos in positions:
+        pnl = pos.get("unrealized_pnl")
+        pnl_rate = pos.get("unrealized_pnl_rate")
+        if pnl is not None and float(pnl) > 0:
+            color = "#ef5350"
+            sign = "+"
+        elif pnl is not None and float(pnl) < 0:
+            color = "#26a69a"
+            sign = ""
+        else:
+            color = "#888"
+            sign = ""
+        pnl_str = f"{sign}{float(pnl):,.0f}" if pnl is not None else "-"
+        rate_str = f"{sign}{float(pnl_rate):,.2f}%" if pnl_rate is not None else "-"
+        qty = pos.get("current_quantity", 0)
+        items.append(
+            html.Div(
+                style={"padding": "5px 6px", "borderRadius": "4px",
+                       "cursor": "pointer", "marginBottom": "2px"},
+                className="watchlist-item",
+                id={"type": "inventory-stock", "index": pos["symbol"]},
+                n_clicks=0,
+                children=[
+                    html.Div(
+                        style={"display": "flex", "justifyContent": "space-between"},
+                        children=[
+                            html.Span(f"{pos['symbol']} {pos.get('symbol_name', '')}",
+                                      style={"color": "#eee", "fontSize": "13px"}),
+                            html.Span(f"{qty:,} 股",
+                                      style={"color": "#aaa", "fontSize": "12px"}),
+                        ],
+                    ),
+                    html.Div(
+                        style={"display": "flex", "justifyContent": "space-between",
+                               "marginTop": "2px", "fontSize": "12px"},
+                        children=[
+                            html.Span(pnl_str, style={"color": color}),
+                            html.Span(rate_str, style={"color": color}),
+                        ],
+                    ),
+                ],
+            )
+        )
+    return items
+
+
+# Load watchlist + TAIEX quote + signal settings + inventory from DB on page load
 @app.callback(
     Output("watchlist-store", "data", allow_duplicate=True),
     Output("pinned-taiex", "children"),
+    Output("inventory-container", "children"),
     Output("ma-select", "value"),
     Output("wave-select", "value"),
     *[Output(f"signals-{cat}", "value") for cat in get_signal_categories()],
@@ -626,11 +801,12 @@ def _render_pinned_index(q: dict) -> list:
 def load_settings_from_db(n):
     wl = _load_watchlist()
     taiex = _render_pinned_index(_get_index_quote("TAIEX"))
+    inventory = _render_inventory(_load_inventory())
     ma = _load_signal_setting("ma_select", ["5", "21", "55"])
     wave = _load_signal_setting("wave_select", [])
     cats = list(get_signal_categories().keys())
     signal_vals = [_load_signal_setting(f"signals_{cat}", []) for cat in cats]
-    return (wl, taiex, ma, wave, *signal_vals)
+    return (wl, taiex, inventory, ma, wave, *signal_vals)
 
 
 # Toggle signal settings modal
@@ -675,22 +851,25 @@ def save_signal_settings(ma_val, wave_val, *signal_vals):
 
 
 # Build dynamic inputs for signal checklists
-_signal_inputs = []
+_signal_states = []
 for _cat in get_signal_categories():
-    _signal_inputs.append(Input(f"signals-{_cat}", "value"))
+    _signal_states.append(State(f"signals-{_cat}", "value"))
 
 
 # Callback: Sidebar tab switching
 @app.callback(
     Output("tab-watchlist-content", "style"),
+    Output("tab-inventory-content", "style"),
     Output("tab-screener-content", "style"),
     Output("tab-watchlist-btn", "style"),
+    Output("tab-inventory-btn", "style"),
     Output("tab-screener-btn", "style"),
     Input("tab-watchlist-btn", "n_clicks"),
+    Input("tab-inventory-btn", "n_clicks"),
     Input("tab-screener-btn", "n_clicks"),
     prevent_initial_call=True,
 )
-def switch_sidebar_tab(wl_clicks, sc_clicks):
+def switch_sidebar_tab(wl_clicks, inv_clicks, sc_clicks):
     active_style = {"flex": "1", "textAlign": "center", "padding": "8px 0",
                     "cursor": "pointer", "fontSize": "13px", "color": "#eee",
                     "borderBottom": "2px solid #2196f3"}
@@ -701,9 +880,11 @@ def switch_sidebar_tab(wl_clicks, sc_clicks):
     hide = {"padding": "12px", "display": "none"}
 
     triggered = dash.ctx.triggered_id
+    if triggered == "tab-inventory-btn":
+        return hide, show, hide, inactive_style, active_style, inactive_style
     if triggered == "tab-screener-btn":
-        return hide, show, inactive_style, active_style
-    return show, hide, active_style, inactive_style
+        return hide, hide, show, inactive_style, inactive_style, active_style
+    return show, hide, hide, active_style, inactive_style, inactive_style
 
 
 # Wave visibility is controlled by JS in index_string
@@ -722,7 +903,7 @@ def save_shapes(relayout_data, stored_shapes):
     return dash.no_update
 
 
-# Callback 2: Load data and build chart
+# Callback 2: Load data and build chart (only fires on data change)
 @app.callback(
     Output("chart", "figure"),
     Output("status-msg", "children"),
@@ -730,18 +911,17 @@ def save_shapes(relayout_data, stored_shapes):
     Input("stock-input", "value"),
     Input("start-date", "value"),
     Input("end-date", "value"),
-    *_signal_inputs,
-    Input("ma-select", "value"),
-    Input("wave-select", "value"),
+    State("ma-select", "value"),
+    State("wave-select", "value"),
+    *_signal_states,
     State("shapes-store", "data"),
     prevent_initial_call=True,
 )
-def update_chart(n_clicks, stock_id, start_date, end_date, *args):
+def update_chart(n_clicks, stock_id, start_date, end_date,
+                 ma_select, wave_select, *args):
     n_signal_cats = len(get_signal_categories())
     signal_values = list(args[:n_signal_cats])
-    ma_select = args[n_signal_cats]
-    wave_select = args[n_signal_cats + 1]
-    stored_shapes = args[n_signal_cats + 2]
+    stored_shapes = args[n_signal_cats]
 
     if not stock_id or not start_date or not end_date:
         return dash.no_update, "Please enter stock ID and date range."
@@ -766,28 +946,22 @@ def update_chart(n_clicks, stock_id, start_date, end_date, *args):
     except Exception as e:
         pass  # Partial analysis is ok, signals just won't show
 
-    # Collect enabled signals
-    enabled = []
-    for sv in signal_values:
-        if sv:
-            enabled.extend(sv)
-
-    # Generate signal markers
+    # Generate ALL signal markers (visibility controlled by JS)
+    all_signal_keys = [sd.key for sd in SIGNAL_DEFS]
     markers = generate_markers(
         data["dates"], data["high"], data["low"],
-        analysis_results, enabled,
+        analysis_results, all_signal_keys,
     )
 
-    # Build SMA lines
+    # Build ALL SMA lines (visibility controlled by JS)
     sma_lines = {}
-    if ma_select and "close" in analysis_results:
+    if "close" in analysis_results:
         close_result = analysis_results["close"]
-        for period_str in ma_select:
-            period = int(period_str)
+        for period in [3, 5, 8, 13, 21, 34, 55, 89, 144, 233]:
             if period in close_result.ma.sma:
                 sma_lines[f"MA{period}"] = close_result.ma.sma[period]
 
-    # Build wave lines (always computed, visibility controlled by clientside callback)
+    # Build wave lines (always computed, visibility controlled by JS)
     wave_lines = []
     if "candle" in analysis_results and "close" in analysis_results:
         try:
@@ -798,8 +972,6 @@ def update_chart(n_clicks, stock_id, start_date, end_date, *args):
                 data["open"], data["high"], data["low"], data["close"],
                 candle_r, close_r.bs,
                 volume=data["sub_value"] if vol_r else None,
-                burst=vol_r.burst if vol_r else None,
-                sleep=vol_r.sleep if vol_r else None,
             )
             wl = wave_r.waves
             dates = data["dates"]
@@ -839,7 +1011,13 @@ def update_chart(n_clicks, stock_id, start_date, end_date, *args):
         except Exception:
             pass
 
-    # Build figure
+    # Collect currently enabled signals for initial visibility
+    enabled = set()
+    for sv in signal_values:
+        if sv:
+            enabled.update(sv)
+
+    # Build figure with ALL data pre-loaded, visibility set by current state
     fig = build_candlestick_figure(
         dates=data["dates"],
         open_=data["open"],
@@ -849,7 +1027,10 @@ def update_chart(n_clicks, stock_id, start_date, end_date, *args):
         sub_value=data["sub_value"],
         is_index=data["is_index"],
         signals=markers,
+        all_signal_defs=SIGNAL_DEFS,
+        enabled_signals=enabled,
         sma_lines=sma_lines,
+        enabled_ma=set(ma_select) if ma_select else set(),
         wave_lines=wave_lines if wave_lines else None,
         wave_visible=set(wave_select) if wave_select else set(),
         title=f"{stock_id} {data['name']}",
@@ -1009,6 +1190,23 @@ def remove_from_watchlist(n_clicks_list, wl_data):
         stock = triggered["index"]
         _remove_watchlist_item(stock)
         return _load_watchlist()
+    return dash.no_update
+
+
+# Click inventory stock -> update stock-input
+@app.callback(
+    Output("stock-input", "value", allow_duplicate=True),
+    Input({"type": "inventory-stock", "index": dash.ALL}, "n_clicks"),
+    prevent_initial_call=True,
+)
+def select_inventory_stock(n_clicks_list):
+    if not n_clicks_list or not any(n_clicks_list):
+        return dash.no_update
+    if not dash.ctx.triggered_id:
+        return dash.no_update
+    triggered = dash.ctx.triggered_id
+    if isinstance(triggered, dict) and triggered.get("type") == "inventory-stock":
+        return triggered["index"]
     return dash.no_update
 
 
