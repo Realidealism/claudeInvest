@@ -51,28 +51,33 @@ def _parse_int(val) -> int | None:
 # 2018+  (19 cols): 外陸資(不含自營) + 外資自營商 separated, then 投信, 自營商合計, 自行, 避險, 三大法人
 # 2017-  (16 cols): 外資 combined (no 自營商 split), then 投信, 自營商合計, 自行, 避險, 三大法人
 
-def _find_col(fields, *keywords):
-    """Find column index where field name contains all keywords. Returns -1 if not found."""
+def _find_col(fields, *keywords, exclude=()):
+    """Find column index where field name contains all keywords and none of exclude."""
     for i, f in enumerate(fields):
-        if all(k in f for k in keywords):
+        if all(k in f for k in keywords) and not any(e in f for e in exclude):
             return i
     return -1
 
 
 def _parse_twse(rows: list, fields: list) -> tuple:
-    """Returns (records, parse_errors). Handles both 16-col (pre-2018) and 19-col formats."""
+    """
+    Returns (records, parse_errors). Handles both 16-col (pre-2018) and 19-col formats.
+    Stores foreign / foreign_dealer / dealer_self / dealer_hedge separately;
+    pre-2018 rows leave foreign_dealer_* and dealer_hedge_* as None.
+    """
     has_foreign_dealer = _find_col(fields, "外資自營商", "買進") >= 0
 
     if has_foreign_dealer:
-        # 19-col format (2018+)
+        # 外陸資* and 外資自營商* both contain "外資自營商" as substring via
+        # the "(不含外資自營商)" suffix — disambiguate with exclude=("不含",).
         fb_idx  = _find_col(fields, "外陸資", "買進")
         fs_idx  = _find_col(fields, "外陸資", "賣出")
         fn_idx  = _find_col(fields, "外陸資", "買賣超")
-        fdb_idx = _find_col(fields, "外資自營商", "買進")
-        fds_idx = _find_col(fields, "外資自營商", "賣出")
-        fdn_idx = _find_col(fields, "外資自營商", "買賣超")
+        fdb_idx = _find_col(fields, "外資自營商", "買進", exclude=("不含",))
+        fds_idx = _find_col(fields, "外資自營商", "賣出", exclude=("不含",))
+        fdn_idx = _find_col(fields, "外資自營商", "買賣超", exclude=("不含",))
     else:
-        # 16-col format (pre-2018): single foreign column
+        # Pre-2018: single foreign column, no dealer split.
         fb_idx  = _find_col(fields, "外資", "買進")
         fs_idx  = _find_col(fields, "外資", "賣出")
         fn_idx  = _find_col(fields, "外資", "買賣超")
@@ -81,12 +86,16 @@ def _parse_twse(rows: list, fields: list) -> tuple:
     tb_idx  = _find_col(fields, "投信", "買進")
     ts_idx  = _find_col(fields, "投信", "賣出")
     tn_idx  = _find_col(fields, "投信", "買賣超")
-    dn_idx  = _find_col(fields, "自營商買賣超股數")  # dealer net total
-    dbb_idx = _find_col(fields, "自行買賣", "買進")   # 自行 buy (not 自營商買賣超)
-    dbs_idx = _find_col(fields, "自行買賣", "賣出")
+    dsb_idx = _find_col(fields, "自行買賣", "買進")
+    dss_idx = _find_col(fields, "自行買賣", "賣出")
+    dsn_idx = _find_col(fields, "自行買賣", "買賣超")
     dhb_idx = _find_col(fields, "避險", "買進")
     dhs_idx = _find_col(fields, "避險", "賣出")
+    dhn_idx = _find_col(fields, "避險", "買賣超")
     in_idx  = _find_col(fields, "三大法人")
+
+    def _get(row, idx):
+        return _parse_int(row[idx]) if idx >= 0 else None
 
     results = []
     errors = 0
@@ -97,33 +106,26 @@ def _parse_twse(rows: list, fields: list) -> tuple:
             if not stock_id or not security_type:
                 continue
 
-            fb = (_parse_int(row[fb_idx]) or 0) if fb_idx >= 0 else 0
-            fs = (_parse_int(row[fs_idx]) or 0) if fs_idx >= 0 else 0
-            fdb = (_parse_int(row[fdb_idx]) or 0) if fdb_idx >= 0 else 0
-            fds = (_parse_int(row[fds_idx]) or 0) if fds_idx >= 0 else 0
-
-            fn = (_parse_int(row[fn_idx]) or 0) if fn_idx >= 0 else 0
-            fdn = (_parse_int(row[fdn_idx]) or 0) if fdn_idx >= 0 else 0
-
-            db_self = (_parse_int(row[dbb_idx]) or 0) if dbb_idx >= 0 else 0
-            ds_self = (_parse_int(row[dbs_idx]) or 0) if dbs_idx >= 0 else 0
-            db_hedge = (_parse_int(row[dhb_idx]) or 0) if dhb_idx >= 0 else 0
-            ds_hedge = (_parse_int(row[dhs_idx]) or 0) if dhs_idx >= 0 else 0
-
             results.append({
                 "stock_id":     stock_id,
                 "name":         str(row[1]).strip(),
                 "security_type": security_type,
-                "foreign_buy":  fb + fdb,
-                "foreign_sell": fs + fds,
-                "foreign_net":  fn + fdn,
-                "trust_buy":    _parse_int(row[tb_idx]) if tb_idx >= 0 else None,
-                "trust_sell":   _parse_int(row[ts_idx]) if ts_idx >= 0 else None,
-                "trust_net":    _parse_int(row[tn_idx]) if tn_idx >= 0 else None,
-                "dealer_buy":   db_self + db_hedge,
-                "dealer_sell":  ds_self + ds_hedge,
-                "dealer_net":   _parse_int(row[dn_idx]) if dn_idx >= 0 else None,
-                "inst_net":     _parse_int(row[in_idx]) if in_idx >= 0 else None,
+                "foreign_buy":         _get(row, fb_idx),
+                "foreign_sell":        _get(row, fs_idx),
+                "foreign_net":         _get(row, fn_idx),
+                "foreign_dealer_buy":  _get(row, fdb_idx),
+                "foreign_dealer_sell": _get(row, fds_idx),
+                "foreign_dealer_net":  _get(row, fdn_idx),
+                "trust_buy":           _get(row, tb_idx),
+                "trust_sell":          _get(row, ts_idx),
+                "trust_net":           _get(row, tn_idx),
+                "dealer_buy":          _get(row, dsb_idx),
+                "dealer_sell":         _get(row, dss_idx),
+                "dealer_net":          _get(row, dsn_idx),
+                "dealer_hedge_buy":    _get(row, dhb_idx),
+                "dealer_hedge_sell":   _get(row, dhs_idx),
+                "dealer_hedge_net":    _get(row, dhn_idx),
+                "inst_net":            _get(row, in_idx),
             })
         except (IndexError, ValueError, TypeError) as e:
             print(f"  Skipping TWSE institutional row: {e}")
@@ -159,8 +161,12 @@ def fetch_twse_institutional(trade_date: date) -> tuple:
 # ---------------------------------------------------------------------------
 # TPEx
 # ---------------------------------------------------------------------------
-# foreign total = [8-10] (外陸資合計, already includes 外資+外資自營商)
-# dealer total  = [20-22] (自營商合計)
+# [2-4]   外資不含自營商 → foreign_*
+# [5-7]   外資自營商       → foreign_dealer_*
+# [11-13] 投信             → trust_*
+# [14-16] 自營商 (自行)    → dealer_*
+# [17-19] 自營商 (避險)    → dealer_hedge_*
+# [23]    三大法人合計     → inst_net
 
 def _parse_tpex(rows: list) -> tuple:
     """Returns (records, parse_errors)."""
@@ -176,16 +182,22 @@ def _parse_tpex(rows: list) -> tuple:
                 "stock_id":    stock_id,
                 "name":        str(row[1]).strip(),
                 "security_type": classify_tw_security(stock_id),
-                "foreign_buy":  _parse_int(row[8]),
-                "foreign_sell": _parse_int(row[9]),
-                "foreign_net":  _parse_int(row[10]),
-                "trust_buy":    _parse_int(row[11]),
-                "trust_sell":   _parse_int(row[12]),
-                "trust_net":    _parse_int(row[13]),
-                "dealer_buy":   _parse_int(row[20]),
-                "dealer_sell":  _parse_int(row[21]),
-                "dealer_net":   _parse_int(row[22]),
-                "inst_net":     _parse_int(row[23]),
+                "foreign_buy":         _parse_int(row[2]),
+                "foreign_sell":        _parse_int(row[3]),
+                "foreign_net":         _parse_int(row[4]),
+                "foreign_dealer_buy":  _parse_int(row[5]),
+                "foreign_dealer_sell": _parse_int(row[6]),
+                "foreign_dealer_net":  _parse_int(row[7]),
+                "trust_buy":           _parse_int(row[11]),
+                "trust_sell":          _parse_int(row[12]),
+                "trust_net":           _parse_int(row[13]),
+                "dealer_buy":          _parse_int(row[14]),
+                "dealer_sell":         _parse_int(row[15]),
+                "dealer_net":          _parse_int(row[16]),
+                "dealer_hedge_buy":    _parse_int(row[17]),
+                "dealer_hedge_sell":   _parse_int(row[18]),
+                "dealer_hedge_net":    _parse_int(row[19]),
+                "inst_net":            _parse_int(row[23]),
             })
         except (IndexError, ValueError, TypeError) as e:
             print(f"  Skipping TPEx institutional row: {e}")
@@ -247,32 +259,46 @@ def save_institutional(twse: list, tpex: list, trade_date: date):
         _upsert_stocks(cur, twse, "TWSE")
         _upsert_stocks(cur, tpex, "TPEx")
 
+        # Semantics changed in migration 023: foreign_* / dealer_* are now
+        # "不含自營商 / 自行買賣" only (not combined). Use plain assignment
+        # (not COALESCE) so old combined values get overwritten with the new
+        # split values during historical backfill.
         for r in twse + tpex:
             cur.execute("""
                 INSERT INTO tw.daily_prices (
                     stock_id, trade_date,
                     foreign_buy, foreign_sell, foreign_net,
+                    foreign_dealer_buy, foreign_dealer_sell, foreign_dealer_net,
                     trust_buy,   trust_sell,   trust_net,
                     dealer_buy,  dealer_sell,  dealer_net,
+                    dealer_hedge_buy, dealer_hedge_sell, dealer_hedge_net,
                     inst_net
                 )
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                 ON CONFLICT (stock_id, trade_date) DO UPDATE SET
-                    foreign_buy  = COALESCE(EXCLUDED.foreign_buy,  tw.daily_prices.foreign_buy),
-                    foreign_sell = COALESCE(EXCLUDED.foreign_sell, tw.daily_prices.foreign_sell),
-                    foreign_net  = COALESCE(EXCLUDED.foreign_net,  tw.daily_prices.foreign_net),
-                    trust_buy    = COALESCE(EXCLUDED.trust_buy,    tw.daily_prices.trust_buy),
-                    trust_sell   = COALESCE(EXCLUDED.trust_sell,   tw.daily_prices.trust_sell),
-                    trust_net    = COALESCE(EXCLUDED.trust_net,    tw.daily_prices.trust_net),
-                    dealer_buy   = COALESCE(EXCLUDED.dealer_buy,   tw.daily_prices.dealer_buy),
-                    dealer_sell  = COALESCE(EXCLUDED.dealer_sell,  tw.daily_prices.dealer_sell),
-                    dealer_net   = COALESCE(EXCLUDED.dealer_net,   tw.daily_prices.dealer_net),
-                    inst_net     = COALESCE(EXCLUDED.inst_net,     tw.daily_prices.inst_net)
+                    foreign_buy         = EXCLUDED.foreign_buy,
+                    foreign_sell        = EXCLUDED.foreign_sell,
+                    foreign_net         = EXCLUDED.foreign_net,
+                    foreign_dealer_buy  = EXCLUDED.foreign_dealer_buy,
+                    foreign_dealer_sell = EXCLUDED.foreign_dealer_sell,
+                    foreign_dealer_net  = EXCLUDED.foreign_dealer_net,
+                    trust_buy           = EXCLUDED.trust_buy,
+                    trust_sell          = EXCLUDED.trust_sell,
+                    trust_net           = EXCLUDED.trust_net,
+                    dealer_buy          = EXCLUDED.dealer_buy,
+                    dealer_sell         = EXCLUDED.dealer_sell,
+                    dealer_net          = EXCLUDED.dealer_net,
+                    dealer_hedge_buy    = EXCLUDED.dealer_hedge_buy,
+                    dealer_hedge_sell   = EXCLUDED.dealer_hedge_sell,
+                    dealer_hedge_net    = EXCLUDED.dealer_hedge_net,
+                    inst_net            = EXCLUDED.inst_net
             """, (
                 r["stock_id"], trade_date,
-                r.get("foreign_buy"),  r.get("foreign_sell"),  r.get("foreign_net"),
-                r.get("trust_buy"),    r.get("trust_sell"),    r.get("trust_net"),
-                r.get("dealer_buy"),   r.get("dealer_sell"),   r.get("dealer_net"),
+                r.get("foreign_buy"),         r.get("foreign_sell"),         r.get("foreign_net"),
+                r.get("foreign_dealer_buy"),  r.get("foreign_dealer_sell"),  r.get("foreign_dealer_net"),
+                r.get("trust_buy"),           r.get("trust_sell"),           r.get("trust_net"),
+                r.get("dealer_buy"),          r.get("dealer_sell"),          r.get("dealer_net"),
+                r.get("dealer_hedge_buy"),    r.get("dealer_hedge_sell"),    r.get("dealer_hedge_net"),
                 r.get("inst_net"),
             ))
 
