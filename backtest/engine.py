@@ -23,9 +23,6 @@ class InsufficientDataError(ValueError):
     """Raised when stock data is too short for backtesting."""
     pass
 
-# Default warmup: longest SMA period used in analysis
-DEFAULT_WARMUP = 377
-
 
 @dataclass
 class _Position:
@@ -56,7 +53,7 @@ def run_backtest(
     strategy : Strategy with entry/exit conditions
     capital : initial cash
     shares_per_trade : fixed position size
-    start_index : day index to start trading (default: DEFAULT_WARMUP)
+    start_index : day index to start trading (default: 55)
     """
     MIN_DAYS = 13
     n = data.n
