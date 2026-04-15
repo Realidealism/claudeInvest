@@ -3,7 +3,7 @@ from datetime import date, timedelta
 from db.connection import get_cursor
 from utils.classifier import classify_tw_security
 from utils.format_shift import ScrapeResult
-from utils.http_client import get_session, _wait_for_rate_limit, _get_domain, MAX_RETRIES, BACKOFF_BASE
+from utils.http_client import post_json_retry
 
 BASE_URL = "https://www.tpex.org.tw/www/zh-tw/afterTrading/fixPricing"
 
@@ -14,28 +14,8 @@ def _to_ad_date(d: date) -> str:
 
 
 def _post(url: str, data: dict) -> dict | None:
-    """POST request with rate limiting and retry (including soft failures)."""
-    import time, random
-    session = get_session()
-    domain = _get_domain(url)
-
-    for attempt in range(MAX_RETRIES):
-        try:
-            _wait_for_rate_limit(domain)
-            resp = session.post(url, data=data, timeout=30)
-            resp.raise_for_status()
-            result = resp.json()
-            if result.get("stat") == "ok":
-                return result
-            # Soft failure — stat != "ok", retry
-            print(f"  Soft failure (stat={result.get('stat')}), attempt {attempt + 1}/{MAX_RETRIES}")
-            if attempt < MAX_RETRIES - 1:
-                time.sleep(BACKOFF_BASE + random.uniform(1, 3))
-        except Exception as e:
-            print(f"  Attempt {attempt + 1} failed: {e}")
-            if attempt < MAX_RETRIES - 1:
-                time.sleep(BACKOFF_BASE * (2 ** attempt) + random.uniform(1, 3))
-    return None
+    """POST with rate limiting and retry (including soft failures)."""
+    return post_json_retry(url, data=data, validate=lambda d: d.get("stat") == "ok")
 
 
 def fetch_after_hours(trade_date: date) -> tuple:

@@ -117,6 +117,72 @@ def fetch_json(url: str, params: dict = None, timeout: int = 30) -> dict | None:
         return None
 
 
+def post_json(url: str, data: dict = None, timeout: int = 30) -> dict | None:
+    """POST with rate limiting, retry, and exponential backoff. Returns parsed JSON or None."""
+    domain = _get_domain(url)
+    session = get_session()
+
+    for attempt in range(MAX_RETRIES):
+        try:
+            _wait_for_rate_limit(domain)
+            resp = session.post(url, data=data, timeout=timeout)
+            resp.raise_for_status()
+            return resp.json()
+
+        except requests.exceptions.HTTPError as e:
+            status = e.response.status_code if e.response else None
+            print(f"  HTTP {status} on attempt {attempt + 1}: {e}")
+            if status in (429, 503):
+                wait = BACKOFF_BASE * (2 ** attempt) + random.uniform(1, 3)
+                print(f"  Rate limited. Waiting {wait:.1f}s ...")
+                time.sleep(wait)
+            elif attempt < MAX_RETRIES - 1:
+                time.sleep(BACKOFF_BASE)
+            else:
+                return None
+
+        except requests.exceptions.ConnectionError as e:
+            print(f"  Connection error on attempt {attempt + 1}: {e}")
+            if attempt < MAX_RETRIES - 1:
+                time.sleep(BACKOFF_BASE * (2 ** attempt))
+            else:
+                return None
+
+        except requests.exceptions.Timeout:
+            print(f"  Timeout on attempt {attempt + 1}")
+            if attempt < MAX_RETRIES - 1:
+                time.sleep(BACKOFF_BASE)
+            else:
+                return None
+
+        except ValueError as e:
+            print(f"  JSON parse error: {e}")
+            return None
+
+    return None
+
+
+def post_json_retry(
+    url: str,
+    data: dict = None,
+    timeout: int = 30,
+    retries: int = 2,
+    wait: float = 10,
+    validate=None,
+) -> dict | None:
+    """POST JSON with retry on soft failures (HTTP 200 but invalid data)."""
+    result = None
+    for attempt in range(retries + 1):
+        result = post_json(url, data=data, timeout=timeout)
+        if result is not None and (validate is None or validate(result)):
+            return result
+        if attempt < retries:
+            print(f"  [RETRY] Soft failure (attempt {attempt + 1}/{retries + 1}), "
+                  f"retrying in {wait}s ...")
+            time.sleep(wait)
+    return result
+
+
 # Soft-failure retry settings
 SOFT_RETRY_COUNT = 2
 SOFT_RETRY_WAIT  = 10  # seconds
