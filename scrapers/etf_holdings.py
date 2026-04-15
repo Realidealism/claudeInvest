@@ -13,9 +13,12 @@ Tracked ETFs:
 import json
 import re
 import html as html_mod
+import os
 from datetime import date
 
 from db.connection import get_cursor
+
+REPORT_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "reports")
 from utils.http_client import fetch, get_session, _get_domain, _wait_for_rate_limit
 
 # ---------------------------------------------------------------------------
@@ -188,7 +191,7 @@ def _compute_diff(prev: list[dict], curr: list[dict]) -> list[dict]:
                 "curr_weight": c["weight"],
                 "weight_diff": None,
             })
-        elif c["shares"] != p["shares"] or c["weight"] != p["weight"]:
+        elif c["shares"] != p["shares"]:
             share_diff = c["shares"] - p["shares"]
             w_diff = None
             if c["weight"] is not None and p["weight"] is not None:
@@ -216,7 +219,7 @@ def _compute_diff(prev: list[dict], curr: list[dict]) -> list[dict]:
 def _get_prev_holdings(cur, etf_id: str, trade_date: date) -> list[dict]:
     """Get the most recent holdings before trade_date."""
     cur.execute("""
-        SELECT stock_id, stock_name, shares, weight
+        SELECT trade_date, stock_id, stock_name, shares, weight
         FROM tw.etf_holdings
         WHERE etf_id = %s AND trade_date < %s
         ORDER BY trade_date DESC
@@ -277,6 +280,172 @@ def _save_diff(cur, etf_id: str, trade_date: date, diffs: list[dict]):
 # ---------------------------------------------------------------------------
 
 
+_CHANGE_ORDER = {"added": 0, "removed": 1, "increased": 2, "decreased": 3}
+_CHANGE_LABEL = {"added": "新增", "removed": "移除", "increased": "加碼", "decreased": "減碼"}
+
+_LARGE_WEIGHT_THRESHOLD = 0.3   # |weight_diff| >= this => 大部位
+_CONSECUTIVE_DAYS = 3           # streak length to flag
+
+# Taiwan convention: red = up/buy, green = down/sell
+_ROW_FILLS = {
+    ("added",     False): "FFC7CE",  # light red (rare — added is always flagged)
+    ("added",     True):  "FF6B6B",  # deep red
+    ("increased", False): "FFE4E4",  # very light red
+    ("increased", True):  "FF9999",  # medium red
+    ("removed",   False): "C6EFCE",  # light green (rare)
+    ("removed",   True):  "6BCB77",  # deep green
+    ("decreased", False): "E4F5E4",  # very light green
+    ("decreased", True):  "99DD99",  # medium green
+}
+
+
+def _is_buy(ct):   return ct in ("added", "increased")
+def _is_sell(ct):  return ct in ("removed", "decreased")
+
+
+def export_recent_diffs_excel(trade_date: date, days: int = 5):
+    """Export last N trading days of diffs to a single Excel with one sheet per day."""
+    from openpyxl import Workbook
+    from openpyxl.styles import Font, PatternFill, Alignment
+
+    with get_cursor() as cur:
+        cur.execute("""
+            SELECT DISTINCT trade_date
+            FROM tw.etf_holdings_diff
+            WHERE trade_date <= %s
+            ORDER BY trade_date DESC
+            LIMIT %s
+        """, (trade_date, days))
+        dates = [r["trade_date"] for r in cur.fetchall()]
+
+        if not dates:
+            print("  [WARN] No diff data to export.")
+            return
+
+        # Load extended history for consecutive-streak lookup
+        earliest = dates[-1]
+        cur.execute("""
+            SELECT trade_date, etf_id, stock_id, change_type
+            FROM tw.etf_holdings_diff
+            WHERE trade_date <= %s
+            ORDER BY trade_date DESC
+        """, (trade_date,))
+        history = cur.fetchall()
+        # history_by_key: (etf_id, stock_id) -> list of (trade_date, change_type) desc
+        history_by_key = {}
+        for h in history:
+            history_by_key.setdefault((h["etf_id"], h["stock_id"]), []).append(
+                (h["trade_date"], h["change_type"])
+            )
+
+        def streak_on(d, etf_id, stock_id, direction_fn):
+            """Count consecutive trade dates up to and including d with same direction."""
+            lst = history_by_key.get((etf_id, stock_id), [])
+            # lst is desc; find entries at d or before with same direction, contiguous in lst order
+            streak = 0
+            started = False
+            for td, ct in lst:
+                if td > d:
+                    continue
+                if not started:
+                    if td != d:
+                        return 0
+                    started = True
+                if direction_fn(ct):
+                    streak += 1
+                else:
+                    break
+            return streak
+
+        wb = Workbook()
+        wb.remove(wb.active)
+
+        header = ["ETF代號", "變動類型", "股票代號", "股票名稱",
+                  "張數變動", "前日權重", "當日權重", "權重變動", "備註"]
+        header_font = Font(bold=True)
+        header_fill = PatternFill("solid", fgColor="DDDDDD")
+
+        for d in dates:
+            cur.execute("""
+                SELECT etf_id, change_type, stock_id, stock_name,
+                       prev_shares, curr_shares, share_diff,
+                       prev_weight, curr_weight, weight_diff
+                FROM tw.etf_holdings_diff
+                WHERE trade_date = %s
+            """, (d,))
+            rows = cur.fetchall()
+
+            ws = wb.create_sheet(title=d.strftime("%m-%d"))
+            ws.append(header)
+            for cell in ws[1]:
+                cell.font = header_font
+                cell.fill = header_fill
+                cell.alignment = Alignment(horizontal="center")
+
+            def effective_share_diff(r):
+                if r["change_type"] == "removed":
+                    return -(r["prev_shares"] or 0)
+                if r["change_type"] == "added":
+                    return r["curr_shares"] or 0
+                return r["share_diff"] or 0
+
+            rows_sorted = sorted(
+                rows,
+                key=lambda r: (
+                    r["etf_id"],
+                    _CHANGE_ORDER.get(r["change_type"], 9),
+                    -abs(effective_share_diff(r)),
+                ),
+            )
+
+            prev_etf = None
+            for r in rows_sorted:
+                if prev_etf is not None and r["etf_id"] != prev_etf:
+                    ws.append([])
+                prev_etf = r["etf_id"]
+
+                ct = r["change_type"]
+                wdiff = float(r["weight_diff"]) if r["weight_diff"] is not None else None
+                is_large = (wdiff is not None and abs(wdiff) >= _LARGE_WEIGHT_THRESHOLD) \
+                           or ct in ("added", "removed")
+
+                notes = []
+                if is_large and ct in ("increased", "decreased"):
+                    notes.append("大部位")
+                direction_fn = _is_buy if _is_buy(ct) else _is_sell
+                streak = streak_on(d, r["etf_id"], r["stock_id"], direction_fn)
+                if streak >= _CONSECUTIVE_DAYS:
+                    verb = "加碼" if _is_buy(ct) else "減碼"
+                    notes.append(f"連續{verb}{streak}天")
+
+                ws.append([
+                    r["etf_id"],
+                    _CHANGE_LABEL.get(ct, ct),
+                    r["stock_id"], r["stock_name"],
+                    effective_share_diff(r),
+                    float(r["prev_weight"]) if r["prev_weight"] is not None else None,
+                    float(r["curr_weight"]) if r["curr_weight"] is not None else None,
+                    wdiff,
+                    "｜".join(notes),
+                ])
+
+                fill_color = _ROW_FILLS.get((ct, is_large))
+                if fill_color:
+                    fill = PatternFill("solid", fgColor=fill_color)
+                    for cell in ws[ws.max_row]:
+                        cell.fill = fill
+
+            widths = [10, 11, 10, 36, 14, 12, 12, 12, 22]
+            for i, w in enumerate(widths, 1):
+                ws.column_dimensions[chr(64 + i)].width = w
+            ws.freeze_panes = "A2"
+
+    os.makedirs(REPORT_DIR, exist_ok=True)
+    out_path = os.path.join(REPORT_DIR, f"active_etf_diff_{trade_date.strftime('%Y%m%d')}.xlsx")
+    wb.save(out_path)
+    print(f"  Excel exported: {out_path} ({len(dates)} sheets)")
+
+
 def scrape_date(trade_date: date):
     """Scrape ETF holdings for all tracked ETFs and compute diffs."""
     for etf in ETF_REGISTRY:
@@ -304,3 +473,5 @@ def scrape_date(trade_date: date):
                 print(f"  {etf_id} diff: +{added} added, -{removed} removed, ~{changed} changed")
             else:
                 print(f"  {etf_id}: first snapshot, no diff computed.")
+
+    export_recent_diffs_excel(trade_date)
