@@ -14,11 +14,17 @@ import json
 import re
 import html as html_mod
 import os
+import sys
 from datetime import date
 
 from db.connection import get_cursor
 
-REPORT_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "reports")
+if getattr(sys, "frozen", False):
+    # PyInstaller: anchor to the exe's directory so reports land next to daily_update.exe
+    _BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(sys.executable)))
+else:
+    _BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+REPORT_DIR = os.path.join(_BASE_DIR, "reports")
 from utils.http_client import fetch, get_session, _get_domain, _wait_for_rate_limit
 
 # ---------------------------------------------------------------------------
