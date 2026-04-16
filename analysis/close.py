@@ -215,14 +215,14 @@ def calc_sort_forming(
       3. pre[p1] > sma[p3]                    (predicted short crosses current long)
       4. pre[p1] today > pre[p1] yesterday    (slope confirmation)
       5. NOT (sma[p1] > sma[p2] > sma[p3])    (exclude already-aligned)
-      6. volume_status < 5                    (exclude shrink=5, sleep=6)
+      6. volume_status < 3                    (only flood/big/high; exclude normal/low/shrink/sleep)
 
     Day 0 has no previous pre_sma — slope check yields False.
     """
     out: dict[str, SortResult] = {}
     pre = close_result.ma.pre_sma
     cd = close_result.ma.sma
-    vol_ok = volume_status < 5
+    vol_ok = volume_status < 3
     GAP = F32(1.003)
 
     for label, (p1, p2, p3) in SORT_NORMAL.items():

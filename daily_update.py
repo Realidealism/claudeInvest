@@ -18,6 +18,9 @@ from db.connection import get_cursor
 # ---------------------------------------------------------------------------
 # Scraper registry — order matters (prices first, derived data last)
 # ---------------------------------------------------------------------------
+# Trading-day gate: TAIEX is scraped first; absent TAIEX => non-trading day.
+INDEX_SCRAPER = ("Market indices", "scrapers.index_prices", "scrape_date")
+
 SCRAPERS = [
     # Core daily prices
     ("TWSE daily prices",       "scrapers.twse",             "scrape_date"),
@@ -30,11 +33,18 @@ SCRAPERS = [
     ("Margin trading",          "scrapers.margin",           "scrape_date"),
     ("Price limits",            "scrapers.price_limits",     "scrape_date"),
     ("Institutional investors", "scrapers.institutional",    "scrape_date"),
-    # Index
-    ("Market indices",          "scrapers.index_prices",     "scrape_date"),
     # ETF holdings
     ("ETF holdings",            "scrapers.etf_holdings",     "scrape_date"),
 ]
+
+
+def _has_taiex(trade_date: date) -> bool:
+    with get_cursor(commit=False) as cur:
+        cur.execute(
+            "SELECT 1 FROM tw.index_prices WHERE index_id='TAIEX' AND trade_date=%s",
+            (trade_date,),
+        )
+        return cur.fetchone() is not None
 
 
 SCRAPER_MAX_RETRIES = 3
@@ -167,7 +177,16 @@ def update_date(trade_date: date):
     print(f"  Daily update: {trade_date}")
     print(f"{'='*60}")
 
-    ok, failed = 0, []
+    # Trading-day gate: TAIEX index must exist for the date to be valid.
+    print(f"\n--- {INDEX_SCRAPER[0]} (trading-day gate) ---")
+    gate_ok = run_scraper(*INDEX_SCRAPER, trade_date)
+    if not _has_taiex(trade_date):
+        print(f"\n[HOLIDAY] {trade_date} has no TAIEX data — skipping remaining scrapers.")
+        return
+
+    ok = 1 if gate_ok else 0
+    failed = [] if gate_ok else [INDEX_SCRAPER[0]]
+
     for label, module_path, func_name in SCRAPERS:
         print(f"\n--- {label} ---")
         success = run_scraper(label, module_path, func_name, trade_date)
@@ -200,8 +219,20 @@ def update_date(trade_date: date):
         print("  [ERROR] Delist detection failed:")
         traceback.print_exc()
 
+    # Market breadth aggregate (depends on close/money/volume per stock).
+    print(f"\n--- Market breadth ---")
+    try:
+        from analysis.market_breadth import calculate_market_breadth, save_market_breadth
+        results = calculate_market_breadth(last_n_days=3)
+        n = save_market_breadth(results)
+        print(f"  Updated {n} day(s) of market_breadth.")
+    except Exception:
+        print("  [ERROR] Market breadth computation failed:")
+        traceback.print_exc()
+
+    total_count = 1 + len(SCRAPERS)  # include the gate
     print(f"\n{'='*60}")
-    print(f"  Done: {ok}/{len(SCRAPERS)} scrapers succeeded.")
+    print(f"  Done: {ok}/{total_count} scrapers succeeded.")
     if failed:
         print(f"  Failed: {', '.join(failed)}")
     print(f"{'='*60}\n")

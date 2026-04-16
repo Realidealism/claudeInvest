@@ -16,6 +16,149 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import date
+from typing import Literal
+
+Trend = Literal[
+    "bear_weakening", "strong_bear", "bear", "neutral",
+    "bull", "strong_bull", "bull_weakening",
+]
+
+TREND_CODE: dict[Trend, int] = {
+    "bear_weakening": -3,
+    "strong_bear": -2,
+    "bear": -1,
+    "neutral": 0,
+    "bull": 1,
+    "strong_bull": 2,
+    "bull_weakening": 3,
+}
+
+def classify_trend(up_pct: float, down_pct: float, neutral_pct: float) -> Trend:
+    """Classify market trend from up/down/neutral percentages.
+
+    Priority: neutral > 50% takes precedence over up/down comparison.
+    """
+    if neutral_pct > 50:
+        return "neutral"
+    if up_pct > down_pct:
+        return "strong_bull" if up_pct > neutral_pct > down_pct else "bull"
+    if down_pct > up_pct:
+        return "strong_bear" if down_pct > neutral_pct > up_pct else "bear"
+    return "neutral"
+
+
+# Weakening threshold: today's change magnitude must exceed
+# WEAKENING_THRESHOLD_RATIO × average |Δ| of past SCOPE_LOOKBACK[scope] days.
+WEAKENING_THRESHOLD_RATIO = 1.0
+
+# Per-scope baseline lookback window for |Δ| average.
+SCOPE_LOOKBACK: dict[str, int] = {
+    "short":  3,
+    "medium": 3,
+    "long":   3,
+}
+
+# Paths allowed per scope: all scopes use 2d OR 3d (5d disabled).
+SCOPE_PATHS: dict[str, tuple[bool, bool, bool]] = {
+    "short":  (True, True, False),
+    "medium": (True, True, False),
+    "long":   (True, True, False),
+}
+
+# Per-scope prior-day ratios for (2d, 3d, 5d) paths.
+SCOPE_RATIOS: dict[str, tuple[float, float, float]] = {
+    "short":  (0.8, 0.6, 0.5),
+    "medium": (0.8, 0.6, 0.5),
+    "long":   (0.8, 0.6, 0.5),
+}
+
+
+def classify_trend_series(
+    up_pcts: list[float],
+    down_pcts: list[float],
+    scope: str = "long",
+) -> list[Trend]:
+    """Classify full series with day-over-day convergence warning overlay.
+
+    For day t (t >= LOOKBACK + 1):
+      threshold_up = RATIO * mean(|Δup(t-1)|, ..., |Δup(t-LOOKBACK)|)
+      threshold_dn = RATIO * mean(|Δdn(t-1)|, ..., |Δdn(t-LOOKBACK)|)
+
+    Bull_weakening: base in (bull, strong_bull) AND
+        -Δup(t) > threshold_up AND Δdn(t) > threshold_dn AND
+        prior 2 days already converging: Δup(t-k)<0 AND Δdn(t-k)>0 for k in 1,2
+    Bear_weakening: mirrored.
+    Insufficient history → no warning overlay.
+    """
+    n = len(up_pcts)
+    out: list[Trend] = []
+    lb = SCOPE_LOOKBACK[scope]
+    ratio = WEAKENING_THRESHOLD_RATIO
+    use_2d, use_3d, use_5d = SCOPE_PATHS[scope]
+    r_2d, r_3d, r_5d = SCOPE_RATIOS[scope]
+
+    for i in range(n):
+        up, dn = up_pcts[i], down_pcts[i]
+        base = classify_trend(up, dn, 100 - up - dn)
+
+        if i < lb + 1:
+            out.append(base)
+            continue
+
+        du = up - up_pcts[i - 1]
+        dd = dn - down_pcts[i - 1]
+
+        prev_du = [abs(up_pcts[i - k] - up_pcts[i - k - 1]) for k in range(1, lb + 1)]
+        prev_dd = [abs(down_pcts[i - k] - down_pcts[i - k - 1]) for k in range(1, lb + 1)]
+        th_up = ratio * (sum(prev_du) / lb)
+        th_dn = ratio * (sum(prev_dd) / lb)
+
+        avg_du = sum(prev_du) / lb
+        avg_dd = sum(prev_dd) / lb
+
+        du1 = up_pcts[i - 1] - up_pcts[i - 2]
+        dd1 = down_pcts[i - 1] - down_pcts[i - 2]
+        du2 = up_pcts[i - 2] - up_pcts[i - 3]
+        dd2 = down_pcts[i - 2] - down_pcts[i - 3]
+
+        bull_2d = bear_2d = bull_3d = bear_3d = bull_5d = bear_5d = False
+
+        if use_2d:
+            up_2d = r_2d * avg_du
+            dn_2d = r_2d * avg_dd
+            bull_2d = -du1 > up_2d and dd1 > dn_2d and -du2 > up_2d and dd2 > dn_2d
+            bear_2d = -dd1 > dn_2d and du1 > up_2d and -dd2 > dn_2d and du2 > up_2d
+
+        if use_3d and i >= 4:
+            du3 = up_pcts[i - 3] - up_pcts[i - 4]
+            dd3 = down_pcts[i - 3] - down_pcts[i - 4]
+            up_3d = r_3d * avg_du
+            dn_3d = r_3d * avg_dd
+            bull_3d = (-du1 > up_3d and dd1 > dn_3d
+                       and -du2 > up_3d and dd2 > dn_3d
+                       and -du3 > up_3d and dd3 > dn_3d)
+            bear_3d = (-dd1 > dn_3d and du1 > up_3d
+                       and -dd2 > dn_3d and du2 > up_3d
+                       and -dd3 > dn_3d and du3 > up_3d)
+
+        if use_5d and i >= 6:
+            up_5d = r_5d * avg_du
+            dn_5d = r_5d * avg_dd
+            du_list = [up_pcts[i - k] - up_pcts[i - k - 1] for k in range(1, 6)]
+            dd_list = [down_pcts[i - k] - down_pcts[i - k - 1] for k in range(1, 6)]
+            bull_5d = all(-x > up_5d for x in du_list) and all(y > dn_5d for y in dd_list)
+            bear_5d = all(-y > dn_5d for y in dd_list) and all(x > up_5d for x in du_list)
+
+        bull_prior = bull_2d or bull_3d or bull_5d
+        bear_prior = bear_2d or bear_3d or bear_5d
+
+        if base in ("bull", "strong_bull") and -du > th_up and dd > th_dn and bull_prior:
+            out.append("bull_weakening")
+        elif base in ("bear", "strong_bear") and -dd > th_dn and du > th_up and bear_prior:
+            out.append("bear_weakening")
+        else:
+            out.append(base)
+    return out
 
 import numpy as np
 from numpy.typing import NDArray
@@ -120,6 +263,63 @@ class BreadthDay:
     @property
     def long_down_forming_pct(self) -> float:
         return self._pct(self.long_down_forming)
+
+    @property
+    def short_up_total(self) -> int:
+        return self.short_up + self.short_up_forming
+
+    @property
+    def short_down_total(self) -> int:
+        return self.short_down + self.short_down_forming
+
+    @property
+    def medium_up_total(self) -> int:
+        return self.medium_up + self.medium_up_forming
+
+    @property
+    def medium_down_total(self) -> int:
+        return self.medium_down + self.medium_down_forming
+
+    @property
+    def long_up_total(self) -> int:
+        return self.long_up + self.long_up_forming
+
+    @property
+    def long_down_total(self) -> int:
+        return self.long_down + self.long_down_forming
+
+    @property
+    def short_trend(self) -> Trend:
+        return classify_trend(self.short_up_pct, self.short_down_pct, self.short_neutral_pct)
+
+    @property
+    def medium_trend(self) -> Trend:
+        return classify_trend(self.medium_up_pct, self.medium_down_pct, self.medium_neutral_pct)
+
+    @property
+    def long_trend(self) -> Trend:
+        return classify_trend(self.long_up_pct, self.long_down_pct, self.long_neutral_pct)
+
+    @property
+    def short_trend_total(self) -> Trend:
+        up = self._pct(self.short_up_total)
+        dn = self._pct(self.short_down_total)
+        neu = self._pct(self.total_stocks - self.short_up_total - self.short_down_total)
+        return classify_trend(up, dn, neu)
+
+    @property
+    def medium_trend_total(self) -> Trend:
+        up = self._pct(self.medium_up_total)
+        dn = self._pct(self.medium_down_total)
+        neu = self._pct(self.total_stocks - self.medium_up_total - self.medium_down_total)
+        return classify_trend(up, dn, neu)
+
+    @property
+    def long_trend_total(self) -> Trend:
+        up = self._pct(self.long_up_total)
+        dn = self._pct(self.long_down_total)
+        neu = self._pct(self.total_stocks - self.long_up_total - self.long_down_total)
+        return classify_trend(up, dn, neu)
 
 
 def calculate_market_breadth(
@@ -269,24 +469,43 @@ def save_market_breadth(results: list[BreadthDay]) -> int:
                 long_up, long_down,
                 short_up_forming, short_down_forming,
                 medium_up_forming, medium_down_forming,
-                long_up_forming, long_down_forming
+                long_up_forming, long_down_forming,
+                short_up_total, short_down_total,
+                medium_up_total, medium_down_total,
+                long_up_total, long_down_total,
+                short_trend, medium_trend, long_trend,
+                short_trend_total, medium_trend_total, long_trend_total
             ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s,
+                      %s, %s, %s, %s, %s, %s,
+                      %s, %s, %s, %s, %s, %s,
                       %s, %s, %s, %s, %s, %s)
             ON CONFLICT (trade_date) DO UPDATE SET
-                active_stocks       = EXCLUDED.active_stocks,
-                total_stocks        = EXCLUDED.total_stocks,
-                short_up            = EXCLUDED.short_up,
-                short_down          = EXCLUDED.short_down,
-                medium_up           = EXCLUDED.medium_up,
-                medium_down         = EXCLUDED.medium_down,
-                long_up             = EXCLUDED.long_up,
-                long_down           = EXCLUDED.long_down,
-                short_up_forming    = EXCLUDED.short_up_forming,
-                short_down_forming  = EXCLUDED.short_down_forming,
-                medium_up_forming   = EXCLUDED.medium_up_forming,
-                medium_down_forming = EXCLUDED.medium_down_forming,
-                long_up_forming     = EXCLUDED.long_up_forming,
-                long_down_forming   = EXCLUDED.long_down_forming
+                active_stocks        = EXCLUDED.active_stocks,
+                total_stocks         = EXCLUDED.total_stocks,
+                short_up             = EXCLUDED.short_up,
+                short_down           = EXCLUDED.short_down,
+                medium_up            = EXCLUDED.medium_up,
+                medium_down          = EXCLUDED.medium_down,
+                long_up              = EXCLUDED.long_up,
+                long_down            = EXCLUDED.long_down,
+                short_up_forming     = EXCLUDED.short_up_forming,
+                short_down_forming   = EXCLUDED.short_down_forming,
+                medium_up_forming    = EXCLUDED.medium_up_forming,
+                medium_down_forming  = EXCLUDED.medium_down_forming,
+                long_up_forming      = EXCLUDED.long_up_forming,
+                long_down_forming    = EXCLUDED.long_down_forming,
+                short_up_total       = EXCLUDED.short_up_total,
+                short_down_total     = EXCLUDED.short_down_total,
+                medium_up_total      = EXCLUDED.medium_up_total,
+                medium_down_total    = EXCLUDED.medium_down_total,
+                long_up_total        = EXCLUDED.long_up_total,
+                long_down_total      = EXCLUDED.long_down_total,
+                short_trend          = EXCLUDED.short_trend,
+                medium_trend         = EXCLUDED.medium_trend,
+                long_trend           = EXCLUDED.long_trend,
+                short_trend_total    = EXCLUDED.short_trend_total,
+                medium_trend_total   = EXCLUDED.medium_trend_total,
+                long_trend_total     = EXCLUDED.long_trend_total
         """
         rows = [
             (
@@ -296,6 +515,11 @@ def save_market_breadth(results: list[BreadthDay]) -> int:
                 r.short_up_forming, r.short_down_forming,
                 r.medium_up_forming, r.medium_down_forming,
                 r.long_up_forming, r.long_down_forming,
+                r.short_up_total, r.short_down_total,
+                r.medium_up_total, r.medium_down_total,
+                r.long_up_total, r.long_down_total,
+                TREND_CODE[r.short_trend], TREND_CODE[r.medium_trend], TREND_CODE[r.long_trend],
+                TREND_CODE[r.short_trend_total], TREND_CODE[r.medium_trend_total], TREND_CODE[r.long_trend_total],
             )
             for r in results
         ]
