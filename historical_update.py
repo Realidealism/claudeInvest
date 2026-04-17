@@ -20,7 +20,7 @@ Format shift detection:
   completed dates will be skipped automatically.
 
 Available scraper aliases (--scrapers):
-  twse, tpex, twse_ah, tpex_ah, esb, odd, margin, limits, inst, index
+  twse, tpex, twse_ah, tpex_ah, esb, odd, margin, limits, inst, index, shareholder, sbl, insider, treasury
 """
 
 import importlib
@@ -52,6 +52,11 @@ SCRAPERS = [
     ("Price limits",        "scrapers.price_limits",     "scrape_date", "price_limits", ["limits"]),
     ("Institutional",       "scrapers.institutional",    "scrape_date", "institutional",["inst"]),
     ("Market indices",      "scrapers.index_prices",     "scrape_date", "index",        ["index"]),
+    ("Shareholder dist.",   "scrapers.shareholder_distribution", "scrape_date", "shareholder", ["shareholder"]),
+    ("SBL (借券賣出)",      "scrapers.securities_lending", "scrape_date", "sbl",          ["sbl"]),
+    ("Insider holdings",    "scrapers.insider_holdings",   "scrape_date", "insider",      ["insider"]),
+    ("Treasury stock",      "scrapers.treasury_stock",     "scrape_date", "treasury",     ["treasury"]),
+    ("Day trading (當沖)",  "scrapers.day_trading",        "scrape_date", "daytrade",     ["daytrade"]),
 ]
 
 # ---------------------------------------------------------------------------
@@ -93,6 +98,8 @@ _SKIP_QUERIES = {
     "price_limits": "SELECT 1 FROM tw.daily_prices WHERE trade_date = %s AND limit_up IS NOT NULL LIMIT 1",
     "institutional":"SELECT 1 FROM tw.daily_prices WHERE trade_date = %s AND foreign_buy IS NOT NULL LIMIT 1",
     "index":        "SELECT 1 FROM tw.index_prices WHERE trade_date = %s AND advance IS NOT NULL LIMIT 1",
+    "sbl":          "SELECT 1 FROM tw.daily_prices WHERE trade_date = %s AND sbl_balance IS NOT NULL LIMIT 1",
+    "daytrade":     "SELECT 1 FROM tw.daily_prices WHERE trade_date = %s AND dt_volume IS NOT NULL LIMIT 1",
 }
 
 

@@ -35,6 +35,14 @@ SCRAPERS = [
     ("Institutional investors", "scrapers.institutional",    "scrape_date"),
     # ETF holdings
     ("ETF holdings",            "scrapers.etf_holdings",     "scrape_date"),
+    # Securities lending
+    ("SBL (借券賣出)",           "scrapers.securities_lending", "scrape_date"),
+    # Day trading
+    ("Day trading (當沖)",       "scrapers.day_trading",        "scrape_date"),
+    # Weekly/monthly (idempotent, run once per period)
+    ("Shareholder dist.",       "scrapers.shareholder_distribution", "scrape_date"),
+    ("Insider holdings",        "scrapers.insider_holdings",  "scrape_date"),
+    ("Treasury stock",          "scrapers.treasury_stock",    "scrape_date"),
 ]
 
 
