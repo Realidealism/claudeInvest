@@ -57,6 +57,7 @@ SCRAPERS = [
     ("Insider holdings",    "scrapers.insider_holdings",   "scrape_date", "insider",      ["insider"]),
     ("Treasury stock",      "scrapers.treasury_stock",     "scrape_date", "treasury",     ["treasury"]),
     ("Day trading (當沖)",  "scrapers.day_trading",        "scrape_date", "daytrade",     ["daytrade"]),
+    ("Stock alerts",        "scrapers.stock_alerts",       "scrape_date", "alerts",       ["alerts"]),
 ]
 
 # ---------------------------------------------------------------------------
@@ -100,6 +101,7 @@ _SKIP_QUERIES = {
     "index":        "SELECT 1 FROM tw.index_prices WHERE trade_date = %s AND advance IS NOT NULL LIMIT 1",
     "sbl":          "SELECT 1 FROM tw.daily_prices WHERE trade_date = %s AND sbl_balance IS NOT NULL LIMIT 1",
     "daytrade":     "SELECT 1 FROM tw.daily_prices WHERE trade_date = %s AND dt_volume IS NOT NULL LIMIT 1",
+    "alerts":       "SELECT 1 FROM tw.stock_alerts WHERE alert_date = %s LIMIT 1",
 }
 
 

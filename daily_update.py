@@ -39,6 +39,8 @@ SCRAPERS = [
     ("SBL (借券賣出)",           "scrapers.securities_lending", "scrape_date"),
     # Day trading
     ("Day trading (當沖)",       "scrapers.day_trading",        "scrape_date"),
+    # Alerts
+    ("Stock alerts (注意/處置)", "scrapers.stock_alerts",       "scrape_date"),
     # Weekly/monthly (idempotent, run once per period)
     ("Shareholder dist.",       "scrapers.shareholder_distribution", "scrape_date"),
     ("Insider holdings",        "scrapers.insider_holdings",  "scrape_date"),
