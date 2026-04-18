@@ -43,6 +43,26 @@ ETF_REGISTRY = [
         "fund_code": "61YTW",
     },
     {
+        "etf_id": "00991A",
+        "source": "fhtrust",
+        "etf_code": "ETF23",
+    },
+    {
+        "etf_id": "00980A",
+        "source": "nomura",
+        "fund_no": "00980A",
+    },
+    {
+        "etf_id": "00993A",
+        "source": "allianz",
+        "fund_id": "E0001",
+    },
+    {
+        "etf_id": "00982A",
+        "source": "capitalfund",
+        "fund_id": "399",
+    },
+    {
         "etf_id": "00992A",
         "source": "capitalfund",
         "fund_id": "500",
@@ -143,16 +163,222 @@ def _fetch_capitalfund(fund_id: str) -> list[dict]:
     return holdings
 
 # ---------------------------------------------------------------------------
+# Fhtrust (復華投信) — Excel download
+# ---------------------------------------------------------------------------
+
+FHTRUST_EXCEL_URL = "https://www.fhtrust.com.tw/api/assetsExcel"
+
+
+def _fetch_fhtrust(etf_code: str, trade_date: date) -> list[dict]:
+    """
+    Fetch holdings from fhtrust Excel download.
+    Returns list of {stock_id, stock_name, shares, weight}.
+    """
+    from openpyxl import load_workbook
+    from io import BytesIO
+
+    date_str = trade_date.strftime("%Y%m%d")
+    url = f"{FHTRUST_EXCEL_URL}/{etf_code}/{date_str}"
+    resp = fetch(url)
+    if resp is None or resp.status_code != 200:
+        print(f"  [ERROR] Failed to fetch fhtrust Excel for {etf_code}/{date_str}")
+        return []
+
+    wb = load_workbook(BytesIO(resp.content))
+    ws = wb.active
+
+    holdings = []
+    for row in ws.iter_rows(min_row=1, values_only=True):
+        if not row[0]:
+            continue
+        cell0 = str(row[0]).strip()
+        # Stock rows: 4-digit numeric code
+        if cell0.isdigit() and len(cell0) == 4:
+            stock_id = cell0
+            stock_name = str(row[1] or "").strip()
+            shares_str = str(row[2] or "0").replace(",", "")
+            weight_str = str(row[4] or "0").replace("%", "").replace(",", "")
+            try:
+                shares = int(shares_str)
+                weight = float(weight_str)
+            except ValueError:
+                continue
+            if shares > 0:
+                holdings.append({
+                    "stock_id": stock_id,
+                    "stock_name": stock_name,
+                    "shares": shares,
+                    "weight": weight,
+                })
+
+    return holdings
+
+
+# ---------------------------------------------------------------------------
+# Nomura (野村投信) — JSON API
+# ---------------------------------------------------------------------------
+
+NOMURA_API_URL = "https://www.nomurafunds.com.tw/API/ETFAPI/api/Fund/GetFundAssets"
+
+
+def _fetch_nomura(fund_no: str, trade_date: date) -> list[dict]:
+    """
+    Fetch holdings from Nomura ETFWEB API.
+    Returns list of {stock_id, stock_name, shares, weight}.
+    """
+    domain = _get_domain(NOMURA_API_URL)
+    session = get_session()
+    _wait_for_rate_limit(domain)
+    try:
+        resp = session.post(
+            NOMURA_API_URL,
+            json={
+                "FundID": fund_no,
+                "SearchDate": trade_date.strftime("%Y-%m-%dT00:00:00"),
+            },
+            timeout=30,
+        )
+        resp.raise_for_status()
+        data = resp.json()
+    except Exception as e:
+        print(f"  [ERROR] Nomura API failed for {fund_no}: {e}")
+        return []
+
+    entries = data.get("Entries") or {}
+    table_data = (entries.get("Data") or {}).get("Table") or []
+
+    holdings = []
+    for table in table_data:
+        rows = table.get("Rows") or []
+        cols = table.get("Columns") or []
+        # Stock table has columns: 證券代號, 證券名稱, 股數, 比重(%)
+        if len(cols) < 4:
+            continue
+        for row in rows:
+            if len(row) < 4:
+                continue
+            stock_id = str(row[0]).strip()
+            if not stock_id or not stock_id.isdigit() or len(stock_id) != 4:
+                continue
+            stock_name = str(row[1]).strip()
+            try:
+                shares = int(str(row[2]).replace(",", ""))
+                weight = float(str(row[3]).replace(",", ""))
+            except (ValueError, TypeError):
+                continue
+            if shares > 0:
+                holdings.append({
+                    "stock_id": stock_id,
+                    "stock_name": stock_name,
+                    "shares": shares,
+                    "weight": weight,
+                })
+
+    return holdings
+
+
+# ---------------------------------------------------------------------------
+# Allianz (安聯投信) — JSON API with XSRF token
+# ---------------------------------------------------------------------------
+
+ALLIANZ_API_BASE = "https://etf.allianzgi.com.tw/webapi/api"
+
+
+def _fetch_allianz(fund_id: str) -> list[dict]:
+    """
+    Fetch holdings from Allianz ETF API (requires XSRF token).
+    Returns list of {stock_id, stock_name, shares, weight}.
+    """
+    session = get_session()
+    headers = {"User-Agent": "Mozilla/5.0"}
+
+    # Step 1: obtain XSRF token
+    _wait_for_rate_limit(_get_domain(ALLIANZ_API_BASE))
+    try:
+        token_resp = session.get(
+            f"{ALLIANZ_API_BASE}/AntiForgery/GetAntiForgeryToken",
+            headers=headers,
+            timeout=15,
+        )
+        token_resp.raise_for_status()
+        xsrf_token = token_resp.json()["token"]
+    except Exception as e:
+        print(f"  [ERROR] Allianz XSRF token failed: {e}")
+        return []
+
+    # Step 2: fetch holdings
+    _wait_for_rate_limit(_get_domain(ALLIANZ_API_BASE))
+    try:
+        resp = session.post(
+            f"{ALLIANZ_API_BASE}/Fund/GetFundAssets",
+            json={"FundID": fund_id},
+            headers={
+                **headers,
+                "Content-Type": "application/json",
+                "X-XSRF-TOKEN": xsrf_token,
+            },
+            timeout=30,
+        )
+        resp.raise_for_status()
+        data = resp.json()
+    except Exception as e:
+        print(f"  [ERROR] Allianz GetFundAssets failed for {fund_id}: {e}")
+        return []
+
+    entries = data.get("Entries") or {}
+    table_data = (entries.get("Data") or {}).get("Table") or []
+
+    holdings = []
+    for table in table_data:
+        rows = table.get("Rows") or []
+        cols = table.get("Columns") or []
+        # Stock table has columns: 序號, 證券代號, 證券名稱, 股數, 比重(%)
+        if len(cols) < 5:
+            continue
+        for row in rows:
+            if len(row) < 5:
+                continue
+            stock_id = str(row[1]).strip()
+            if not stock_id or not stock_id.isdigit() or len(stock_id) != 4:
+                continue
+            stock_name = str(row[2]).strip()
+            try:
+                shares = int(str(row[3]).replace(",", ""))
+                weight = float(str(row[4]).replace("%", "").replace(",", ""))
+            except (ValueError, TypeError):
+                continue
+            if shares > 0:
+                holdings.append({
+                    "stock_id": stock_id,
+                    "stock_name": stock_name,
+                    "shares": shares,
+                    "weight": weight,
+                })
+
+    return holdings
+
+
+# ---------------------------------------------------------------------------
 # Fetch dispatcher
 # ---------------------------------------------------------------------------
 
 
-def _fetch_holdings(etf: dict) -> list[dict]:
+def _fetch_holdings(etf: dict, trade_date: date = None) -> list[dict]:
     source = etf["source"]
     if source == "ezmoney":
         return _fetch_ezmoney(etf["fund_code"])
     elif source == "capitalfund":
         return _fetch_capitalfund(etf["fund_id"])
+    elif source == "fhtrust":
+        if trade_date is None:
+            trade_date = date.today()
+        return _fetch_fhtrust(etf["etf_code"], trade_date)
+    elif source == "nomura":
+        if trade_date is None:
+            trade_date = date.today()
+        return _fetch_nomura(etf["fund_no"], trade_date)
+    elif source == "allianz":
+        return _fetch_allianz(etf["fund_id"])
     else:
         print(f"  [ERROR] Unknown source: {source}")
         return []
@@ -458,7 +684,7 @@ def scrape_date(trade_date: date):
         etf_id = etf["etf_id"]
         print(f"  Fetching holdings for {etf_id} ...")
 
-        holdings = _fetch_holdings(etf)
+        holdings = _fetch_holdings(etf, trade_date)
         if not holdings:
             print(f"  [WARN] No holdings data for {etf_id}, skipping.")
             continue

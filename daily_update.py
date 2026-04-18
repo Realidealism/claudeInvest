@@ -221,6 +221,35 @@ def update_date(trade_date: date):
             print("  [ERROR] Monthly revenue scraper failed:")
             traceback.print_exc()
 
+    # SITCA fund holdings: monthly top-10 (available ~10th business day)
+    if trade_date.day <= 20:
+        print(f"\n--- SITCA monthly fund holdings ---")
+        try:
+            from scrapers.sitca import scrape_monthly
+            # Fetch previous month's holdings
+            m = trade_date.month - 1
+            y = trade_date.year
+            if m == 0:
+                m = 12
+                y -= 1
+            scrape_monthly(f"{y}{m:02d}")
+        except Exception:
+            print("  [ERROR] SITCA monthly scraper failed:")
+            traceback.print_exc()
+
+    # SITCA quarterly holdings: available ~15th of quarter-end+1 month
+    quarter_end_months = {1: 12, 2: 12, 4: 3, 5: 3, 7: 6, 8: 6, 10: 9, 11: 9}
+    if trade_date.month in quarter_end_months and trade_date.day <= 20:
+        print(f"\n--- SITCA quarterly fund holdings ---")
+        try:
+            from scrapers.sitca import scrape_quarterly
+            qm = quarter_end_months[trade_date.month]
+            qy = trade_date.year if qm < trade_date.month else trade_date.year - 1
+            scrape_quarterly(f"{qy}{qm:02d}")
+        except Exception:
+            print("  [ERROR] SITCA quarterly scraper failed:")
+            traceback.print_exc()
+
     # Detect delisted stocks after all price scrapers have run
     print(f"\n--- Delist detection ---")
     try:
