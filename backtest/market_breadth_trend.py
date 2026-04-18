@@ -1,9 +1,9 @@
-"""Backtest TAIEX using Market Breadth trend signals with day-over-day
-convergence-weakening overlay.
+"""Backtest TAIEX using Market Breadth trend signals with spread-exhaustion
+overlay.
 
 Variants per scope (short / medium / long) × (normal / total):
   Entry: trend in (bull, strong_bull)
-  Exit:  trend in (bear, strong_bear, bull_weakening)
+  Exit:  trend in (bear, strong_bear, bull_exhausting)
 Execution: at signal day's close price.
 """
 
@@ -12,7 +12,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from db.connection import get_cursor
-from analysis.market_breadth import classify_trend_series, TREND_CODE, SCOPE_PATHS
+from analysis.market_breadth import classify_trend_series, TREND_CODE
 
 
 SCOPES = ["short", "medium", "long"]

@@ -1,7 +1,7 @@
-"""Compare weakening path configurations on TAIEX backtest.
+"""Compare exhaustion path configurations on TAIEX backtest.
 
-Runs the market_breadth_trend backtest across multiple SCOPE_PATHS configs
-so we can see trade-offs side by side.
+Runs the market_breadth_trend backtest across multiple SCOPE_EXHAUST_PATHS
+configs so we can see trade-offs side by side.
 """
 
 from __future__ import annotations
@@ -17,17 +17,15 @@ from backtest.market_breadth_trend import _backtest, _buy_hold, _pcts
 
 SCOPES = ["short", "medium", "long"]
 
-# (label, scope_paths)
-# Each scope_paths: {"short": (use_2d, use_3d, use_5d), "medium": ..., "long": ...}
+# (label, scope_exhaust_paths)
 CONFIGS = [
-    ("no_weakening",       {s: (False, False, False) for s in SCOPES}),
-    ("unified_2d",         {s: (True,  False, False) for s in SCOPES}),
-    ("unified_3d",         {s: (False, True,  False) for s in SCOPES}),
-    ("unified_2d|3d",      {s: (True,  True,  False) for s in SCOPES}),
-    ("unified_2d|3d|5d",   {s: (True,  True,  True ) for s in SCOPES}),
-    ("per_scope_current",  {"short":  (True, False, False),
-                             "medium": (True, True,  False),
-                             "long":   (True, True,  True )}),
+    ("no_exhausting",  {"short": (999,), "medium": (999,), "long": (999,)}),
+    ("2,3/3,5/5,8",    {"short": (2, 3), "medium": (3, 5), "long": (5, 8)}),
+    ("2/3/5",          {"short": (2,),   "medium": (3,),   "long": (5,)}),
+    ("3/3/5",          {"short": (3,),   "medium": (3,),   "long": (5,)}),
+    ("3/5/8",          {"short": (3,),   "medium": (5,),   "long": (8,)}),
+    ("uniform_3",      {"short": (3,),   "medium": (3,),   "long": (3,)}),
+    ("uniform_5",      {"short": (5,),   "medium": (5,),   "long": (5,)}),
 ]
 
 
@@ -64,24 +62,24 @@ def run():
         ups, dns = _pcts(rows, f"{scope}_up_total", f"{scope}_down_total")
         scope_pcts[scope] = (ups, dns)
 
-    orig_paths = dict(mb.SCOPE_PATHS)
+    orig = dict(mb.SCOPE_EXHAUST_PATHS)
     try:
-        header = f"{'Config':<22}" + "".join(f"{s+'_total':>14}" for s in SCOPES)
+        header = f"{'Config':<18}" + "".join(f"{s+'_total':>14}" for s in SCOPES)
         print(header)
         print("-" * len(header))
 
-        for label, paths in CONFIGS:
-            mb.SCOPE_PATHS = paths
+        for label, paths_cfg in CONFIGS:
+            mb.SCOPE_EXHAUST_PATHS = paths_cfg
             returns = []
             for scope in SCOPES:
                 ups, dns = scope_pcts[scope]
                 trends = [mb.TREND_CODE[t] for t in mb.classify_trend_series(ups, dns, scope=scope)]
                 res = _backtest(dates, closes, trends)
                 returns.append(res.total_return_pct)
-            row = f"{label:<22}" + "".join(f"{r:>14.2f}" for r in returns)
+            row = f"{label:<18}" + "".join(f"{r:>14.2f}" for r in returns)
             print(row)
     finally:
-        mb.SCOPE_PATHS = orig_paths
+        mb.SCOPE_EXHAUST_PATHS = orig
 
 
 if __name__ == "__main__":

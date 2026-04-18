@@ -19,18 +19,18 @@ from datetime import date
 from typing import Literal
 
 Trend = Literal[
-    "bear_weakening", "strong_bear", "bear", "neutral",
-    "bull", "strong_bull", "bull_weakening",
+    "bear_exhausting", "strong_bear", "bear", "neutral",
+    "bull", "strong_bull", "bull_exhausting",
 ]
 
 TREND_CODE: dict[Trend, int] = {
-    "bear_weakening": -3,
+    "bear_exhausting": -3,
     "strong_bear": -2,
     "bear": -1,
     "neutral": 0,
     "bull": 1,
     "strong_bull": 2,
-    "bull_weakening": 3,
+    "bull_exhausting": 3,
 }
 
 def classify_trend(up_pct: float, down_pct: float, neutral_pct: float) -> Trend:
@@ -47,29 +47,22 @@ def classify_trend(up_pct: float, down_pct: float, neutral_pct: float) -> Trend:
     return "neutral"
 
 
-# Weakening threshold: today's change magnitude must exceed
+# Exhaustion: consecutive convergence paths per scope.
+# Each scope checks multiple path lengths; any path triggering = exhausting.
+SCOPE_EXHAUST_PATHS: dict[str, tuple[int, ...]] = {
+    "short":  (2, 3),
+    "medium": (3, 5),
+    "long":   (5, 8),
+}
+
+# Weakening signal: today's |Δ| must exceed
 # WEAKENING_THRESHOLD_RATIO × average |Δ| of past SCOPE_LOOKBACK[scope] days.
 WEAKENING_THRESHOLD_RATIO = 1.0
 
-# Per-scope baseline lookback window for |Δ| average.
 SCOPE_LOOKBACK: dict[str, int] = {
     "short":  3,
     "medium": 3,
     "long":   3,
-}
-
-# Paths allowed per scope: all scopes use 2d OR 3d (5d disabled).
-SCOPE_PATHS: dict[str, tuple[bool, bool, bool]] = {
-    "short":  (True, True, False),
-    "medium": (True, True, False),
-    "long":   (True, True, False),
-}
-
-# Per-scope prior-day ratios for (2d, 3d, 5d) paths.
-SCOPE_RATIOS: dict[str, tuple[float, float, float]] = {
-    "short":  (0.8, 0.6, 0.5),
-    "medium": (0.8, 0.6, 0.5),
-    "long":   (0.8, 0.6, 0.5),
 }
 
 
@@ -78,33 +71,71 @@ def classify_trend_series(
     down_pcts: list[float],
     scope: str = "long",
 ) -> list[Trend]:
-    """Classify full series with day-over-day convergence warning overlay.
+    """Classify full series with spread-exhaustion overlay.
 
-    For day t (t >= LOOKBACK + 1):
-      threshold_up = RATIO * mean(|Δup(t-1)|, ..., |Δup(t-LOOKBACK)|)
-      threshold_dn = RATIO * mean(|Δdn(t-1)|, ..., |Δdn(t-LOOKBACK)|)
-
-    Bull_weakening: base in (bull, strong_bull) AND
-        -Δup(t) > threshold_up AND Δdn(t) > threshold_dn AND
-        prior 2 days already converging: Δup(t-k)<0 AND Δdn(t-k)>0 for k in 1,2
-    Bear_weakening: mirrored.
-    Insufficient history → no warning overlay.
+    Exhaustion requires ALL configured path lengths to simultaneously show
+    consecutive spread convergence with acceleration.
     """
     n = len(up_pcts)
     out: list[Trend] = []
-    lb = SCOPE_LOOKBACK[scope]
-    ratio = WEAKENING_THRESHOLD_RATIO
-    use_2d, use_3d, use_5d = SCOPE_PATHS[scope]
-    r_2d, r_3d, r_5d = SCOPE_RATIOS[scope]
+    paths = SCOPE_EXHAUST_PATHS[scope]
+    spreads = [up_pcts[i] - down_pcts[i] for i in range(n)]
 
     for i in range(n):
         up, dn = up_pcts[i], down_pcts[i]
         base = classify_trend(up, dn, 100 - up - dn)
 
-        if i < lb + 1:
+        bull_all = []
+        bear_all = []
+        for days in paths:
+            if i < days:
+                bull_all.append(False)
+                bear_all.append(False)
+                continue
+            deltas = [spreads[i - k] - spreads[i - k - 1] for k in range(days)]
+            bull_all.append(all(d < 0 for d in deltas)
+                            and all(abs(deltas[k]) > abs(deltas[k + 1]) for k in range(days - 1)))
+            bear_all.append(all(d > 0 for d in deltas)
+                            and all(abs(deltas[k]) > abs(deltas[k + 1]) for k in range(days - 1)))
+        bull_ex = all(bull_all)
+        bear_ex = all(bear_all)
+
+        if base in ("bull", "strong_bull") and bull_ex:
+            out.append("bull_exhausting")
+        elif base in ("bear", "strong_bear") and bear_ex:
+            out.append("bear_exhausting")
+        else:
             out.append(base)
+    return out
+
+
+def classify_weakening_series(
+    up_pcts: list[float],
+    down_pcts: list[float],
+    trends: list[Trend],
+    scope: str = "long",
+) -> list[bool]:
+    """Detect weakening signal: exhausting trend + today's sharp convergence.
+
+    Requires the trend to already be exhausting (sustained spread convergence),
+    AND today's own change magnitude exceeds the recent average:
+      threshold = RATIO * mean(|Δ| of past LOOKBACK days)
+
+    Bull weakening: trend is bull_exhausting AND -Δup > threshold AND Δdn > threshold.
+    Bear weakening: mirrored.
+    """
+    n = len(up_pcts)
+    out: list[bool] = []
+    lb = SCOPE_LOOKBACK[scope]
+    ratio = WEAKENING_THRESHOLD_RATIO
+
+    for i in range(n):
+        if i < lb + 1:
+            out.append(False)
             continue
 
+        trend = trends[i]
+        up, dn = up_pcts[i], down_pcts[i]
         du = up - up_pcts[i - 1]
         dd = dn - down_pcts[i - 1]
 
@@ -113,51 +144,12 @@ def classify_trend_series(
         th_up = ratio * (sum(prev_du) / lb)
         th_dn = ratio * (sum(prev_dd) / lb)
 
-        avg_du = sum(prev_du) / lb
-        avg_dd = sum(prev_dd) / lb
-
-        du1 = up_pcts[i - 1] - up_pcts[i - 2]
-        dd1 = down_pcts[i - 1] - down_pcts[i - 2]
-        du2 = up_pcts[i - 2] - up_pcts[i - 3]
-        dd2 = down_pcts[i - 2] - down_pcts[i - 3]
-
-        bull_2d = bear_2d = bull_3d = bear_3d = bull_5d = bear_5d = False
-
-        if use_2d:
-            up_2d = r_2d * avg_du
-            dn_2d = r_2d * avg_dd
-            bull_2d = -du1 > up_2d and dd1 > dn_2d and -du2 > up_2d and dd2 > dn_2d
-            bear_2d = -dd1 > dn_2d and du1 > up_2d and -dd2 > dn_2d and du2 > up_2d
-
-        if use_3d and i >= 4:
-            du3 = up_pcts[i - 3] - up_pcts[i - 4]
-            dd3 = down_pcts[i - 3] - down_pcts[i - 4]
-            up_3d = r_3d * avg_du
-            dn_3d = r_3d * avg_dd
-            bull_3d = (-du1 > up_3d and dd1 > dn_3d
-                       and -du2 > up_3d and dd2 > dn_3d
-                       and -du3 > up_3d and dd3 > dn_3d)
-            bear_3d = (-dd1 > dn_3d and du1 > up_3d
-                       and -dd2 > dn_3d and du2 > up_3d
-                       and -dd3 > dn_3d and du3 > up_3d)
-
-        if use_5d and i >= 6:
-            up_5d = r_5d * avg_du
-            dn_5d = r_5d * avg_dd
-            du_list = [up_pcts[i - k] - up_pcts[i - k - 1] for k in range(1, 6)]
-            dd_list = [down_pcts[i - k] - down_pcts[i - k - 1] for k in range(1, 6)]
-            bull_5d = all(-x > up_5d for x in du_list) and all(y > dn_5d for y in dd_list)
-            bear_5d = all(-y > dn_5d for y in dd_list) and all(x > up_5d for x in du_list)
-
-        bull_prior = bull_2d or bull_3d or bull_5d
-        bear_prior = bear_2d or bear_3d or bear_5d
-
-        if base in ("bull", "strong_bull") and -du > th_up and dd > th_dn and bull_prior:
-            out.append("bull_weakening")
-        elif base in ("bear", "strong_bear") and -dd > th_dn and du > th_up and bear_prior:
-            out.append("bear_weakening")
-        else:
-            out.append(base)
+        is_weak = False
+        if trend == "bull_exhausting" and -du > th_up and dd > th_dn:
+            is_weak = True
+        elif trend == "bear_exhausting" and -dd > th_dn and du > th_up:
+            is_weak = True
+        out.append(is_weak)
     return out
 
 import numpy as np
