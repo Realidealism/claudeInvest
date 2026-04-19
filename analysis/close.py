@@ -228,7 +228,6 @@ def calc_sort_forming(
     for label, (p1, p2, p3) in SORT_NORMAL.items():
         pre1, pre2, pre3 = pre[p1], pre[p2], pre[p3]
         cd3 = cd[p3]
-        cd1, cd2 = cd[p1], cd[p2]
 
         n = len(pre1)
         pre1_up = np.zeros(n, dtype=np.bool_)
@@ -237,15 +236,11 @@ def calc_sort_forming(
             pre1_up[1:] = pre1[1:] > pre1[:-1]
             pre1_dn[1:] = pre1[1:] < pre1[:-1]
 
-        already_up = (cd1 > cd2) & (cd2 > cd3)
-        already_dn = (cd1 < cd2) & (cd2 < cd3)
-
         up_forming = (
             (pre1 > pre2 * GAP)
             & (pre2 > pre3 * GAP)
             & (pre1 > cd3)
             & pre1_up
-            & ~already_up
             & vol_ok
         )
 
@@ -254,7 +249,6 @@ def calc_sort_forming(
             & (pre2 * GAP < pre3)
             & (pre1 < cd3)
             & pre1_dn
-            & ~already_dn
             & vol_ok
         )
 
