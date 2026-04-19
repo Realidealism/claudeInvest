@@ -47,12 +47,14 @@ def classify_trend(up_pct: float, down_pct: float, neutral_pct: float) -> Trend:
     return "neutral"
 
 
-# Exhaustion: consecutive convergence paths per scope.
-# Each scope checks multiple path lengths; any path triggering = exhausting.
-SCOPE_EXHAUST_PATHS: dict[str, tuple[int, ...]] = {
-    "short":  (2, 3),
-    "medium": (3, 5),
-    "long":   (5, 8),
+# Exhaustion: per-scope paths as (days, min_convergence_ratio).
+# Spread must shrink by at least min_convergence_ratio over the period.
+# Short path = fewer days but higher magnitude required.
+# OR logic: any path triggering = exhausting.
+SCOPE_EXHAUST_PATHS: dict[str, tuple[tuple[int, float], ...]] = {
+    "short":  ((2, 0.30), (3, 0.20)),
+    "medium": ((3, 0.20), (5, 0.10)),
+    "long":   ((5, 0.10), (8, 0.0)),
 }
 
 # Weakening signal: today's |Δ| must exceed
@@ -73,8 +75,10 @@ def classify_trend_series(
 ) -> list[Trend]:
     """Classify full series with spread-exhaustion overlay.
 
-    Exhaustion requires ALL configured path lengths to simultaneously show
-    consecutive spread convergence with acceleration.
+    Exhaustion: consecutive spread convergence with acceleration,
+    AND spread must shrink by at least min_ratio over the period.
+    OR logic across paths: short path (high magnitude) fires early,
+    long path (low magnitude) catches sustained convergence.
     """
     n = len(up_pcts)
     out: list[Trend] = []
@@ -85,20 +89,28 @@ def classify_trend_series(
         up, dn = up_pcts[i], down_pcts[i]
         base = classify_trend(up, dn, 100 - up - dn)
 
-        bull_all = []
-        bear_all = []
-        for days in paths:
+        bull_ex = bear_ex = False
+        for days, min_ratio in paths:
             if i < days:
-                bull_all.append(False)
-                bear_all.append(False)
                 continue
             deltas = [spreads[i - k] - spreads[i - k - 1] for k in range(days)]
-            bull_all.append(all(d < 0 for d in deltas)
-                            and all(abs(deltas[k]) > abs(deltas[k + 1]) for k in range(days - 1)))
-            bear_all.append(all(d > 0 for d in deltas)
-                            and all(abs(deltas[k]) > abs(deltas[k + 1]) for k in range(days - 1)))
-        bull_ex = all(bull_all)
-        bear_ex = all(bear_all)
+
+            # Convergence magnitude: how much |spread| has shrunk
+            start_spread = abs(spreads[i - days])
+            if start_spread < 0.5:
+                continue
+            convergence = 1 - abs(spreads[i]) / start_spread
+
+            # Bull: spread shrinking (deltas < 0) + accelerating + magnitude
+            if not bull_ex:
+                bull_ex = (convergence >= min_ratio
+                           and all(d < 0 for d in deltas)
+                           and all(abs(deltas[k]) > abs(deltas[k + 1]) for k in range(days - 1)))
+            # Bear: spread shrinking (deltas > 0) + accelerating + magnitude
+            if not bear_ex:
+                bear_ex = (convergence >= min_ratio
+                           and all(d > 0 for d in deltas)
+                           and all(abs(deltas[k]) > abs(deltas[k + 1]) for k in range(days - 1)))
 
         if base in ("bull", "strong_bull") and bull_ex:
             out.append("bull_exhausting")
