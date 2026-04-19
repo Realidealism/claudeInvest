@@ -96,17 +96,6 @@ def _pcts(rows, up_key, dn_key):
     return ups, dns
 
 
-def _pcts_total(rows, scope):
-    """Compute total (normal + forming) percentages for a scope."""
-    ups, dns = [], []
-    for r in rows:
-        t = r["total_stocks"] or 1
-        up = (r[f"{scope}_up"] + r[f"{scope}_up_forming"]) / t * 100
-        dn = (r[f"{scope}_down"] + r[f"{scope}_down_forming"]) / t * 100
-        ups.append(up)
-        dns.append(dn)
-    return ups, dns
-
 
 def run():
     with get_cursor(commit=False) as cur:
@@ -117,9 +106,9 @@ def run():
                    b.short_up, b.short_down,
                    b.medium_up, b.medium_down,
                    b.long_up, b.long_down,
-                   b.short_up_forming, b.short_down_forming,
-                   b.medium_up_forming, b.medium_down_forming,
-                   b.long_up_forming, b.long_down_forming
+                   b.short_up_total, b.short_down_total,
+                   b.medium_up_total, b.medium_down_total,
+                   b.long_up_total, b.long_down_total
             FROM tw.market_breadth b
             JOIN tw.index_prices i
               ON i.trade_date = b.trade_date AND i.index_id = 'TAIEX'
@@ -140,7 +129,7 @@ def run():
         res.signal = f"{scope}_trend (normal)"
         results.append(res)
 
-        ups, dns = _pcts_total(rows, scope)
+        ups, dns = _pcts(rows, f"{scope}_up_total", f"{scope}_down_total")
         trends_total = [TREND_CODE[t] for t in classify_trend_series(ups, dns, scope=scope)]
         res = _backtest(dates, closes, trends_total)
         res.signal = f"{scope}_trend (total)"

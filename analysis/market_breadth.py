@@ -200,6 +200,14 @@ class BreadthDay:
     long_up_forming: int
     long_down_forming: int
 
+    # Total = union of normal and forming (no double-counting)
+    short_up_total: int
+    short_down_total: int
+    medium_up_total: int
+    medium_down_total: int
+    long_up_total: int
+    long_down_total: int
+
     def _pct(self, count: int) -> float:
         return count / self.total_stocks * 100 if self.total_stocks else 0
 
@@ -267,30 +275,6 @@ class BreadthDay:
     @property
     def long_down_forming_pct(self) -> float:
         return self._pct(self.long_down_forming)
-
-    @property
-    def short_up_total(self) -> int:
-        return self.short_up + self.short_up_forming
-
-    @property
-    def short_down_total(self) -> int:
-        return self.short_down + self.short_down_forming
-
-    @property
-    def medium_up_total(self) -> int:
-        return self.medium_up + self.medium_up_forming
-
-    @property
-    def medium_down_total(self) -> int:
-        return self.medium_down + self.medium_down_forming
-
-    @property
-    def long_up_total(self) -> int:
-        return self.long_up + self.long_up_forming
-
-    @property
-    def long_down_total(self) -> int:
-        return self.long_down + self.long_down_forming
 
     @property
     def short_trend(self) -> Trend:
@@ -363,6 +347,13 @@ def calculate_market_breadth(
     m_dnf = np.zeros(n_dates, dtype=np.int32)
     l_upf = np.zeros(n_dates, dtype=np.int32)
     l_dnf = np.zeros(n_dates, dtype=np.int32)
+    # Total = union of normal and forming (no double-counting)
+    s_upt = np.zeros(n_dates, dtype=np.int32)
+    s_dnt = np.zeros(n_dates, dtype=np.int32)
+    m_upt = np.zeros(n_dates, dtype=np.int32)
+    m_dnt = np.zeros(n_dates, dtype=np.int32)
+    l_upt = np.zeros(n_dates, dtype=np.int32)
+    l_dnt = np.zeros(n_dates, dtype=np.int32)
 
     # 3. Process each stock
     done = 0
@@ -397,35 +388,36 @@ def calculate_market_breadth(
                 continue
 
             total[idx] += 1
-            if sn["short"].up[j]:
-                s_up[idx] += 1
-            elif sn["short"].down[j]:
-                s_dn[idx] += 1
 
-            if sn["medium"].up[j]:
-                m_up[idx] += 1
-            elif sn["medium"].down[j]:
-                m_dn[idx] += 1
+            # Normal counts
+            snu = sn["short"].up[j];  snd = sn["short"].down[j]
+            mnu = sn["medium"].up[j]; mnd = sn["medium"].down[j]
+            lnu = sn["long"].up[j];   lnd = sn["long"].down[j]
+            if snu: s_up[idx] += 1
+            elif snd: s_dn[idx] += 1
+            if mnu: m_up[idx] += 1
+            elif mnd: m_dn[idx] += 1
+            if lnu: l_up[idx] += 1
+            elif lnd: l_dn[idx] += 1
 
-            if sn["long"].up[j]:
-                l_up[idx] += 1
-            elif sn["long"].down[j]:
-                l_dn[idx] += 1
+            # Forming counts
+            sfu = sort_forming["short"].up[j];  sfd = sort_forming["short"].down[j]
+            mfu = sort_forming["medium"].up[j]; mfd = sort_forming["medium"].down[j]
+            lfu = sort_forming["long"].up[j];   lfd = sort_forming["long"].down[j]
+            if sfu: s_upf[idx] += 1
+            elif sfd: s_dnf[idx] += 1
+            if mfu: m_upf[idx] += 1
+            elif mfd: m_dnf[idx] += 1
+            if lfu: l_upf[idx] += 1
+            elif lfd: l_dnf[idx] += 1
 
-            if sort_forming["short"].up[j]:
-                s_upf[idx] += 1
-            elif sort_forming["short"].down[j]:
-                s_dnf[idx] += 1
-
-            if sort_forming["medium"].up[j]:
-                m_upf[idx] += 1
-            elif sort_forming["medium"].down[j]:
-                m_dnf[idx] += 1
-
-            if sort_forming["long"].up[j]:
-                l_upf[idx] += 1
-            elif sort_forming["long"].down[j]:
-                l_dnf[idx] += 1
+            # Total = union (normal OR forming, no double-counting)
+            if snu or sfu: s_upt[idx] += 1
+            elif snd or sfd: s_dnt[idx] += 1
+            if mnu or mfu: m_upt[idx] += 1
+            elif mnd or mfd: m_dnt[idx] += 1
+            if lnu or lfu: l_upt[idx] += 1
+            elif lnd or lfd: l_dnt[idx] += 1
 
         done += 1
         if done % 200 == 0:
@@ -452,6 +444,12 @@ def calculate_market_breadth(
             medium_down_forming=int(m_dnf[i]),
             long_up_forming=int(l_upf[i]),
             long_down_forming=int(l_dnf[i]),
+            short_up_total=int(s_upt[i]),
+            short_down_total=int(s_dnt[i]),
+            medium_up_total=int(m_upt[i]),
+            medium_down_total=int(m_dnt[i]),
+            long_up_total=int(l_upt[i]),
+            long_down_total=int(l_dnt[i]),
         ))
 
     return results
@@ -474,9 +472,13 @@ def save_market_breadth(results: list[BreadthDay]) -> int:
                 short_up_forming, short_down_forming,
                 medium_up_forming, medium_down_forming,
                 long_up_forming, long_down_forming,
+                short_up_total, short_down_total,
+                medium_up_total, medium_down_total,
+                long_up_total, long_down_total,
                 short_trend, medium_trend, long_trend,
                 short_trend_total, medium_trend_total, long_trend_total
             ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s,
+                      %s, %s, %s, %s, %s, %s,
                       %s, %s, %s, %s, %s, %s,
                       %s, %s, %s, %s, %s, %s)
             ON CONFLICT (trade_date) DO UPDATE SET
@@ -494,6 +496,12 @@ def save_market_breadth(results: list[BreadthDay]) -> int:
                 medium_down_forming    = EXCLUDED.medium_down_forming,
                 long_up_forming        = EXCLUDED.long_up_forming,
                 long_down_forming      = EXCLUDED.long_down_forming,
+                short_up_total         = EXCLUDED.short_up_total,
+                short_down_total       = EXCLUDED.short_down_total,
+                medium_up_total        = EXCLUDED.medium_up_total,
+                medium_down_total      = EXCLUDED.medium_down_total,
+                long_up_total          = EXCLUDED.long_up_total,
+                long_down_total        = EXCLUDED.long_down_total,
                 short_trend            = EXCLUDED.short_trend,
                 medium_trend           = EXCLUDED.medium_trend,
                 long_trend             = EXCLUDED.long_trend,
@@ -509,6 +517,9 @@ def save_market_breadth(results: list[BreadthDay]) -> int:
                 r.short_up_forming, r.short_down_forming,
                 r.medium_up_forming, r.medium_down_forming,
                 r.long_up_forming, r.long_down_forming,
+                r.short_up_total, r.short_down_total,
+                r.medium_up_total, r.medium_down_total,
+                r.long_up_total, r.long_down_total,
                 TREND_CODE[r.short_trend], TREND_CODE[r.medium_trend], TREND_CODE[r.long_trend],
                 TREND_CODE[r.short_trend_total], TREND_CODE[r.medium_trend_total], TREND_CODE[r.long_trend_total],
             )
