@@ -102,10 +102,11 @@ export default function FlowPage() {
                   const absDiff = Math.abs(diff);
                   // Color intensity based on magnitude
                   const opacity = Math.min(absDiff / 3, 1);
+                  // Taiwan convention: red = buy/increase, green = sell/decrease
                   const bg = diff > 0
-                    ? `rgba(34, 197, 94, ${opacity * 0.3})`
-                    : diff < 0
                     ? `rgba(239, 68, 68, ${opacity * 0.3})`
+                    : diff < 0
+                    ? `rgba(34, 197, 94, ${opacity * 0.3})`
                     : undefined;
                   return (
                     <td
@@ -115,7 +116,7 @@ export default function FlowPage() {
                       title={`${fc.prev?.toFixed(1) || "—"}% → ${fc.curr?.toFixed(1)}% (${diff > 0 ? "+" : ""}${diff.toFixed(2)}%)`}
                     >
                       {diff !== 0 ? (
-                        <span className={diff > 0 ? "text-positive" : "text-negative"}>
+                        <span className={diff > 0 ? "text-negative" : "text-positive"}>
                           {diff > 0 ? "+" : ""}{diff.toFixed(1)}
                         </span>
                       ) : (

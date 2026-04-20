@@ -32,6 +32,8 @@ const SIGNAL_LABELS: Record<string, string> = {
   core_exit: "核心出場",
 };
 
+const SHORT_SIGNALS = new Set(["heavy_position_reduction", "core_exit"]);
+
 function MetricCard({ label, value, fmt }: { label: string; value: number | undefined; fmt: string }) {
   if (value == null) return null;
   let display: string;
@@ -131,14 +133,16 @@ export default function BacktestPage() {
           <tbody>
             {[...data.trades].reverse().map((t, i) => {
               const ret = t.return_pct != null ? t.return_pct * 100 : null;
+              const isShort = SHORT_SIGNALS.has(t.entry_signal);
               return (
                 <tr
                   key={i}
-                  className="border-b border-border/30 hover:bg-surface-hover transition-colors"
+                  className={`border-b border-border/30 hover:bg-surface-hover transition-colors ${isShort ? "bg-negative/5" : ""}`}
                 >
                   <td className="py-1.5 pr-3 font-mono">{t.ticker}</td>
                   <td className="py-1.5 pr-3">{t.ticker_name}</td>
-                  <td className="py-1.5 pr-3 text-text-secondary">
+                  <td className={`py-1.5 pr-3 ${isShort ? "text-negative" : "text-positive"}`}>
+                    <span className="mr-1">{isShort ? "▼" : "▲"}</span>
                     {SIGNAL_LABELS[t.entry_signal] || t.entry_signal}
                   </td>
                   <td className="py-1.5 pr-3 font-mono">{t.entry_date}</td>

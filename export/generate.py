@@ -92,7 +92,9 @@ def export_backtest(cur, out: Path):
             "win_rate": len(wins) / len(returns),
             "avg_return": float(np.mean(returns)),
             "avg_holding_days": float(np.mean([t["holding_days"] for t in closed if t["holding_days"]])),
-            "max_drawdown": float(np.min(np.cumprod([1 + r for r in returns]) - np.maximum.accumulate(np.cumprod([1 + r for r in returns])))),
+            "max_drawdown": float(np.min(
+                (lambda eq: eq / np.maximum.accumulate(eq) - 1)(np.cumprod([1 + r for r in returns]))
+            )),
         }
 
     # By entry signal breakdown
