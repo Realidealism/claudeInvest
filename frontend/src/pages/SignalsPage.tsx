@@ -143,7 +143,7 @@ export default function SignalsPage() {
                 </td>
                 <td className="py-2 pr-4 text-right font-mono">
                   {s.weight_change != null ? (
-                    <span className={s.weight_change > 0 ? "text-positive" : "text-negative"}>
+                    <span className={s.weight_change > 0 ? "text-negative" : "text-positive"}>
                       {s.weight_change > 0 ? "+" : ""}
                       {s.weight_change.toFixed(2)}%
                     </span>
