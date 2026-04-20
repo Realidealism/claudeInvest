@@ -29,17 +29,17 @@ const SIGNAL_LABELS: Record<string, string> = {
 };
 
 const PHASE_COLORS: Record<string, string> = {
-  // Long signals — red (TW convention)
-  quarterly_to_monthly_top10: "text-negative",
-  quarterly_dormant_etf_active: "text-negative",
-  dual_track_entry: "text-negative",
-  multi_fund_consensus: "text-negative",
-  consecutive_accumulation: "text-negative",
-  dual_track_accumulation: "text-negative",
-  consensus_formation: "text-negative",
-  // Short signals — green (TW convention)
-  heavy_position_reduction: "text-positive",
-  core_exit: "text-positive",
+  // Long: strong red → mid red → light orange
+  quarterly_to_monthly_top10: "text-long-strong",
+  quarterly_dormant_etf_active: "text-long-strong",
+  dual_track_entry: "text-long-strong",
+  multi_fund_consensus: "text-long-mid",
+  consecutive_accumulation: "text-long-mid",
+  dual_track_accumulation: "text-long-light",
+  consensus_formation: "text-long-light",
+  // Short: strong green → light green
+  heavy_position_reduction: "text-short-light",
+  core_exit: "text-short-strong",
 };
 
 export default function SignalsPage() {
