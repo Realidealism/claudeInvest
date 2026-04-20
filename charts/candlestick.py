@@ -29,6 +29,23 @@ class SignalMarker:
     size: int = 12          # marker size
 
 
+# Trend code → display color / label
+TREND_COLORS: dict[int, str] = {
+    -3: "#1a237e",  # bear_exhausting
+    -2: "#1565c0",  # strong_bear
+    -1: "#4fc3f7",  # bear
+     0: "#9e9e9e",  # neutral
+     1: "#ef9a9a",  # bull
+     2: "#e53935",  # strong_bull
+     3: "#b71c1c",  # bull_exhausting
+}
+TREND_LABELS: dict[int, str] = {
+    -3: "衰竭空", -2: "強空", -1: "空",
+     0: "中性",
+     1: "多",  2: "強多",  3: "衰竭多",
+}
+
+
 def build_candlestick_figure(
     dates: list[str],
     open_: np.ndarray,
@@ -44,6 +61,10 @@ def build_candlestick_figure(
     enabled_ma: Optional[set[str]] = None,
     wave_lines: Optional[list[dict]] = None,
     wave_visible: Optional[set[str]] = None,
+    obv_data: Optional[dict[str, np.ndarray]] = None,
+    show_obv: bool = False,
+    trend_data: Optional[dict[str, list[int]]] = None,
+    trend_visible: bool = False,
     title: str = "",
 ) -> go.Figure:
     """
@@ -65,12 +86,21 @@ def build_candlestick_figure(
     -------
     Plotly Figure with drawing tools enabled.
     """
-    fig = make_subplots(
-        rows=2, cols=1,
-        shared_xaxes=True,
-        vertical_spacing=0.03,
-        row_heights=[0.75, 0.25],
-    )
+    obv_enabled = show_obv and obv_data is not None
+    if obv_enabled:
+        fig = make_subplots(
+            rows=3, cols=1,
+            shared_xaxes=True,
+            vertical_spacing=0.03,
+            row_heights=[0.60, 0.20, 0.20],
+        )
+    else:
+        fig = make_subplots(
+            rows=2, cols=1,
+            shared_xaxes=True,
+            vertical_spacing=0.03,
+            row_heights=[0.75, 0.25],
+        )
 
     # -- Candlestick --
     fig.add_trace(
@@ -209,12 +239,69 @@ def build_candlestick_figure(
             row=1, col=1,
         )
 
+    # -- Trend daily markers (index only) --
+    if trend_data and len(high) > 0:
+        y_min = float(np.min(low))
+        y_max = float(np.max(high))
+        gap = (y_max - y_min) * 0.022
+        _trend_specs = [
+            ("Trend (長)", "long", 1),
+            ("Trend (中)", "medium", 2),
+            ("Trend (短)", "short", 3),
+        ]
+        for tname, scope, row_offset in _trend_specs:
+            codes = trend_data.get(scope)
+            if not codes:
+                continue
+            y_pos = y_min - gap * row_offset
+            colors = [TREND_COLORS.get(c, "#9e9e9e") for c in codes]
+            hover = [TREND_LABELS.get(c, "?") for c in codes]
+            fig.add_trace(
+                go.Scatter(
+                    x=dates[:len(codes)],
+                    y=[y_pos] * len(codes),
+                    mode="markers",
+                    name=tname,
+                    visible=trend_visible,
+                    showlegend=True,
+                    marker=dict(symbol="square", size=7, color=colors,
+                                line=dict(width=0)),
+                    hovertemplate="%{customdata}<extra>" + tname + "</extra>",
+                    customdata=hover,
+                ),
+                row=1, col=1,
+            )
+
+    # -- OBV subplot (row 3) --
+    if obv_enabled:
+        _obv_specs = [
+            ("OBV", "obv", "#90a4ae", 1),
+            ("OBV_MA", "obv_ma", "#42a5f5", 1.5),
+            ("Shadow OBV", "shadow_obv_ema", "#ab47bc", 1.2),
+            ("Step Line", "step_line", "#ffca28", 1.5),
+        ]
+        for name, key, color, width in _obv_specs:
+            values = obv_data.get(key)
+            has_data = values is not None and len(values) > 0
+            fig.add_trace(
+                go.Scatter(
+                    x=dates if has_data else [],
+                    y=values if has_data else [],
+                    mode="lines",
+                    name=name,
+                    showlegend=True,
+                    line=dict(width=width, color=color),
+                    hovertemplate=f"{name}: %{{y:,.0f}}<extra></extra>",
+                ),
+                row=3, col=1,
+            )
+
     # -- Layout --
     fig.update_layout(
         title=dict(text=title, x=0.5),
         template="plotly_dark",
         xaxis_rangeslider_visible=False,
-        height=700,
+        height=900 if obv_enabled else 700,
         autosize=True,
         margin=dict(l=80, r=40, t=80, b=30, autoexpand=False),
         legend=dict(
@@ -261,8 +348,10 @@ def build_candlestick_figure(
     if len(high) > 0:
         y_min, y_max = float(np.min(low)), float(np.max(high))
         pad = (y_max - y_min) * 0.06
+        # Reserve space below price for trend dots (3 rows × gap)
+        trend_pad = (y_max - y_min) * 0.022 * 4 if trend_data else 0
         fig.update_yaxes(title_text="Price", tickformat=",", automargin=False,
-                         range=[y_min - pad, y_max + pad], autorange=False,
+                         range=[y_min - pad - trend_pad, y_max + pad], autorange=False,
                          row=1, col=1)
     else:
         fig.update_yaxes(title_text="Price", tickformat=",", automargin=False, row=1, col=1)
@@ -276,6 +365,18 @@ def build_candlestick_figure(
     else:
         fig.update_yaxes(title_text="成交金額 (億)" if is_index else "Volume",
                          tickformat=",", automargin=False, row=2, col=1)
+
+    if obv_enabled:
+        fig.update_xaxes(
+            type="category",
+            categoryorder="array",
+            categoryarray=dates,
+            range=[-0.5, n - 0.5] if n > 0 else None,
+            autorange=False if n > 0 else None,
+            row=3, col=1,
+        )
+        fig.update_yaxes(title_text="OBV", tickformat=",", automargin=False,
+                         row=3, col=1)
 
     return fig
 

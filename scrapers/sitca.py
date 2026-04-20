@@ -89,22 +89,30 @@ def _get_form_fields(session: requests.Session, url: str) -> dict:
     return form_data
 
 
-def _post_query(session: requests.Session, url: str,
-                form_data: dict, company_code: str, period: str) -> str:
-    """Submit query and return response HTML."""
-    form_data["ctl00$ContentPlaceHolder1$rdo1"] = "rbComid"
-    form_data["ctl00$ContentPlaceHolder1$ddlQ_YM"] = period
-    form_data["ctl00$ContentPlaceHolder1$ddlQ_Comid"] = company_code
-    form_data["ctl00$ContentPlaceHolder1$BtnQuery"] = "查詢"
-    form_data.pop("ctl00$ContentPlaceHolder1$BtnExport", None)
+def _collect_form_fields(html: str) -> dict:
+    """Extract all form fields from HTML."""
+    soup = BeautifulSoup(html, "html.parser")
+    form_data = {}
+    for inp in soup.find_all("input"):
+        name = inp.get("name")
+        if not name:
+            continue
+        itype = inp.get("type", "text")
+        val = inp.get("value", "")
+        if itype == "radio":
+            if inp.get("checked") is not None:
+                form_data[name] = val
+        elif itype not in ("button", "submit"):
+            form_data[name] = val
 
-    headers = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
-        "Referer": url,
-    }
-    resp = session.post(url, data=form_data, headers=headers, timeout=60)
-    resp.raise_for_status()
-    return resp.text
+    for sel in soup.find_all("select"):
+        name = sel.get("name")
+        if name:
+            selected = sel.find("option", selected=True)
+            form_data[name] = selected.get("value", "") if selected else ""
+
+    return form_data
+
 
 
 # ---------------------------------------------------------------------------
@@ -332,6 +340,59 @@ def _save_quarterly(cur, fund_db_id: int, period: str, holdings: list[dict]):
 # ---------------------------------------------------------------------------
 
 
+def _setup_period(session: requests.Session, url: str,
+                   period: str) -> dict:
+    """GET the page and, if period differs from default, do a warm-up
+    POST so that __VIEWSTATE contains the target period.
+
+    Returns form_data ready for per-company queries (only company needs
+    to be set before submitting).
+    """
+    import time
+
+    form_data = _get_form_fields(session, url)
+    default_period = form_data.get("ctl00$ContentPlaceHolder1$ddlQ_YM", "")
+
+    if period == default_period:
+        return form_data
+
+    # POST with target period + default company to bake period into viewstate
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+        "Referer": url,
+    }
+    step = dict(form_data)
+    step["ctl00$ContentPlaceHolder1$rdo1"] = "rbComid"
+    step["ctl00$ContentPlaceHolder1$ddlQ_YM"] = period
+    step["ctl00$ContentPlaceHolder1$ddlQ_Comid"] = "A0001"
+    step["ctl00$ContentPlaceHolder1$BtnQuery"] = "查詢"
+    step.pop("ctl00$ContentPlaceHolder1$BtnExport", None)
+
+    time.sleep(2)
+    resp = session.post(url, data=step, headers=headers, timeout=60)
+    resp.raise_for_status()
+    return _collect_form_fields(resp.text)
+
+
+def _query_company(session: requests.Session, url: str,
+                   base_form: dict, company_code: str, period: str) -> str:
+    """Query a single company using pre-setup form data."""
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+        "Referer": url,
+    }
+    form_data = dict(base_form)
+    form_data["ctl00$ContentPlaceHolder1$rdo1"] = "rbComid"
+    form_data["ctl00$ContentPlaceHolder1$ddlQ_YM"] = period
+    form_data["ctl00$ContentPlaceHolder1$ddlQ_Comid"] = company_code
+    form_data["ctl00$ContentPlaceHolder1$BtnQuery"] = "查詢"
+    form_data.pop("ctl00$ContentPlaceHolder1$BtnExport", None)
+
+    resp = session.post(url, data=form_data, headers=headers, timeout=60)
+    resp.raise_for_status()
+    return resp.text
+
+
 def scrape_monthly(period: str):
     """
     Scrape monthly Top 10 holdings from SITCA IN2629.
@@ -342,20 +403,21 @@ def scrape_monthly(period: str):
     import time
 
     session = requests.Session()
-    all_companies = list(FUND_REGISTRY.keys())
+
+    print(f"  Setting up SITCA period {period} ...")
+    base_form = _setup_period(session, SITCA_URL, period)
 
     with get_cursor() as cur:
         fund_id_map = _get_fund_id_map(cur)
 
-        for company_code in all_companies:
+        for company_code in list(FUND_REGISTRY.keys()):
             fund_list = FUND_REGISTRY[company_code]
             print(f"  Fetching SITCA monthly {period} for {company_code} ...")
 
             try:
-                form_data = _get_form_fields(session, SITCA_URL)
-                time.sleep(2)
-                html = _post_query(session, SITCA_URL, form_data,
-                                   company_code, period)
+                time.sleep(3)
+                html = _query_company(session, SITCA_URL, base_form,
+                                      company_code, period)
             except Exception as e:
                 print(f"  [ERROR] SITCA request failed for {company_code}: {e}")
                 continue
@@ -373,8 +435,6 @@ def scrape_monthly(period: str):
                 _save_monthly(cur, fund_db_id, period, holdings)
                 print(f"  {fund_code}: {len(holdings)} holdings saved")
 
-            time.sleep(3)
-
 
 def scrape_quarterly(period: str):
     """
@@ -386,23 +446,22 @@ def scrape_quarterly(period: str):
     """
     import time
 
-    # Convert our period format to SITCA's format
-    # IN2630 may use different period format — needs verification
     session = requests.Session()
-    all_companies = list(FUND_REGISTRY.keys())
+
+    print(f"  Setting up SITCA quarterly period {period} ...")
+    base_form = _setup_period(session, SITCA_Q_URL, period)
 
     with get_cursor() as cur:
         fund_id_map = _get_fund_id_map(cur)
 
-        for company_code in all_companies:
+        for company_code in list(FUND_REGISTRY.keys()):
             fund_list = FUND_REGISTRY[company_code]
             print(f"  Fetching SITCA quarterly {period} for {company_code} ...")
 
             try:
-                form_data = _get_form_fields(session, SITCA_Q_URL)
-                time.sleep(2)
-                html = _post_query(session, SITCA_Q_URL, form_data,
-                                   company_code, period)
+                time.sleep(3)
+                html = _query_company(session, SITCA_Q_URL, base_form,
+                                      company_code, period)
             except Exception as e:
                 print(f"  [ERROR] SITCA quarterly request failed for {company_code}: {e}")
                 continue
@@ -419,5 +478,3 @@ def scrape_quarterly(period: str):
                     continue
                 _save_quarterly(cur, fund_db_id, period, holdings)
                 print(f"  {fund_code}: {len(holdings)} holdings saved")
-
-            time.sleep(3)

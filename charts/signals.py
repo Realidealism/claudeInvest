@@ -61,6 +61,21 @@ SIGNAL_DEFS: list[SignalDef] = [
     SignalDef("vol_burst", "量爆", "volume", "burst", "volume", "below", "triangle-up", "#ffc107", 12),
     SignalDef("vol_sleep", "量窒息", "volume", "sleep", "volume", "above", "x", "#607d8b", 10),
     SignalDef("vol_flood", "量洪", "volume", "flood", "volume", "below", "hexagram", "#e91e63", 13),
+    SignalDef("dead_fish", "死魚", "volume", "dead_fish", "money", "above", "x-thin", "#b0bec5", 10),
+
+    # -- Bollinger band breakouts (period 21) --
+    SignalDef("boll_break_u1", "破布林上1", "bollinger", "boll.21.close_gt_u1", "close", "above", "triangle-up-open", "#ff8a65", 9),
+    SignalDef("boll_break_u2", "破布林上2", "bollinger", "boll.21.close_gt_u2", "close", "above", "triangle-up", "#ff5722", 11),
+    SignalDef("boll_break_d1", "破布林下1", "bollinger", "boll.21.close_lt_d1", "close", "below", "triangle-down-open", "#4dd0e1", 9),
+    SignalDef("boll_break_d2", "破布林下2", "bollinger", "boll.21.close_lt_d2", "close", "below", "triangle-down", "#0097a7", 11),
+
+    # -- Knot (均線糾結) breakouts (medium timeframe) --
+    SignalDef("knot_break_up", "糾結突破上", "knot", "knot.medium.break_up", "close", "below", "star", "#ffd54f", 13),
+    SignalDef("knot_break_down", "糾結突破下", "knot", "knot.medium.break_down", "close", "above", "star", "#7e57c2", 13),
+
+    # -- OBV buy/sell (markers on K line; OBV subplot toggled separately) --
+    SignalDef("obv_buy", "OBV買進", "obv", "signal_up", "obv", "below", "arrow-up-open", "#66bb6a", 13),
+    SignalDef("obv_sell", "OBV賣出", "obv", "signal_down", "obv", "above", "arrow-down-open", "#ef5350", 13),
 ]
 
 
@@ -73,9 +88,15 @@ def get_signal_categories() -> dict[str, list[SignalDef]]:
 
 
 def _resolve_attr(obj: object, path: str) -> object:
-    """Resolve a dot-separated attribute path on an object."""
+    """Resolve a dot-separated path. Numeric/string segments fall back to
+    dict-key lookup when attribute access fails, so paths like
+    'boll.21.close_gt_u1' or 'knot.medium.break_up' work."""
     for part in path.split("."):
-        obj = getattr(obj, part)
+        try:
+            obj = getattr(obj, part)
+        except AttributeError:
+            key = int(part) if part.lstrip("-").isdigit() else part
+            obj = obj[key]
     return obj
 
 

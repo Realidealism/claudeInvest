@@ -33,7 +33,7 @@ UA = ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
 HEADERS = {"User-Agent": UA}
 REQUEST_INTERVAL = 3.0
 RATE_LIMIT_BACKOFF = 60.0           # seconds to wait on 429
-DEFAULT_PAYWALL_STREAK_STOP = 15   # stop run after this many paywalls in a row
+DEFAULT_PAYWALL_STREAK_STOP = 3    # stop run after this many paywalls in a row
 
 
 # ---------- Parsing ----------
@@ -127,10 +127,13 @@ def _save_theme(tag_id: int, name: str, members: list[str]) -> int:
 # ---------- Main loop ----------
 
 def scrape_range(start_id: int = 1, end_id: int = 50000,
-                 paywall_stop: int = DEFAULT_PAYWALL_STREAK_STOP):
+                 paywall_stop: int = DEFAULT_PAYWALL_STREAK_STOP,
+                 cookie: str | None = None):
     state = _load_state()
     sess = requests.Session()
     sess.headers.update(HEADERS)
+    if cookie:
+        sess.headers["Cookie"] = cookie
 
     stats = {"ok": 0, "empty": 0, "404": 0, "paywall": 0, "skip": 0, "err": 0}
     paywall_streak = 0
@@ -196,7 +199,9 @@ def scrape_range(start_id: int = 1, end_id: int = 50000,
 
 
 if __name__ == "__main__":
+    import os
     s = int(sys.argv[1]) if len(sys.argv) >= 2 else 1
     e = int(sys.argv[2]) if len(sys.argv) >= 3 else 50000
     stop = int(sys.argv[3]) if len(sys.argv) >= 4 else DEFAULT_PAYWALL_STREAK_STOP
-    scrape_range(s, e, stop)
+    ck = os.environ.get("SD_COOKIE")
+    scrape_range(s, e, stop, cookie=ck)

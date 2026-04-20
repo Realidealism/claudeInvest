@@ -234,23 +234,57 @@ def build_turn_scoreboard() -> ScoreBoard:
     Long (144,233,377): each ±5, fuzzy 89 → ±5 when all neutral
     """
     board = ScoreBoard("扣抵評分")
+    _add_turn_rules(board)
+    return board
 
-    # -- Short timeframe --
+
+def build_scoreboard() -> ScoreBoard:
+    """
+    Build a unified ScoreBoard with all technical scoring rules.
+
+    Turn (扣抵):     per-MA ±5, fuzzy conditions when neutral
+    Sort (排列):     sort_normal ±10, sort_lp ±10
+    Forming (成形):  sort_forming ±5
+    """
+    board = ScoreBoard("技術評分")
+    _add_turn_rules(board)
+    _add_sort_rules(board)
+    return board
+
+
+def _add_turn_rules(board: ScoreBoard) -> None:
+    """Add turn-point scoring rules to all three timeframes."""
     for p in SHORT_PERIODS:
         _add_turn_pair(board.short, p, 5, "扣抵")
     _add_fuzzy(board.short, SHORT_PERIODS, [(13, 5)], "扣抵")
 
-    # -- Medium timeframe --
     for p in MEDIUM_PERIODS:
         _add_turn_pair(board.medium, p, 5, "扣抵")
     _add_fuzzy(board.medium, MEDIUM_PERIODS, [(13, 2.5), (89, 2.5)], "扣抵")
 
-    # -- Long timeframe --
     for p in LONG_PERIODS:
         _add_turn_pair(board.long, p, 5, "扣抵")
     _add_fuzzy(board.long, LONG_PERIODS, [(89, 5)], "扣抵")
 
-    return board
+
+SORT_LABELS = ("short", "medium", "long")
+
+
+def _add_sort_rules(board: ScoreBoard) -> None:
+    """Add sort alignment + forming scoring rules to all three timeframes."""
+    cards = {"short": board.short, "medium": board.medium, "long": board.long}
+
+    for label in SORT_LABELS:
+        card = cards[label]
+
+        # sort_normal: ±10
+        _add_sort_pair(card, "sort_normal", label, 10, "排列")
+
+        # sort_lp: ±10
+        _add_sort_pair(card, "sort_lp", label, 10, "排列")
+
+        # sort_forming: ±5
+        _add_forming_pair(card, label, 5, "排列")
 
 
 def _add_turn_pair(card: ScoreCard, period: int, pts: float, cat: str):
@@ -308,6 +342,62 @@ def _add_fuzzy(
             lambda d, i, fp=fz_period: _all_neutral(d, i) and d.close_result.turn[fp][i] == 0,
             cat,
         ))
+
+
+def _add_sort_pair(
+    card: ScoreCard, sort_type: str, label: str, pts: float, cat: str,
+):
+    """Add up/down sort alignment conditions for one sort group."""
+    # Up alignment: long +pts, short -pts
+    card.add_long(bool_score(
+        f"{label}_{sort_type}多排", pts,
+        lambda d, i, st=sort_type, lb=label: getattr(d.close_result.ma, st)[lb].up[i],
+        cat,
+    ))
+    card.add_short(bool_score(
+        f"{label}_{sort_type}多排", -pts,
+        lambda d, i, st=sort_type, lb=label: getattr(d.close_result.ma, st)[lb].up[i],
+        cat,
+    ))
+    # Down alignment: long -pts, short +pts
+    card.add_long(bool_score(
+        f"{label}_{sort_type}空排", -pts,
+        lambda d, i, st=sort_type, lb=label: getattr(d.close_result.ma, st)[lb].down[i],
+        cat,
+    ))
+    card.add_short(bool_score(
+        f"{label}_{sort_type}空排", pts,
+        lambda d, i, st=sort_type, lb=label: getattr(d.close_result.ma, st)[lb].down[i],
+        cat,
+    ))
+
+
+def _add_forming_pair(
+    card: ScoreCard, label: str, pts: float, cat: str,
+):
+    """Add forming sort alignment conditions."""
+    # Forming up: long +pts, short -pts
+    card.add_long(bool_score(
+        f"{label}_forming多排", pts,
+        lambda d, i, lb=label: d.sort_forming[lb].up[i],
+        cat,
+    ))
+    card.add_short(bool_score(
+        f"{label}_forming多排", -pts,
+        lambda d, i, lb=label: d.sort_forming[lb].up[i],
+        cat,
+    ))
+    # Forming down: long -pts, short +pts
+    card.add_long(bool_score(
+        f"{label}_forming空排", -pts,
+        lambda d, i, lb=label: d.sort_forming[lb].down[i],
+        cat,
+    ))
+    card.add_short(bool_score(
+        f"{label}_forming空排", pts,
+        lambda d, i, lb=label: d.sort_forming[lb].down[i],
+        cat,
+    ))
 
 
 def threshold_score(

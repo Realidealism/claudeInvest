@@ -176,7 +176,8 @@ def process_date(trade_date: date, scrapers: list, force: bool):
 
             print(f"\n--- {label} ---")
             result = _run_scraper(label, module, func, trade_date)
-            _check_shift(label, trade_date, result)
+            if not force:
+                _check_shift(label, trade_date, result)
 
 
 def _get_trading_days_from_db(start: date, end: date) -> list:

@@ -120,6 +120,8 @@ def _save_signal_setting(key: str, value) -> None:
 from analysis.close import calculate_close
 from analysis.candle import calculate_candle
 from analysis.volume import calculate_volume
+from analysis.money import calculate_money
+from analysis.obv import calculate_obv
 from analysis.wave import calculate_wave
 from charts.candlestick import build_candlestick_figure, DRAWING_BUTTONS
 from charts.signals import (
@@ -176,7 +178,7 @@ def fetch_price_data(
             cur.execute(
                 """
                 SELECT trade_date, open_price, high_price, low_price,
-                       close_price, volume, turnover
+                       close_price, volume, turnover, ref_price
                 FROM tw.daily_prices
                 WHERE stock_id = %s
                   AND trade_date BETWEEN %s AND %s
@@ -205,6 +207,17 @@ def fetch_price_data(
     else:
         result["sub_value"] = np.array([float(r["volume"] or 0) for r in rows], dtype=np.float32)
         result["turnover"] = np.array([float(r["turnover"] or 0) for r in rows], dtype=np.float32)
+        # ref_price for OBV: use DB column, fallback to previous close
+        ref_price = np.zeros(len(rows), dtype=np.float32)
+        closes = result["close"]
+        for i, r in enumerate(rows):
+            if r["ref_price"] is not None:
+                ref_price[i] = float(r["ref_price"])
+            elif i > 0:
+                ref_price[i] = closes[i - 1]
+            else:
+                ref_price[i] = closes[i]
+        result["ref_price"] = ref_price
 
     return result
 
@@ -217,6 +230,9 @@ _CATEGORY_LABELS = {
     "trigger": "觸發",
     "creep": "爬行",
     "volume": "成交量",
+    "bollinger": "布林帶",
+    "knot": "均線糾結",
+    "obv": "OBV",
 }
 
 
@@ -276,33 +292,35 @@ app.index_string = """<!DOCTYPE html>
             {%renderer%}
         </footer>
         <script>
-        // Trace index mapping (must match build_candlestick_figure order)
-        // 0: Candlestick, 1-10: MA, 11: Volume, 12-31: Signals, 32-35: Wave
-        var _maIndices = {
-            '3':1, '5':2, '8':3, '13':4, '21':5, '34':6, '55':7, '89':8, '144':9, '233':10
-        };
-        var _sigKeys = ['jump','squat','short_hl','medium_hl','long_hl','red_long','black_long',
-            'upper_shadow','lower_shadow','trigger_high1','trigger_low1','trigger_high2',
-            'trigger_low2','trigger_high3','trigger_low3','creep_high1','creep_low1',
-            'vol_burst','vol_sleep','vol_flood'];
-        var _sigBaseIdx = 12;
+        // Trace indices are resolved by matching trace.name at runtime,
+        // so adding/removing traces in Python doesn't require JS changes.
+        var _maPeriods = ['3','5','8','13','21','34','55','89','144','233'];
         var _waveSlots = [
-            {name:'Wave', group:'wave', idx:32},
-            {name:'浪瀑(多)', group:'wf', idx:33},
-            {name:'浪瀑(空)', group:'wf', idx:34},
-            {name:'浪溝', group:'wf', idx:35}
+            {name:'Wave', group:'wave'},
+            {name:'浪瀑(多)', group:'wf'},
+            {name:'浪瀑(空)', group:'wf'},
+            {name:'浪溝', group:'wf'}
         ];
 
         function _getGraph() {
             return document.querySelector('#chart .js-plotly-plot');
         }
 
-        function _restyle(traceIdx, vis) {
+        function _findIdxByName(g, name) {
+            if (!g || !g.data) return -1;
+            for (var i = 0; i < g.data.length; i++) {
+                if (g.data[i].name === name) return i;
+            }
+            return -1;
+        }
+
+        function _restyleByName(name, vis) {
             var g = _getGraph();
-            if (!g || !g.data || traceIdx >= g.data.length) return;
-            // Only restyle if trace has data
-            var hasData = g.data[traceIdx].x && g.data[traceIdx].x.length > 0;
-            Plotly.restyle(g, {visible: [hasData && vis]}, [traceIdx]);
+            if (!g || !g.data) return;
+            var idx = _findIdxByName(g, name);
+            if (idx < 0) return;
+            var hasData = g.data[idx].x && g.data[idx].x.length > 0;
+            Plotly.restyle(g, {visible: [hasData && vis]}, [idx]);
         }
 
         // MA toggle
@@ -314,20 +332,18 @@ app.index_string = """<!DOCTYPE html>
                 c.querySelectorAll('input').forEach(function(inp) {
                     if (inp.checked) checked.add(inp.value);
                 });
-                Object.keys(_maIndices).forEach(function(p) {
-                    _restyle(_maIndices[p], checked.has(p));
+                _maPeriods.forEach(function(p) {
+                    _restyleByName('MA' + p, checked.has(p));
                 });
             }, 50);
         });
 
-        // Signal toggle
+        // Signal toggle — iterate all traces named "sig_{key}"
         document.addEventListener('click', function(e) {
             var modal = document.getElementById('signal-modal-backdrop');
             if (!modal) return;
-            // Check if click is inside any signals- checklist
-            var found = false;
-            _sigKeys.forEach(function() {}); // just need to check container
             var checklists = modal.querySelectorAll('[id^="signals-"]');
+            var found = false;
             checklists.forEach(function(cl) {
                 if (cl.contains(e.target)) found = true;
             });
@@ -339,9 +355,15 @@ app.index_string = """<!DOCTYPE html>
                         if (inp.checked) enabled.add(inp.value);
                     });
                 });
-                _sigKeys.forEach(function(key, i) {
-                    _restyle(_sigBaseIdx + i, enabled.has(key));
-                });
+                var g = _getGraph();
+                if (!g || !g.data) return;
+                for (var i = 0; i < g.data.length; i++) {
+                    var n = g.data[i].name || '';
+                    if (n.indexOf('sig_') !== 0) continue;
+                    var key = n.substring(4);
+                    var hasData = g.data[i].x && g.data[i].x.length > 0;
+                    Plotly.restyle(g, {visible: [hasData && enabled.has(key)]}, [i]);
+                }
             }, 50);
         });
 
@@ -355,7 +377,20 @@ app.index_string = """<!DOCTYPE html>
                     if (inp.checked) checked.add(inp.value);
                 });
                 _waveSlots.forEach(function(w) {
-                    _restyle(w.idx, checked.has(w.group));
+                    _restyleByName(w.name, checked.has(w.group));
+                });
+            }, 50);
+        });
+
+        // Trend toggle
+        var _trendNames = ['Trend (短)', 'Trend (中)', 'Trend (長)'];
+        document.addEventListener('click', function(e) {
+            var c = document.getElementById('trend-select');
+            if (!c || !c.contains(e.target)) return;
+            setTimeout(function() {
+                var checked = c.querySelector('input') && c.querySelector('input').checked;
+                _trendNames.forEach(function(name) {
+                    _restyleByName(name, checked);
                 });
             }, 50);
         });
@@ -515,6 +550,38 @@ app.layout = html.Div(
                                     ],
                                     value=[],
                                     inline=True,
+                                    style={"fontSize": "13px", "color": "#eee"},
+                                    inputStyle={"marginRight": "6px", "marginLeft": "12px"},
+                                    labelStyle={"display": "inline-flex", "alignItems": "center",
+                                                "gap": "4px", "marginRight": "8px"},
+                                ),
+                            ], style={"marginBottom": "16px"}),
+                            # OBV subplot section (toggling rebuilds the figure)
+                            html.Div([
+                                html.H4("副圖", style={"color": "#aaa", "margin": "0 0 6px 0"}),
+                                dcc.Checklist(
+                                    id="obv-select",
+                                    options=[{"label": "OBV", "value": "on"}],
+                                    value=[],
+                                    inline=True,
+                                    persistence=True,
+                                    persistence_type="local",
+                                    style={"fontSize": "13px", "color": "#eee"},
+                                    inputStyle={"marginRight": "6px", "marginLeft": "12px"},
+                                    labelStyle={"display": "inline-flex", "alignItems": "center",
+                                                "gap": "4px", "marginRight": "8px"},
+                                ),
+                            ], style={"marginBottom": "16px"}),
+                            # Trend section (index only, JS toggle)
+                            html.Div([
+                                html.H4("趨勢", style={"color": "#aaa", "margin": "0 0 6px 0"}),
+                                dcc.Checklist(
+                                    id="trend-select",
+                                    options=[{"label": "趨勢標記", "value": "trend"}],
+                                    value=[],
+                                    inline=True,
+                                    persistence=True,
+                                    persistence_type="local",
                                     style={"fontSize": "13px", "color": "#eee"},
                                     inputStyle={"marginRight": "6px", "marginLeft": "12px"},
                                     labelStyle={"display": "inline-flex", "alignItems": "center",
@@ -831,6 +898,8 @@ def toggle_signal_modal(open_clicks, close_clicks):
 _save_signal_inputs = [
     Input("ma-select", "value"),
     Input("wave-select", "value"),
+    Input("obv-select", "value"),
+    Input("trend-select", "value"),
 ]
 for _cat in get_signal_categories():
     _save_signal_inputs.append(Input(f"signals-{_cat}", "value"))
@@ -841,9 +910,11 @@ for _cat in get_signal_categories():
     *_save_signal_inputs,
     prevent_initial_call=True,
 )
-def save_signal_settings(ma_val, wave_val, *signal_vals):
+def save_signal_settings(ma_val, wave_val, obv_val, trend_val, *signal_vals):
     _save_signal_setting("ma_select", ma_val or [])
     _save_signal_setting("wave_select", wave_val or [])
+    _save_signal_setting("obv_select", obv_val or [])
+    _save_signal_setting("trend_select", trend_val or [])
     cats = list(get_signal_categories().keys())
     for cat, val in zip(cats, signal_vals):
         _save_signal_setting(f"signals_{cat}", val or [])
@@ -911,14 +982,16 @@ def save_shapes(relayout_data, stored_shapes):
     Input("stock-input", "value"),
     Input("start-date", "value"),
     Input("end-date", "value"),
+    Input("obv-select", "value"),
     State("ma-select", "value"),
     State("wave-select", "value"),
+    State("trend-select", "value"),
     *_signal_states,
     State("shapes-store", "data"),
     prevent_initial_call=True,
 )
-def update_chart(n_clicks, stock_id, start_date, end_date,
-                 ma_select, wave_select, *args):
+def update_chart(n_clicks, stock_id, start_date, end_date, obv_select,
+                 ma_select, wave_select, trend_select, *args):
     n_signal_cats = len(get_signal_categories())
     signal_values = list(args[:n_signal_cats])
     stored_shapes = args[n_signal_cats]
@@ -943,6 +1016,13 @@ def update_chart(n_clicks, stock_id, start_date, end_date,
         )
         analysis_results["volume"] = calculate_volume(data["sub_value"])
         analysis_results["close"] = calculate_close(data["close"])
+        if not data["is_index"] and "turnover" in data:
+            analysis_results["money"] = calculate_money(data["turnover"])
+        if not data["is_index"] and "ref_price" in data:
+            analysis_results["obv"] = calculate_obv(
+                data["close"], data["ref_price"],
+                data["high"], data["low"], data["sub_value"],
+            )
     except Exception as e:
         pass  # Partial analysis is ok, signals just won't show
 
@@ -1017,6 +1097,50 @@ def update_chart(n_clicks, stock_id, start_date, end_date,
         if sv:
             enabled.update(sv)
 
+    # OBV data for subplot (present only when obv was calculated)
+    obv_data = None
+    if "obv" in analysis_results:
+        obv_r = analysis_results["obv"]
+        obv_data = {
+            "obv": obv_r.obv,
+            "obv_ma": obv_r.obv_ma,
+            "shadow_obv_ema": obv_r.shadow_obv_ema,
+            "step_line": obv_r.step_line,
+        }
+    show_obv = bool(obv_select and "on" in obv_select) and obv_data is not None
+
+    # Trend data (index only) — fetch from tw.market_breadth
+    trend_data = None
+    if data["is_index"]:
+        try:
+            with get_cursor(commit=False) as cur:
+                cur.execute(
+                    """
+                    SELECT trade_date, short_trend_total, medium_trend_total,
+                           long_trend_total
+                    FROM tw.market_breadth
+                    WHERE trade_date BETWEEN %s AND %s
+                    ORDER BY trade_date
+                    """,
+                    (start_date, end_date),
+                )
+                mb_rows = cur.fetchall()
+            if mb_rows:
+                mb_dates = {r["trade_date"].strftime("%Y-%m-%d"): r for r in mb_rows}
+                trend_data = {"short": [], "medium": [], "long": []}
+                for d in data["dates"]:
+                    r = mb_dates.get(d)
+                    if r:
+                        trend_data["short"].append(r["short_trend_total"] or 0)
+                        trend_data["medium"].append(r["medium_trend_total"] or 0)
+                        trend_data["long"].append(r["long_trend_total"] or 0)
+                    else:
+                        trend_data["short"].append(0)
+                        trend_data["medium"].append(0)
+                        trend_data["long"].append(0)
+        except Exception:
+            pass
+
     # Build figure with ALL data pre-loaded, visibility set by current state
     fig = build_candlestick_figure(
         dates=data["dates"],
@@ -1033,6 +1157,10 @@ def update_chart(n_clicks, stock_id, start_date, end_date,
         enabled_ma=set(ma_select) if ma_select else set(),
         wave_lines=wave_lines if wave_lines else None,
         wave_visible=set(wave_select) if wave_select else set(),
+        obv_data=obv_data,
+        show_obv=show_obv,
+        trend_data=trend_data,
+        trend_visible=bool(trend_select and "trend" in trend_select),
         title=f"{stock_id} {data['name']}",
     )
 
