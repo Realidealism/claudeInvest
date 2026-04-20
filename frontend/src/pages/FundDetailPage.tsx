@@ -6,6 +6,7 @@ interface Holding {
   ticker_name: string;
   rank?: number;
   weight: number | null;
+  shares?: number | null;
 }
 
 interface FundInfo {
@@ -104,6 +105,9 @@ export default function FundDetailPage() {
               const w = h.weight || 0;
               const prev = prevMap[h.ticker];
               const diff = prev ? w - (prev.weight || 0) : null;
+              const sharesDiff = (isEtf && prev?.shares != null && h.shares != null)
+                ? h.shares - prev.shares
+                : null;
               return (
                 <div key={h.ticker} className="flex items-center gap-2 text-xs">
                   <span className="w-16 font-mono shrink-0">{h.ticker}</span>
@@ -116,8 +120,13 @@ export default function FundDetailPage() {
                   </div>
                   <span className="w-14 text-right font-mono">{w.toFixed(1)}%</span>
                   {diff != null && (
-                    <span className={`w-14 text-right font-mono ${diff > 0 ? "text-positive" : diff < 0 ? "text-negative" : "text-text-secondary"}`}>
+                    <span className={`w-14 text-right font-mono ${diff > 0 ? "text-negative" : diff < 0 ? "text-positive" : "text-text-secondary"}`}>
                       {diff > 0 ? "+" : ""}{diff.toFixed(1)}
+                    </span>
+                  )}
+                  {sharesDiff != null && (
+                    <span className={`w-20 text-right font-mono ${sharesDiff > 0 ? "text-negative" : sharesDiff < 0 ? "text-positive" : "text-text-secondary"}`}>
+                      {sharesDiff > 0 ? "+" : ""}{(sharesDiff / 1000).toFixed(0)}張
                     </span>
                   )}
                 </div>

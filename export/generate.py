@@ -192,6 +192,7 @@ def export_funds(cur, out: Path):
                     "ticker_name": r["ticker_name"],
                     "rank": None,
                     "weight": float(r["weight"]) if r["weight"] else None,
+                    "shares": r["shares"],
                 })
             quarterly = {}
 
