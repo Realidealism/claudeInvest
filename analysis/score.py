@@ -24,6 +24,7 @@ Usage:
 from __future__ import annotations
 
 from dataclasses import dataclass
+from datetime import date
 from typing import Callable, TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -245,10 +246,13 @@ def build_scoreboard() -> ScoreBoard:
     Turn (扣抵):     per-MA ±5, fuzzy conditions when neutral
     Sort (排列):     sort_normal ±10, sort_lp ±10
     Forming (成形):  sort_forming ±5
+    Breadth (大盤):  market trend vs stock sort alignment
     """
     board = ScoreBoard("技術評分")
     _add_turn_rules(board)
     _add_sort_rules(board)
+    breadth = _load_breadth_trends()
+    _add_breadth_rules(board, breadth)
     return board
 
 
@@ -398,6 +402,89 @@ def _add_forming_pair(
         lambda d, i, lb=label: d.sort_forming[lb].down[i],
         cat,
     ))
+
+
+# ── Breadth vs Stock Sort ─────────────────────────────────────────────────
+
+# (trend_codes, stock_sort_state, long_side_pts)
+# stock_sort_state: "up" = sort_normal.up, "down" = sort_normal.down, "none" = neither
+# short_side_pts = -long_side_pts
+BREADTH_LONG_RULES: list[tuple[set[int], str, float]] = [
+    ({2}, "down", -10),           # strong_bull + stock down
+    ({2}, "none", -5),            # strong_bull + no alignment
+    ({1, 3}, "down", -5),         # bull/bull_exhausting + stock down
+    ({-1, -3}, "up", 5),          # bear/bear_exhausting + stock up
+    ({-2}, "up", 10),             # strong_bear + stock up
+    ({-2}, "none", 5),            # strong_bear + no alignment
+]
+
+BREADTH_SCOPES = (
+    ("short", "short_trend"),
+    ("medium", "medium_trend"),
+    ("long", "long_trend"),
+)
+
+
+def _load_breadth_trends() -> dict[date, dict[str, int]]:
+    """Load market breadth trends from DB, keyed by date."""
+    from db.connection import get_cursor
+    with get_cursor(commit=False) as cur:
+        cur.execute(
+            "SELECT trade_date, short_trend, medium_trend, long_trend "
+            "FROM tw.market_breadth ORDER BY trade_date"
+        )
+        return {
+            r["trade_date"]: {
+                "short_trend": r["short_trend"],
+                "medium_trend": r["medium_trend"],
+                "long_trend": r["long_trend"],
+            }
+            for r in cur.fetchall()
+        }
+
+
+def _add_breadth_rules(
+    board: ScoreBoard,
+    breadth: dict[date, dict[str, int]],
+) -> None:
+    """Add breadth-vs-stock-sort scoring rules."""
+    cards = {"short": board.short, "medium": board.medium, "long": board.long}
+
+    for scope, trend_col in BREADTH_SCOPES:
+        card = cards[scope]
+        for trend_codes, sort_state, long_pts in BREADTH_LONG_RULES:
+            name = f"大盤{scope}_{sort_state}_{long_pts:+.0f}"
+            _add_breadth_item(card, name, long_pts, breadth, trend_col, scope, sort_state, trend_codes)
+
+
+def _add_breadth_item(
+    card: ScoreCard,
+    name: str,
+    long_pts: float,
+    breadth: dict[date, dict[str, int]],
+    trend_col: str,
+    scope: str,
+    sort_state: str,
+    trend_codes: set[int],
+):
+    """Add one breadth condition to both long and short sides."""
+    def _check(data, i, _tc=trend_col, _sc=scope, _ss=sort_state, _codes=trend_codes):
+        day = data.dates[i]
+        bt = breadth.get(day)
+        if bt is None:
+            return False
+        if bt[_tc] not in _codes:
+            return False
+        sn = data.close_result.ma.sort_normal[_sc]
+        if _ss == "up":
+            return bool(sn.up[i])
+        elif _ss == "down":
+            return bool(sn.down[i])
+        else:  # "none"
+            return not sn.up[i] and not sn.down[i]
+
+    card.add_long(bool_score(name, long_pts, _check, "大盤"))
+    card.add_short(bool_score(name, -long_pts, _check, "大盤"))
 
 
 def threshold_score(
