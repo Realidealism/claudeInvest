@@ -129,7 +129,7 @@ export default function BacktestPage() {
             </tr>
           </thead>
           <tbody>
-            {data.trades.map((t, i) => {
+            {[...data.trades].reverse().map((t, i) => {
               const ret = t.return_pct != null ? t.return_pct * 100 : null;
               return (
                 <tr

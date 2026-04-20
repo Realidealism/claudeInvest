@@ -77,8 +77,8 @@ export default function FlowPage() {
         <table className="text-xs">
           <thead>
             <tr className="border-b border-border text-text-secondary">
-              <th className="py-2 pr-2 text-left font-medium sticky left-0 bg-surface">代號</th>
-              <th className="py-2 pr-2 text-left font-medium sticky left-16 bg-surface">名稱</th>
+              <th className="py-2 pr-4 text-left font-medium sticky left-0 bg-surface z-10 w-16">代號</th>
+              <th className="py-2 pr-4 text-left font-medium sticky left-[4.5rem] bg-surface z-10 w-20">名稱</th>
               {data.fund_columns.map((f) => (
                 <th key={f.code} className="py-2 px-1 text-center font-medium whitespace-nowrap">
                   <div className="w-14 truncate" title={f.name}>{f.name.slice(0, 4)}</div>
@@ -89,10 +89,10 @@ export default function FlowPage() {
           <tbody>
             {sorted.map(([ticker, change]) => (
               <tr key={ticker} className="border-b border-border/30">
-                <td className="py-2 pr-4 font-mono sticky left-0 bg-surface">
+                <td className="py-2 pr-4 font-mono sticky left-0 bg-surface z-10 w-16">
                   <Link to={`/stock/${ticker}`} className="text-accent hover:underline">{ticker}</Link>
                 </td>
-                <td className="py-2 pr-4 sticky left-16 bg-surface truncate max-w-20">
+                <td className="py-2 pr-4 sticky left-[4.5rem] bg-surface z-10 w-20 truncate">
                   {change.ticker_name}
                 </td>
                 {data.fund_columns.map((col) => {
