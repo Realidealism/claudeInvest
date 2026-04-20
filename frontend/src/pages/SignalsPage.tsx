@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 
 interface Signal {
   ticker: string;
@@ -128,7 +129,9 @@ export default function SignalsPage() {
                 key={`${s.ticker}-${s._type}-${s.trigger_period}-${i}`}
                 className="border-b border-border/50 hover:bg-surface-hover transition-colors"
               >
-                <td className="py-2 pr-4 font-mono">{s.ticker}</td>
+                <td className="py-2 pr-4 font-mono">
+                  <Link to={`/stock/${s.ticker}`} className="text-accent hover:underline">{s.ticker}</Link>
+                </td>
                 <td className="py-2 pr-4">{s.ticker_name}</td>
                 <td className={`py-2 pr-4 ${PHASE_COLORS[s._type] || ""}`}>
                   {SIGNAL_LABELS[s._type] || s._type}

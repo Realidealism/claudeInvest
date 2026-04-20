@@ -5,6 +5,9 @@ const NAV = [
   { to: "/backtest", label: "策略績效" },
   { to: "/funds", label: "基金分析" },
   { to: "/dual-track", label: "雙軌比對" },
+  { to: "/timeline", label: "月季交叉" },
+  { to: "/dna", label: "經理人DNA" },
+  { to: "/flow", label: "資金流向" },
 ] as const;
 
 export default function Layout() {
