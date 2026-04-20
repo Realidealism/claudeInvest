@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useNavigate } from "react-router-dom";
 
 interface Holding {
   ticker: string;
@@ -27,6 +27,7 @@ interface FundsData {
 
 export default function FundDetailPage() {
   const { code } = useParams<{ code: string }>();
+  const navigate = useNavigate();
   const [data, setData] = useState<FundsData | null>(null);
   const [selectedPeriod, setSelectedPeriod] = useState<string>("");
 
@@ -36,14 +37,12 @@ export default function FundDetailPage() {
       .then(setData);
   }, []);
 
-  // Set initial period once data + code are available
+  // Reset period when switching funds
   useEffect(() => {
     if (!data || !code) return;
     const h = data.holdings[code];
     const periods = Object.keys(h?.monthly || {}).sort().reverse();
-    if (periods.length > 0 && !selectedPeriod) {
-      setSelectedPeriod(periods[0]);
-    }
+    setSelectedPeriod(periods[0] || "");
   }, [data, code]);
 
   if (!data || !code) return <div className="text-text-secondary">Loading...</div>;
@@ -52,6 +51,12 @@ export default function FundDetailPage() {
   const fundHoldings = data.holdings[code];
 
   if (!fund) return <div className="text-negative">Fund not found: {code}</div>;
+
+  // Navigation: same fund_type list for prev/next
+  const sameType = data.funds.filter((f) => f.fund_type === fund.fund_type);
+  const currentIdx = sameType.findIndex((f) => f.code === code);
+  const prevFund = currentIdx > 0 ? sameType[currentIdx - 1] : null;
+  const nextFund = currentIdx < sameType.length - 1 ? sameType[currentIdx + 1] : null;
 
   const monthly = fundHoldings?.monthly || {};
   const quarterly = fundHoldings?.quarterly || {};
@@ -73,9 +78,26 @@ export default function FundDetailPage() {
     <div>
       <div className="flex items-center gap-2 mb-4">
         <Link to="/funds" className="text-text-secondary hover:text-text-primary text-sm">&larr; 返回</Link>
+        <button
+          onClick={() => prevFund && navigate(`/fund/${prevFund.code}`)}
+          disabled={!prevFund}
+          className={`px-2 py-1 rounded text-sm ${prevFund ? "bg-surface-alt border border-border text-text-primary hover:bg-surface-hover" : "text-text-secondary/30 cursor-not-allowed"}`}
+          title={prevFund?.name}
+        >
+          ◀
+        </button>
         <h2 className="text-lg font-semibold">{fund.name}</h2>
+        <button
+          onClick={() => nextFund && navigate(`/fund/${nextFund.code}`)}
+          disabled={!nextFund}
+          className={`px-2 py-1 rounded text-sm ${nextFund ? "bg-surface-alt border border-border text-text-primary hover:bg-surface-hover" : "text-text-secondary/30 cursor-not-allowed"}`}
+          title={nextFund?.name}
+        >
+          ▶
+        </button>
         <span className="text-xs text-text-secondary">
           {fund.company} / {fund.manager_name || "—"}
+          <span className="ml-2 text-text-secondary/50">({currentIdx + 1}/{sameType.length})</span>
         </span>
       </div>
 
