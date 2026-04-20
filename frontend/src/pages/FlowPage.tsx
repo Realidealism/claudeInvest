@@ -89,15 +89,15 @@ export default function FlowPage() {
           <tbody>
             {sorted.map(([ticker, change]) => (
               <tr key={ticker} className="border-b border-border/30">
-                <td className="py-1 pr-2 font-mono sticky left-0 bg-surface">
+                <td className="py-2 pr-4 font-mono sticky left-0 bg-surface">
                   <Link to={`/stock/${ticker}`} className="text-accent hover:underline">{ticker}</Link>
                 </td>
-                <td className="py-1 pr-2 sticky left-16 bg-surface truncate max-w-20">
+                <td className="py-2 pr-4 sticky left-16 bg-surface truncate max-w-20">
                   {change.ticker_name}
                 </td>
                 {data.fund_columns.map((col) => {
                   const fc = change.funds[col.code];
-                  if (!fc) return <td key={col.code} className="py-1 px-1 text-center text-text-secondary">·</td>;
+                  if (!fc) return <td key={col.code} className="py-2 px-3 text-center text-text-secondary">·</td>;
                   const diff = fc.diff || 0;
                   const absDiff = Math.abs(diff);
                   // Color intensity based on magnitude
@@ -110,7 +110,7 @@ export default function FlowPage() {
                   return (
                     <td
                       key={col.code}
-                      className="py-1 px-1 text-center font-mono"
+                      className="py-2 px-3 text-center font-mono"
                       style={{ backgroundColor: bg }}
                       title={`${fc.prev?.toFixed(1) || "—"}% → ${fc.curr?.toFixed(1)}% (${diff > 0 ? "+" : ""}${diff.toFixed(2)}%)`}
                     >
