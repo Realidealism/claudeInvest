@@ -76,29 +76,33 @@ export default function FundDetailPage() {
 
   return (
     <div>
-      <div className="flex items-center gap-2 mb-4">
-        <Link to="/funds" className="text-text-secondary hover:text-text-primary text-sm">&larr; 返回</Link>
-        <button
-          onClick={() => prevFund && navigate(`/fund/${prevFund.code}`)}
-          disabled={!prevFund}
-          className={`px-2 py-1 rounded text-sm ${prevFund ? "bg-surface-alt border border-border text-text-primary hover:bg-surface-hover" : "text-text-secondary/30 cursor-not-allowed"}`}
-          title={prevFund?.name}
-        >
-          ◀
-        </button>
-        <h2 className="text-lg font-semibold">{fund.name}</h2>
-        <button
-          onClick={() => nextFund && navigate(`/fund/${nextFund.code}`)}
-          disabled={!nextFund}
-          className={`px-2 py-1 rounded text-sm ${nextFund ? "bg-surface-alt border border-border text-text-primary hover:bg-surface-hover" : "text-text-secondary/30 cursor-not-allowed"}`}
-          title={nextFund?.name}
-        >
-          ▶
-        </button>
-        <span className="text-xs text-text-secondary">
-          {fund.company} / {fund.manager_name || "—"}
-          <span className="ml-2 text-text-secondary/50">({currentIdx + 1}/{sameType.length})</span>
-        </span>
+      <div className="flex items-center mb-4">
+        <Link to="/funds" className="text-text-secondary hover:text-text-primary text-sm shrink-0">&larr; 返回</Link>
+        <div className="flex-1 flex items-center justify-center gap-6">
+          <button
+            onClick={() => prevFund && navigate(`/fund/${prevFund.code}`)}
+            disabled={!prevFund}
+            className={`w-8 h-8 rounded flex items-center justify-center shrink-0 ${prevFund ? "bg-surface-alt border border-border text-text-primary hover:bg-surface-hover" : "text-text-secondary/30 cursor-not-allowed"}`}
+            title={prevFund?.name}
+          >
+            ◀
+          </button>
+          <div className="text-center min-w-48">
+            <h2 className="text-lg font-semibold">{fund.name}</h2>
+            <span className="text-xs text-text-secondary">
+              {fund.company} / {fund.manager_name || "—"}
+              <span className="ml-2 text-text-secondary/50">({currentIdx + 1}/{sameType.length})</span>
+            </span>
+          </div>
+          <button
+            onClick={() => nextFund && navigate(`/fund/${nextFund.code}`)}
+            disabled={!nextFund}
+            className={`w-8 h-8 rounded flex items-center justify-center shrink-0 ${nextFund ? "bg-surface-alt border border-border text-text-primary hover:bg-surface-hover" : "text-text-secondary/30 cursor-not-allowed"}`}
+            title={nextFund?.name}
+          >
+            ▶
+          </button>
+        </div>
       </div>
 
       {/* Period selector */}
