@@ -1,4 +1,10 @@
 import { useEffect, useState } from "react";
+import EquityCurve from "../components/EquityCurve";
+
+interface EquityPoint {
+  date: string;
+  value: number;
+}
 
 interface Trade {
   ticker: string;
@@ -19,6 +25,7 @@ interface BacktestData {
   metrics: Record<string, number>;
   entry_breakdown: Record<string, { trades: number; win_rate: number; avg_return: number }>;
   trades: Trade[];
+  equity_curve: EquityPoint[];
 }
 
 const SIGNAL_LABELS: Record<string, string> = {
@@ -82,6 +89,19 @@ export default function BacktestPage() {
         <MetricCard label="IR" value={m.information_ratio} fmt="f2" />
         <MetricCard label="Kelly" value={m.kelly_criterion} fmt="pct" />
       </div>
+
+      {/* Equity curve */}
+      {data.equity_curve && data.equity_curve.length > 0 && (
+        <div className="bg-surface-alt border border-border rounded-lg p-4 mb-6">
+          <h3 className="text-sm font-semibold mb-3 text-text-secondary">
+            累積淨值曲線
+            <span className="font-normal ml-2">
+              (最終: {((data.equity_curve[data.equity_curve.length - 1].value - 1) * 100).toFixed(1)}%)
+            </span>
+          </h3>
+          <EquityCurve data={data.equity_curve} />
+        </div>
+      )}
 
       {/* Entry signal breakdown */}
       <h3 className="text-sm font-semibold mb-2 text-text-secondary">按進場信號分類</h3>

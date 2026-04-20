@@ -111,10 +111,22 @@ def export_backtest(cur, out: Path):
             "avg_return": float(np.mean(rets)),
         }
 
+    # Equity curve: cumulative return by exit date
+    equity_curve = []
+    cum = 1.0
+    for t in closed:
+        if t["exit_date"] and t["return_pct"] is not None:
+            cum *= (1 + float(t["return_pct"]))
+            equity_curve.append({
+                "date": str(t["exit_date"]),
+                "value": round(cum, 4),
+            })
+
     _write({
         "metrics": metrics,
         "entry_breakdown": entry_breakdown,
         "trades": trades,
+        "equity_curve": equity_curve,
     }, out / "backtest.json")
 
 
@@ -493,6 +505,43 @@ def export_flow(cur, out: Path):
 
 
 # -----------------------------------------------------------------------
+# 9. prices.json — OHLCV for stocks in signals/holdings (last 12 months)
+# -----------------------------------------------------------------------
+
+def export_prices(cur, out: Path):
+    # Collect tickers from signals + monthly holdings
+    cur.execute("SELECT DISTINCT ticker FROM tw.signals")
+    tickers = {r["ticker"] for r in cur.fetchall()}
+    cur.execute("SELECT DISTINCT ticker FROM tw.fund_holdings_monthly")
+    tickers |= {r["ticker"] for r in cur.fetchall()}
+
+    prices = {}
+    for ticker in sorted(tickers):
+        cur.execute("""
+            SELECT trade_date, open_price, high_price, low_price, close_price, volume
+            FROM tw.daily_prices
+            WHERE stock_id = %s AND trade_date >= CURRENT_DATE - INTERVAL '12 months'
+            ORDER BY trade_date
+        """, (ticker,))
+        rows = cur.fetchall()
+        if not rows:
+            continue
+        prices[ticker] = [
+            {
+                "t": str(r["trade_date"]),
+                "o": float(r["open_price"]) if r["open_price"] else None,
+                "h": float(r["high_price"]) if r["high_price"] else None,
+                "l": float(r["low_price"]) if r["low_price"] else None,
+                "c": float(r["close_price"]) if r["close_price"] else None,
+                "v": int(r["volume"]) if r["volume"] else 0,
+            }
+            for r in rows
+        ]
+
+    _write(prices, out / "prices.json")
+
+
+# -----------------------------------------------------------------------
 # Main
 # -----------------------------------------------------------------------
 
@@ -514,6 +563,7 @@ def export_all(out_dir: str | None = None):
         export_timeline(cur, out)
         export_dna(cur, out)
         export_flow(cur, out)
+        export_prices(cur, out)
 
     print("Done.")
 

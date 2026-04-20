@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
+import CandlestickChart from "../components/CandlestickChart";
 
 interface FundHolding {
   code: string;
@@ -34,6 +35,17 @@ interface StocksData {
   latest_monthly: string;
 }
 
+interface OHLCV {
+  t: string;
+  o: number | null;
+  h: number | null;
+  l: number | null;
+  c: number | null;
+  v: number;
+}
+
+const SHORT_SIGNALS = new Set(["heavy_position_reduction", "core_exit"]);
+
 const SIGNAL_LABELS: Record<string, string> = {
   quarterly_to_monthly_top10: "季報→月報晉升",
   quarterly_dormant_etf_active: "季報潛伏+ETF激活",
@@ -49,12 +61,20 @@ const SIGNAL_LABELS: Record<string, string> = {
 export default function StockPage() {
   const { ticker } = useParams<{ ticker: string }>();
   const [data, setData] = useState<StocksData | null>(null);
+  const [priceData, setPriceData] = useState<OHLCV[]>([]);
 
   useEffect(() => {
     fetch("/data/stocks.json")
       .then((r) => r.json())
       .then(setData);
   }, []);
+
+  useEffect(() => {
+    if (!ticker) return;
+    fetch("/data/prices.json")
+      .then((r) => r.json())
+      .then((all: Record<string, OHLCV[]>) => setPriceData(all[ticker] || []));
+  }, [ticker]);
 
   if (!data || !ticker) return <div className="text-text-secondary">Loading...</div>;
 
@@ -75,6 +95,21 @@ export default function StockPage() {
         {ticker} {stock.ticker_name}
       </h2>
       <p className="text-xs text-text-secondary mb-4">月報最新: {data.latest_monthly}</p>
+
+      {/* K-line chart */}
+      {priceData.length > 0 && (
+        <div className="bg-surface-alt border border-border rounded-lg p-4 mb-6">
+          <h3 className="text-sm font-semibold mb-3 text-text-secondary">K 線走勢（近 12 個月）</h3>
+          <CandlestickChart
+            data={priceData}
+            signals={stock.signals.map((s) => ({
+              date: s.trigger_period.replace(/M$/, "").replace(/^(\d{4})(\d{2})$/, "$1-$2-15"),
+              type: SHORT_SIGNALS.has(s.signal_type) ? "short" as const : "long" as const,
+              label: SIGNAL_LABELS[s.signal_type] || s.signal_type,
+            }))}
+          />
+        </div>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Fund holdings across periods */}
