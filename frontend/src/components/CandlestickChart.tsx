@@ -30,6 +30,7 @@ export default function CandlestickChart({ data, signals, height = 400 }: Props)
     if (!containerRef.current || data.length === 0) return;
 
     const chart = createChart(containerRef.current, {
+      width: containerRef.current.clientWidth,
       height,
       layout: {
         background: { color: "#12121a" },
@@ -88,16 +89,22 @@ export default function CandlestickChart({ data, signals, height = 400 }: Props)
       }));
     volumeSeries.setData(volumeData as any);
 
-    // Signal markers
+    // Signal markers (must be sorted by time)
     if (signals && signals.length > 0) {
-      const markers = signals.map((s) => ({
-        time: s.date,
-        position: s.type === "long" ? "belowBar" as const : "aboveBar" as const,
-        color: s.type === "long" ? "#ef4444" : "#22c55e",
-        shape: s.type === "long" ? "arrowUp" as const : "arrowDown" as const,
-        text: s.label,
-      }));
-      createSeriesMarkers(candleSeries, markers as any);
+      const markers = signals
+        .map((s) => ({
+          time: s.date,
+          position: s.type === "long" ? "belowBar" as const : "aboveBar" as const,
+          color: s.type === "long" ? "#ef4444" : "#22c55e",
+          shape: s.type === "long" ? "arrowUp" as const : "arrowDown" as const,
+          text: s.label,
+        }))
+        .sort((a, b) => a.time.localeCompare(b.time));
+      try {
+        createSeriesMarkers(candleSeries, markers as any);
+      } catch {
+        // Ignore marker errors — chart still renders
+      }
     }
 
     chart.timeScale().fitContent();

@@ -19,6 +19,7 @@ export default function EquityCurve({ data, height = 300 }: Props) {
     if (!containerRef.current || data.length === 0) return;
 
     const chart = createChart(containerRef.current, {
+      width: containerRef.current.clientWidth,
       height,
       layout: {
         background: { color: "#12121a" },

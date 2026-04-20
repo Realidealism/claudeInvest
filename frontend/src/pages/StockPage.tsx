@@ -102,11 +102,22 @@ export default function StockPage() {
           <h3 className="text-sm font-semibold mb-3 text-text-secondary">K 線走勢（近 12 個月）</h3>
           <CandlestickChart
             data={priceData}
-            signals={stock.signals.map((s) => ({
-              date: s.trigger_period.replace(/M$/, "").replace(/^(\d{4})(\d{2})$/, "$1-$2-15"),
-              type: SHORT_SIGNALS.has(s.signal_type) ? "short" as const : "long" as const,
-              label: SIGNAL_LABELS[s.signal_type] || s.signal_type,
-            }))}
+            signals={stock.signals
+              .map((s) => {
+                // Convert period like "202603M" or "202603" to a date string
+                const ym = s.trigger_period.replace(/M$/, "");
+                const target = `${ym.slice(0, 4)}-${ym.slice(4, 6)}-15`;
+                // Find nearest actual trading date
+                const dates = priceData.map((p) => p.t);
+                const nearest = dates.find((d) => d >= target) || dates[dates.length - 1];
+                return {
+                  date: nearest,
+                  type: SHORT_SIGNALS.has(s.signal_type) ? "short" as const : "long" as const,
+                  label: SIGNAL_LABELS[s.signal_type] || s.signal_type,
+                };
+              })
+              .filter((s) => s.date)
+            }
           />
         </div>
       )}
