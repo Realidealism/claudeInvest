@@ -1,0 +1,852 @@
+{
+  "periods": [
+    "202602",
+    "202603"
+  ],
+  "fund_columns": [
+    {
+      "code": "yuanta-newmain",
+      "name": "元大新主流"
+    },
+    {
+      "code": "taishin-mainstream",
+      "name": "台新主流"
+    },
+    {
+      "code": "allianz-dam",
+      "name": "安聯台灣大壩"
+    },
+    {
+      "code": "allianz-tech",
+      "name": "安聯台灣科技"
+    },
+    {
+      "code": "fhtrust-allround",
+      "name": "復華全方位"
+    },
+    {
+      "code": "fhtrust-highgrowth",
+      "name": "復華高成長"
+    },
+    {
+      "code": "unitec-gc-smid",
+      "name": "統一大中華中小"
+    },
+    {
+      "code": "unitec-darkhorse",
+      "name": "統一黑馬"
+    },
+    {
+      "code": "unitec-gallop",
+      "name": "統一奔騰"
+    },
+    {
+      "code": "unitec-allweather",
+      "name": "統一全天候"
+    },
+    {
+      "code": "unitec-smid",
+      "name": "統一中小"
+    },
+    {
+      "code": "nomura-quality",
+      "name": "野村優質"
+    },
+    {
+      "code": "nomura-hightech",
+      "name": "野村高科技"
+    }
+  ],
+  "changes": {
+    "2059": {
+      "ticker_name": "川湖",
+      "funds": {
+        "nomura-quality": {
+          "curr": 5.91,
+          "prev": 6.33,
+          "diff": -0.42
+        }
+      }
+    },
+    "2308": {
+      "ticker_name": "台達電",
+      "funds": {
+        "allianz-dam": {
+          "curr": 4.82,
+          "prev": 5.12,
+          "diff": -0.3
+        },
+        "allianz-tech": {
+          "curr": 4.2,
+          "prev": 4.54,
+          "diff": -0.34
+        },
+        "fhtrust-allround": {
+          "curr": 7.57,
+          "prev": 8.38,
+          "diff": -0.81
+        },
+        "fhtrust-highgrowth": {
+          "curr": 7.33,
+          "prev": 7.43,
+          "diff": -0.1
+        },
+        "nomura-quality": {
+          "curr": 7.72,
+          "prev": 8.88,
+          "diff": -1.16
+        },
+        "taishin-mainstream": {
+          "curr": 6.12,
+          "prev": 5.28,
+          "diff": 0.84
+        },
+        "unitec-allweather": {
+          "curr": 8.12,
+          "prev": 8.47,
+          "diff": -0.35
+        },
+        "unitec-darkhorse": {
+          "curr": 5.02,
+          "prev": 4.42,
+          "diff": 0.6
+        },
+        "unitec-gallop": {
+          "curr": 6.99,
+          "prev": 6.12,
+          "diff": 0.87
+        },
+        "unitec-smid": {
+          "curr": 5.47,
+          "prev": 5.15,
+          "diff": 0.32
+        }
+      }
+    },
+    "2313": {
+      "ticker_name": "華通",
+      "funds": {
+        "unitec-darkhorse": {
+          "curr": 5.49,
+          "prev": 4.19,
+          "diff": 1.3
+        },
+        "yuanta-newmain": {
+          "curr": 6.64,
+          "prev": 4.79,
+          "diff": 1.85
+        }
+      }
+    },
+    "2330": {
+      "ticker_name": "台積電",
+      "funds": {
+        "allianz-dam": {
+          "curr": 7.4,
+          "prev": 9.69,
+          "diff": -2.29
+        },
+        "allianz-tech": {
+          "curr": 7.97,
+          "prev": 8.18,
+          "diff": -0.21
+        },
+        "fhtrust-allround": {
+          "curr": 8.98,
+          "prev": 8.9,
+          "diff": 0.08
+        },
+        "fhtrust-highgrowth": {
+          "curr": 8.93,
+          "prev": 9.22,
+          "diff": -0.29
+        },
+        "nomura-hightech": {
+          "curr": 7.59,
+          "prev": 8.23,
+          "diff": -0.64
+        },
+        "nomura-quality": {
+          "curr": 8.77,
+          "prev": 9.29,
+          "diff": -0.52
+        },
+        "taishin-mainstream": {
+          "curr": 6.26,
+          "prev": 7.24,
+          "diff": -0.98
+        },
+        "unitec-allweather": {
+          "curr": 7.48,
+          "prev": 8.35,
+          "diff": -0.87
+        },
+        "unitec-darkhorse": {
+          "curr": 7.93,
+          "prev": 8.99,
+          "diff": -1.06
+        },
+        "unitec-gallop": {
+          "curr": 7.24,
+          "prev": 8.24,
+          "diff": -1.0
+        },
+        "unitec-smid": {
+          "curr": 5.03,
+          "prev": 6.85,
+          "diff": -1.82
+        },
+        "yuanta-newmain": {
+          "curr": 5.64,
+          "prev": 8.26,
+          "diff": -2.62
+        }
+      }
+    },
+    "2344": {
+      "ticker_name": "華邦電",
+      "funds": {
+        "allianz-dam": {
+          "curr": 4.85,
+          "prev": 6.75,
+          "diff": -1.9
+        },
+        "allianz-tech": {
+          "curr": 4.79,
+          "prev": 6.43,
+          "diff": -1.64
+        },
+        "nomura-hightech": {
+          "curr": 3.85,
+          "prev": 5.0,
+          "diff": -1.15
+        }
+      }
+    },
+    "2345": {
+      "ticker_name": "智邦",
+      "funds": {
+        "allianz-dam": {
+          "curr": 3.31,
+          "prev": null,
+          "diff": 3.31
+        },
+        "fhtrust-allround": {
+          "curr": 5.52,
+          "prev": null,
+          "diff": 5.52
+        },
+        "fhtrust-highgrowth": {
+          "curr": 4.81,
+          "prev": null,
+          "diff": 4.81
+        },
+        "nomura-quality": {
+          "curr": 4.83,
+          "prev": 4.42,
+          "diff": 0.41
+        },
+        "unitec-allweather": {
+          "curr": 3.49,
+          "prev": null,
+          "diff": 3.49
+        },
+        "unitec-gallop": {
+          "curr": 7.05,
+          "prev": 6.31,
+          "diff": 0.74
+        }
+      }
+    },
+    "2360": {
+      "ticker_name": "致茂",
+      "funds": {
+        "unitec-allweather": {
+          "curr": 4.94,
+          "prev": 5.23,
+          "diff": -0.29
+        },
+        "unitec-gc-smid": {
+          "curr": 4.71,
+          "prev": 4.14,
+          "diff": 0.57
+        },
+        "unitec-smid": {
+          "curr": 5.35,
+          "prev": null,
+          "diff": 5.35
+        }
+      }
+    },
+    "2368": {
+      "ticker_name": "金像電",
+      "funds": {
+        "taishin-mainstream": {
+          "curr": 6.67,
+          "prev": 6.54,
+          "diff": 0.13
+        },
+        "unitec-gallop": {
+          "curr": 6.62,
+          "prev": 5.06,
+          "diff": 1.56
+        },
+        "unitec-gc-smid": {
+          "curr": 3.3,
+          "prev": null,
+          "diff": 3.3
+        },
+        "unitec-smid": {
+          "curr": 4.64,
+          "prev": 4.53,
+          "diff": 0.11
+        },
+        "yuanta-newmain": {
+          "curr": 4.88,
+          "prev": null,
+          "diff": 4.88
+        }
+      }
+    },
+    "2383": {
+      "ticker_name": "台光電",
+      "funds": {
+        "allianz-dam": {
+          "curr": 5.52,
+          "prev": 6.06,
+          "diff": -0.54
+        },
+        "allianz-tech": {
+          "curr": 5.52,
+          "prev": 5.23,
+          "diff": 0.29
+        },
+        "fhtrust-allround": {
+          "curr": 11.89,
+          "prev": 9.74,
+          "diff": 2.15
+        },
+        "fhtrust-highgrowth": {
+          "curr": 10.93,
+          "prev": 9.34,
+          "diff": 1.59
+        },
+        "nomura-quality": {
+          "curr": 8.12,
+          "prev": 8.69,
+          "diff": -0.57
+        },
+        "taishin-mainstream": {
+          "curr": 7.43,
+          "prev": 7.12,
+          "diff": 0.31
+        },
+        "unitec-allweather": {
+          "curr": 8.26,
+          "prev": 7.8,
+          "diff": 0.46
+        },
+        "unitec-darkhorse": {
+          "curr": 8.55,
+          "prev": 8.02,
+          "diff": 0.53
+        },
+        "unitec-gallop": {
+          "curr": 9.51,
+          "prev": 8.2,
+          "diff": 1.31
+        },
+        "unitec-gc-smid": {
+          "curr": 6.07,
+          "prev": 5.31,
+          "diff": 0.76
+        },
+        "unitec-smid": {
+          "curr": 6.6,
+          "prev": 7.12,
+          "diff": -0.52
+        },
+        "yuanta-newmain": {
+          "curr": 6.06,
+          "prev": 5.75,
+          "diff": 0.31
+        }
+      }
+    },
+    "2408": {
+      "ticker_name": "南亞科",
+      "funds": {
+        "fhtrust-allround": {
+          "curr": 7.26,
+          "prev": 8.55,
+          "diff": -1.29
+        },
+        "fhtrust-highgrowth": {
+          "curr": 7.1,
+          "prev": 8.8,
+          "diff": -1.7
+        }
+      }
+    },
+    "2449": {
+      "ticker_name": "京元電子",
+      "funds": {
+        "unitec-gc-smid": {
+          "curr": 4.06,
+          "prev": 4.74,
+          "diff": -0.68
+        }
+      }
+    },
+    "3017": {
+      "ticker_name": "奇鋐",
+      "funds": {
+        "fhtrust-allround": {
+          "curr": 5.76,
+          "prev": 4.23,
+          "diff": 1.53
+        },
+        "fhtrust-highgrowth": {
+          "curr": 5.0,
+          "prev": 4.04,
+          "diff": 0.96
+        },
+        "nomura-hightech": {
+          "curr": 6.13,
+          "prev": 5.2,
+          "diff": 0.93
+        },
+        "unitec-allweather": {
+          "curr": 8.12,
+          "prev": 6.69,
+          "diff": 1.43
+        },
+        "unitec-darkhorse": {
+          "curr": 6.29,
+          "prev": 4.28,
+          "diff": 2.01
+        },
+        "unitec-gallop": {
+          "curr": 9.74,
+          "prev": 8.79,
+          "diff": 0.95
+        },
+        "unitec-smid": {
+          "curr": 5.37,
+          "prev": 5.45,
+          "diff": -0.08
+        },
+        "yuanta-newmain": {
+          "curr": 5.03,
+          "prev": null,
+          "diff": 5.03
+        }
+      }
+    },
+    "3037": {
+      "ticker_name": "欣興",
+      "funds": {
+        "allianz-dam": {
+          "curr": 3.85,
+          "prev": 3.44,
+          "diff": 0.41
+        },
+        "fhtrust-allround": {
+          "curr": 7.72,
+          "prev": 7.31,
+          "diff": 0.41
+        },
+        "fhtrust-highgrowth": {
+          "curr": 8.16,
+          "prev": 8.05,
+          "diff": 0.11
+        },
+        "nomura-hightech": {
+          "curr": 6.92,
+          "prev": 9.46,
+          "diff": -2.54
+        },
+        "unitec-allweather": {
+          "curr": 6.28,
+          "prev": 6.08,
+          "diff": 0.2
+        },
+        "unitec-darkhorse": {
+          "curr": 4.73,
+          "prev": 5.92,
+          "diff": -1.19
+        },
+        "yuanta-newmain": {
+          "curr": 5.66,
+          "prev": 8.21,
+          "diff": -2.55
+        }
+      }
+    },
+    "3081": {
+      "ticker_name": "聯亞",
+      "funds": {
+        "nomura-hightech": {
+          "curr": 6.41,
+          "prev": 4.48,
+          "diff": 1.93
+        },
+        "unitec-darkhorse": {
+          "curr": 4.74,
+          "prev": 4.12,
+          "diff": 0.62
+        },
+        "unitec-smid": {
+          "curr": 6.25,
+          "prev": 6.43,
+          "diff": -0.18
+        }
+      }
+    },
+    "3189": {
+      "ticker_name": "景碩",
+      "funds": {
+        "unitec-smid": {
+          "curr": 4.27,
+          "prev": 4.64,
+          "diff": -0.37
+        }
+      }
+    },
+    "3260": {
+      "ticker_name": "威剛",
+      "funds": {
+        "allianz-tech": {
+          "curr": 4.26,
+          "prev": 3.79,
+          "diff": 0.47
+        }
+      }
+    },
+    "3264": {
+      "ticker_name": "欣銓",
+      "funds": {
+        "allianz-tech": {
+          "curr": 3.89,
+          "prev": 4.12,
+          "diff": -0.23
+        }
+      }
+    },
+    "3363": {
+      "ticker_name": "上詮",
+      "funds": {
+        "taishin-mainstream": {
+          "curr": 6.47,
+          "prev": 7.22,
+          "diff": -0.75
+        }
+      }
+    },
+    "3491": {
+      "ticker_name": "昇達科",
+      "funds": {
+        "taishin-mainstream": {
+          "curr": 4.16,
+          "prev": 4.76,
+          "diff": -0.6
+        }
+      }
+    },
+    "3533": {
+      "ticker_name": "嘉澤",
+      "funds": {
+        "yuanta-newmain": {
+          "curr": 5.84,
+          "prev": null,
+          "diff": 5.84
+        }
+      }
+    },
+    "3653": {
+      "ticker_name": "健策",
+      "funds": {
+        "nomura-quality": {
+          "curr": 9.3,
+          "prev": 8.15,
+          "diff": 1.15
+        },
+        "unitec-allweather": {
+          "curr": 4.31,
+          "prev": null,
+          "diff": 4.31
+        },
+        "unitec-darkhorse": {
+          "curr": 3.69,
+          "prev": null,
+          "diff": 3.69
+        },
+        "unitec-gallop": {
+          "curr": 8.0,
+          "prev": 5.55,
+          "diff": 2.45
+        }
+      }
+    },
+    "3665": {
+      "ticker_name": "貿聯-KY",
+      "funds": {
+        "unitec-allweather": {
+          "curr": 4.17,
+          "prev": null,
+          "diff": 4.17
+        },
+        "unitec-gallop": {
+          "curr": 6.72,
+          "prev": 4.56,
+          "diff": 2.16
+        },
+        "unitec-smid": {
+          "curr": 4.47,
+          "prev": null,
+          "diff": 4.47
+        }
+      }
+    },
+    "4979": {
+      "ticker_name": "華星光",
+      "funds": {
+        "nomura-hightech": {
+          "curr": 4.13,
+          "prev": 4.67,
+          "diff": -0.54
+        }
+      }
+    },
+    "5274": {
+      "ticker_name": "信驊",
+      "funds": {
+        "allianz-dam": {
+          "curr": 5.29,
+          "prev": 4.4,
+          "diff": 0.89
+        },
+        "allianz-tech": {
+          "curr": 3.9,
+          "prev": null,
+          "diff": 3.9
+        }
+      }
+    },
+    "6223": {
+      "ticker_name": "旺矽",
+      "funds": {
+        "allianz-dam": {
+          "curr": 12.34,
+          "prev": 10.37,
+          "diff": 1.97
+        },
+        "allianz-tech": {
+          "curr": 9.14,
+          "prev": 7.82,
+          "diff": 1.32
+        },
+        "fhtrust-allround": {
+          "curr": 6.03,
+          "prev": 4.31,
+          "diff": 1.72
+        },
+        "fhtrust-highgrowth": {
+          "curr": 7.82,
+          "prev": 5.7,
+          "diff": 2.12
+        },
+        "nomura-quality": {
+          "curr": 4.78,
+          "prev": null,
+          "diff": 4.78
+        },
+        "taishin-mainstream": {
+          "curr": 7.76,
+          "prev": 7.01,
+          "diff": 0.75
+        },
+        "unitec-gallop": {
+          "curr": 8.3,
+          "prev": 6.52,
+          "diff": 1.78
+        },
+        "yuanta-newmain": {
+          "curr": 6.5,
+          "prev": null,
+          "diff": 6.5
+        }
+      }
+    },
+    "6274": {
+      "ticker_name": "台燿",
+      "funds": {
+        "allianz-dam": {
+          "curr": 4.19,
+          "prev": 4.11,
+          "diff": 0.08
+        },
+        "allianz-tech": {
+          "curr": 3.91,
+          "prev": 3.91,
+          "diff": null
+        },
+        "taishin-mainstream": {
+          "curr": 5.45,
+          "prev": 5.32,
+          "diff": 0.13
+        }
+      }
+    },
+    "6442": {
+      "ticker_name": "光聖",
+      "funds": {
+        "nomura-hightech": {
+          "curr": 3.8,
+          "prev": 4.1,
+          "diff": -0.3
+        },
+        "nomura-quality": {
+          "curr": 5.49,
+          "prev": 6.13,
+          "diff": -0.64
+        }
+      }
+    },
+    "6515": {
+      "ticker_name": "穎崴",
+      "funds": {
+        "allianz-dam": {
+          "curr": 10.81,
+          "prev": 7.9,
+          "diff": 2.91
+        },
+        "allianz-tech": {
+          "curr": 8.46,
+          "prev": 6.19,
+          "diff": 2.27
+        },
+        "nomura-quality": {
+          "curr": 7.56,
+          "prev": 5.72,
+          "diff": 1.84
+        },
+        "taishin-mainstream": {
+          "curr": 4.17,
+          "prev": null,
+          "diff": 4.17
+        },
+        "unitec-allweather": {
+          "curr": 5.5,
+          "prev": null,
+          "diff": 5.5
+        },
+        "unitec-darkhorse": {
+          "curr": 5.16,
+          "prev": null,
+          "diff": 5.16
+        },
+        "yuanta-newmain": {
+          "curr": 4.9,
+          "prev": 6.23,
+          "diff": -1.33
+        }
+      }
+    },
+    "6683": {
+      "ticker_name": "雍智科技",
+      "funds": {
+        "taishin-mainstream": {
+          "curr": 4.96,
+          "prev": null,
+          "diff": 4.96
+        }
+      }
+    },
+    "6805": {
+      "ticker_name": "富世達",
+      "funds": {
+        "nomura-hightech": {
+          "curr": 5.33,
+          "prev": null,
+          "diff": 5.33
+        },
+        "unitec-darkhorse": {
+          "curr": 4.86,
+          "prev": 4.75,
+          "diff": 0.11
+        }
+      }
+    },
+    "7769": {
+      "ticker_name": "鴻勁",
+      "funds": {
+        "fhtrust-allround": {
+          "curr": 6.68,
+          "prev": 7.76,
+          "diff": -1.08
+        },
+        "fhtrust-highgrowth": {
+          "curr": 6.27,
+          "prev": 7.49,
+          "diff": -1.22
+        },
+        "nomura-quality": {
+          "curr": 6.81,
+          "prev": 9.33,
+          "diff": -2.52
+        }
+      }
+    },
+    "8046": {
+      "ticker_name": "南電",
+      "funds": {
+        "nomura-hightech": {
+          "curr": 6.64,
+          "prev": 6.75,
+          "diff": -0.11
+        },
+        "unitec-gallop": {
+          "curr": 4.72,
+          "prev": null,
+          "diff": 4.72
+        },
+        "unitec-gc-smid": {
+          "curr": 3.39,
+          "prev": 3.36,
+          "diff": 0.03
+        },
+        "unitec-smid": {
+          "curr": 4.97,
+          "prev": null,
+          "diff": 4.97
+        },
+        "yuanta-newmain": {
+          "curr": 4.97,
+          "prev": 4.57,
+          "diff": 0.4
+        }
+      }
+    },
+    "8299": {
+      "ticker_name": "群聯",
+      "funds": {
+        "fhtrust-allround": {
+          "curr": 8.46,
+          "prev": 9.31,
+          "diff": -0.85
+        },
+        "fhtrust-highgrowth": {
+          "curr": 7.68,
+          "prev": 8.82,
+          "diff": -1.14
+        },
+        "nomura-hightech": {
+          "curr": 6.21,
+          "prev": 4.92,
+          "diff": 1.29
+        }
+      }
+    }
+  }
+}
