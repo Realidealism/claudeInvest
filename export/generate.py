@@ -122,11 +122,37 @@ def export_backtest(cur, out: Path):
                 "value": round(cum, 4),
             })
 
+    # Per-fund performance: join backtest with signals to get fund attribution
+    cur.execute("""
+        SELECT s.funds, b.return_pct, b.entry_signal, b.ticker
+        FROM tw.signal_backtest_results b
+        JOIN tw.signals s ON b.ticker = s.ticker
+            AND b.entry_signal = s.signal_type
+            AND b.entry_period = s.trigger_period
+        WHERE b.return_pct IS NOT NULL
+    """)
+    fund_trades: dict[str, list[float]] = {}
+    for r in cur.fetchall():
+        ret = float(r["return_pct"])
+        for fund_name in r["funds"]:
+            fund_trades.setdefault(fund_name, []).append(ret)
+
+    fund_performance = {}
+    for fname, rets in sorted(fund_trades.items(), key=lambda x: -len(x[1])):
+        w = [r for r in rets if r > 0]
+        fund_performance[fname] = {
+            "trades": len(rets),
+            "win_rate": len(w) / len(rets),
+            "avg_return": float(np.mean(rets)),
+            "total_return": float(np.prod([1 + r for r in rets]) - 1),
+        }
+
     _write({
         "metrics": metrics,
         "entry_breakdown": entry_breakdown,
         "trades": trades,
         "equity_curve": equity_curve,
+        "fund_performance": fund_performance,
     }, out / "backtest.json")
 
 

@@ -21,11 +21,19 @@ interface Trade {
   holding_days: number | null;
 }
 
+interface FundPerf {
+  trades: number;
+  win_rate: number;
+  avg_return: number;
+  total_return: number;
+}
+
 interface BacktestData {
   metrics: Record<string, number>;
   entry_breakdown: Record<string, { trades: number; win_rate: number; avg_return: number }>;
   trades: Trade[];
   equity_curve: EquityPoint[];
+  fund_performance: Record<string, FundPerf>;
 }
 
 const SIGNAL_LABELS: Record<string, string> = {
@@ -131,6 +139,43 @@ export default function BacktestPage() {
           </tbody>
         </table>
       </div>
+
+      {/* Fund performance */}
+      {data.fund_performance && Object.keys(data.fund_performance).length > 0 && (
+        <>
+          <h3 className="text-sm font-semibold mb-2 text-text-secondary">各基金績效</h3>
+          <div className="overflow-x-auto mb-6">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-border text-text-secondary text-left">
+                  <th className="py-2 pr-4 font-medium">基金</th>
+                  <th className="py-2 pr-4 font-medium text-right">交易數</th>
+                  <th className="py-2 pr-4 font-medium text-right">勝率</th>
+                  <th className="py-2 pr-4 font-medium text-right">平均報酬</th>
+                  <th className="py-2 pr-4 font-medium text-right">累積報酬</th>
+                </tr>
+              </thead>
+              <tbody>
+                {Object.entries(data.fund_performance)
+                  .sort((a, b) => b[1].total_return - a[1].total_return)
+                  .map(([name, fp]) => (
+                  <tr key={name} className="border-b border-border/50">
+                    <td className="py-2 pr-4">{name}</td>
+                    <td className="py-2 pr-4 text-right font-mono">{fp.trades}</td>
+                    <td className="py-2 pr-4 text-right font-mono">{(fp.win_rate * 100).toFixed(1)}%</td>
+                    <td className={`py-2 pr-4 text-right font-mono ${fp.avg_return > 0 ? "text-negative" : "text-positive"}`}>
+                      {(fp.avg_return * 100).toFixed(2)}%
+                    </td>
+                    <td className={`py-2 pr-4 text-right font-mono ${fp.total_return > 0 ? "text-negative" : "text-positive"}`}>
+                      {fp.total_return > 0 ? "+" : ""}{(fp.total_return * 100).toFixed(1)}%
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </>
+      )}
 
       {/* Trade list */}
       <h3 className="text-sm font-semibold mb-2 text-text-secondary">交易明細</h3>
