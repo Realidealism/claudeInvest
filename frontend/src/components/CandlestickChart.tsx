@@ -98,6 +98,7 @@ export default function CandlestickChart({ data, signals, height = 400 }: Props)
           color: s.type === "long" ? "#ef4444" : "#22c55e",
           shape: s.type === "long" ? "arrowUp" as const : "arrowDown" as const,
           text: s.label,
+          size: 3,
         }))
         .sort((a, b) => a.time.localeCompare(b.time));
       try {
