@@ -12,6 +12,7 @@ Each scraper runs independently; failures are logged but do not stop the rest.
 import sys
 import traceback
 from datetime import date, timedelta
+from pathlib import Path
 
 from db.connection import get_cursor
 
@@ -177,6 +178,32 @@ def detect_delisted(trade_date: date):
             print(f"  Marked {len(delisted)} stock(s) as delisted.")
 
 
+def _git_push_frontend():
+    """Commit updated JSON data and push to trigger Vercel deploy."""
+    import subprocess
+    repo = Path(__file__).parent
+    data_dir = repo / "frontend" / "public" / "data"
+    if not data_dir.exists():
+        print("  [SKIP] No frontend/public/data/ directory.")
+        return
+
+    result = subprocess.run(
+        ["git", "status", "--porcelain", str(data_dir)],
+        capture_output=True, text=True, cwd=repo,
+    )
+    if not result.stdout.strip():
+        print("  No JSON changes to deploy.")
+        return
+
+    subprocess.run(["git", "add", str(data_dir)], cwd=repo, check=True)
+    subprocess.run(
+        ["git", "commit", "-m", f"Update frontend data ({date.today().isoformat()})"],
+        cwd=repo, check=True,
+    )
+    subprocess.run(["git", "push"], cwd=repo, check=True)
+    print("  Pushed to GitHub — Vercel will auto-deploy.")
+
+
 def update_date(trade_date: date):
     """Run all scrapers for a single trading date."""
     if trade_date.weekday() >= 5:
@@ -250,6 +277,20 @@ def update_date(trade_date: date):
             print("  [ERROR] SITCA quarterly scraper failed:")
             traceback.print_exc()
 
+    # Signal scanning: run after SITCA monthly scraper on publication days
+    if trade_date.day <= 20:
+        print(f"\n--- Signal scanning ---")
+        try:
+            from scan_signals import scan_period
+            with get_cursor(commit=False) as cur:
+                cur.execute("SELECT MAX(period) FROM tw.fund_holdings_monthly")
+                latest = list(cur.fetchone().values())[0]
+            if latest:
+                scan_period(latest)
+        except Exception:
+            print("  [ERROR] Signal scanning failed:")
+            traceback.print_exc()
+
     # Detect delisted stocks after all price scrapers have run
     print(f"\n--- Delist detection ---")
     try:
@@ -274,7 +315,19 @@ def update_date(trade_date: date):
     print(f"  Done: {ok}/{total_count} scrapers succeeded.")
     if failed:
         print(f"  Failed: {', '.join(failed)}")
-    print(f"{'='*60}\n")
+    print(f"{'='*60}")
+
+    # Export JSON + git push for Vercel auto-deploy
+    print(f"\n--- Frontend export + deploy ---")
+    try:
+        from export.generate import export_all
+        export_all()
+        _git_push_frontend()
+    except Exception:
+        print("  [ERROR] Export/deploy failed:")
+        traceback.print_exc()
+
+    print()
 
 
 def update_range(start: date, end: date):
