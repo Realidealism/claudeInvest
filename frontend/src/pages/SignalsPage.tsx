@@ -129,7 +129,7 @@ export default function SignalsPage() {
               <th className="py-2 pr-4 font-medium">信號</th>
               <th className="py-2 pr-4 font-medium">期間</th>
               <th className="py-2 pr-4 font-medium text-right">權重變化</th>
-              <th className="py-2 pr-4 font-medium">涉及基金</th>
+              <th className="py-2 pr-4 font-medium">涉及基金/ETF</th>
             </tr>
           </thead>
           <tbody>

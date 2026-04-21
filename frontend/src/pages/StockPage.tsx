@@ -161,7 +161,7 @@ export default function StockPage() {
                   <tr className="border-b border-border text-text-secondary">
                     <th className="py-1 pr-2 text-left font-medium">期間</th>
                     <th className="py-1 pr-2 text-left font-medium">訊號</th>
-                    <th className="py-1 pr-2 text-left font-medium">涉及基金</th>
+                    <th className="py-1 pr-2 text-left font-medium">涉及基金/ETF</th>
                   </tr>
                 </thead>
                 <tbody>
