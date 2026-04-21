@@ -1,15 +1,12 @@
-"""Signal: both fund and same-manager ETF are accumulating a position."""
+"""Signal: both fund and same-manager ETF are accumulating a position.
+
+Uses amount / month-end close to verify actual share increase,
+filtering out weight gains caused by fund size shrinkage.
+"""
 
 from strategies.base import BaseStrategy
 from strategies.registry import register
-
-
-def _prev_period(period: str) -> str:
-    y, m = int(period[:4]), int(period[4:])
-    m -= 1
-    if m == 0:
-        m, y = 12, y - 1
-    return f"{y}{m:02d}"
+from strategies.utils import prev_period, month_end_prices, estimate_shares
 
 
 @register
@@ -17,19 +14,22 @@ class DualTrackAccumulation(BaseStrategy):
     signal_type = "dual_track_accumulation"
 
     ETF_WINDOW_DAYS = 30
+    SHARE_RISE_THRESHOLD = 0.02  # 2%
 
     def scan(self, period: str, cur) -> list[dict]:
         """Find tickers where fund weight increased month-over-month AND
         same-manager ETF also increased holdings recently.
+        Verified by share count when available.
 
         period: 'YYYYMM' monthly period.
         """
-        prev = _prev_period(period)
+        prev = prev_period(period)
 
         # Fund weight increases
         cur.execute("""
             SELECT c.ticker, c.ticker_name,
                    c.weight AS curr_weight, p.weight AS prev_weight,
+                   c.amount AS curr_amount, p.amount AS prev_amount,
                    f.code AS fund_code, f.name AS fund_name, f.manager_id
             FROM tw.fund_holdings_monthly c
             JOIN tw.fund_holdings_monthly p
@@ -40,6 +40,11 @@ class DualTrackAccumulation(BaseStrategy):
         fund_increases = cur.fetchall()
         if not fund_increases:
             return []
+
+        # Price lookup for share estimation
+        tickers_with_amount = {r["ticker"] for r in fund_increases if r["curr_amount"] and r["prev_amount"]}
+        curr_prices = month_end_prices(cur, period, list(tickers_with_amount))
+        prev_prices = month_end_prices(cur, prev, list(tickers_with_amount))
 
         # Same-manager ETFs
         cur.execute("""
@@ -65,6 +70,14 @@ class DualTrackAccumulation(BaseStrategy):
 
         ticker_signals = {}
         for r in fund_increases:
+            # Filter: if share data derivable, require actual share increase
+            if r["curr_amount"] and r["prev_amount"]:
+                cs = estimate_shares(r["curr_amount"], curr_prices.get(r["ticker"]))
+                ps = estimate_shares(r["prev_amount"], prev_prices.get(r["ticker"]))
+                if cs is not None and ps is not None and ps > 0:
+                    if (cs - ps) / ps < self.SHARE_RISE_THRESHOLD:
+                        continue
+
             mgr_etfs = etf_by_mgr.get(r["manager_id"], [])
             for etf_code in mgr_etfs:
                 if (etf_code, r["ticker"]) not in etf_inc:

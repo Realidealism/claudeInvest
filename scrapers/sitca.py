@@ -191,18 +191,25 @@ def _parse_monthly_holdings(html: str, fund_list: list) -> dict[str, list[dict]]
                 ticker_name = cells[i + 3]
                 weight_str = cells[i + 8]
 
+                amount_str = cells[i + 4]
+
                 # Only keep domestic stocks (4-digit code)
                 is_domestic = ticker.isdigit() and len(ticker) == 4
                 try:
                     weight = float(weight_str.replace(",", ""))
                 except (ValueError, TypeError):
                     weight = None
+                try:
+                    amount = int(amount_str.replace(",", ""))
+                except (ValueError, TypeError):
+                    amount = None
 
                 current_holdings.append({
                     "ticker": ticker,
                     "ticker_name": ticker_name,
                     "rank": rank,
                     "weight": weight,
+                    "amount": amount,
                     "stock_type": stock_type,
                     "is_domestic": is_domestic,
                 })
@@ -311,14 +318,15 @@ def _save_monthly(cur, fund_db_id: int, period: str, holdings: list[dict]):
             continue
         cur.execute("""
             INSERT INTO tw.fund_holdings_monthly
-                (fund_id, period, ticker, ticker_name, rank, weight)
-            VALUES (%s, %s, %s, %s, %s, %s)
+                (fund_id, period, ticker, ticker_name, rank, weight, amount)
+            VALUES (%s, %s, %s, %s, %s, %s, %s)
             ON CONFLICT (fund_id, period, ticker) DO UPDATE SET
                 ticker_name = EXCLUDED.ticker_name,
                 rank = EXCLUDED.rank,
-                weight = EXCLUDED.weight
+                weight = EXCLUDED.weight,
+                amount = EXCLUDED.amount
         """, (fund_db_id, period, h["ticker"], h["ticker_name"],
-              h.get("rank"), h.get("weight")))
+              h.get("rank"), h.get("weight"), h.get("amount")))
 
 
 def _save_quarterly(cur, fund_db_id: int, period: str, holdings: list[dict]):

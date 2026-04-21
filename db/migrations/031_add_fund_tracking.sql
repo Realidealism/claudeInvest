@@ -29,6 +29,7 @@ CREATE TABLE IF NOT EXISTS tw.fund_holdings_monthly (
     ticker_name VARCHAR(100) NOT NULL,
     rank        INT,                              -- 1-10
     weight      NUMERIC(8, 4),                    -- portfolio weight (%)
+    amount      BIGINT,                            -- holding market value (NTD)
     PRIMARY KEY (fund_id, period, ticker)
 );
 
