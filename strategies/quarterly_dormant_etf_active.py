@@ -8,8 +8,8 @@ from strategies.registry import register
 class QuarterlyDormantEtfActive(BaseStrategy):
     signal_type = "quarterly_dormant_etf_active"
 
-    # How many recent trading days of ETF diff to check
     ETF_LOOKBACK_DAYS = 20
+    MIN_ETF_WEIGHT = 0.3  # ETF must hold >= 0.3% weight
 
     def scan(self, period: str, cur) -> list[dict]:
         """Find tickers held in quarterly report where the same manager's
@@ -60,6 +60,14 @@ class QuarterlyDormantEtfActive(BaseStrategy):
             if key not in etf_activity:
                 etf_activity[key] = r
 
+        # Latest ETF weight lookup
+        cur.execute("""
+            SELECT etf_id, stock_id, weight
+            FROM tw.etf_holdings
+            WHERE trade_date = (SELECT MAX(trade_date) FROM tw.etf_holdings)
+        """)
+        etf_weights = {(r["etf_id"], r["stock_id"]): float(r["weight"]) for r in cur.fetchall()}
+
         # Match: fund quarterly holding × same-manager ETF recent buy
         ticker_signals = {}
         for pair in pairs:
@@ -68,6 +76,8 @@ class QuarterlyDormantEtfActive(BaseStrategy):
                 etf_key = (pair["etf_code"], ticker)
                 etf_act = etf_activity.get(etf_key)
                 if not etf_act:
+                    continue
+                if etf_weights.get(etf_key, 0) < self.MIN_ETF_WEIGHT:
                     continue
 
                 if ticker not in ticker_signals:
