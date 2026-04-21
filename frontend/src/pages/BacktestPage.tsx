@@ -45,6 +45,9 @@ const SIGNAL_LABELS: Record<string, string> = {
   consensus_formation: "共識形成",
   heavy_position_reduction: "高權重減碼",
   core_exit: "核心出場",
+  etf_multi_consensus: "多ETF共識",
+  etf_consecutive_accumulation: "ETF連續加碼",
+  etf_abnormal_position: "ETF異常建倉",
 };
 
 const SHORT_SIGNALS = new Set(["heavy_position_reduction", "core_exit"]);
@@ -59,6 +62,9 @@ const PHASE_COLORS: Record<string, string> = {
   consensus_formation: "text-long-light",
   heavy_position_reduction: "text-short-light",
   core_exit: "text-short-strong",
+  etf_multi_consensus: "text-accent",
+  etf_consecutive_accumulation: "text-accent",
+  etf_abnormal_position: "text-accent",
 };
 
 function MetricCard({ label, value, fmt }: { label: string; value: number | undefined; fmt: string }) {

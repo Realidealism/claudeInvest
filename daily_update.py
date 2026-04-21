@@ -291,6 +291,27 @@ def update_date(trade_date: date):
             print("  [ERROR] Signal scanning failed:")
             traceback.print_exc()
 
+    # Daily ETF signal scan (runs every trading day, after ETF holdings scraper)
+    print(f"\n--- ETF signal scan (daily) ---")
+    try:
+        from strategies.registry import scan_daily, save_signals
+        with get_cursor() as cur:
+            signals = scan_daily(trade_date, cur)
+            if signals:
+                n = save_signals(signals, cur)
+                by_type = {}
+                for s in signals:
+                    by_type.setdefault(s["signal_type"], []).append(s)
+                for stype, items in sorted(by_type.items()):
+                    tickers = ", ".join(s["ticker"] for s in items[:5])
+                    suffix = f" +{len(items)-5}" if len(items) > 5 else ""
+                    print(f"  {stype}: {len(items)} ({tickers}{suffix})")
+            else:
+                print("  No ETF signals.")
+    except Exception:
+        print("  [ERROR] ETF signal scan failed:")
+        traceback.print_exc()
+
     # Detect delisted stocks after all price scrapers have run
     print(f"\n--- Delist detection ---")
     try:

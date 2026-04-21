@@ -26,6 +26,15 @@ class BaseStrategy(ABC):
                 trigger_period, weight_change, evidence
         """
 
+    def scan_daily(self, trade_date, cur) -> list[dict]:
+        """Optional: scan using a specific trade date instead of monthly period.
+
+        Subclasses that operate on daily/weekly granularity should override this.
+        By default, falls back to monthly scan.
+        """
+        period = trade_date.strftime("%Y%m")
+        return self.scan(period, cur)
+
     def _make_signal(self, *, ticker: str, ticker_name: str,
                      funds: list[str], trigger_period: str,
                      weight_change: float | None = None,

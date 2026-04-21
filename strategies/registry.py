@@ -41,6 +41,23 @@ def scan_all(period: str, cur) -> list[dict]:
     return signals
 
 
+# Strategy types that should run daily instead of monthly
+DAILY_STRATEGY_TYPES = {
+    "etf_multi_consensus",
+    "etf_consecutive_accumulation",
+    "etf_abnormal_position",
+}
+
+
+def scan_daily(trade_date, cur) -> list[dict]:
+    """Run daily-granularity strategies for a specific trade date."""
+    signals = []
+    for strategy in get_strategies():
+        if strategy.signal_type in DAILY_STRATEGY_TYPES:
+            signals.extend(strategy.scan_daily(trade_date, cur))
+    return signals
+
+
 def _json_serial(obj):
     if isinstance(obj, date):
         return obj.isoformat()

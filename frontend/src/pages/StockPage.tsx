@@ -56,6 +56,9 @@ const SIGNAL_LABELS: Record<string, string> = {
   consensus_formation: "共識形成",
   heavy_position_reduction: "高權重減碼",
   core_exit: "核心出場",
+  etf_multi_consensus: "多ETF共識",
+  etf_consecutive_accumulation: "ETF連續加碼",
+  etf_abnormal_position: "ETF異常建倉",
 };
 
 export default function StockPage() {
