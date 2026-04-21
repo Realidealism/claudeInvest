@@ -44,7 +44,7 @@ interface OHLCV {
   v: number;
 }
 
-const SHORT_SIGNALS = new Set(["heavy_position_reduction", "core_exit"]);
+const SHORT_SIGNALS = new Set(["heavy_position_reduction", "core_exit", "etf_multi_exit", "etf_consecutive_reduction", "etf_abnormal_exit"]);
 
 const SIGNAL_LABELS: Record<string, string> = {
   quarterly_to_monthly_top10: "季報→月報晉升",
@@ -59,6 +59,9 @@ const SIGNAL_LABELS: Record<string, string> = {
   etf_multi_consensus: "多ETF共識",
   etf_consecutive_accumulation: "ETF連續加碼",
   etf_abnormal_position: "ETF異常建倉",
+  etf_multi_exit: "多ETF共識退場",
+  etf_consecutive_reduction: "ETF連續減碼",
+  etf_abnormal_exit: "ETF異常減倉",
 };
 
 export default function StockPage() {

@@ -29,6 +29,9 @@ const SIGNAL_LABELS: Record<string, string> = {
   etf_multi_consensus: "多ETF共識",
   etf_consecutive_accumulation: "ETF連續加碼",
   etf_abnormal_position: "ETF異常建倉",
+  etf_multi_exit: "多ETF共識退場",
+  etf_consecutive_reduction: "ETF連續減碼",
+  etf_abnormal_exit: "ETF異常減倉",
 };
 
 const PHASE_COLORS: Record<string, string> = {
@@ -47,6 +50,9 @@ const PHASE_COLORS: Record<string, string> = {
   etf_abnormal_position: "text-long-strong",
   etf_multi_consensus: "text-long-mid",
   etf_consecutive_accumulation: "text-long-light",
+  etf_abnormal_exit: "text-short-strong",
+  etf_multi_exit: "text-short-light",
+  etf_consecutive_reduction: "text-short-light",
 };
 
 export default function SignalsPage() {

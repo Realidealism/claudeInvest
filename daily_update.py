@@ -295,8 +295,15 @@ def update_date(trade_date: date):
     print(f"\n--- ETF signal scan (daily) ---")
     try:
         from strategies.registry import scan_daily, save_signals
+        from signals.etf_multi_exit import scan as scan_etf_multi_exit
+        from signals.etf_consecutive_reduction import scan as scan_etf_consecutive_reduction
+        from signals.etf_abnormal_exit import scan as scan_etf_abnormal_exit
         with get_cursor() as cur:
             signals = scan_daily(trade_date, cur)
+            # Append standalone short ETF signals
+            signals.extend(scan_etf_multi_exit(trade_date, cur))
+            signals.extend(scan_etf_consecutive_reduction(trade_date, cur))
+            signals.extend(scan_etf_abnormal_exit(trade_date, cur))
             if signals:
                 n = save_signals(signals, cur)
                 by_type = {}
