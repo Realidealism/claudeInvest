@@ -193,7 +193,7 @@ export default function StockPage() {
                     {h.etf_id}
                   </Link>
                   <span className="w-24 font-mono text-text-secondary">{h.trade_date}</span>
-                  <span className="font-mono">{(h.weight * 100).toFixed(2)}%</span>
+                  <span className="font-mono">{h.weight.toFixed(2)}%</span>
                 </div>
               ))}
             </div>
