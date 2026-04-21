@@ -44,9 +44,9 @@ const PHASE_COLORS: Record<string, string> = {
   heavy_position_reduction: "text-short-light",
   core_exit: "text-short-strong",
   // ETF-only: blue series
-  etf_multi_consensus: "text-accent",
-  etf_consecutive_accumulation: "text-accent",
-  etf_abnormal_position: "text-accent",
+  etf_abnormal_position: "text-long-strong",
+  etf_multi_consensus: "text-long-mid",
+  etf_consecutive_accumulation: "text-long-light",
 };
 
 export default function SignalsPage() {

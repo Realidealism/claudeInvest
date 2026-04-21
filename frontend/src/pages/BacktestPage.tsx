@@ -62,9 +62,9 @@ const PHASE_COLORS: Record<string, string> = {
   consensus_formation: "text-long-light",
   heavy_position_reduction: "text-short-light",
   core_exit: "text-short-strong",
-  etf_multi_consensus: "text-accent",
-  etf_consecutive_accumulation: "text-accent",
-  etf_abnormal_position: "text-accent",
+  etf_abnormal_position: "text-long-strong",
+  etf_multi_consensus: "text-long-mid",
+  etf_consecutive_accumulation: "text-long-light",
 };
 
 function MetricCard({ label, value, fmt }: { label: string; value: number | undefined; fmt: string }) {
