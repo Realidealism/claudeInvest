@@ -49,6 +49,18 @@ const SIGNAL_LABELS: Record<string, string> = {
 
 const SHORT_SIGNALS = new Set(["heavy_position_reduction", "core_exit"]);
 
+const PHASE_COLORS: Record<string, string> = {
+  quarterly_to_monthly_top10: "text-long-strong",
+  quarterly_dormant_etf_active: "text-long-strong",
+  dual_track_entry: "text-long-strong",
+  multi_fund_consensus: "text-long-mid",
+  consecutive_accumulation: "text-long-mid",
+  dual_track_accumulation: "text-long-light",
+  consensus_formation: "text-long-light",
+  heavy_position_reduction: "text-short-light",
+  core_exit: "text-short-strong",
+};
+
 function MetricCard({ label, value, fmt }: { label: string; value: number | undefined; fmt: string }) {
   if (value == null) return null;
   let display: string;
@@ -126,12 +138,12 @@ export default function BacktestPage() {
           <tbody>
             {Object.entries(data.entry_breakdown).map(([sig, d]) => (
               <tr key={sig} className="border-b border-border/50">
-                <td className="py-2 pr-4">{SIGNAL_LABELS[sig] || sig}</td>
+                <td className={`py-2 pr-4 ${PHASE_COLORS[sig] || ""}`}>{SIGNAL_LABELS[sig] || sig}</td>
                 <td className="py-2 pr-4 text-right font-mono">{d.trades}</td>
                 <td className="py-2 pr-4 text-right font-mono">
                   {(d.win_rate * 100).toFixed(1)}%
                 </td>
-                <td className={`py-2 pr-4 text-right font-mono ${d.avg_return > 0 ? "text-positive" : "text-negative"}`}>
+                <td className={`py-2 pr-4 text-right font-mono ${d.avg_return > 0 ? "text-negative" : "text-positive"}`}>
                   {(d.avg_return * 100).toFixed(2)}%
                 </td>
               </tr>
@@ -163,10 +175,10 @@ export default function BacktestPage() {
                     <td className="py-2 pr-4">{name}</td>
                     <td className="py-2 pr-4 text-right font-mono">{fp.trades}</td>
                     <td className="py-2 pr-4 text-right font-mono">{(fp.win_rate * 100).toFixed(1)}%</td>
-                    <td className={`py-2 pr-4 text-right font-mono ${fp.avg_return > 0 ? "text-negative" : "text-positive"}`}>
+                    <td className={`py-2 pr-4 text-right font-mono ${fp.avg_return > 0 ? "text-negative" : fp.avg_return < 0 ? "text-positive" : ""}`}>
                       {(fp.avg_return * 100).toFixed(2)}%
                     </td>
-                    <td className={`py-2 pr-4 text-right font-mono ${fp.total_return > 0 ? "text-negative" : "text-positive"}`}>
+                    <td className={`py-2 pr-4 text-right font-mono ${fp.total_return > 0 ? "text-negative" : fp.total_return < 0 ? "text-positive" : ""}`}>
                       {fp.total_return > 0 ? "+" : ""}{(fp.total_return * 100).toFixed(1)}%
                     </td>
                   </tr>
@@ -206,7 +218,7 @@ export default function BacktestPage() {
                 >
                   <td className="py-1.5 pr-3 font-mono">{t.ticker}</td>
                   <td className="py-1.5 pr-3">{t.ticker_name}</td>
-                  <td className={`py-1.5 pr-3 ${isShort ? "text-negative" : "text-positive"}`}>
+                  <td className={`py-1.5 pr-3 ${PHASE_COLORS[t.entry_signal] || (isShort ? "text-short-strong" : "text-long-strong")}`}>
                     <span className="mr-1">{isShort ? "▼" : "▲"}</span>
                     {SIGNAL_LABELS[t.entry_signal] || t.entry_signal}
                   </td>
@@ -222,7 +234,7 @@ export default function BacktestPage() {
                     {t.exit_price?.toFixed(1) || "—"}
                   </td>
                   <td className={`py-1.5 pr-3 text-right font-mono ${
-                    ret != null ? (ret > 0 ? "text-positive" : "text-negative") : ""
+                    ret != null ? (ret > 0 ? "text-negative" : ret < 0 ? "text-positive" : "") : ""
                   }`}>
                     {ret != null ? `${ret > 0 ? "+" : ""}${ret.toFixed(1)}%` : "—"}
                   </td>
