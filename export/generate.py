@@ -112,15 +112,17 @@ def export_backtest(cur, out: Path):
         }
 
     # Equity curve: cumulative return by exit date (simple sum, trades overlap)
-    equity_curve = []
-    cum = 0.0
+    # Aggregate by date and sort ascending (lightweight-charts requires unique ascending dates)
+    daily_returns: dict[str, float] = {}
     for t in closed:
         if t["exit_date"] and t["return_pct"] is not None:
-            cum += float(t["return_pct"])
-            equity_curve.append({
-                "date": str(t["exit_date"]),
-                "value": round(1.0 + cum, 4),
-            })
+            d = str(t["exit_date"])
+            daily_returns[d] = daily_returns.get(d, 0) + float(t["return_pct"])
+    equity_curve = []
+    cum = 0.0
+    for d in sorted(daily_returns):
+        cum += daily_returns[d]
+        equity_curve.append({"date": d, "value": round(1.0 + cum, 4)})
 
     # Per-fund performance: join backtest with signals to get fund attribution
     cur.execute("""
