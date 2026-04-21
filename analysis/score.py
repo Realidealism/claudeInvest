@@ -247,12 +247,14 @@ def build_scoreboard() -> ScoreBoard:
     Sort (排列):     sort_normal ±10, sort_lp ±10
     Forming (成形):  sort_forming ±5
     Breadth (大盤):  market trend vs stock sort alignment
+    Wave (波浪):     wave_trend cumulative ±5 at 0.3/0.5/0.8
     """
     board = ScoreBoard("技術評分")
     _add_turn_rules(board)
     _add_sort_rules(board)
     breadth = _load_breadth_trends()
     _add_breadth_rules(board, breadth)
+    _add_wave_trend_rules(board)
     return board
 
 
@@ -283,9 +285,6 @@ def _add_sort_rules(board: ScoreBoard) -> None:
 
         # sort_normal: ±10
         _add_sort_pair(card, "sort_normal", label, 10, "排列")
-
-        # sort_lp: ±10
-        _add_sort_pair(card, "sort_lp", label, 10, "排列")
 
         # sort_forming: ±5
         _add_forming_pair(card, label, 5, "排列")
@@ -402,6 +401,48 @@ def _add_forming_pair(
         lambda d, i, lb=label: d.sort_forming[lb].down[i],
         cat,
     ))
+
+
+# ── Wave Trend ────────────────────────────────────────────────────────────
+
+WAVE_THRESHOLDS = (0.3, 0.5, 0.8)
+
+WAVE_SCOPES = (
+    ("short", "short"),
+    ("medium", "medium"),
+    ("long", "long"),
+)
+
+
+def _add_wave_trend_rules(board: ScoreBoard) -> None:
+    """Add cumulative wave trend scoring: ±5 at each threshold."""
+    cards = {"short": board.short, "medium": board.medium, "long": board.long}
+
+    for scope, wt_attr in WAVE_SCOPES:
+        card = cards[scope]
+        for thresh in WAVE_THRESHOLDS:
+            # Bullish: wave_trend > thresh → long +5, short -5
+            card.add_long(bool_score(
+                f"波浪{scope}>{thresh}", 5,
+                lambda d, i, a=wt_attr, t=thresh: float(getattr(d.wave_result.wave_trend, a)[i]) > t,
+                "波浪",
+            ))
+            card.add_short(bool_score(
+                f"波浪{scope}>{thresh}", -5,
+                lambda d, i, a=wt_attr, t=thresh: float(getattr(d.wave_result.wave_trend, a)[i]) > t,
+                "波浪",
+            ))
+            # Bearish: wave_trend < -thresh → long -5, short +5
+            card.add_long(bool_score(
+                f"波浪{scope}<{-thresh}", -5,
+                lambda d, i, a=wt_attr, t=thresh: float(getattr(d.wave_result.wave_trend, a)[i]) < -t,
+                "波浪",
+            ))
+            card.add_short(bool_score(
+                f"波浪{scope}<{-thresh}", 5,
+                lambda d, i, a=wt_attr, t=thresh: float(getattr(d.wave_result.wave_trend, a)[i]) < -t,
+                "波浪",
+            ))
 
 
 # ── Breadth vs Stock Sort ─────────────────────────────────────────────────
