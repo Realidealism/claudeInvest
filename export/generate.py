@@ -622,7 +622,12 @@ def export_prices(cur, out: Path):
 
 def export_all(out_dir: str | None = None):
     if out_dir is None:
-        out_dir = str(Path(__file__).parent.parent / "frontend" / "public" / "data")
+        import sys
+        if getattr(sys, 'frozen', False):
+            base = Path(sys.executable).parent.parent
+        else:
+            base = Path(__file__).parent.parent
+        out_dir = str(base / "frontend" / "public" / "data")
 
     out = Path(out_dir)
     out.mkdir(parents=True, exist_ok=True)

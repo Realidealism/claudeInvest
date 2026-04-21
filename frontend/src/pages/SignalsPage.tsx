@@ -13,7 +13,6 @@ interface Signal {
 
 interface SignalsData {
   by_type: Record<string, Signal[]>;
-  periods: string[];
 }
 
 const SIGNAL_LABELS: Record<string, string> = {
@@ -73,12 +72,15 @@ export default function SignalsPage() {
     ? types.flatMap((t) => data.by_type[t].map((s) => ({ ...s, _type: t })))
     : (data.by_type[activeType] || []).map((s) => ({ ...s, _type: activeType }));
 
+  // Collect unique trigger_dates for filter dropdown
+  const allDates = [...new Set(allSignals.map((s) => s.trigger_date))].sort().reverse();
+
   const filtered = periodFilter === "all"
     ? allSignals
-    : allSignals.filter((s) => s.trigger_period === periodFilter);
+    : allSignals.filter((s) => s.trigger_date === periodFilter);
 
-  // Sort: newest period first, then by ticker
-  filtered.sort((a, b) => b.trigger_period.localeCompare(a.trigger_period) || a.ticker.localeCompare(b.ticker));
+  // Sort: newest date first, then by ticker
+  filtered.sort((a, b) => b.trigger_date.localeCompare(a.trigger_date) || a.ticker.localeCompare(b.ticker));
 
   return (
     <div>
@@ -111,16 +113,16 @@ export default function SignalsPage() {
         ))}
       </div>
 
-      {/* Period filter */}
+      {/* Date filter */}
       <div className="mb-4">
         <select
           value={periodFilter}
           onChange={(e) => setPeriodFilter(e.target.value)}
           className="bg-surface-alt border border-border rounded px-3 py-1.5 text-sm text-text-primary"
         >
-          <option value="all">全部期間</option>
-          {data.periods.map((p) => (
-            <option key={p} value={p}>{p}</option>
+          <option value="all">全部日期</option>
+          {allDates.map((d) => (
+            <option key={d} value={d}>{d}</option>
           ))}
         </select>
       </div>
@@ -133,7 +135,7 @@ export default function SignalsPage() {
               <th className="py-2 pr-4 font-medium">代號</th>
               <th className="py-2 pr-4 font-medium">名稱</th>
               <th className="py-2 pr-4 font-medium">信號</th>
-              <th className="py-2 pr-4 font-medium">期間</th>
+              <th className="py-2 pr-4 font-medium">日期</th>
               <th className="py-2 pr-4 font-medium text-right">權重變化</th>
               <th className="py-2 pr-4 font-medium">涉及基金/ETF</th>
             </tr>
@@ -152,7 +154,7 @@ export default function SignalsPage() {
                   {SIGNAL_LABELS[s._type] || s._type}
                 </td>
                 <td className="py-2 pr-4 font-mono text-text-secondary">
-                  {s.trigger_period}
+                  {s.trigger_date}
                 </td>
                 <td className="py-2 pr-4 text-right font-mono">
                   {s.weight_change != null ? (

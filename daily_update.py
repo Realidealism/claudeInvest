@@ -181,7 +181,12 @@ def detect_delisted(trade_date: date):
 def _git_push_frontend():
     """Commit updated JSON data and push to trigger Vercel deploy."""
     import subprocess
-    repo = Path(__file__).parent
+    import sys
+    # PyInstaller exe: __file__ points to temp dir; exe lives in dist/
+    if getattr(sys, 'frozen', False):
+        repo = Path(sys.executable).parent.parent
+    else:
+        repo = Path(__file__).parent
     data_dir = repo / "frontend" / "public" / "data"
     if not data_dir.exists():
         print("  [SKIP] No frontend/public/data/ directory.")
@@ -221,48 +226,52 @@ def update_date(trade_date: date):
         print(f"\n[HOLIDAY] {trade_date} has no TAIEX data — skipping remaining scrapers.")
         return
 
-    ok = 1 if gate_ok else 0
-    failed = [] if gate_ok else [INDEX_SCRAPER[0]]
+    # Track results: list of (label, status) where status is "ok", "failed", "skip"
+    results = []
+    results.append((INDEX_SCRAPER[0], "ok" if gate_ok else "failed"))
 
     for label, module_path, func_name in SCRAPERS:
         print(f"\n--- {label} ---")
         success = run_scraper(label, module_path, func_name, trade_date)
-        if success:
-            ok += 1
-        else:
-            failed.append(label)
+        results.append((label, "ok" if success else "failed"))
 
     # Monthly revenue: fetch during the publication window (1st–12th)
     if trade_date.day <= 15:
         print(f"\n--- Monthly revenue ---")
         try:
             from scrapers.revenue import scrape_month
-            # Fetch previous month's revenue
             m = trade_date.month - 1
             y = trade_date.year
             if m == 0:
                 m = 12
                 y -= 1
             scrape_month(y, m)
+            results.append(("月營收", "ok"))
         except Exception:
             print("  [ERROR] Monthly revenue scraper failed:")
             traceback.print_exc()
+            results.append(("月營收", "failed"))
+    else:
+        results.append(("月營收", "skip"))
 
     # SITCA fund holdings: monthly top-10 (available ~10th business day)
     if trade_date.day <= 20:
         print(f"\n--- SITCA monthly fund holdings ---")
         try:
             from scrapers.sitca import scrape_monthly
-            # Fetch previous month's holdings
             m = trade_date.month - 1
             y = trade_date.year
             if m == 0:
                 m = 12
                 y -= 1
             scrape_monthly(f"{y}{m:02d}")
+            results.append(("SITCA 月持股", "ok"))
         except Exception:
             print("  [ERROR] SITCA monthly scraper failed:")
             traceback.print_exc()
+            results.append(("SITCA 月持股", "failed"))
+    else:
+        results.append(("SITCA 月持股", "skip"))
 
     # SITCA quarterly holdings: available ~15th of quarter-end+1 month
     quarter_end_months = {1: 12, 2: 12, 4: 3, 5: 3, 7: 6, 8: 6, 10: 9, 11: 9}
@@ -273,9 +282,13 @@ def update_date(trade_date: date):
             qm = quarter_end_months[trade_date.month]
             qy = trade_date.year if qm < trade_date.month else trade_date.year - 1
             scrape_quarterly(f"{qy}{qm:02d}")
+            results.append(("SITCA 季持股", "ok"))
         except Exception:
             print("  [ERROR] SITCA quarterly scraper failed:")
             traceback.print_exc()
+            results.append(("SITCA 季持股", "failed"))
+    else:
+        results.append(("SITCA 季持股", "skip"))
 
     # Signal scanning: run after SITCA monthly scraper on publication days
     if trade_date.day <= 20:
@@ -287,11 +300,16 @@ def update_date(trade_date: date):
                 latest = list(cur.fetchone().values())[0]
             if latest:
                 scan_period(latest)
+            results.append(("基金信號掃描", "ok"))
         except Exception:
             print("  [ERROR] Signal scanning failed:")
             traceback.print_exc()
+            results.append(("基金信號掃描", "failed"))
+    else:
+        results.append(("基金信號掃描", "skip"))
 
     # Daily ETF signal scan (runs every trading day, after ETF holdings scraper)
+    etf_signal_count = 0
     print(f"\n--- ETF signal scan (daily) ---")
     try:
         from strategies.registry import scan_daily, save_signals
@@ -306,6 +324,7 @@ def update_date(trade_date: date):
             signals.extend(scan_etf_abnormal_exit(trade_date, cur))
             if signals:
                 n = save_signals(signals, cur)
+                etf_signal_count = len(signals)
                 by_type = {}
                 for s in signals:
                     by_type.setdefault(s["signal_type"], []).append(s)
@@ -315,35 +334,35 @@ def update_date(trade_date: date):
                     print(f"  {stype}: {len(items)} ({tickers}{suffix})")
             else:
                 print("  No ETF signals.")
+        results.append(("ETF 信號掃描", "ok"))
     except Exception:
         print("  [ERROR] ETF signal scan failed:")
         traceback.print_exc()
+        results.append(("ETF 信號掃描", "failed"))
 
     # Detect delisted stocks after all price scrapers have run
     print(f"\n--- Delist detection ---")
     try:
         detect_delisted(trade_date)
+        results.append(("下市偵測", "ok"))
     except Exception:
         print("  [ERROR] Delist detection failed:")
         traceback.print_exc()
+        results.append(("下市偵測", "failed"))
 
     # Market breadth aggregate (depends on close/money/volume per stock).
+    breadth_days = 0
     print(f"\n--- Market breadth ---")
     try:
         from analysis.market_breadth import calculate_market_breadth, save_market_breadth
-        results = calculate_market_breadth(last_n_days=3)
-        n = save_market_breadth(results)
-        print(f"  Updated {n} day(s) of market_breadth.")
+        mb_results = calculate_market_breadth(last_n_days=3)
+        breadth_days = save_market_breadth(mb_results)
+        print(f"  Updated {breadth_days} day(s) of market_breadth.")
+        results.append(("市場廣度", "ok"))
     except Exception:
         print("  [ERROR] Market breadth computation failed:")
         traceback.print_exc()
-
-    total_count = 1 + len(SCRAPERS)  # include the gate
-    print(f"\n{'='*60}")
-    print(f"  Done: {ok}/{total_count} scrapers succeeded.")
-    if failed:
-        print(f"  Failed: {', '.join(failed)}")
-    print(f"{'='*60}")
+        results.append(("市場廣度", "failed"))
 
     # Export JSON + git push for Vercel auto-deploy
     print(f"\n--- Frontend export + deploy ---")
@@ -351,9 +370,34 @@ def update_date(trade_date: date):
         from export.generate import export_all
         export_all()
         _git_push_frontend()
+        results.append(("前端匯出部署", "ok"))
     except Exception:
         print("  [ERROR] Export/deploy failed:")
         traceback.print_exc()
+        results.append(("前端匯出部署", "failed"))
+
+    # -----------------------------------------------------------------------
+    # Final summary (Chinese)
+    # -----------------------------------------------------------------------
+    ok_list     = [r for r in results if r[1] == "ok"]
+    failed_list = [r for r in results if r[1] == "failed"]
+    skip_list   = [r for r in results if r[1] == "skip"]
+
+    print(f"\n{'='*60}")
+    print(f"  每日更新總結：{trade_date}")
+    print(f"{'='*60}")
+    print(f"  成功：{len(ok_list)}　失敗：{len(failed_list)}　跳過：{len(skip_list)}")
+    if failed_list:
+        print(f"  ✘ 失敗項目：{', '.join(r[0] for r in failed_list)}")
+    if etf_signal_count:
+        print(f"  ▸ ETF 信號：{etf_signal_count} 筆")
+    if breadth_days:
+        print(f"  ▸ 市場廣度：更新 {breadth_days} 天")
+    if skip_list:
+        print(f"  - 跳過（非執行區間）：{', '.join(r[0] for r in skip_list)}")
+    status = "全部成功 ✔" if not failed_list else "有失敗項目 ✘"
+    print(f"\n  最終狀態：{status}")
+    print(f"{'='*60}")
 
     print()
 
