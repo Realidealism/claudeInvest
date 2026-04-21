@@ -30,6 +30,7 @@ export default function FundDetailPage() {
   const navigate = useNavigate();
   const [data, setData] = useState<FundsData | null>(null);
   const [selectedPeriod, setSelectedPeriod] = useState<string>("");
+  const [selectedQPeriod, setSelectedQPeriod] = useState<string>("");
 
   useEffect(() => {
     fetch("/data/funds.json")
@@ -43,6 +44,8 @@ export default function FundDetailPage() {
     const h = data.holdings[code];
     const periods = Object.keys(h?.monthly || {}).sort().reverse();
     setSelectedPeriod(periods[0] || "");
+    const qp = Object.keys(data.holdings[code]?.quarterly || {}).sort().reverse();
+    setSelectedQPeriod(qp[0] || "");
   }, [data, code]);
 
   if (!data || !code) return <div className="text-text-secondary">Loading...</div>;
@@ -170,11 +173,20 @@ export default function FundDetailPage() {
         {/* Quarterly holdings if available */}
         {qPeriods.length > 0 && (
           <div className="bg-surface-alt border border-border rounded-lg p-4">
-            <h3 className="text-sm font-semibold mb-3 text-text-secondary">
-              季報完整持股 ({qPeriods[0]})
-            </h3>
+            <div className="flex items-center gap-3 mb-3">
+              <h3 className="text-sm font-semibold text-text-secondary">季報完整持股</h3>
+              <select
+                value={selectedQPeriod}
+                onChange={(e) => setSelectedQPeriod(e.target.value)}
+                className="bg-surface border border-border rounded px-2 py-1 text-xs text-text-primary"
+              >
+                {qPeriods.map((p) => (
+                  <option key={p} value={p}>{p}</option>
+                ))}
+              </select>
+            </div>
             <div className="max-h-[600px] overflow-y-auto space-y-0.5">
-              {(quarterly[qPeriods[0]] || []).map((h) => (
+              {(quarterly[selectedQPeriod] || []).map((h) => (
                 <div key={h.ticker} className="flex items-center gap-2 text-xs">
                   <span className="w-16 font-mono shrink-0">{h.ticker}</span>
                   <span className="w-20 shrink-0 truncate">{h.ticker_name}</span>
@@ -189,7 +201,7 @@ export default function FundDetailPage() {
               ))}
             </div>
             <div className="mt-2 pt-2 border-t border-border text-xs text-text-secondary">
-              共 {quarterly[qPeriods[0]]?.length || 0} 檔 (季報 &ge;1%)
+              共 {quarterly[selectedQPeriod]?.length || 0} 檔 (季報 &ge;1%)
             </div>
           </div>
         )}
