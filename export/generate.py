@@ -505,13 +505,29 @@ def export_flow(cur, out: Path):
     latest = periods[-1]
     prev = periods[-2]
 
-    # Weight changes between last two periods for all fund-ticker combos
+    # Get month-end closing prices for share estimation
+    def _month_prices(period):
+        y, m = int(period[:4]), int(period[4:])
+        start = f"{y}-{m:02d}-01"
+        end = f"{y + 1}-01-01" if m == 12 else f"{y}-{m + 1:02d}-01"
+        cur.execute("""
+            SELECT DISTINCT ON (stock_id) stock_id, close_price
+            FROM tw.daily_prices
+            WHERE trade_date >= %s AND trade_date < %s
+              AND close_price IS NOT NULL
+            ORDER BY stock_id, trade_date DESC
+        """, (start, end))
+        return {r["stock_id"]: float(r["close_price"]) for r in cur.fetchall()}
+
+    curr_prices = _month_prices(latest)
+    prev_prices = _month_prices(prev)
+
+    # Weight and amount for both periods
     cur.execute("""
         SELECT c.ticker, c.ticker_name,
                f.code AS fund_code, f.name AS fund_name,
-               c.weight AS curr_weight,
-               p.weight AS prev_weight,
-               c.weight - COALESCE(p.weight, 0) AS weight_diff
+               c.weight AS curr_weight, c.amount AS curr_amount,
+               p.weight AS prev_weight, p.amount AS prev_amount
         FROM tw.fund_holdings_monthly c
         JOIN tw.funds f ON c.fund_id = f.id
         LEFT JOIN tw.fund_holdings_monthly p
@@ -525,10 +541,23 @@ def export_flow(cur, out: Path):
         ticker = r["ticker"]
         if ticker not in changes:
             changes[ticker] = {"ticker_name": r["ticker_name"], "funds": {}}
+
+        cp = curr_prices.get(ticker)
+        pp = prev_prices.get(ticker)
+        curr_shares = round(r["curr_amount"] / cp) if r["curr_amount"] and cp else None
+        prev_shares = round(r["prev_amount"] / pp) if r["prev_amount"] and pp else None
+
+        if curr_shares is not None and prev_shares is not None:
+            share_diff = curr_shares - prev_shares
+        elif curr_shares is not None:
+            share_diff = curr_shares  # new position
+        else:
+            share_diff = None
+
         changes[ticker]["funds"][r["fund_code"]] = {
             "curr": float(r["curr_weight"]) if r["curr_weight"] else None,
             "prev": float(r["prev_weight"]) if r["prev_weight"] else None,
-            "diff": float(r["weight_diff"]) if r["weight_diff"] else None,
+            "diff": share_diff,
         }
 
     # Fund list for column headers

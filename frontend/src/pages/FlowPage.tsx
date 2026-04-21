@@ -51,7 +51,7 @@ export default function FlowPage() {
     <div>
       <h2 className="text-lg font-semibold mb-1">資金流向熱力圖</h2>
       <p className="text-xs text-text-secondary mb-4">
-        {data.periods[0]} → {data.periods[1]} 各基金 Top 10 權重變化
+        {data.periods[0]} → {data.periods[1]} 各基金 Top 10 估算張數變化
       </p>
 
       <div className="flex gap-2 mb-4">
@@ -99,13 +99,14 @@ export default function FlowPage() {
                   const fc = change.funds[col.code];
                   if (!fc) return <td key={col.code} className="py-2 px-3 text-center text-text-secondary">·</td>;
                   const diff = fc.diff || 0;
-                  const absDiff = Math.abs(diff);
-                  // Color intensity based on magnitude
-                  const opacity = Math.min(absDiff / 3, 1);
+                  const lots = Math.round(diff / 1000); // convert shares to 張
+                  const absLots = Math.abs(lots);
+                  // Color intensity based on magnitude (100張 = full intensity)
+                  const opacity = Math.min(absLots / 100, 1);
                   // Taiwan convention: red = buy/increase, green = sell/decrease
-                  const bg = diff > 0
+                  const bg = lots > 0
                     ? `rgba(239, 68, 68, ${opacity * 0.3})`
-                    : diff < 0
+                    : lots < 0
                     ? `rgba(34, 197, 94, ${opacity * 0.3})`
                     : undefined;
                   return (
@@ -113,14 +114,14 @@ export default function FlowPage() {
                       key={col.code}
                       className="py-2 px-3 text-center font-mono"
                       style={{ backgroundColor: bg }}
-                      title={`${fc.prev?.toFixed(1) || "—"}% → ${fc.curr?.toFixed(1)}% (${diff > 0 ? "+" : ""}${diff.toFixed(2)}%)`}
+                      title={`${fc.prev?.toFixed(1) || "—"}% → ${fc.curr?.toFixed(1)}% (${lots > 0 ? "+" : ""}${lots}張)`}
                     >
-                      {diff !== 0 ? (
-                        <span className={diff > 0 ? "text-negative" : "text-positive"}>
-                          {diff > 0 ? "+" : ""}{diff.toFixed(1)}
+                      {lots !== 0 ? (
+                        <span className={lots > 0 ? "text-negative" : "text-positive"}>
+                          {lots > 0 ? "+" : ""}{lots}
                         </span>
                       ) : (
-                        <span className="text-text-secondary">{fc.curr?.toFixed(1)}</span>
+                        <span className="text-text-secondary">{fc.curr?.toFixed(1)}%</span>
                       )}
                     </td>
                   );
