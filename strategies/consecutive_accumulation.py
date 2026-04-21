@@ -2,6 +2,7 @@
 
 Uses amount / month-end close to verify actual share increase,
 filtering out weight gains caused by fund size shrinkage.
+When amount data is unavailable, falls back to AUM-based filtering.
 """
 
 from strategies.base import BaseStrategy
@@ -15,6 +16,8 @@ class ConsecutiveAccumulation(BaseStrategy):
 
     # Shares must increase by at least this ratio to count as real accumulation
     SHARE_RISE_THRESHOLD = 0.02  # 2%
+    # Fallback: if fund AUM shrank more than this, weight rise may be passive
+    AUM_SHRINK_THRESHOLD = -0.05  # -5%
 
     def scan(self, period: str, cur) -> list[dict]:
         """Find tickers in Top 10 for both current and previous month
@@ -47,6 +50,7 @@ class ConsecutiveAccumulation(BaseStrategy):
         ticker_signals = {}
         for r in rows:
             ticker = r["ticker"]
+            aum = aum_changes.get(r["fund_id"])
 
             # Filter: if share data derivable, require actual share increase
             if r["curr_amount"] and r["prev_amount"]:
@@ -55,6 +59,13 @@ class ConsecutiveAccumulation(BaseStrategy):
                 if cs is not None and ps is not None and ps > 0:
                     if (cs - ps) / ps < self.SHARE_RISE_THRESHOLD:
                         # Shares barely changed — weight rise is from fund shrinkage
+                        continue
+            else:
+                # AUM fallback: if fund shrank, weight rise may be passive
+                if aum and aum["change_pct"] < self.AUM_SHRINK_THRESHOLD:
+                    prev_w = float(r["prev_weight"]) if r["prev_weight"] else 0
+                    curr_w = float(r["curr_weight"]) if r["curr_weight"] else 0
+                    if curr_w - prev_w < 1.5:
                         continue
 
             change = float(r["curr_weight"] - r["prev_weight"]) if r["curr_weight"] and r["prev_weight"] else None
@@ -81,7 +92,6 @@ class ConsecutiveAccumulation(BaseStrategy):
                 if ps is not None and cs is not None:
                     detail["est_prev_shares"] = ps
                     detail["est_curr_shares"] = cs
-            aum = aum_changes.get(r["fund_id"])
             if aum:
                 detail["fund_aum_change_pct"] = round(aum["change_pct"] * 100, 1)
             entry["evidence"]["details"].append(detail)
