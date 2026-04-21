@@ -9,6 +9,7 @@ import StockPage from "./pages/StockPage";
 import TimelinePage from "./pages/TimelinePage";
 import DnaPage from "./pages/DnaPage";
 import FlowPage from "./pages/FlowPage";
+import SearchPage from "./pages/SearchPage";
 
 export default function App() {
   return (
@@ -24,6 +25,7 @@ export default function App() {
         <Route path="/timeline" element={<TimelinePage />} />
         <Route path="/dna" element={<DnaPage />} />
         <Route path="/flow" element={<FlowPage />} />
+        <Route path="/search" element={<SearchPage />} />
       </Route>
     </Routes>
   );

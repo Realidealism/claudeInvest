@@ -9,6 +9,7 @@ const NAV = [
   { to: "/timeline", label: "月季交叉" },
   { to: "/dna", label: "經理人DNA" },
   { to: "/flow", label: "資金流向" },
+  { to: "/search", label: "訊號查詢" },
 ] as const;
 
 function NavItems({ onClick }: { onClick?: () => void }) {
