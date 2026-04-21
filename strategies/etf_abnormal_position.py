@@ -104,7 +104,8 @@ class EtfAbnormalPosition(BaseStrategy):
                 detail["hist_days"] = h["days"]
             info["details"].append(detail)
 
-        period_str = trade_date.strftime("%Y%m%d") + "D"
+        iso = trade_date.isocalendar()
+        period_str = f"{iso[0]}W{iso[1]:02d}"
         return [
             self._make_signal(
                 ticker=ticker,

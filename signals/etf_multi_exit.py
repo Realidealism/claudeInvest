@@ -54,7 +54,8 @@ def scan(trade_date: date, cur) -> list[dict]:
             stock_data[sid] = {"stock_name": r["stock_name"], "etfs": {}}
         stock_data[sid]["etfs"][r["etf_id"]] = int(r["total_shares"])
 
-    period_str = trade_date.strftime("%Y%m%d") + "D"
+    iso = trade_date.isocalendar()
+    period_str = f"{iso[0]}W{iso[1]:02d}"
     signals = []
     for ticker, info in stock_data.items():
         if len(info["etfs"]) < MIN_ETFS:

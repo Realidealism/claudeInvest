@@ -120,7 +120,7 @@ class EtfConsecutiveAccumulation(BaseStrategy):
                 ticker=ticker,
                 ticker_name=info["stock_name"],
                 funds=info["etfs"],
-                trigger_period=f"{current_week_str}W",
+                trigger_period=current_week_str,
                 weight_change=None,
                 evidence={
                     "total_shares": info["total_shares"],
