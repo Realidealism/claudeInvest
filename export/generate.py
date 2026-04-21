@@ -578,10 +578,16 @@ def export_flow(cur, out: Path):
 # -----------------------------------------------------------------------
 
 def export_prices(cur, out: Path):
-    # Collect tickers from signals + monthly holdings
-    cur.execute("SELECT DISTINCT ticker FROM tw.signals")
+    # Only tickers with recent signals (3 months) or in latest holdings
+    cur.execute("""
+        SELECT DISTINCT ticker FROM tw.signals
+        WHERE trigger_date >= CURRENT_DATE - INTERVAL '6 months'
+    """)
     tickers = {r["ticker"] for r in cur.fetchall()}
-    cur.execute("SELECT DISTINCT ticker FROM tw.fund_holdings_monthly")
+    cur.execute("""
+        SELECT DISTINCT ticker FROM tw.fund_holdings_monthly
+        WHERE period = (SELECT MAX(period) FROM tw.fund_holdings_monthly)
+    """)
     tickers |= {r["ticker"] for r in cur.fetchall()}
 
     prices = {}

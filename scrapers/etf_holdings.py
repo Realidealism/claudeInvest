@@ -705,5 +705,3 @@ def scrape_date(trade_date: date):
                 print(f"  {etf_id} diff: +{added} added, -{removed} removed, ~{changed} changed")
             else:
                 print(f"  {etf_id}: first snapshot, no diff computed.")
-
-    export_recent_diffs_excel(trade_date)
