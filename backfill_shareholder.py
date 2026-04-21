@@ -52,6 +52,7 @@ class PortalSession:
         self._init()
 
     def _init(self):
+        self._debug_count = 0
         self.session = requests.Session()
         self.session.headers.update(DEFAULT_HEADERS)
         self.session.headers["Referer"] = PORTAL_URL
@@ -97,8 +98,19 @@ class PortalSession:
             self._init()
             return self.fetch(stock_id, sca_date, _retry + 1)
 
+        # Refresh token from response
+        new_tok = re.search(r'SYNCHRONIZER_TOKEN[^>]*value="([^"]+)"', r.text)
+        if new_tok:
+            self.tok = new_tok.group(1)
+            new_uri = re.search(r'SYNCHRONIZER_URI[^>]*value="([^"]+)"', r.text)
+            if new_uri:
+                self.uri = new_uri.group(1)
+
         tables = re.findall(r'<table[^>]*class="table"[^>]*>(.*?)</table>', r.text, re.S)
         if not tables:
+            if self._debug_count < 3:
+                print(f"  [{stock_id}] no table found (HTTP {r.status_code}, len={len(r.text)})", flush=True)
+                self._debug_count += 1
             return None
 
         rows = re.findall(r'<tr[^>]*>(.*?)</tr>', tables[0], re.S)
@@ -116,7 +128,15 @@ class PortalSession:
                 continue
             results.append((tier, holders, shares, pct))
 
-        return results if len(results) == TIER_COUNT else None
+        if len(results) < 15:
+            if self._debug_count < 3:
+                print(f"  [{stock_id}] too few tiers: got {len(results)}", flush=True)
+                self._debug_count += 1
+            return None
+        # Pad to TIER_COUNT if portal returns fewer tiers (older format has 16)
+        while len(results) < TIER_COUNT:
+            results.append((len(results) + 1, 0, 0, 0.0))
+        return results[:TIER_COUNT]
 
 
 def backfill(dates: list[date], stocks: list[str]):
