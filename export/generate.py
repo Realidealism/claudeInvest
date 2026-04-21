@@ -312,14 +312,26 @@ def export_stocks(cur, out: Path):
     cur.execute("SELECT MAX(period) FROM tw.fund_holdings_monthly")
     latest_m = list(cur.fetchone().values())[0]
 
-    # All tickers that appear in any holdings
+    # All tickers from holdings + signals
     cur.execute("""
         SELECT DISTINCT ticker, ticker_name
         FROM tw.fund_holdings_monthly
         WHERE period = %s
-        ORDER BY ticker
     """, (latest_m,))
-    tickers = [dict(r) for r in cur.fetchall()]
+    ticker_map = {r["ticker"]: r["ticker_name"] for r in cur.fetchall()}
+
+    # Add tickers from signals that aren't in current holdings
+    cur.execute("""
+        SELECT DISTINCT s.ticker, s.ticker_name
+        FROM tw.signals s
+        WHERE s.ticker NOT IN (
+            SELECT ticker FROM tw.fund_holdings_monthly WHERE period = %s
+        )
+    """, (latest_m,))
+    for r in cur.fetchall():
+        ticker_map[r["ticker"]] = r["ticker_name"]
+
+    tickers = [{"ticker": k, "ticker_name": v} for k, v in sorted(ticker_map.items())]
 
     # Per-ticker: which funds hold it and with what weight
     stocks = {}
