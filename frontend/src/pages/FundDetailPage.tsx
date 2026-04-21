@@ -108,18 +108,34 @@ export default function FundDetailPage() {
         </div>
       </div>
 
-      {/* Period selector */}
-      <div className="flex items-center gap-3 mb-4">
-        <label className="text-xs text-text-secondary">{fund.fund_type === "etf" ? "持股日期:" : "月報期間:"}</label>
-        <select
-          value={selectedPeriod}
-          onChange={(e) => setSelectedPeriod(e.target.value)}
-          className="bg-surface-alt border border-border rounded px-3 py-1.5 text-sm text-text-primary"
-        >
-          {periods.map((p) => (
-            <option key={p} value={p}>{p}</option>
-          ))}
-        </select>
+      {/* Period selectors */}
+      <div className="flex items-center gap-6 mb-4">
+        <div className="flex items-center gap-2">
+          <label className="text-xs text-text-secondary">{isEtf ? "持股日期:" : "月報期間:"}</label>
+          <select
+            value={selectedPeriod}
+            onChange={(e) => setSelectedPeriod(e.target.value)}
+            className="bg-surface-alt border border-border rounded px-3 py-1.5 text-sm text-text-primary"
+          >
+            {periods.map((p) => (
+              <option key={p} value={p}>{p}</option>
+            ))}
+          </select>
+        </div>
+        {qPeriods.length > 0 && (
+          <div className="flex items-center gap-2">
+            <label className="text-xs text-text-secondary">季報期間:</label>
+            <select
+              value={selectedQPeriod}
+              onChange={(e) => setSelectedQPeriod(e.target.value)}
+              className="bg-surface-alt border border-border rounded px-3 py-1.5 text-sm text-text-primary"
+            >
+              {qPeriods.map((p) => (
+                <option key={p} value={p}>{p}</option>
+              ))}
+            </select>
+          </div>
+        )}
       </div>
 
       {/* Holdings bar chart + table */}
@@ -173,18 +189,9 @@ export default function FundDetailPage() {
         {/* Quarterly holdings if available */}
         {qPeriods.length > 0 && (
           <div className="bg-surface-alt border border-border rounded-lg p-4">
-            <div className="flex items-center gap-3 mb-3">
-              <h3 className="text-sm font-semibold text-text-secondary">季報完整持股</h3>
-              <select
-                value={selectedQPeriod}
-                onChange={(e) => setSelectedQPeriod(e.target.value)}
-                className="bg-surface border border-border rounded px-2 py-1 text-xs text-text-primary"
-              >
-                {qPeriods.map((p) => (
-                  <option key={p} value={p}>{p}</option>
-                ))}
-              </select>
-            </div>
+            <h3 className="text-sm font-semibold mb-3 text-text-secondary">
+              季報完整持股 ({selectedQPeriod})
+            </h3>
             <div className="max-h-[600px] overflow-y-auto space-y-0.5">
               {(quarterly[selectedQPeriod] || []).map((h) => (
                 <div key={h.ticker} className="flex items-center gap-2 text-xs">
