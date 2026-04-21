@@ -75,6 +75,22 @@
           "weight_change": null
         },
         {
+          "signal_type": "etf_abnormal_exit",
+          "trigger_period": "20260417D",
+          "funds": [
+            "統一台股增長"
+          ],
+          "weight_change": null
+        },
+        {
+          "signal_type": "etf_abnormal_exit",
+          "trigger_period": "20260415D",
+          "funds": [
+            "統一台股增長"
+          ],
+          "weight_change": null
+        },
+        {
           "signal_type": "quarterly_dormant_etf_active",
           "trigger_period": "202603Q",
           "funds": [
@@ -136,6 +152,37 @@
         {
           "signal_type": "etf_consecutive_accumulation",
           "trigger_period": "2026W17W",
+          "funds": [
+            "統一台股增長"
+          ],
+          "weight_change": null
+        }
+      ]
+    },
+    "1326": {
+      "ticker_name": "台化",
+      "fund_holdings": [],
+      "etf_holdings": [
+        {
+          "etf_id": "00993A",
+          "weight": 0.45,
+          "trade_date": "2026-04-20"
+        },
+        {
+          "etf_id": "00993A",
+          "weight": 0.46,
+          "trade_date": "2026-04-17"
+        },
+        {
+          "etf_id": "00981A",
+          "weight": 0.39,
+          "trade_date": "2026-04-14"
+        }
+      ],
+      "signals": [
+        {
+          "signal_type": "etf_abnormal_exit",
+          "trigger_period": "20260415D",
           "funds": [
             "統一台股增長"
           ],
@@ -10942,6 +10989,65 @@
             "野村優質"
           ],
           "weight_change": 0.8
+        }
+      ]
+    },
+    "6488": {
+      "ticker_name": "環球晶",
+      "fund_holdings": [
+        {
+          "code": "yuanta-newmain",
+          "name": "元大新主流",
+          "weight": 4.43,
+          "rank": 10,
+          "period": "202601"
+        }
+      ],
+      "etf_holdings": [
+        {
+          "etf_id": "00982A",
+          "weight": 1.0186,
+          "trade_date": "2026-04-20"
+        },
+        {
+          "etf_id": "00981A",
+          "weight": 0.3,
+          "trade_date": "2026-04-20"
+        },
+        {
+          "etf_id": "00981A",
+          "weight": 0.29,
+          "trade_date": "2026-04-17"
+        },
+        {
+          "etf_id": "00982A",
+          "weight": 0.9525,
+          "trade_date": "2026-04-17"
+        },
+        {
+          "etf_id": "00981A",
+          "weight": 0.55,
+          "trade_date": "2026-04-16"
+        },
+        {
+          "etf_id": "00981A",
+          "weight": 0.54,
+          "trade_date": "2026-04-15"
+        },
+        {
+          "etf_id": "00981A",
+          "weight": 0.55,
+          "trade_date": "2026-04-14"
+        }
+      ],
+      "signals": [
+        {
+          "signal_type": "etf_abnormal_exit",
+          "trigger_period": "20260417D",
+          "funds": [
+            "統一台股增長"
+          ],
+          "weight_change": null
         }
       ]
     },
