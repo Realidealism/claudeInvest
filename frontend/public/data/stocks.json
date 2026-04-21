@@ -436,22 +436,6 @@
           "weight_change": null
         },
         {
-          "signal_type": "core_exit",
-          "trigger_period": "202512M",
-          "funds": [
-            "統一大中華中小"
-          ],
-          "weight_change": null
-        },
-        {
-          "signal_type": "heavy_position_reduction",
-          "trigger_period": "202512M",
-          "funds": [
-            "野村優質"
-          ],
-          "weight_change": -0.3
-        },
-        {
           "signal_type": "multi_fund_consensus",
           "trigger_period": "202512M",
           "funds": [
@@ -464,13 +448,17 @@
           "weight_change": null
         },
         {
-          "signal_type": "multi_fund_consensus",
-          "trigger_period": "202511M",
+          "signal_type": "heavy_position_reduction",
+          "trigger_period": "202512M",
           "funds": [
-            "野村優質",
-            "復華全方位",
-            "復華高成長",
-            "統一全天候",
+            "野村優質"
+          ],
+          "weight_change": -0.3
+        },
+        {
+          "signal_type": "core_exit",
+          "trigger_period": "202512M",
+          "funds": [
             "統一大中華中小"
           ],
           "weight_change": null
@@ -482,6 +470,18 @@
             "野村優質"
           ],
           "weight_change": -1.53
+        },
+        {
+          "signal_type": "multi_fund_consensus",
+          "trigger_period": "202511M",
+          "funds": [
+            "野村優質",
+            "復華全方位",
+            "復華高成長",
+            "統一全天候",
+            "統一大中華中小"
+          ],
+          "weight_change": null
         },
         {
           "signal_type": "multi_fund_consensus",
@@ -1037,15 +1037,6 @@
           "weight_change": null
         },
         {
-          "signal_type": "heavy_position_reduction",
-          "trigger_period": "202603M",
-          "funds": [
-            "復華全方位",
-            "野村優質"
-          ],
-          "weight_change": -1.16
-        },
-        {
           "signal_type": "quarterly_to_monthly_top10",
           "trigger_period": "202603M",
           "funds": [
@@ -1059,6 +1050,15 @@
             "台新主流"
           ],
           "weight_change": 2.91
+        },
+        {
+          "signal_type": "heavy_position_reduction",
+          "trigger_period": "202603M",
+          "funds": [
+            "復華全方位",
+            "野村優質"
+          ],
+          "weight_change": -1.16
         },
         {
           "signal_type": "multi_fund_consensus",
@@ -1097,23 +1097,6 @@
           "weight_change": 0.87
         },
         {
-          "signal_type": "multi_fund_consensus",
-          "trigger_period": "202602M",
-          "funds": [
-            "野村優質",
-            "統一全天候",
-            "復華全方位",
-            "復華高成長",
-            "統一奔騰",
-            "台新主流",
-            "統一中小",
-            "安聯台灣大壩",
-            "安聯台灣科技",
-            "統一黑馬"
-          ],
-          "weight_change": null
-        },
-        {
           "signal_type": "consecutive_accumulation",
           "trigger_period": "202602M",
           "funds": [
@@ -1122,6 +1105,14 @@
             "復華全方位"
           ],
           "weight_change": 1.51
+        },
+        {
+          "signal_type": "heavy_position_reduction",
+          "trigger_period": "202602M",
+          "funds": [
+            "野村優質"
+          ],
+          "weight_change": -0.5
         },
         {
           "signal_type": "quarterly_to_monthly_top10",
@@ -1141,12 +1132,21 @@
           "weight_change": 2.85
         },
         {
-          "signal_type": "heavy_position_reduction",
+          "signal_type": "multi_fund_consensus",
           "trigger_period": "202602M",
           "funds": [
-            "野村優質"
+            "野村優質",
+            "統一全天候",
+            "復華全方位",
+            "復華高成長",
+            "統一奔騰",
+            "台新主流",
+            "統一中小",
+            "安聯台灣大壩",
+            "安聯台灣科技",
+            "統一黑馬"
           ],
-          "weight_change": -0.5
+          "weight_change": null
         },
         {
           "signal_type": "consecutive_accumulation",
@@ -1206,13 +1206,15 @@
           "weight_change": null
         },
         {
-          "signal_type": "core_exit",
+          "signal_type": "multi_fund_consensus",
           "trigger_period": "202512M",
           "funds": [
-            "統一黑馬",
-            "統一中小",
-            "復華高成長",
-            "安聯台灣科技"
+            "野村優質",
+            "統一全天候",
+            "統一奔騰",
+            "復華全方位",
+            "安聯台灣大壩",
+            "台新主流"
           ],
           "weight_change": null
         },
@@ -1225,15 +1227,13 @@
           "weight_change": 0.11
         },
         {
-          "signal_type": "multi_fund_consensus",
+          "signal_type": "core_exit",
           "trigger_period": "202512M",
           "funds": [
-            "野村優質",
-            "統一全天候",
-            "統一奔騰",
-            "復華全方位",
-            "安聯台灣大壩",
-            "台新主流"
+            "統一黑馬",
+            "統一中小",
+            "復華高成長",
+            "安聯台灣科技"
           ],
           "weight_change": null
         },
@@ -2013,6 +2013,14 @@
           "weight_change": null
         },
         {
+          "signal_type": "etf_abnormal_position",
+          "trigger_period": "20260420D",
+          "funds": [
+            "統一台股增長"
+          ],
+          "weight_change": null
+        },
+        {
           "signal_type": "etf_multi_consensus",
           "trigger_period": "20260420D",
           "funds": [
@@ -2023,20 +2031,38 @@
           "weight_change": null
         },
         {
-          "signal_type": "etf_abnormal_position",
-          "trigger_period": "20260420D",
-          "funds": [
-            "統一台股增長"
-          ],
-          "weight_change": null
-        },
-        {
           "signal_type": "quarterly_dormant_etf_active",
           "trigger_period": "202603Q",
           "funds": [
             "統一奔騰"
           ],
           "weight_change": null
+        },
+        {
+          "signal_type": "heavy_position_reduction",
+          "trigger_period": "202603M",
+          "funds": [
+            "安聯台灣大壩"
+          ],
+          "weight_change": -2.29
+        },
+        {
+          "signal_type": "consecutive_accumulation",
+          "trigger_period": "202603M",
+          "funds": [
+            "復華全方位"
+          ],
+          "weight_change": 0.08
+        },
+        {
+          "signal_type": "quarterly_to_monthly_top10",
+          "trigger_period": "202603M",
+          "funds": [
+            "復華全方位",
+            "復華高成長",
+            "台新主流"
+          ],
+          "weight_change": 0.82
         },
         {
           "signal_type": "multi_fund_consensus",
@@ -2058,30 +2084,33 @@
           "weight_change": null
         },
         {
-          "signal_type": "consecutive_accumulation",
-          "trigger_period": "202603M",
+          "signal_type": "multi_fund_consensus",
+          "trigger_period": "202602M",
           "funds": [
-            "復華全方位"
-          ],
-          "weight_change": 0.08
-        },
-        {
-          "signal_type": "heavy_position_reduction",
-          "trigger_period": "202603M",
-          "funds": [
-            "安聯台灣大壩"
-          ],
-          "weight_change": -2.29
-        },
-        {
-          "signal_type": "quarterly_to_monthly_top10",
-          "trigger_period": "202603M",
-          "funds": [
-            "復華全方位",
+            "安聯台灣大壩",
+            "野村優質",
             "復華高成長",
-            "台新主流"
+            "統一黑馬",
+            "復華全方位",
+            "統一全天候",
+            "元大新主流",
+            "統一奔騰",
+            "野村高科技",
+            "安聯台灣科技",
+            "台新主流",
+            "統一中小"
           ],
-          "weight_change": 0.82
+          "weight_change": null
+        },
+        {
+          "signal_type": "consecutive_accumulation",
+          "trigger_period": "202602M",
+          "funds": [
+            "台新主流",
+            "元大新主流",
+            "野村高科技"
+          ],
+          "weight_change": 2.11
         },
         {
           "signal_type": "quarterly_to_monthly_top10",
@@ -2100,25 +2129,6 @@
           "weight_change": 1.03
         },
         {
-          "signal_type": "multi_fund_consensus",
-          "trigger_period": "202602M",
-          "funds": [
-            "安聯台灣大壩",
-            "野村優質",
-            "復華高成長",
-            "統一黑馬",
-            "復華全方位",
-            "統一全天候",
-            "元大新主流",
-            "統一奔騰",
-            "野村高科技",
-            "安聯台灣科技",
-            "台新主流",
-            "統一中小"
-          ],
-          "weight_change": null
-        },
-        {
           "signal_type": "heavy_position_reduction",
           "trigger_period": "202602M",
           "funds": [
@@ -2127,14 +2137,21 @@
           "weight_change": -0.2
         },
         {
-          "signal_type": "consecutive_accumulation",
-          "trigger_period": "202602M",
+          "signal_type": "heavy_position_reduction",
+          "trigger_period": "202601M",
           "funds": [
-            "台新主流",
-            "元大新主流",
-            "野村高科技"
+            "統一奔騰"
           ],
-          "weight_change": 2.11
+          "weight_change": -0.04
+        },
+        {
+          "signal_type": "consecutive_accumulation",
+          "trigger_period": "202601M",
+          "funds": [
+            "統一黑馬",
+            "安聯台灣科技"
+          ],
+          "weight_change": 1.2
         },
         {
           "signal_type": "multi_fund_consensus",
@@ -2154,23 +2171,6 @@
             "野村高科技"
           ],
           "weight_change": null
-        },
-        {
-          "signal_type": "consecutive_accumulation",
-          "trigger_period": "202601M",
-          "funds": [
-            "統一黑馬",
-            "安聯台灣科技"
-          ],
-          "weight_change": 1.2
-        },
-        {
-          "signal_type": "heavy_position_reduction",
-          "trigger_period": "202601M",
-          "funds": [
-            "統一奔騰"
-          ],
-          "weight_change": -0.04
         },
         {
           "signal_type": "quarterly_to_monthly_top10",
@@ -2193,6 +2193,18 @@
             "統一奔騰"
           ],
           "weight_change": null
+        },
+        {
+          "signal_type": "consecutive_accumulation",
+          "trigger_period": "202512M",
+          "funds": [
+            "統一奔騰",
+            "安聯台灣科技",
+            "台新主流",
+            "復華高成長",
+            "安聯台灣大壩"
+          ],
+          "weight_change": 0.85
         },
         {
           "signal_type": "heavy_position_reduction",
@@ -2230,16 +2242,12 @@
           "weight_change": 0.85
         },
         {
-          "signal_type": "consecutive_accumulation",
-          "trigger_period": "202512M",
+          "signal_type": "heavy_position_reduction",
+          "trigger_period": "202511M",
           "funds": [
-            "統一奔騰",
-            "安聯台灣科技",
-            "台新主流",
-            "復華高成長",
-            "安聯台灣大壩"
+            "復華全方位"
           ],
-          "weight_change": 0.85
+          "weight_change": -0.79
         },
         {
           "signal_type": "multi_fund_consensus",
@@ -2258,14 +2266,6 @@
             "台新主流"
           ],
           "weight_change": null
-        },
-        {
-          "signal_type": "heavy_position_reduction",
-          "trigger_period": "202511M",
-          "funds": [
-            "復華全方位"
-          ],
-          "weight_change": -0.79
         },
         {
           "signal_type": "multi_fund_consensus",
@@ -2534,15 +2534,6 @@
           "weight_change": -1.84
         },
         {
-          "signal_type": "quarterly_to_monthly_top10",
-          "trigger_period": "202602M",
-          "funds": [
-            "野村高科技",
-            "安聯台灣大壩"
-          ],
-          "weight_change": 0.95
-        },
-        {
           "signal_type": "multi_fund_consensus",
           "trigger_period": "202602M",
           "funds": [
@@ -2551,6 +2542,15 @@
             "野村高科技"
           ],
           "weight_change": null
+        },
+        {
+          "signal_type": "quarterly_to_monthly_top10",
+          "trigger_period": "202602M",
+          "funds": [
+            "野村高科技",
+            "安聯台灣大壩"
+          ],
+          "weight_change": 0.95
         },
         {
           "signal_type": "quarterly_to_monthly_top10",
@@ -2582,6 +2582,15 @@
           "weight_change": null
         },
         {
+          "signal_type": "consecutive_accumulation",
+          "trigger_period": "202512M",
+          "funds": [
+            "安聯台灣科技",
+            "安聯台灣大壩"
+          ],
+          "weight_change": 1.72
+        },
+        {
           "signal_type": "multi_fund_consensus",
           "trigger_period": "202512M",
           "funds": [
@@ -2590,15 +2599,6 @@
             "野村高科技"
           ],
           "weight_change": null
-        },
-        {
-          "signal_type": "consecutive_accumulation",
-          "trigger_period": "202512M",
-          "funds": [
-            "安聯台灣科技",
-            "安聯台灣大壩"
-          ],
-          "weight_change": 1.72
         },
         {
           "signal_type": "consecutive_accumulation",
@@ -2836,14 +2836,6 @@
           "weight_change": null
         },
         {
-          "signal_type": "core_exit",
-          "trigger_period": "202603M",
-          "funds": [
-            "統一中小"
-          ],
-          "weight_change": null
-        },
-        {
           "signal_type": "dual_track_accumulation",
           "trigger_period": "202603M",
           "funds": [
@@ -2852,15 +2844,20 @@
           "weight_change": 0.74
         },
         {
-          "signal_type": "quarterly_to_monthly_top10",
+          "signal_type": "core_exit",
           "trigger_period": "202603M",
           "funds": [
-            "統一全天候",
-            "復華全方位",
-            "復華高成長",
-            "野村優質"
+            "統一中小"
           ],
-          "weight_change": 2.5
+          "weight_change": null
+        },
+        {
+          "signal_type": "consecutive_accumulation",
+          "trigger_period": "202603M",
+          "funds": [
+            "統一奔騰"
+          ],
+          "weight_change": 0.74
         },
         {
           "signal_type": "multi_fund_consensus",
@@ -2876,29 +2873,24 @@
           "weight_change": null
         },
         {
-          "signal_type": "consecutive_accumulation",
+          "signal_type": "quarterly_to_monthly_top10",
           "trigger_period": "202603M",
           "funds": [
-            "統一奔騰"
+            "統一全天候",
+            "復華全方位",
+            "復華高成長",
+            "野村優質"
           ],
-          "weight_change": 0.74
+          "weight_change": 2.5
         },
         {
-          "signal_type": "quarterly_to_monthly_top10",
+          "signal_type": "consecutive_accumulation",
           "trigger_period": "202602M",
           "funds": [
-            "野村優質",
+            "統一奔騰",
             "統一中小"
           ],
-          "weight_change": 3.0
-        },
-        {
-          "signal_type": "dual_track_accumulation",
-          "trigger_period": "202602M",
-          "funds": [
-            "統一奔騰"
-          ],
-          "weight_change": 0.43
+          "weight_change": 0.48
         },
         {
           "signal_type": "multi_fund_consensus",
@@ -2911,13 +2903,21 @@
           "weight_change": null
         },
         {
-          "signal_type": "consecutive_accumulation",
+          "signal_type": "dual_track_accumulation",
           "trigger_period": "202602M",
           "funds": [
-            "統一奔騰",
+            "統一奔騰"
+          ],
+          "weight_change": 0.43
+        },
+        {
+          "signal_type": "quarterly_to_monthly_top10",
+          "trigger_period": "202602M",
+          "funds": [
+            "野村優質",
             "統一中小"
           ],
-          "weight_change": 0.48
+          "weight_change": 3.0
         },
         {
           "signal_type": "quarterly_to_monthly_top10",
@@ -2936,7 +2936,7 @@
           "weight_change": null
         },
         {
-          "signal_type": "dual_track_accumulation",
+          "signal_type": "consecutive_accumulation",
           "trigger_period": "202512M",
           "funds": [
             "統一奔騰"
@@ -2944,7 +2944,7 @@
           "weight_change": 1.0
         },
         {
-          "signal_type": "consecutive_accumulation",
+          "signal_type": "dual_track_accumulation",
           "trigger_period": "202512M",
           "funds": [
             "統一奔騰"
@@ -3578,6 +3578,22 @@
           "weight_change": null
         },
         {
+          "signal_type": "core_exit",
+          "trigger_period": "202603M",
+          "funds": [
+            "野村優質"
+          ],
+          "weight_change": null
+        },
+        {
+          "signal_type": "dual_track_accumulation",
+          "trigger_period": "202603M",
+          "funds": [
+            "統一奔騰"
+          ],
+          "weight_change": 1.56
+        },
+        {
           "signal_type": "consecutive_accumulation",
           "trigger_period": "202603M",
           "funds": [
@@ -3599,31 +3615,6 @@
           "weight_change": null
         },
         {
-          "signal_type": "dual_track_accumulation",
-          "trigger_period": "202603M",
-          "funds": [
-            "統一奔騰"
-          ],
-          "weight_change": 1.56
-        },
-        {
-          "signal_type": "core_exit",
-          "trigger_period": "202603M",
-          "funds": [
-            "野村優質"
-          ],
-          "weight_change": null
-        },
-        {
-          "signal_type": "core_exit",
-          "trigger_period": "202602M",
-          "funds": [
-            "復華高成長",
-            "復華全方位"
-          ],
-          "weight_change": null
-        },
-        {
           "signal_type": "multi_fund_consensus",
           "trigger_period": "202602M",
           "funds": [
@@ -3633,6 +3624,15 @@
             "野村優質",
             "安聯台灣科技",
             "統一全天候"
+          ],
+          "weight_change": null
+        },
+        {
+          "signal_type": "core_exit",
+          "trigger_period": "202602M",
+          "funds": [
+            "復華高成長",
+            "復華全方位"
           ],
           "weight_change": null
         },
@@ -3662,6 +3662,18 @@
           "weight_change": 0.03
         },
         {
+          "signal_type": "core_exit",
+          "trigger_period": "202601M",
+          "funds": [
+            "統一全天候",
+            "統一黑馬",
+            "統一大中華中小",
+            "安聯台灣大壩",
+            "安聯台灣科技"
+          ],
+          "weight_change": null
+        },
+        {
           "signal_type": "heavy_position_reduction",
           "trigger_period": "202601M",
           "funds": [
@@ -3681,18 +3693,6 @@
             "野村優質",
             "復華全方位",
             "復華高成長"
-          ],
-          "weight_change": null
-        },
-        {
-          "signal_type": "core_exit",
-          "trigger_period": "202601M",
-          "funds": [
-            "統一全天候",
-            "統一黑馬",
-            "統一大中華中小",
-            "安聯台灣大壩",
-            "安聯台灣科技"
           ],
           "weight_change": null
         },
@@ -4330,12 +4330,20 @@
           "weight_change": null
         },
         {
-          "signal_type": "dual_track_accumulation",
+          "signal_type": "quarterly_to_monthly_top10",
           "trigger_period": "202603M",
           "funds": [
-            "統一奔騰"
+            "統一全天候",
+            "統一大中華中小",
+            "統一奔騰",
+            "統一黑馬",
+            "復華全方位",
+            "復華高成長",
+            "野村優質",
+            "安聯台灣科技",
+            "台新主流"
           ],
-          "weight_change": 1.31
+          "weight_change": 4.24
         },
         {
           "signal_type": "heavy_position_reduction",
@@ -4356,20 +4364,31 @@
           "weight_change": 1.31
         },
         {
-          "signal_type": "quarterly_to_monthly_top10",
+          "signal_type": "dual_track_accumulation",
           "trigger_period": "202603M",
           "funds": [
-            "統一全天候",
-            "統一大中華中小",
-            "統一奔騰",
-            "統一黑馬",
+            "統一奔騰"
+          ],
+          "weight_change": 1.31
+        },
+        {
+          "signal_type": "multi_fund_consensus",
+          "trigger_period": "202602M",
+          "funds": [
             "復華全方位",
             "復華高成長",
             "野村優質",
-            "安聯台灣科技",
-            "台新主流"
+            "統一奔騰",
+            "統一黑馬",
+            "統一全天候",
+            "台新主流",
+            "統一中小",
+            "安聯台灣大壩",
+            "元大新主流",
+            "統一大中華中小",
+            "安聯台灣科技"
           ],
-          "weight_change": 4.24
+          "weight_change": null
         },
         {
           "signal_type": "quarterly_to_monthly_top10",
@@ -4399,21 +4418,18 @@
           "weight_change": 3.69
         },
         {
-          "signal_type": "multi_fund_consensus",
-          "trigger_period": "202602M",
+          "signal_type": "consecutive_accumulation",
+          "trigger_period": "202601M",
           "funds": [
-            "復華全方位",
-            "復華高成長",
-            "野村優質",
-            "統一奔騰",
-            "統一黑馬",
-            "統一全天候",
-            "台新主流",
-            "統一中小",
-            "安聯台灣大壩",
-            "元大新主流",
-            "統一大中華中小",
-            "安聯台灣科技"
+            "復華高成長"
+          ],
+          "weight_change": 0.25
+        },
+        {
+          "signal_type": "core_exit",
+          "trigger_period": "202601M",
+          "funds": [
+            "元大新主流"
           ],
           "weight_change": null
         },
@@ -4441,24 +4457,6 @@
           "weight_change": 0.25
         },
         {
-          "signal_type": "consecutive_accumulation",
-          "trigger_period": "202601M",
-          "funds": [
-            "復華高成長"
-          ],
-          "weight_change": 0.25
-        },
-        {
-          "signal_type": "core_exit",
-          "trigger_period": "202601M",
-          "funds": [
-            "統一奔騰",
-            "安聯台灣科技",
-            "元大新主流"
-          ],
-          "weight_change": null
-        },
-        {
           "signal_type": "quarterly_dormant_etf_active",
           "trigger_period": "202512Q",
           "funds": [
@@ -4467,12 +4465,12 @@
           "weight_change": null
         },
         {
-          "signal_type": "consecutive_accumulation",
+          "signal_type": "heavy_position_reduction",
           "trigger_period": "202512M",
           "funds": [
-            "統一奔騰"
+            "復華全方位"
           ],
-          "weight_change": 0.45
+          "weight_change": -0.14
         },
         {
           "signal_type": "multi_fund_consensus",
@@ -4501,12 +4499,12 @@
           "weight_change": 0.45
         },
         {
-          "signal_type": "heavy_position_reduction",
+          "signal_type": "consecutive_accumulation",
           "trigger_period": "202512M",
           "funds": [
-            "復華全方位"
+            "統一奔騰"
           ],
-          "weight_change": -0.14
+          "weight_change": 0.45
         },
         {
           "signal_type": "multi_fund_consensus",
@@ -4527,6 +4525,14 @@
           "weight_change": null
         },
         {
+          "signal_type": "dual_track_accumulation",
+          "trigger_period": "202511M",
+          "funds": [
+            "統一奔騰"
+          ],
+          "weight_change": 2.82
+        },
+        {
           "signal_type": "consecutive_accumulation",
           "trigger_period": "202511M",
           "funds": [
@@ -4535,14 +4541,6 @@
             "統一黑馬"
           ],
           "weight_change": 2.93
-        },
-        {
-          "signal_type": "dual_track_accumulation",
-          "trigger_period": "202511M",
-          "funds": [
-            "統一奔騰"
-          ],
-          "weight_change": 2.82
         },
         {
           "signal_type": "multi_fund_consensus",
@@ -4807,18 +4805,10 @@
           "signal_type": "core_exit",
           "trigger_period": "202603M",
           "funds": [
+            "統一全天候",
             "安聯台灣大壩"
           ],
           "weight_change": null
-        },
-        {
-          "signal_type": "quarterly_to_monthly_top10",
-          "trigger_period": "202603M",
-          "funds": [
-            "復華全方位",
-            "復華高成長"
-          ],
-          "weight_change": 4.18
         },
         {
           "signal_type": "heavy_position_reduction",
@@ -4828,6 +4818,15 @@
             "復華高成長"
           ],
           "weight_change": -1.7
+        },
+        {
+          "signal_type": "quarterly_to_monthly_top10",
+          "trigger_period": "202603M",
+          "funds": [
+            "復華全方位",
+            "復華高成長"
+          ],
+          "weight_change": 4.18
         },
         {
           "signal_type": "multi_fund_consensus",
@@ -5135,18 +5134,18 @@
           "weight_change": 0.38
         },
         {
-          "signal_type": "quarterly_to_monthly_top10",
+          "signal_type": "consecutive_accumulation",
           "trigger_period": "202601M",
           "funds": [
-            "統一全天候",
             "統一大中華中小"
           ],
           "weight_change": 0.5
         },
         {
-          "signal_type": "consecutive_accumulation",
+          "signal_type": "quarterly_to_monthly_top10",
           "trigger_period": "202601M",
           "funds": [
+            "統一全天候",
             "統一大中華中小"
           ],
           "weight_change": 0.5
@@ -5759,6 +5758,16 @@
           "weight_change": 0.95
         },
         {
+          "signal_type": "consecutive_accumulation",
+          "trigger_period": "202603M",
+          "funds": [
+            "統一全天候",
+            "統一黑馬",
+            "復華全方位"
+          ],
+          "weight_change": 2.01
+        },
+        {
           "signal_type": "multi_fund_consensus",
           "trigger_period": "202603M",
           "funds": [
@@ -5782,14 +5791,12 @@
           "weight_change": 1.2
         },
         {
-          "signal_type": "consecutive_accumulation",
-          "trigger_period": "202603M",
+          "signal_type": "dual_track_accumulation",
+          "trigger_period": "202602M",
           "funds": [
-            "統一全天候",
-            "統一黑馬",
-            "復華全方位"
+            "統一奔騰"
           ],
-          "weight_change": 2.01
+          "weight_change": 0.45
         },
         {
           "signal_type": "multi_fund_consensus",
@@ -5806,22 +5813,6 @@
           "weight_change": null
         },
         {
-          "signal_type": "dual_track_accumulation",
-          "trigger_period": "202602M",
-          "funds": [
-            "統一奔騰"
-          ],
-          "weight_change": 0.45
-        },
-        {
-          "signal_type": "quarterly_to_monthly_top10",
-          "trigger_period": "202602M",
-          "funds": [
-            "統一奔騰"
-          ],
-          "weight_change": 0.25
-        },
-        {
           "signal_type": "consecutive_accumulation",
           "trigger_period": "202602M",
           "funds": [
@@ -5830,12 +5821,12 @@
           "weight_change": 0.62
         },
         {
-          "signal_type": "heavy_position_reduction",
-          "trigger_period": "202601M",
+          "signal_type": "quarterly_to_monthly_top10",
+          "trigger_period": "202602M",
           "funds": [
-            "統一全天候"
+            "統一奔騰"
           ],
-          "weight_change": -2.41
+          "weight_change": 0.25
         },
         {
           "signal_type": "multi_fund_consensus",
@@ -5852,9 +5843,17 @@
           "signal_type": "core_exit",
           "trigger_period": "202601M",
           "funds": [
-            "安聯台灣科技"
+            "野村高科技"
           ],
           "weight_change": null
+        },
+        {
+          "signal_type": "heavy_position_reduction",
+          "trigger_period": "202601M",
+          "funds": [
+            "統一全天候"
+          ],
+          "weight_change": -2.41
         },
         {
           "signal_type": "quarterly_dormant_etf_active",
@@ -5865,12 +5864,12 @@
           "weight_change": null
         },
         {
-          "signal_type": "core_exit",
+          "signal_type": "dual_track_accumulation",
           "trigger_period": "202512M",
           "funds": [
-            "安聯台灣大壩"
+            "統一奔騰"
           ],
-          "weight_change": null
+          "weight_change": 0.06
         },
         {
           "signal_type": "multi_fund_consensus",
@@ -5889,12 +5888,12 @@
           "weight_change": null
         },
         {
-          "signal_type": "dual_track_accumulation",
+          "signal_type": "core_exit",
           "trigger_period": "202512M",
           "funds": [
-            "統一奔騰"
+            "安聯台灣大壩"
           ],
-          "weight_change": 0.06
+          "weight_change": null
         },
         {
           "signal_type": "consecutive_accumulation",
@@ -5904,15 +5903,6 @@
             "統一中小"
           ],
           "weight_change": 1.57
-        },
-        {
-          "signal_type": "consecutive_accumulation",
-          "trigger_period": "202511M",
-          "funds": [
-            "統一大中華中小",
-            "野村高科技"
-          ],
-          "weight_change": 1.23
         },
         {
           "signal_type": "multi_fund_consensus",
@@ -5930,6 +5920,15 @@
             "安聯台灣科技"
           ],
           "weight_change": null
+        },
+        {
+          "signal_type": "consecutive_accumulation",
+          "trigger_period": "202511M",
+          "funds": [
+            "統一大中華中小",
+            "野村高科技"
+          ],
+          "weight_change": 1.23
         },
         {
           "signal_type": "heavy_position_reduction",
@@ -6224,6 +6223,15 @@
           "weight_change": 2.49
         },
         {
+          "signal_type": "consecutive_accumulation",
+          "trigger_period": "202603M",
+          "funds": [
+            "統一全天候",
+            "安聯台灣大壩"
+          ],
+          "weight_change": 0.41
+        },
+        {
           "signal_type": "heavy_position_reduction",
           "trigger_period": "202603M",
           "funds": [
@@ -6247,21 +6255,15 @@
           "weight_change": null
         },
         {
-          "signal_type": "consecutive_accumulation",
-          "trigger_period": "202603M",
-          "funds": [
-            "統一全天候",
-            "安聯台灣大壩"
-          ],
-          "weight_change": 0.41
-        },
-        {
-          "signal_type": "consecutive_accumulation",
+          "signal_type": "quarterly_to_monthly_top10",
           "trigger_period": "202602M",
           "funds": [
-            "統一黑馬"
+            "元大新主流",
+            "野村高科技",
+            "統一黑馬",
+            "統一中小"
           ],
-          "weight_change": 1.72
+          "weight_change": 3.94
         },
         {
           "signal_type": "multi_fund_consensus",
@@ -6279,25 +6281,12 @@
           "weight_change": null
         },
         {
-          "signal_type": "quarterly_to_monthly_top10",
+          "signal_type": "consecutive_accumulation",
           "trigger_period": "202602M",
           "funds": [
-            "元大新主流",
-            "野村高科技",
-            "統一黑馬",
-            "統一中小"
-          ],
-          "weight_change": 3.94
-        },
-        {
-          "signal_type": "multi_fund_consensus",
-          "trigger_period": "202601M",
-          "funds": [
-            "野村高科技",
-            "元大新主流",
             "統一黑馬"
           ],
-          "weight_change": null
+          "weight_change": 1.72
         },
         {
           "signal_type": "quarterly_to_monthly_top10",
@@ -6317,6 +6306,16 @@
             "野村高科技"
           ],
           "weight_change": 3.69
+        },
+        {
+          "signal_type": "multi_fund_consensus",
+          "trigger_period": "202601M",
+          "funds": [
+            "野村高科技",
+            "元大新主流",
+            "統一黑馬"
+          ],
+          "weight_change": null
         },
         {
           "signal_type": "consecutive_accumulation",
@@ -6508,12 +6507,14 @@
       ],
       "signals": [
         {
-          "signal_type": "quarterly_to_monthly_top10",
+          "signal_type": "multi_fund_consensus",
           "trigger_period": "202603M",
           "funds": [
+            "野村高科技",
+            "統一中小",
             "統一黑馬"
           ],
-          "weight_change": 2.24
+          "weight_change": null
         },
         {
           "signal_type": "core_exit",
@@ -6532,14 +6533,12 @@
           "weight_change": 1.93
         },
         {
-          "signal_type": "multi_fund_consensus",
+          "signal_type": "quarterly_to_monthly_top10",
           "trigger_period": "202603M",
           "funds": [
-            "野村高科技",
-            "統一中小",
             "統一黑馬"
           ],
-          "weight_change": null
+          "weight_change": 2.24
         },
         {
           "signal_type": "quarterly_to_monthly_top10",
@@ -6573,15 +6572,6 @@
           "weight_change": null
         },
         {
-          "signal_type": "quarterly_to_monthly_top10",
-          "trigger_period": "202601M",
-          "funds": [
-            "元大新主流",
-            "統一黑馬"
-          ],
-          "weight_change": 2.53
-        },
-        {
           "signal_type": "multi_fund_consensus",
           "trigger_period": "202601M",
           "funds": [
@@ -6591,6 +6581,15 @@
             "統一黑馬"
           ],
           "weight_change": null
+        },
+        {
+          "signal_type": "quarterly_to_monthly_top10",
+          "trigger_period": "202601M",
+          "funds": [
+            "元大新主流",
+            "統一黑馬"
+          ],
+          "weight_change": 2.53
         }
       ]
     },
@@ -7406,14 +7405,6 @@
           "weight_change": null
         },
         {
-          "signal_type": "quarterly_to_monthly_top10",
-          "trigger_period": "202601M",
-          "funds": [
-            "安聯台灣科技"
-          ],
-          "weight_change": 0.59
-        },
-        {
           "signal_type": "core_exit",
           "trigger_period": "202601M",
           "funds": [
@@ -7421,6 +7412,14 @@
             "元大新主流"
           ],
           "weight_change": null
+        },
+        {
+          "signal_type": "quarterly_to_monthly_top10",
+          "trigger_period": "202601M",
+          "funds": [
+            "安聯台灣科技"
+          ],
+          "weight_change": 0.59
         },
         {
           "signal_type": "consecutive_accumulation",
@@ -7882,14 +7881,6 @@
           "weight_change": null
         },
         {
-          "signal_type": "consecutive_accumulation",
-          "trigger_period": "202603M",
-          "funds": [
-            "統一奔騰"
-          ],
-          "weight_change": 2.45
-        },
-        {
           "signal_type": "quarterly_to_monthly_top10",
           "trigger_period": "202603M",
           "funds": [
@@ -7899,18 +7890,7 @@
           "weight_change": 2.6
         },
         {
-          "signal_type": "multi_fund_consensus",
-          "trigger_period": "202603M",
-          "funds": [
-            "野村優質",
-            "統一奔騰",
-            "統一全天候",
-            "統一黑馬"
-          ],
-          "weight_change": null
-        },
-        {
-          "signal_type": "dual_track_accumulation",
+          "signal_type": "consecutive_accumulation",
           "trigger_period": "202603M",
           "funds": [
             "統一奔騰"
@@ -7926,17 +7906,20 @@
           "weight_change": null
         },
         {
-          "signal_type": "heavy_position_reduction",
-          "trigger_period": "202602M",
+          "signal_type": "dual_track_accumulation",
+          "trigger_period": "202603M",
           "funds": [
-            "野村優質"
+            "統一奔騰"
           ],
-          "weight_change": -0.48
+          "weight_change": 2.45
         },
         {
-          "signal_type": "core_exit",
-          "trigger_period": "202602M",
+          "signal_type": "multi_fund_consensus",
+          "trigger_period": "202603M",
           "funds": [
+            "野村優質",
+            "統一奔騰",
+            "統一全天候",
             "統一黑馬"
           ],
           "weight_change": null
@@ -7950,6 +7933,14 @@
           "weight_change": 0.15
         },
         {
+          "signal_type": "heavy_position_reduction",
+          "trigger_period": "202602M",
+          "funds": [
+            "野村優質"
+          ],
+          "weight_change": -0.48
+        },
+        {
           "signal_type": "multi_fund_consensus",
           "trigger_period": "202602M",
           "funds": [
@@ -7960,21 +7951,12 @@
           "weight_change": null
         },
         {
-          "signal_type": "dual_track_accumulation",
-          "trigger_period": "202601M",
+          "signal_type": "core_exit",
+          "trigger_period": "202602M",
           "funds": [
-            "統一奔騰"
-          ],
-          "weight_change": 0.85
-        },
-        {
-          "signal_type": "quarterly_to_monthly_top10",
-          "trigger_period": "202601M",
-          "funds": [
-            "統一奔騰",
             "統一黑馬"
           ],
-          "weight_change": 1.28
+          "weight_change": null
         },
         {
           "signal_type": "consecutive_accumulation",
@@ -7984,6 +7966,14 @@
             "統一黑馬"
           ],
           "weight_change": 1.28
+        },
+        {
+          "signal_type": "dual_track_accumulation",
+          "trigger_period": "202601M",
+          "funds": [
+            "統一奔騰"
+          ],
+          "weight_change": 0.85
         },
         {
           "signal_type": "multi_fund_consensus",
@@ -7997,12 +7987,29 @@
           "weight_change": null
         },
         {
+          "signal_type": "quarterly_to_monthly_top10",
+          "trigger_period": "202601M",
+          "funds": [
+            "統一奔騰",
+            "統一黑馬"
+          ],
+          "weight_change": 1.28
+        },
+        {
           "signal_type": "quarterly_dormant_etf_active",
           "trigger_period": "202512Q",
           "funds": [
             "統一奔騰"
           ],
           "weight_change": null
+        },
+        {
+          "signal_type": "heavy_position_reduction",
+          "trigger_period": "202512M",
+          "funds": [
+            "野村優質"
+          ],
+          "weight_change": -1.13
         },
         {
           "signal_type": "multi_fund_consensus",
@@ -8014,14 +8021,6 @@
             "統一黑馬"
           ],
           "weight_change": null
-        },
-        {
-          "signal_type": "heavy_position_reduction",
-          "trigger_period": "202512M",
-          "funds": [
-            "野村優質"
-          ],
-          "weight_change": -1.13
         },
         {
           "signal_type": "multi_fund_consensus",
@@ -8506,16 +8505,6 @@
           "weight_change": null
         },
         {
-          "signal_type": "multi_fund_consensus",
-          "trigger_period": "202603M",
-          "funds": [
-            "統一奔騰",
-            "統一中小",
-            "統一全天候"
-          ],
-          "weight_change": null
-        },
-        {
           "signal_type": "dual_track_accumulation",
           "trigger_period": "202603M",
           "funds": [
@@ -8530,6 +8519,16 @@
             "統一奔騰"
           ],
           "weight_change": 2.16
+        },
+        {
+          "signal_type": "multi_fund_consensus",
+          "trigger_period": "202603M",
+          "funds": [
+            "統一奔騰",
+            "統一中小",
+            "統一全天候"
+          ],
+          "weight_change": null
         },
         {
           "signal_type": "core_exit",
@@ -8569,14 +8568,6 @@
           "weight_change": null
         },
         {
-          "signal_type": "consecutive_accumulation",
-          "trigger_period": "202512M",
-          "funds": [
-            "統一中小"
-          ],
-          "weight_change": 0.86
-        },
-        {
           "signal_type": "heavy_position_reduction",
           "trigger_period": "202512M",
           "funds": [
@@ -8586,6 +8577,14 @@
             "復華高成長"
           ],
           "weight_change": -1.39
+        },
+        {
+          "signal_type": "consecutive_accumulation",
+          "trigger_period": "202512M",
+          "funds": [
+            "統一中小"
+          ],
+          "weight_change": 0.86
         },
         {
           "signal_type": "core_exit",
@@ -8614,21 +8613,20 @@
           "weight_change": null
         },
         {
+          "signal_type": "heavy_position_reduction",
+          "trigger_period": "202511M",
+          "funds": [
+            "統一全天候"
+          ],
+          "weight_change": -0.09
+        },
+        {
           "signal_type": "dual_track_accumulation",
           "trigger_period": "202511M",
           "funds": [
             "統一奔騰"
           ],
           "weight_change": 0.72
-        },
-        {
-          "signal_type": "consecutive_accumulation",
-          "trigger_period": "202511M",
-          "funds": [
-            "元大新主流",
-            "統一奔騰"
-          ],
-          "weight_change": 2.19
         },
         {
           "signal_type": "multi_fund_consensus",
@@ -8650,12 +8648,13 @@
           "weight_change": null
         },
         {
-          "signal_type": "heavy_position_reduction",
+          "signal_type": "consecutive_accumulation",
           "trigger_period": "202511M",
           "funds": [
-            "統一全天候"
+            "元大新主流",
+            "統一奔騰"
           ],
-          "weight_change": -0.09
+          "weight_change": 2.19
         },
         {
           "signal_type": "multi_fund_consensus",
@@ -9002,12 +9001,12 @@
           "weight_change": null
         },
         {
-          "signal_type": "core_exit",
+          "signal_type": "consecutive_accumulation",
           "trigger_period": "202603M",
           "funds": [
-            "元大新主流"
+            "安聯台灣大壩"
           ],
-          "weight_change": null
+          "weight_change": 0.89
         },
         {
           "signal_type": "quarterly_to_monthly_top10",
@@ -9018,12 +9017,12 @@
           "weight_change": 1.02
         },
         {
-          "signal_type": "consecutive_accumulation",
+          "signal_type": "core_exit",
           "trigger_period": "202603M",
           "funds": [
-            "安聯台灣大壩"
+            "元大新主流"
           ],
-          "weight_change": 0.89
+          "weight_change": null
         },
         {
           "signal_type": "quarterly_to_monthly_top10",
@@ -9670,6 +9669,20 @@
           "weight_change": null
         },
         {
+          "signal_type": "quarterly_to_monthly_top10",
+          "trigger_period": "202603M",
+          "funds": [
+            "統一奔騰",
+            "復華全方位",
+            "復華高成長",
+            "野村優質",
+            "安聯台灣大壩",
+            "安聯台灣科技",
+            "台新主流"
+          ],
+          "weight_change": 3.24
+        },
+        {
           "signal_type": "consecutive_accumulation",
           "trigger_period": "202603M",
           "funds": [
@@ -9702,29 +9715,6 @@
           "weight_change": null
         },
         {
-          "signal_type": "quarterly_to_monthly_top10",
-          "trigger_period": "202603M",
-          "funds": [
-            "統一奔騰",
-            "復華全方位",
-            "復華高成長",
-            "野村優質",
-            "安聯台灣大壩",
-            "安聯台灣科技",
-            "台新主流"
-          ],
-          "weight_change": 3.24
-        },
-        {
-          "signal_type": "consecutive_accumulation",
-          "trigger_period": "202602M",
-          "funds": [
-            "安聯台灣科技",
-            "復華高成長"
-          ],
-          "weight_change": 0.7
-        },
-        {
           "signal_type": "multi_fund_consensus",
           "trigger_period": "202602M",
           "funds": [
@@ -9750,14 +9740,6 @@
           "weight_change": 1.12
         },
         {
-          "signal_type": "dual_track_accumulation",
-          "trigger_period": "202602M",
-          "funds": [
-            "統一奔騰"
-          ],
-          "weight_change": 0.33
-        },
-        {
           "signal_type": "core_exit",
           "trigger_period": "202602M",
           "funds": [
@@ -9766,12 +9748,37 @@
           "weight_change": null
         },
         {
+          "signal_type": "dual_track_accumulation",
+          "trigger_period": "202602M",
+          "funds": [
+            "統一奔騰"
+          ],
+          "weight_change": 0.33
+        },
+        {
           "signal_type": "consecutive_accumulation",
+          "trigger_period": "202602M",
+          "funds": [
+            "安聯台灣科技",
+            "復華高成長"
+          ],
+          "weight_change": 0.7
+        },
+        {
+          "signal_type": "heavy_position_reduction",
           "trigger_period": "202601M",
           "funds": [
-            "台新主流"
+            "安聯台灣大壩"
           ],
-          "weight_change": 0.43
+          "weight_change": -0.18
+        },
+        {
+          "signal_type": "core_exit",
+          "trigger_period": "202601M",
+          "funds": [
+            "元大新主流"
+          ],
+          "weight_change": null
         },
         {
           "signal_type": "multi_fund_consensus",
@@ -9788,16 +9795,6 @@
           "weight_change": null
         },
         {
-          "signal_type": "core_exit",
-          "trigger_period": "202601M",
-          "funds": [
-            "統一黑馬",
-            "統一中小",
-            "元大新主流"
-          ],
-          "weight_change": null
-        },
-        {
           "signal_type": "quarterly_to_monthly_top10",
           "trigger_period": "202601M",
           "funds": [
@@ -9808,18 +9805,33 @@
           "weight_change": 0.51
         },
         {
-          "signal_type": "heavy_position_reduction",
+          "signal_type": "consecutive_accumulation",
           "trigger_period": "202601M",
           "funds": [
-            "安聯台灣大壩"
+            "台新主流"
           ],
-          "weight_change": -0.18
+          "weight_change": 0.43
         },
         {
           "signal_type": "quarterly_dormant_etf_active",
           "trigger_period": "202512Q",
           "funds": [
             "統一奔騰"
+          ],
+          "weight_change": null
+        },
+        {
+          "signal_type": "multi_fund_consensus",
+          "trigger_period": "202512M",
+          "funds": [
+            "安聯台灣大壩",
+            "安聯台灣科技",
+            "台新主流",
+            "統一奔騰",
+            "元大新主流",
+            "統一中小",
+            "統一全天候",
+            "統一黑馬"
           ],
           "weight_change": null
         },
@@ -9842,21 +9854,6 @@
         },
         {
           "signal_type": "multi_fund_consensus",
-          "trigger_period": "202512M",
-          "funds": [
-            "安聯台灣大壩",
-            "安聯台灣科技",
-            "台新主流",
-            "統一奔騰",
-            "元大新主流",
-            "統一中小",
-            "統一全天候",
-            "統一黑馬"
-          ],
-          "weight_change": null
-        },
-        {
-          "signal_type": "multi_fund_consensus",
           "trigger_period": "202511M",
           "funds": [
             "安聯台灣大壩",
@@ -9872,15 +9869,6 @@
           "weight_change": null
         },
         {
-          "signal_type": "heavy_position_reduction",
-          "trigger_period": "202511M",
-          "funds": [
-            "元大新主流",
-            "統一奔騰"
-          ],
-          "weight_change": -1.57
-        },
-        {
           "signal_type": "consecutive_accumulation",
           "trigger_period": "202511M",
           "funds": [
@@ -9888,6 +9876,15 @@
             "統一中小"
           ],
           "weight_change": 3.54
+        },
+        {
+          "signal_type": "heavy_position_reduction",
+          "trigger_period": "202511M",
+          "funds": [
+            "元大新主流",
+            "統一奔騰"
+          ],
+          "weight_change": -1.57
         },
         {
           "signal_type": "multi_fund_consensus",
@@ -10349,14 +10346,6 @@
           "weight_change": null
         },
         {
-          "signal_type": "quarterly_to_monthly_top10",
-          "trigger_period": "202602M",
-          "funds": [
-            "復華高成長"
-          ],
-          "weight_change": 0.29
-        },
-        {
           "signal_type": "multi_fund_consensus",
           "trigger_period": "202602M",
           "funds": [
@@ -10369,6 +10358,14 @@
             "統一全天候"
           ],
           "weight_change": null
+        },
+        {
+          "signal_type": "quarterly_to_monthly_top10",
+          "trigger_period": "202602M",
+          "funds": [
+            "復華高成長"
+          ],
+          "weight_change": 0.29
         },
         {
           "signal_type": "core_exit",
@@ -10389,6 +10386,15 @@
           "weight_change": 0.88
         },
         {
+          "signal_type": "core_exit",
+          "trigger_period": "202601M",
+          "funds": [
+            "統一中小",
+            "安聯台灣科技"
+          ],
+          "weight_change": null
+        },
+        {
           "signal_type": "multi_fund_consensus",
           "trigger_period": "202601M",
           "funds": [
@@ -10404,19 +10410,24 @@
           "weight_change": null
         },
         {
-          "signal_type": "core_exit",
-          "trigger_period": "202601M",
-          "funds": [
-            "統一中小",
-            "安聯台灣科技"
-          ],
-          "weight_change": null
-        },
-        {
           "signal_type": "quarterly_dormant_etf_active",
           "trigger_period": "202512Q",
           "funds": [
             "統一奔騰"
+          ],
+          "weight_change": null
+        },
+        {
+          "signal_type": "multi_fund_consensus",
+          "trigger_period": "202512M",
+          "funds": [
+            "統一中小",
+            "台新主流",
+            "統一黑馬",
+            "統一全天候",
+            "安聯台灣大壩",
+            "統一大中華中小",
+            "安聯台灣科技"
           ],
           "weight_change": null
         },
@@ -10433,26 +10444,21 @@
           "weight_change": 1.3
         },
         {
-          "signal_type": "multi_fund_consensus",
-          "trigger_period": "202512M",
-          "funds": [
-            "統一中小",
-            "台新主流",
-            "統一黑馬",
-            "統一全天候",
-            "安聯台灣大壩",
-            "統一大中華中小",
-            "安聯台灣科技"
-          ],
-          "weight_change": null
-        },
-        {
           "signal_type": "core_exit",
           "trigger_period": "202512M",
           "funds": [
             "復華全方位"
           ],
           "weight_change": null
+        },
+        {
+          "signal_type": "consecutive_accumulation",
+          "trigger_period": "202511M",
+          "funds": [
+            "安聯台灣科技",
+            "台新主流"
+          ],
+          "weight_change": 1.58
         },
         {
           "signal_type": "multi_fund_consensus",
@@ -10468,15 +10474,6 @@
             "統一大中華中小"
           ],
           "weight_change": null
-        },
-        {
-          "signal_type": "consecutive_accumulation",
-          "trigger_period": "202511M",
-          "funds": [
-            "安聯台灣科技",
-            "台新主流"
-          ],
-          "weight_change": 1.58
         },
         {
           "signal_type": "multi_fund_consensus",
@@ -10700,6 +10697,15 @@
           "weight_change": null
         },
         {
+          "signal_type": "consecutive_accumulation",
+          "trigger_period": "202512M",
+          "funds": [
+            "野村優質",
+            "元大新主流"
+          ],
+          "weight_change": 0.58
+        },
+        {
           "signal_type": "multi_fund_consensus",
           "trigger_period": "202512M",
           "funds": [
@@ -10708,15 +10714,6 @@
             "野村優質"
           ],
           "weight_change": null
-        },
-        {
-          "signal_type": "consecutive_accumulation",
-          "trigger_period": "202512M",
-          "funds": [
-            "野村優質",
-            "元大新主流"
-          ],
-          "weight_change": 0.58
         },
         {
           "signal_type": "consecutive_accumulation",
@@ -11176,26 +11173,6 @@
           "weight_change": 2.58
         },
         {
-          "signal_type": "quarterly_to_monthly_top10",
-          "trigger_period": "202601M",
-          "funds": [
-            "安聯台灣科技",
-            "元大新主流",
-            "野村優質",
-            "安聯台灣大壩"
-          ],
-          "weight_change": 1.25
-        },
-        {
-          "signal_type": "consecutive_accumulation",
-          "trigger_period": "202601M",
-          "funds": [
-            "安聯台灣大壩",
-            "元大新主流"
-          ],
-          "weight_change": 1.25
-        },
-        {
           "signal_type": "multi_fund_consensus",
           "trigger_period": "202601M",
           "funds": [
@@ -11207,13 +11184,24 @@
           "weight_change": null
         },
         {
-          "signal_type": "core_exit",
-          "trigger_period": "202512M",
+          "signal_type": "consecutive_accumulation",
+          "trigger_period": "202601M",
           "funds": [
-            "統一中小",
-            "野村高科技"
+            "安聯台灣大壩",
+            "元大新主流"
           ],
-          "weight_change": null
+          "weight_change": 1.25
+        },
+        {
+          "signal_type": "quarterly_to_monthly_top10",
+          "trigger_period": "202601M",
+          "funds": [
+            "安聯台灣科技",
+            "元大新主流",
+            "野村優質",
+            "安聯台灣大壩"
+          ],
+          "weight_change": 1.25
         },
         {
           "signal_type": "consecutive_accumulation",
@@ -11235,12 +11223,10 @@
           "weight_change": null
         },
         {
-          "signal_type": "multi_fund_consensus",
-          "trigger_period": "202511M",
+          "signal_type": "core_exit",
+          "trigger_period": "202512M",
           "funds": [
             "統一中小",
-            "安聯台灣大壩",
-            "野村優質",
             "野村高科技"
           ],
           "weight_change": null
@@ -11252,6 +11238,17 @@
             "統一中小"
           ],
           "weight_change": 1.01
+        },
+        {
+          "signal_type": "multi_fund_consensus",
+          "trigger_period": "202511M",
+          "funds": [
+            "統一中小",
+            "安聯台灣大壩",
+            "野村優質",
+            "野村高科技"
+          ],
+          "weight_change": null
         },
         {
           "signal_type": "multi_fund_consensus",
@@ -11765,20 +11762,20 @@
           "weight_change": null
         },
         {
-          "signal_type": "quarterly_to_monthly_top10",
-          "trigger_period": "202603M",
-          "funds": [
-            "統一黑馬"
-          ],
-          "weight_change": 1.12
-        },
-        {
           "signal_type": "consecutive_accumulation",
           "trigger_period": "202603M",
           "funds": [
             "統一黑馬"
           ],
           "weight_change": 0.11
+        },
+        {
+          "signal_type": "quarterly_to_monthly_top10",
+          "trigger_period": "202603M",
+          "funds": [
+            "統一黑馬"
+          ],
+          "weight_change": 1.12
         },
         {
           "signal_type": "consecutive_accumulation",
@@ -12057,6 +12054,16 @@
           "weight_change": null
         },
         {
+          "signal_type": "consensus_formation",
+          "trigger_period": "202603M",
+          "funds": [
+            "復華全方位",
+            "復華高成長",
+            "野村優質"
+          ],
+          "weight_change": null
+        },
+        {
           "signal_type": "quarterly_to_monthly_top10",
           "trigger_period": "202603M",
           "funds": [
@@ -12073,18 +12080,18 @@
           "weight_change": -2.52
         },
         {
-          "signal_type": "consensus_formation",
+          "signal_type": "multi_fund_consensus",
           "trigger_period": "202603M",
           "funds": [
+            "野村優質",
             "復華全方位",
-            "復華高成長",
-            "野村優質"
+            "復華高成長"
           ],
           "weight_change": null
         },
         {
           "signal_type": "multi_fund_consensus",
-          "trigger_period": "202603M",
+          "trigger_period": "202602M",
           "funds": [
             "野村優質",
             "復華全方位",
@@ -12103,26 +12110,6 @@
           "weight_change": 4.09
         },
         {
-          "signal_type": "multi_fund_consensus",
-          "trigger_period": "202602M",
-          "funds": [
-            "野村優質",
-            "復華全方位",
-            "復華高成長"
-          ],
-          "weight_change": null
-        },
-        {
-          "signal_type": "consensus_formation",
-          "trigger_period": "202602M",
-          "funds": [
-            "復華全方位",
-            "復華高成長",
-            "野村優質"
-          ],
-          "weight_change": null
-        },
-        {
           "signal_type": "consecutive_accumulation",
           "trigger_period": "202602M",
           "funds": [
@@ -12131,27 +12118,8 @@
           "weight_change": 1.37
         },
         {
-          "signal_type": "multi_fund_consensus",
-          "trigger_period": "202601M",
-          "funds": [
-            "野村優質",
-            "復華全方位",
-            "復華高成長"
-          ],
-          "weight_change": null
-        },
-        {
-          "signal_type": "consecutive_accumulation",
-          "trigger_period": "202601M",
-          "funds": [
-            "復華高成長",
-            "野村優質"
-          ],
-          "weight_change": 3.13
-        },
-        {
           "signal_type": "consensus_formation",
-          "trigger_period": "202601M",
+          "trigger_period": "202602M",
           "funds": [
             "復華全方位",
             "復華高成長",
@@ -12170,7 +12138,26 @@
         },
         {
           "signal_type": "multi_fund_consensus",
-          "trigger_period": "202512M",
+          "trigger_period": "202601M",
+          "funds": [
+            "野村優質",
+            "復華全方位",
+            "復華高成長"
+          ],
+          "weight_change": null
+        },
+        {
+          "signal_type": "consecutive_accumulation",
+          "trigger_period": "202601M",
+          "funds": [
+            "復華高成長",
+            "野村優質"
+          ],
+          "weight_change": 3.13
+        },
+        {
+          "signal_type": "consensus_formation",
+          "trigger_period": "202601M",
           "funds": [
             "復華全方位",
             "復華高成長",
@@ -12179,7 +12166,7 @@
           "weight_change": null
         },
         {
-          "signal_type": "consensus_formation",
+          "signal_type": "multi_fund_consensus",
           "trigger_period": "202512M",
           "funds": [
             "復華全方位",
@@ -12195,6 +12182,16 @@
             "野村優質"
           ],
           "weight_change": 1.37
+        },
+        {
+          "signal_type": "consensus_formation",
+          "trigger_period": "202512M",
+          "funds": [
+            "復華全方位",
+            "復華高成長",
+            "野村優質"
+          ],
+          "weight_change": null
         },
         {
           "signal_type": "consensus_formation",
@@ -12780,23 +12777,6 @@
           "weight_change": null
         },
         {
-          "signal_type": "core_exit",
-          "trigger_period": "202603M",
-          "funds": [
-            "統一奔騰",
-            "元大新主流"
-          ],
-          "weight_change": null
-        },
-        {
-          "signal_type": "consecutive_accumulation",
-          "trigger_period": "202603M",
-          "funds": [
-            "野村高科技"
-          ],
-          "weight_change": 1.29
-        },
-        {
           "signal_type": "multi_fund_consensus",
           "trigger_period": "202603M",
           "funds": [
@@ -12816,6 +12796,22 @@
           "weight_change": -1.14
         },
         {
+          "signal_type": "consecutive_accumulation",
+          "trigger_period": "202603M",
+          "funds": [
+            "野村高科技"
+          ],
+          "weight_change": 1.29
+        },
+        {
+          "signal_type": "core_exit",
+          "trigger_period": "202603M",
+          "funds": [
+            "元大新主流"
+          ],
+          "weight_change": null
+        },
+        {
           "signal_type": "multi_fund_consensus",
           "trigger_period": "202602M",
           "funds": [
@@ -12828,16 +12824,6 @@
           "weight_change": null
         },
         {
-          "signal_type": "heavy_position_reduction",
-          "trigger_period": "202602M",
-          "funds": [
-            "復華全方位",
-            "復華高成長",
-            "元大新主流"
-          ],
-          "weight_change": -3.75
-        },
-        {
           "signal_type": "quarterly_to_monthly_top10",
           "trigger_period": "202602M",
           "funds": [
@@ -12846,6 +12832,16 @@
             "復華高成長"
           ],
           "weight_change": 2.78
+        },
+        {
+          "signal_type": "heavy_position_reduction",
+          "trigger_period": "202602M",
+          "funds": [
+            "復華全方位",
+            "復華高成長",
+            "元大新主流"
+          ],
+          "weight_change": -3.75
         },
         {
           "signal_type": "core_exit",
