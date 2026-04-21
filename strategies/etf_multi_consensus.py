@@ -14,10 +14,9 @@ from strategies.registry import register
 class EtfMultiConsensus(BaseStrategy):
     signal_type = "etf_multi_consensus"
 
-    # Minimum number of distinct ETFs acting on the same stock
     MIN_ETFS = 2
-    # Rolling window size in trading days
     WINDOW_DAYS = 5
+    MIN_WEIGHT = 1.0  # ETF must hold >= 1% weight in the stock
 
     def scan(self, period: str, cur) -> list[dict]:
         """Monthly fallback — not used for daily ETF scan."""
@@ -55,13 +54,25 @@ class EtfMultiConsensus(BaseStrategy):
         cur.execute("SELECT code, name FROM tw.funds WHERE fund_type = 'etf'")
         etf_names = {r["code"]: r["name"] for r in cur.fetchall()}
 
-        # Group by stock
+        # Latest weight per (etf, stock)
+        cur.execute("""
+            SELECT etf_id, stock_id, weight
+            FROM tw.etf_holdings
+            WHERE trade_date = (SELECT MAX(trade_date) FROM tw.etf_holdings)
+        """)
+        latest_weight = {(r["etf_id"], r["stock_id"]): float(r["weight"]) for r in cur.fetchall()}
+
+        # Group by stock, filtering by minimum weight
         stock_data: dict[str, dict] = {}
         for r in rows:
             sid = r["stock_id"]
+            etf_id = r["etf_id"]
+            w = latest_weight.get((etf_id, sid), 0)
+            if w < self.MIN_WEIGHT:
+                continue
             if sid not in stock_data:
                 stock_data[sid] = {"stock_name": r["stock_name"], "etfs": {}}
-            stock_data[sid]["etfs"][r["etf_id"]] = int(r["total_shares"])
+            stock_data[sid]["etfs"][etf_id] = int(r["total_shares"])
 
         iso = trade_date.isocalendar()
         period_str = f"{iso[0]}W{iso[1]:02d}"
@@ -75,7 +86,8 @@ class EtfMultiConsensus(BaseStrategy):
             total_shares = 0
             for etf_id, shares in info["etfs"].items():
                 etf_list.append(etf_names.get(etf_id, etf_id))
-                details.append({"etf": etf_id, "total_shares": shares})
+                w = latest_weight.get((etf_id, ticker), 0)
+                details.append({"etf": etf_id, "total_shares": shares, "weight": round(w, 2)})
                 total_shares += shares
 
             signals.append(self._make_signal(
