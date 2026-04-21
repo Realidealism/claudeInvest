@@ -10,7 +10,7 @@ from datetime import date
 SIGNAL_TYPE = "etf_multi_exit"
 MIN_ETFS = 2
 WINDOW_DAYS = 5
-MIN_WEIGHT = 1.0  # ETF must hold >= 1% weight in the stock
+MIN_WEIGHT = 0.5  # ETF must hold >= 0.5% weight in the stock
 
 
 def scan(trade_date: date, cur) -> list[dict]:
