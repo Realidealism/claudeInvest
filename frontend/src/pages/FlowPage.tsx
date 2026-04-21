@@ -121,7 +121,7 @@ export default function FlowPage() {
                           {lots > 0 ? "+" : ""}{lots}
                         </span>
                       ) : (
-                        <span className="text-text-secondary">0</span>
+                        <span className="text-text-secondary">·</span>
                       )}
                     </td>
                   );
