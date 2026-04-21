@@ -144,7 +144,7 @@ def export_backtest(cur, out: Path):
             "trades": len(rets),
             "win_rate": len(w) / len(rets),
             "avg_return": float(np.mean(rets)),
-            "total_return": float(np.prod([1 + r for r in rets]) - 1),
+            "total_return": float(np.sum(rets)),
         }
 
     _write({
