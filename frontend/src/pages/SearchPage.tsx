@@ -84,7 +84,7 @@ export default function SearchPage() {
     }
     // Sort signals within each ticker: newest first
     for (const v of Object.values(map)) {
-      v.signals.sort((a, b) => b.trigger_period.localeCompare(a.trigger_period));
+      v.signals.sort((a, b) => b.trigger_date.localeCompare(a.trigger_date));
     }
     return map;
   }, [results]);
@@ -126,7 +126,7 @@ export default function SearchPage() {
                 <thead>
                   <tr className="border-b border-border text-text-secondary text-left">
                     <th className="py-1.5 pr-4 font-medium">信號</th>
-                    <th className="py-1.5 pr-4 font-medium">期間</th>
+                    <th className="py-1.5 pr-4 font-medium">日期</th>
                     <th className="py-1.5 pr-4 font-medium text-right">權重變化</th>
                     <th className="py-1.5 pr-4 font-medium">涉及基金/ETF</th>
                   </tr>
@@ -140,7 +140,7 @@ export default function SearchPage() {
                           <span className="mr-1">{isShort ? "▼" : "▲"}</span>
                           {SIGNAL_LABELS[s.signal_type] || s.signal_type}
                         </td>
-                        <td className="py-1.5 pr-4 font-mono text-text-secondary">{s.trigger_period}</td>
+                        <td className="py-1.5 pr-4 font-mono text-text-secondary">{s.trigger_date}</td>
                         <td className="py-1.5 pr-4 text-right font-mono">
                           {s.weight_change != null ? (
                             <span className={s.weight_change > 0 ? "text-negative" : "text-positive"}>
