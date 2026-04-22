@@ -21,6 +21,7 @@ class EtfAbnormalPosition(BaseStrategy):
     MIN_HISTORY_DAYS = 5
     # Fallback: if no history, require at least this many shares added
     MIN_SHARES_ABSOLUTE = 500_000  # 500張
+    MIN_AMOUNT = 500_000  # minimum change amount in TWD
 
     def scan(self, period: str, cur) -> list[dict]:
         """Monthly fallback — not used for daily ETF scan."""
@@ -67,6 +68,15 @@ class EtfAbnormalPosition(BaseStrategy):
         cur.execute("SELECT code, name FROM tw.funds WHERE fund_type = 'etf'")
         etf_names = {r["code"]: r["name"] for r in cur.fetchall()}
 
+        # Latest close price per stock for amount calculation
+        cur.execute("""
+            SELECT DISTINCT ON (stock_id) stock_id, close_price
+            FROM tw.daily_prices
+            WHERE close_price IS NOT NULL
+            ORDER BY stock_id, trade_date DESC
+        """)
+        prices = {r["stock_id"]: float(r["close_price"]) for r in cur.fetchall()}
+
         ticker_signals: dict[str, dict] = {}
         for r in today:
             etf_id = r["etf_id"]
@@ -87,6 +97,9 @@ class EtfAbnormalPosition(BaseStrategy):
                 continue
 
             ticker = r["stock_id"]
+            amount = shares * prices.get(ticker, 0)
+            if amount < self.MIN_AMOUNT:
+                continue
             if ticker not in ticker_signals:
                 ticker_signals[ticker] = {
                     "stock_name": r["stock_name"],

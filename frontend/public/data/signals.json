@@ -541,35 +541,6 @@
         }
       },
       {
-        "ticker": "2439",
-        "ticker_name": "美律",
-        "funds": [
-          "統一台股增長"
-        ],
-        "trigger_date": "2026-04-22",
-        "trigger_period": "2026W17",
-        "weight_change": null,
-        "evidence": {
-          "details": [
-            {
-              "etf": "00981A",
-              "weeks": [
-                {
-                  "week": "2026-W16",
-                  "net_shares": 2000
-                },
-                {
-                  "week": "2026-W17",
-                  "net_shares": 2000
-                }
-              ],
-              "streak": 2
-            }
-          ],
-          "total_shares": 4000
-        }
-      },
-      {
         "ticker": "2449",
         "ticker_name": "京元電子",
         "funds": [
@@ -1476,7 +1447,6 @@
         "ticker": "5347",
         "ticker_name": "世界",
         "funds": [
-          "統一台股增長",
           "群益台灣科技創新主動"
         ],
         "trigger_date": "2026-04-22",
@@ -1484,20 +1454,6 @@
         "weight_change": null,
         "evidence": {
           "details": [
-            {
-              "etf": "00981A",
-              "weeks": [
-                {
-                  "week": "2026-W16",
-                  "net_shares": 1000
-                },
-                {
-                  "week": "2026-W17",
-                  "net_shares": 1000
-                }
-              ],
-              "streak": 2
-            },
             {
               "etf": "00992A",
               "weeks": [
@@ -1513,7 +1469,7 @@
               "streak": 2
             }
           ],
-          "total_shares": 420000
+          "total_shares": 418000
         }
       },
       {
@@ -1940,35 +1896,6 @@
         }
       },
       {
-        "ticker": "6997 JP",
-        "ticker_name": "NIPPON CHEMI-CON CORP",
-        "funds": [
-          "統一全球創新"
-        ],
-        "trigger_date": "2026-04-22",
-        "trigger_period": "2026W17",
-        "weight_change": null,
-        "evidence": {
-          "details": [
-            {
-              "etf": "00988A",
-              "weeks": [
-                {
-                  "week": "2026-W16",
-                  "net_shares": 280000
-                },
-                {
-                  "week": "2026-W17",
-                  "net_shares": 150000
-                }
-              ],
-              "streak": 2
-            }
-          ],
-          "total_shares": 430000
-        }
-      },
-      {
         "ticker": "7751",
         "ticker_name": "竑騰",
         "funds": [
@@ -2039,35 +1966,6 @@
             }
           ],
           "total_shares": 137000
-        }
-      },
-      {
-        "ticker": "7826 JP",
-        "ticker_name": "FURUYA METAL CO LTD",
-        "funds": [
-          "統一全球創新"
-        ],
-        "trigger_date": "2026-04-22",
-        "trigger_period": "2026W17",
-        "weight_change": null,
-        "evidence": {
-          "details": [
-            {
-              "etf": "00988A",
-              "weeks": [
-                {
-                  "week": "2026-W16",
-                  "net_shares": 100000
-                },
-                {
-                  "week": "2026-W17",
-                  "net_shares": 50000
-                }
-              ],
-              "streak": 2
-            }
-          ],
-          "total_shares": 150000
         }
       },
       {
@@ -2229,125 +2127,37 @@
           ],
           "total_shares": 496000
         }
-      },
-      {
-        "ticker": "AIXA GY",
-        "ticker_name": "AIXTRON SE",
-        "funds": [
-          "統一全球創新"
-        ],
-        "trigger_date": "2026-04-22",
-        "trigger_period": "2026W17",
-        "weight_change": null,
-        "evidence": {
-          "details": [
-            {
-              "etf": "00988A",
-              "weeks": [
-                {
-                  "week": "2026-W16",
-                  "net_shares": 32432
-                },
-                {
-                  "week": "2026-W17",
-                  "net_shares": 5107
-                }
-              ],
-              "streak": 2
-            }
-          ],
-          "total_shares": 37539
-        }
-      },
-      {
-        "ticker": "AMD US",
-        "ticker_name": "ADVANCED MICRO DEVICES.amd us(超微半導體公司)",
-        "funds": [
-          "統一全球創新"
-        ],
-        "trigger_date": "2026-04-22",
-        "trigger_period": "2026W17",
-        "weight_change": null,
-        "evidence": {
-          "details": [
-            {
-              "etf": "00988A",
-              "weeks": [
-                {
-                  "week": "2026-W16",
-                  "net_shares": 25000
-                },
-                {
-                  "week": "2026-W17",
-                  "net_shares": 35000
-                }
-              ],
-              "streak": 2
-            }
-          ],
-          "total_shares": 60000
-        }
-      },
-      {
-        "ticker": "BE US",
-        "ticker_name": "BLOOM ENERGY CORP- A",
-        "funds": [
-          "統一全球創新"
-        ],
-        "trigger_date": "2026-04-22",
-        "trigger_period": "2026W17",
-        "weight_change": null,
-        "evidence": {
-          "details": [
-            {
-              "etf": "00988A",
-              "weeks": [
-                {
-                  "week": "2026-W16",
-                  "net_shares": 22000
-                },
-                {
-                  "week": "2026-W17",
-                  "net_shares": 10000
-                }
-              ],
-              "streak": 2
-            }
-          ],
-          "total_shares": 32000
-        }
-      },
-      {
-        "ticker": "COHR US",
-        "ticker_name": "COHERENT INC",
-        "funds": [
-          "統一全球創新"
-        ],
-        "trigger_date": "2026-04-22",
-        "trigger_period": "2026W17",
-        "weight_change": null,
-        "evidence": {
-          "details": [
-            {
-              "etf": "00988A",
-              "weeks": [
-                {
-                  "week": "2026-W16",
-                  "net_shares": 5000
-                },
-                {
-                  "week": "2026-W17",
-                  "net_shares": 7000
-                }
-              ],
-              "streak": 2
-            }
-          ],
-          "total_shares": 12000
-        }
       }
     ],
     "etf_multi_consensus": [
+      {
+        "ticker": "1815",
+        "ticker_name": "富喬工業",
+        "funds": [
+          "安聯台灣主動式",
+          "統一台股增長"
+        ],
+        "trigger_date": "2026-04-22",
+        "trigger_period": "2026W17",
+        "weight_change": null,
+        "evidence": {
+          "window": "2026-04-15 ~ 2026-04-21",
+          "details": [
+            {
+              "etf": "00993A",
+              "amount": 1190000,
+              "total_shares": 10000
+            },
+            {
+              "etf": "00981A",
+              "amount": 11900000,
+              "total_shares": 100000
+            }
+          ],
+          "etf_count": 2,
+          "total_shares": 110000
+        }
+      },
       {
         "ticker": "2303",
         "ticker_name": "聯電",
@@ -2364,17 +2174,17 @@
           "details": [
             {
               "etf": "00981A",
-              "weight": 1.23,
+              "amount": 2248281000,
               "total_shares": 29505000
             },
             {
               "etf": "00993A",
-              "weight": 3.63,
+              "amount": 685800,
               "total_shares": 9000
             },
             {
               "etf": "00982A",
-              "weight": 0.61,
+              "amount": 45720000,
               "total_shares": 600000
             }
           ],
@@ -2397,12 +2207,12 @@
           "details": [
             {
               "etf": "00981A",
-              "weight": 6.4,
+              "amount": 2536885000,
               "total_shares": 1259000
             },
             {
               "etf": "00992A",
-              "weight": 1.55,
+              "amount": 431210000,
               "total_shares": 214000
             }
           ],
@@ -2426,17 +2236,17 @@
           "details": [
             {
               "etf": "00981A",
-              "weight": 9.02,
+              "amount": 4212750000,
               "total_shares": 2055000
             },
             {
               "etf": "00992A",
-              "weight": 5.79,
+              "amount": 729800000,
               "total_shares": 356000
             },
             {
               "etf": "00993A",
-              "weight": 4.62,
+              "amount": 2050000,
               "total_shares": 1000
             }
           ],
@@ -2459,12 +2269,12 @@
           "details": [
             {
               "etf": "00981A",
-              "weight": 5.78,
+              "amount": 2238180000,
               "total_shares": 1022000
             },
             {
               "etf": "00992A",
-              "weight": 3.38,
+              "amount": 335070000,
               "total_shares": 153000
             }
           ],
@@ -2487,12 +2297,12 @@
           "details": [
             {
               "etf": "00981A",
-              "weight": 4.94,
+              "amount": 757050000,
               "total_shares": 618000
             },
             {
               "etf": "00992A",
-              "weight": 0.82,
+              "amount": 84525000,
               "total_shares": 69000
             }
           ],
@@ -2515,12 +2325,12 @@
           "details": [
             {
               "etf": "00981A",
-              "weight": 7.24,
+              "amount": 1682700000,
               "total_shares": 426000
             },
             {
               "etf": "00992A",
-              "weight": 3.75,
+              "amount": 387100000,
               "total_shares": 98000
             }
           ],
@@ -2543,12 +2353,12 @@
           "details": [
             {
               "etf": "00988A",
-              "weight": 1.75,
+              "amount": 418000000,
               "total_shares": 200000
             },
             {
               "etf": "00981A",
-              "weight": 3.05,
+              "amount": 4169550000,
               "total_shares": 1995000
             }
           ],
@@ -2571,12 +2381,12 @@
           "details": [
             {
               "etf": "00981A",
-              "weight": 5.13,
+              "amount": 1346625000,
               "total_shares": 525000
             },
             {
               "etf": "00992A",
-              "weight": 2.78,
+              "amount": 284715000,
               "total_shares": 111000
             }
           ],
@@ -2599,12 +2409,12 @@
           "details": [
             {
               "etf": "00992A",
-              "weight": 4.59,
+              "amount": 1002625000,
               "total_shares": 1625000
             },
             {
               "etf": "00993A",
-              "weight": 1.31,
+              "amount": 617000,
               "total_shares": 1000
             }
           ],
@@ -2627,17 +2437,45 @@
           "details": [
             {
               "etf": "00982A",
-              "weight": 4.37,
+              "amount": 206000000,
               "total_shares": 1000000
             },
             {
               "etf": "00981A",
-              "weight": 0.53,
+              "amount": 355762000,
               "total_shares": 1727000
             }
           ],
           "etf_count": 2,
           "total_shares": 2727000
+        }
+      },
+      {
+        "ticker": "3324",
+        "ticker_name": "雙鴻",
+        "funds": [
+          "統一台股增長",
+          "群益台灣科技創新主動"
+        ],
+        "trigger_date": "2026-04-22",
+        "trigger_period": "2026W17",
+        "weight_change": null,
+        "evidence": {
+          "window": "2026-04-15 ~ 2026-04-21",
+          "details": [
+            {
+              "etf": "00981A",
+              "amount": 7350000,
+              "total_shares": 7000
+            },
+            {
+              "etf": "00992A",
+              "amount": 54600000,
+              "total_shares": 52000
+            }
+          ],
+          "etf_count": 2,
+          "total_shares": 59000
         }
       },
       {
@@ -2655,12 +2493,12 @@
           "details": [
             {
               "etf": "00992A",
-              "weight": 2.23,
+              "amount": 461820000,
               "total_shares": 86000
             },
             {
               "etf": "00981A",
-              "weight": 6.35,
+              "amount": 2099670000,
               "total_shares": 391000
             }
           ],
@@ -2683,12 +2521,12 @@
           "details": [
             {
               "etf": "00981A",
-              "weight": 1.45,
+              "amount": 1689640000,
               "total_shares": 424000
             },
             {
               "etf": "00992A",
-              "weight": 1.49,
+              "amount": 438350000,
               "total_shares": 110000
             }
           ],
@@ -2711,12 +2549,12 @@
           "details": [
             {
               "etf": "00981A",
-              "weight": 4.89,
+              "amount": 1168850000,
               "total_shares": 482000
             },
             {
               "etf": "00992A",
-              "weight": 2.98,
+              "amount": 392850000,
               "total_shares": 162000
             }
           ],
@@ -2729,7 +2567,8 @@
         "ticker_name": "日月光投控",
         "funds": [
           "統一台股增長",
-          "統一全球創新"
+          "統一全球創新",
+          "群益台灣科技創新主動"
         ],
         "trigger_date": "2026-04-22",
         "trigger_period": "2026W17",
@@ -2739,17 +2578,22 @@
           "details": [
             {
               "etf": "00981A",
-              "weight": 1.9,
+              "amount": 450288000,
               "total_shares": 954000
             },
             {
               "etf": "00988A",
-              "weight": 1.28,
+              "amount": 283200000,
               "total_shares": 600000
+            },
+            {
+              "etf": "00992A",
+              "amount": 33040000,
+              "total_shares": 70000
             }
           ],
-          "etf_count": 2,
-          "total_shares": 1554000
+          "etf_count": 3,
+          "total_shares": 1624000
         }
       },
       {
@@ -2768,17 +2612,17 @@
           "details": [
             {
               "etf": "00988A",
-              "weight": 1.99,
+              "amount": 91470000,
               "total_shares": 6000
             },
             {
               "etf": "00981A",
-              "weight": 2.92,
+              "amount": 304900000,
               "total_shares": 20000
             },
             {
               "etf": "00992A",
-              "weight": 1.49,
+              "amount": 213430000,
               "total_shares": 14000
             }
           ],
@@ -2801,12 +2645,12 @@
           "details": [
             {
               "etf": "00981A",
-              "weight": 4.58,
+              "amount": 1131260000,
               "total_shares": 229000
             },
             {
               "etf": "00992A",
-              "weight": 3.08,
+              "amount": 405080000,
               "total_shares": 82000
             }
           ],
@@ -2829,12 +2673,12 @@
           "details": [
             {
               "etf": "00992A",
-              "weight": 1.32,
+              "amount": 376533000,
               "total_shares": 391000
             },
             {
               "etf": "00981A",
-              "weight": 1.59,
+              "amount": 62595000,
               "total_shares": 65000
             }
           ],
@@ -2857,12 +2701,12 @@
           "details": [
             {
               "etf": "00981A",
-              "weight": 1.75,
+              "amount": 718375000,
               "total_shares": 175000
             },
             {
               "etf": "00992A",
-              "weight": 2.85,
+              "amount": 656800000,
               "total_shares": 160000
             }
           ],
@@ -2885,12 +2729,12 @@
           "details": [
             {
               "etf": "00992A",
-              "weight": 3.48,
+              "amount": 353595000,
               "total_shares": 33000
             },
             {
               "etf": "00981A",
-              "weight": 2.06,
+              "amount": 675045000,
               "total_shares": 63000
             }
           ],
@@ -2913,12 +2757,12 @@
           "details": [
             {
               "etf": "00992A",
-              "weight": 1.09,
+              "amount": 95760000,
               "total_shares": 133000
             },
             {
               "etf": "00993A",
-              "weight": 0.64,
+              "amount": 1440000,
               "total_shares": 2000
             }
           ],
@@ -2941,12 +2785,12 @@
           "details": [
             {
               "etf": "00981A",
-              "weight": 1.83,
+              "amount": 2612180000,
               "total_shares": 619000
             },
             {
               "etf": "00992A",
-              "weight": 4.24,
+              "amount": 1308200000,
               "total_shares": 310000
             }
           ],
@@ -2969,12 +2813,12 @@
           "details": [
             {
               "etf": "00981A",
-              "weight": 1.67,
+              "amount": 781320000,
               "total_shares": 408000
             },
             {
               "etf": "00992A",
-              "weight": 1.23,
+              "amount": 126390000,
               "total_shares": 66000
             }
           ],
@@ -2997,17 +2841,45 @@
           "details": [
             {
               "etf": "00992A",
-              "weight": 1.61,
+              "amount": 165980000,
               "total_shares": 86000
             },
             {
               "etf": "00993A",
-              "weight": 0.55,
+              "amount": 1930000,
               "total_shares": 1000
             }
           ],
           "etf_count": 2,
           "total_shares": 87000
+        }
+      },
+      {
+        "ticker": "7769",
+        "ticker_name": "鴻勁",
+        "funds": [
+          "統一台股增長",
+          "群益台灣科技創新主動"
+        ],
+        "trigger_date": "2026-04-22",
+        "trigger_period": "2026W17",
+        "weight_change": null,
+        "evidence": {
+          "window": "2026-04-15 ~ 2026-04-21",
+          "details": [
+            {
+              "etf": "00981A",
+              "amount": 419710000,
+              "total_shares": 94000
+            },
+            {
+              "etf": "00992A",
+              "amount": 191995000,
+              "total_shares": 43000
+            }
+          ],
+          "etf_count": 2,
+          "total_shares": 137000
         }
       },
       {
@@ -3025,12 +2897,12 @@
           "details": [
             {
               "etf": "00981A",
-              "weight": 3.81,
+              "amount": 459987000,
               "total_shares": 583000
             },
             {
               "etf": "00992A",
-              "weight": 1.88,
+              "amount": 157011000,
               "total_shares": 199000
             }
           ],
@@ -3053,17 +2925,617 @@
           "details": [
             {
               "etf": "00992A",
-              "weight": 1.33,
+              "amount": 91292000,
               "total_shares": 232000
             },
             {
               "etf": "00981A",
-              "weight": 1.19,
+              "amount": 294731500,
               "total_shares": 749000
             }
           ],
           "etf_count": 2,
           "total_shares": 981000
+        }
+      },
+      {
+        "ticker": "2308",
+        "ticker_name": "台達電",
+        "funds": [
+          "統一台股增長",
+          "群益台灣科技創新主動"
+        ],
+        "trigger_date": "2026-04-22",
+        "trigger_period": "2026W16",
+        "weight_change": null,
+        "evidence": {
+          "window": "2026-04-15 ~ 2026-04-17",
+          "details": [
+            {
+              "etf": "00981A",
+              "amount": 1094145000,
+              "total_shares": 543000
+            },
+            {
+              "etf": "00992A",
+              "amount": 10075000,
+              "total_shares": 5000
+            }
+          ],
+          "etf_count": 2,
+          "total_shares": 548000
+        }
+      },
+      {
+        "ticker": "2330",
+        "ticker_name": "台積電",
+        "funds": [
+          "統一台股增長",
+          "群益台灣科技創新主動"
+        ],
+        "trigger_date": "2026-04-22",
+        "trigger_period": "2026W16",
+        "weight_change": null,
+        "evidence": {
+          "window": "2026-04-15 ~ 2026-04-17",
+          "details": [
+            {
+              "etf": "00981A",
+              "amount": 1113150000,
+              "total_shares": 543000
+            },
+            {
+              "etf": "00992A",
+              "amount": 71750000,
+              "total_shares": 35000
+            }
+          ],
+          "etf_count": 2,
+          "total_shares": 578000
+        }
+      },
+      {
+        "ticker": "2345",
+        "ticker_name": "智邦",
+        "funds": [
+          "統一台股增長",
+          "群益台灣科技創新主動"
+        ],
+        "trigger_date": "2026-04-22",
+        "trigger_period": "2026W16",
+        "weight_change": null,
+        "evidence": {
+          "window": "2026-04-15 ~ 2026-04-17",
+          "details": [
+            {
+              "etf": "00981A",
+              "amount": 952650000,
+              "total_shares": 435000
+            },
+            {
+              "etf": "00992A",
+              "amount": 45990000,
+              "total_shares": 21000
+            }
+          ],
+          "etf_count": 2,
+          "total_shares": 456000
+        }
+      },
+      {
+        "ticker": "2368",
+        "ticker_name": "金像電",
+        "funds": [
+          "統一台股增長",
+          "群益台灣科技創新主動"
+        ],
+        "trigger_date": "2026-04-22",
+        "trigger_period": "2026W16",
+        "weight_change": null,
+        "evidence": {
+          "window": "2026-04-15 ~ 2026-04-17",
+          "details": [
+            {
+              "etf": "00981A",
+              "amount": 392000000,
+              "total_shares": 320000
+            },
+            {
+              "etf": "00992A",
+              "amount": 11025000,
+              "total_shares": 9000
+            }
+          ],
+          "etf_count": 2,
+          "total_shares": 329000
+        }
+      },
+      {
+        "ticker": "2383",
+        "ticker_name": "台光電",
+        "funds": [
+          "統一台股增長",
+          "群益台灣科技創新主動"
+        ],
+        "trigger_date": "2026-04-22",
+        "trigger_period": "2026W16",
+        "weight_change": null,
+        "evidence": {
+          "window": "2026-04-15 ~ 2026-04-17",
+          "details": [
+            {
+              "etf": "00981A",
+              "amount": 316000000,
+              "total_shares": 80000
+            },
+            {
+              "etf": "00992A",
+              "amount": 51350000,
+              "total_shares": 13000
+            }
+          ],
+          "etf_count": 2,
+          "total_shares": 93000
+        }
+      },
+      {
+        "ticker": "2454",
+        "ticker_name": "聯發科",
+        "funds": [
+          "統一全球創新",
+          "統一台股增長"
+        ],
+        "trigger_date": "2026-04-22",
+        "trigger_period": "2026W16",
+        "weight_change": null,
+        "evidence": {
+          "window": "2026-04-15 ~ 2026-04-17",
+          "details": [
+            {
+              "etf": "00988A",
+              "amount": 209000000,
+              "total_shares": 100000
+            },
+            {
+              "etf": "00981A",
+              "amount": 2489190000,
+              "total_shares": 1191000
+            }
+          ],
+          "etf_count": 2,
+          "total_shares": 1291000
+        }
+      },
+      {
+        "ticker": "3017",
+        "ticker_name": "奇鋐",
+        "funds": [
+          "統一台股增長",
+          "群益台灣科技創新主動"
+        ],
+        "trigger_date": "2026-04-22",
+        "trigger_period": "2026W16",
+        "weight_change": null,
+        "evidence": {
+          "window": "2026-04-15 ~ 2026-04-17",
+          "details": [
+            {
+              "etf": "00981A",
+              "amount": 674595000,
+              "total_shares": 263000
+            },
+            {
+              "etf": "00992A",
+              "amount": 38475000,
+              "total_shares": 15000
+            }
+          ],
+          "etf_count": 2,
+          "total_shares": 278000
+        }
+      },
+      {
+        "ticker": "3324",
+        "ticker_name": "雙鴻",
+        "funds": [
+          "統一台股增長",
+          "群益台灣科技創新主動"
+        ],
+        "trigger_date": "2026-04-22",
+        "trigger_period": "2026W16",
+        "weight_change": null,
+        "evidence": {
+          "window": "2026-04-15 ~ 2026-04-17",
+          "details": [
+            {
+              "etf": "00981A",
+              "amount": 5250000,
+              "total_shares": 5000
+            },
+            {
+              "etf": "00992A",
+              "amount": 1050000,
+              "total_shares": 1000
+            }
+          ],
+          "etf_count": 2,
+          "total_shares": 6000
+        }
+      },
+      {
+        "ticker": "3653",
+        "ticker_name": "健策",
+        "funds": [
+          "群益台灣科技創新主動",
+          "統一台股增長"
+        ],
+        "trigger_date": "2026-04-22",
+        "trigger_period": "2026W16",
+        "weight_change": null,
+        "evidence": {
+          "window": "2026-04-15 ~ 2026-04-17",
+          "details": [
+            {
+              "etf": "00992A",
+              "amount": 21480000,
+              "total_shares": 4000
+            },
+            {
+              "etf": "00981A",
+              "amount": 1122330000,
+              "total_shares": 209000
+            }
+          ],
+          "etf_count": 2,
+          "total_shares": 213000
+        }
+      },
+      {
+        "ticker": "3661",
+        "ticker_name": "世芯-KY",
+        "funds": [
+          "統一台股增長",
+          "群益台灣科技創新主動"
+        ],
+        "trigger_date": "2026-04-22",
+        "trigger_period": "2026W16",
+        "weight_change": null,
+        "evidence": {
+          "window": "2026-04-15 ~ 2026-04-17",
+          "details": [
+            {
+              "etf": "00981A",
+              "amount": 378575000,
+              "total_shares": 95000
+            },
+            {
+              "etf": "00992A",
+              "amount": 7970000,
+              "total_shares": 2000
+            }
+          ],
+          "etf_count": 2,
+          "total_shares": 97000
+        }
+      },
+      {
+        "ticker": "3665",
+        "ticker_name": "貿聯-KY",
+        "funds": [
+          "統一台股增長",
+          "群益台灣科技創新主動"
+        ],
+        "trigger_date": "2026-04-22",
+        "trigger_period": "2026W16",
+        "weight_change": null,
+        "evidence": {
+          "window": "2026-04-15 ~ 2026-04-17",
+          "details": [
+            {
+              "etf": "00981A",
+              "amount": 623225000,
+              "total_shares": 257000
+            },
+            {
+              "etf": "00992A",
+              "amount": 36375000,
+              "total_shares": 15000
+            }
+          ],
+          "etf_count": 2,
+          "total_shares": 272000
+        }
+      },
+      {
+        "ticker": "3711",
+        "ticker_name": "日月光投控",
+        "funds": [
+          "統一台股增長",
+          "統一全球創新",
+          "群益台灣科技創新主動"
+        ],
+        "trigger_date": "2026-04-22",
+        "trigger_period": "2026W16",
+        "weight_change": null,
+        "evidence": {
+          "window": "2026-04-15 ~ 2026-04-17",
+          "details": [
+            {
+              "etf": "00981A",
+              "amount": 219008000,
+              "total_shares": 464000
+            },
+            {
+              "etf": "00988A",
+              "amount": 94400000,
+              "total_shares": 200000
+            },
+            {
+              "etf": "00992A",
+              "amount": 4248000,
+              "total_shares": 9000
+            }
+          ],
+          "etf_count": 3,
+          "total_shares": 673000
+        }
+      },
+      {
+        "ticker": "5274",
+        "ticker_name": "信驊",
+        "funds": [
+          "統一全球創新",
+          "統一台股增長",
+          "群益台灣科技創新主動"
+        ],
+        "trigger_date": "2026-04-22",
+        "trigger_period": "2026W16",
+        "weight_change": null,
+        "evidence": {
+          "window": "2026-04-15 ~ 2026-04-17",
+          "details": [
+            {
+              "etf": "00988A",
+              "amount": 91470000,
+              "total_shares": 6000
+            },
+            {
+              "etf": "00981A",
+              "amount": 304900000,
+              "total_shares": 20000
+            },
+            {
+              "etf": "00992A",
+              "amount": 60980000,
+              "total_shares": 4000
+            }
+          ],
+          "etf_count": 3,
+          "total_shares": 30000
+        }
+      },
+      {
+        "ticker": "6223",
+        "ticker_name": "旺矽",
+        "funds": [
+          "統一台股增長",
+          "群益台灣科技創新主動"
+        ],
+        "trigger_date": "2026-04-22",
+        "trigger_period": "2026W16",
+        "weight_change": null,
+        "evidence": {
+          "window": "2026-04-15 ~ 2026-04-17",
+          "details": [
+            {
+              "etf": "00981A",
+              "amount": 558220000,
+              "total_shares": 113000
+            },
+            {
+              "etf": "00992A",
+              "amount": 39520000,
+              "total_shares": 8000
+            }
+          ],
+          "etf_count": 2,
+          "total_shares": 121000
+        }
+      },
+      {
+        "ticker": "6274",
+        "ticker_name": "台燿",
+        "funds": [
+          "群益台灣科技創新主動",
+          "統一台股增長"
+        ],
+        "trigger_date": "2026-04-22",
+        "trigger_period": "2026W16",
+        "weight_change": null,
+        "evidence": {
+          "window": "2026-04-15 ~ 2026-04-17",
+          "details": [
+            {
+              "etf": "00992A",
+              "amount": 258084000,
+              "total_shares": 268000
+            },
+            {
+              "etf": "00981A",
+              "amount": 62595000,
+              "total_shares": 65000
+            }
+          ],
+          "etf_count": 2,
+          "total_shares": 333000
+        }
+      },
+      {
+        "ticker": "6510",
+        "ticker_name": "精測",
+        "funds": [
+          "統一台股增長",
+          "群益台灣科技創新主動"
+        ],
+        "trigger_date": "2026-04-22",
+        "trigger_period": "2026W16",
+        "weight_change": null,
+        "evidence": {
+          "window": "2026-04-15 ~ 2026-04-17",
+          "details": [
+            {
+              "etf": "00981A",
+              "amount": 316085000,
+              "total_shares": 77000
+            },
+            {
+              "etf": "00992A",
+              "amount": 61575000,
+              "total_shares": 15000
+            }
+          ],
+          "etf_count": 2,
+          "total_shares": 92000
+        }
+      },
+      {
+        "ticker": "6515",
+        "ticker_name": "穎崴",
+        "funds": [
+          "群益台灣科技創新主動",
+          "統一台股增長"
+        ],
+        "trigger_date": "2026-04-22",
+        "trigger_period": "2026W16",
+        "weight_change": null,
+        "evidence": {
+          "window": "2026-04-15 ~ 2026-04-17",
+          "details": [
+            {
+              "etf": "00992A",
+              "amount": 42860000,
+              "total_shares": 4000
+            },
+            {
+              "etf": "00981A",
+              "amount": 439315000,
+              "total_shares": 41000
+            }
+          ],
+          "etf_count": 2,
+          "total_shares": 45000
+        }
+      },
+      {
+        "ticker": "6669",
+        "ticker_name": "緯穎",
+        "funds": [
+          "統一台股增長",
+          "群益台灣科技創新主動"
+        ],
+        "trigger_date": "2026-04-22",
+        "trigger_period": "2026W16",
+        "weight_change": null,
+        "evidence": {
+          "window": "2026-04-15 ~ 2026-04-17",
+          "details": [
+            {
+              "etf": "00981A",
+              "amount": 734280000,
+              "total_shares": 174000
+            },
+            {
+              "etf": "00992A",
+              "amount": 232100000,
+              "total_shares": 55000
+            }
+          ],
+          "etf_count": 2,
+          "total_shares": 229000
+        }
+      },
+      {
+        "ticker": "6805",
+        "ticker_name": "富世達",
+        "funds": [
+          "統一台股增長",
+          "群益台灣科技創新主動"
+        ],
+        "trigger_date": "2026-04-22",
+        "trigger_period": "2026W16",
+        "weight_change": null,
+        "evidence": {
+          "window": "2026-04-15 ~ 2026-04-17",
+          "details": [
+            {
+              "etf": "00981A",
+              "amount": 547690000,
+              "total_shares": 286000
+            },
+            {
+              "etf": "00992A",
+              "amount": 17235000,
+              "total_shares": 9000
+            }
+          ],
+          "etf_count": 2,
+          "total_shares": 295000
+        }
+      },
+      {
+        "ticker": "7769",
+        "ticker_name": "鴻勁",
+        "funds": [
+          "統一台股增長",
+          "群益台灣科技創新主動"
+        ],
+        "trigger_date": "2026-04-22",
+        "trigger_period": "2026W16",
+        "weight_change": null,
+        "evidence": {
+          "window": "2026-04-15 ~ 2026-04-17",
+          "details": [
+            {
+              "etf": "00981A",
+              "amount": 406315000,
+              "total_shares": 91000
+            },
+            {
+              "etf": "00992A",
+              "amount": 22325000,
+              "total_shares": 5000
+            }
+          ],
+          "etf_count": 2,
+          "total_shares": 96000
+        }
+      },
+      {
+        "ticker": "8046",
+        "ticker_name": "南電",
+        "funds": [
+          "統一台股增長",
+          "群益台灣科技創新主動"
+        ],
+        "trigger_date": "2026-04-22",
+        "trigger_period": "2026W16",
+        "weight_change": null,
+        "evidence": {
+          "window": "2026-04-15 ~ 2026-04-17",
+          "details": [
+            {
+              "etf": "00981A",
+              "amount": 268260000,
+              "total_shares": 340000
+            },
+            {
+              "etf": "00992A",
+              "amount": 26826000,
+              "total_shares": 34000
+            }
+          ],
+          "etf_count": 2,
+          "total_shares": 374000
         }
       }
     ],
@@ -3129,6 +3601,26 @@
         }
       },
       {
+        "ticker": "2327",
+        "ticker_name": "國巨*",
+        "funds": [
+          "統一台股增長"
+        ],
+        "trigger_date": "2026-04-22",
+        "trigger_period": "2026W17",
+        "weight_change": null,
+        "evidence": {
+          "details": [
+            {
+              "etf": "00981A",
+              "shares_added": 570000
+            }
+          ],
+          "trade_date": "2026-04-20",
+          "total_shares": 570000
+        }
+      },
+      {
         "ticker": "2330",
         "ticker_name": "台積電",
         "funds": [
@@ -3166,6 +3658,71 @@
           ],
           "trade_date": "2026-04-21",
           "total_shares": 726000
+        }
+      },
+      {
+        "ticker": "3105",
+        "ticker_name": "穩懋",
+        "funds": [
+          "群益台灣科技創新主動"
+        ],
+        "trigger_date": "2026-04-22",
+        "trigger_period": "2026W17",
+        "weight_change": null,
+        "evidence": {
+          "details": [
+            {
+              "etf": "00992A",
+              "shares_added": 619000
+            }
+          ],
+          "trade_date": "2026-04-20",
+          "total_shares": 619000
+        }
+      },
+      {
+        "ticker": "3264",
+        "ticker_name": "欣銓",
+        "funds": [
+          "群益台灣精選強棒",
+          "統一台股增長"
+        ],
+        "trigger_date": "2026-04-22",
+        "trigger_period": "2026W17",
+        "weight_change": null,
+        "evidence": {
+          "details": [
+            {
+              "etf": "00982A",
+              "shares_added": 1000000
+            },
+            {
+              "etf": "00981A",
+              "shares_added": 1360000
+            }
+          ],
+          "trade_date": "2026-04-20",
+          "total_shares": 2360000
+        }
+      },
+      {
+        "ticker": "5439",
+        "ticker_name": "高技",
+        "funds": [
+          "統一台股增長"
+        ],
+        "trigger_date": "2026-04-22",
+        "trigger_period": "2026W17",
+        "weight_change": null,
+        "evidence": {
+          "details": [
+            {
+              "etf": "00981A",
+              "shares_added": 500000
+            }
+          ],
+          "trade_date": "2026-04-20",
+          "total_shares": 500000
         }
       },
       {
@@ -3227,36 +3784,167 @@
           "trade_date": "2026-04-21",
           "total_shares": 590000
         }
-      }
-    ],
-    "etf_consecutive_reduction": [
+      },
       {
-        "ticker": "FSLY US",
-        "ticker_name": "FASTLY INC - CLASS A",
+        "ticker": "2303",
+        "ticker_name": "聯電",
         "funds": [
-          "統一全球創新"
+          "統一台股增長"
         ],
         "trigger_date": "2026-04-22",
-        "trigger_period": "2026W17",
+        "trigger_period": "2026W16",
         "weight_change": null,
         "evidence": {
           "details": [
             {
-              "etf": "00988A",
-              "weeks": [
-                {
-                  "week": "2026-W16",
-                  "net_shares": -85000
-                },
-                {
-                  "week": "2026-W17",
-                  "net_shares": -85000
-                }
-              ],
-              "streak": 2
+              "etf": "00981A",
+              "shares_added": 28030000
             }
           ],
-          "total_shares": -170000
+          "trade_date": "2026-04-17",
+          "total_shares": 28030000
+        }
+      },
+      {
+        "ticker": "2481",
+        "ticker_name": "強茂",
+        "funds": [
+          "統一台股增長"
+        ],
+        "trigger_date": "2026-04-22",
+        "trigger_period": "2026W16",
+        "weight_change": null,
+        "evidence": {
+          "details": [
+            {
+              "etf": "00981A",
+              "shares_added": 1932000
+            }
+          ],
+          "trade_date": "2026-04-16",
+          "total_shares": 1932000
+        }
+      },
+      {
+        "ticker": "3105",
+        "ticker_name": "穩懋",
+        "funds": [
+          "群益台灣科技創新主動"
+        ],
+        "trigger_date": "2026-04-22",
+        "trigger_period": "2026W16",
+        "weight_change": null,
+        "evidence": {
+          "details": [
+            {
+              "etf": "00992A",
+              "shares_added": 600000
+            }
+          ],
+          "trade_date": "2026-04-16",
+          "total_shares": 600000
+        }
+      },
+      {
+        "ticker": "6271",
+        "ticker_name": "同欣電",
+        "funds": [
+          "群益台灣科技創新主動"
+        ],
+        "trigger_date": "2026-04-22",
+        "trigger_period": "2026W16",
+        "weight_change": null,
+        "evidence": {
+          "details": [
+            {
+              "etf": "00992A",
+              "shares_added": 1695000
+            }
+          ],
+          "trade_date": "2026-04-15",
+          "total_shares": 1695000
+        }
+      },
+      {
+        "ticker": "8358",
+        "ticker_name": "金居",
+        "funds": [
+          "統一台股增長"
+        ],
+        "trigger_date": "2026-04-22",
+        "trigger_period": "2026W16",
+        "weight_change": null,
+        "evidence": {
+          "details": [
+            {
+              "etf": "00981A",
+              "shares_added": 580000
+            }
+          ],
+          "trade_date": "2026-04-15",
+          "total_shares": 580000
+        }
+      }
+    ],
+    "etf_abnormal_exit": [
+      {
+        "ticker": "1303",
+        "ticker_name": "南亞",
+        "funds": [
+          "統一台股增長"
+        ],
+        "trigger_date": "2026-04-22",
+        "trigger_period": "2026W16",
+        "weight_change": null,
+        "evidence": {
+          "details": [
+            {
+              "etf": "00981A",
+              "shares_reduced": 8340000
+            }
+          ],
+          "trade_date": "2026-04-17",
+          "total_shares": 8340000
+        }
+      },
+      {
+        "ticker": "1326",
+        "ticker_name": "台化",
+        "funds": [
+          "統一台股增長"
+        ],
+        "trigger_date": "2026-04-22",
+        "trigger_period": "2026W16",
+        "weight_change": null,
+        "evidence": {
+          "details": [
+            {
+              "etf": "00981A",
+              "shares_reduced": 9223000
+            }
+          ],
+          "trade_date": "2026-04-15",
+          "total_shares": 9223000
+        }
+      },
+      {
+        "ticker": "6488",
+        "ticker_name": "環球晶",
+        "funds": [
+          "統一台股增長"
+        ],
+        "trigger_date": "2026-04-22",
+        "trigger_period": "2026W16",
+        "weight_change": null,
+        "evidence": {
+          "details": [
+            {
+              "etf": "00981A",
+              "shares_reduced": 579000
+            }
+          ],
+          "trade_date": "2026-04-17",
+          "total_shares": 579000
         }
       }
     ],
@@ -3663,14 +4351,14 @@
         "funds": [
           "統一奔騰"
         ],
-        "trigger_date": "2026-04-21",
+        "trigger_date": "2026-04-22",
         "trigger_period": "202512Q",
         "weight_change": null,
         "evidence": {
           "etf_actions": [
             {
               "etf": "00981A",
-              "date": "2026-04-20",
+              "date": "2026-04-21",
               "action": "increased",
               "manager": "陳釧瑤",
               "q_weight": 5.87
@@ -3685,14 +4373,14 @@
         "funds": [
           "統一奔騰"
         ],
-        "trigger_date": "2026-04-21",
+        "trigger_date": "2026-04-22",
         "trigger_period": "202512Q",
         "weight_change": null,
         "evidence": {
           "etf_actions": [
             {
               "etf": "00981A",
-              "date": "2026-04-20",
+              "date": "2026-04-21",
               "action": "increased",
               "manager": "陳釧瑤",
               "q_weight": 8.48
@@ -3707,14 +4395,14 @@
         "funds": [
           "統一奔騰"
         ],
-        "trigger_date": "2026-04-21",
+        "trigger_date": "2026-04-22",
         "trigger_period": "202512Q",
         "weight_change": null,
         "evidence": {
           "etf_actions": [
             {
               "etf": "00981A",
-              "date": "2026-04-20",
+              "date": "2026-04-21",
               "action": "increased",
               "manager": "陳釧瑤",
               "q_weight": 7.44
@@ -3729,7 +4417,7 @@
         "funds": [
           "統一奔騰"
         ],
-        "trigger_date": "2026-04-21",
+        "trigger_date": "2026-04-22",
         "trigger_period": "202512Q",
         "weight_change": null,
         "evidence": {
@@ -3751,14 +4439,14 @@
         "funds": [
           "統一奔騰"
         ],
-        "trigger_date": "2026-04-21",
+        "trigger_date": "2026-04-22",
         "trigger_period": "202512Q",
         "weight_change": null,
         "evidence": {
           "etf_actions": [
             {
               "etf": "00981A",
-              "date": "2026-04-20",
+              "date": "2026-04-21",
               "action": "increased",
               "manager": "陳釧瑤",
               "q_weight": 8.21
@@ -3773,14 +4461,14 @@
         "funds": [
           "統一奔騰"
         ],
-        "trigger_date": "2026-04-21",
+        "trigger_date": "2026-04-22",
         "trigger_period": "202512Q",
         "weight_change": null,
         "evidence": {
           "etf_actions": [
             {
               "etf": "00981A",
-              "date": "2026-04-20",
+              "date": "2026-04-21",
               "action": "increased",
               "manager": "陳釧瑤",
               "q_weight": 1.7
@@ -3795,14 +4483,14 @@
         "funds": [
           "統一奔騰"
         ],
-        "trigger_date": "2026-04-21",
+        "trigger_date": "2026-04-22",
         "trigger_period": "202512Q",
         "weight_change": null,
         "evidence": {
           "etf_actions": [
             {
               "etf": "00981A",
-              "date": "2026-04-20",
+              "date": "2026-04-21",
               "action": "increased",
               "manager": "陳釧瑤",
               "q_weight": 8.54
@@ -3817,14 +4505,14 @@
         "funds": [
           "統一奔騰"
         ],
-        "trigger_date": "2026-04-21",
+        "trigger_date": "2026-04-22",
         "trigger_period": "202512Q",
         "weight_change": null,
         "evidence": {
           "etf_actions": [
             {
               "etf": "00981A",
-              "date": "2026-04-20",
+              "date": "2026-04-21",
               "action": "increased",
               "manager": "陳釧瑤",
               "q_weight": 5.4
@@ -3839,14 +4527,14 @@
         "funds": [
           "統一奔騰"
         ],
-        "trigger_date": "2026-04-21",
+        "trigger_date": "2026-04-22",
         "trigger_period": "202512Q",
         "weight_change": null,
         "evidence": {
           "etf_actions": [
             {
               "etf": "00981A",
-              "date": "2026-04-20",
+              "date": "2026-04-21",
               "action": "increased",
               "manager": "陳釧瑤",
               "q_weight": 1.94
@@ -3861,14 +4549,14 @@
         "funds": [
           "統一奔騰"
         ],
-        "trigger_date": "2026-04-21",
+        "trigger_date": "2026-04-22",
         "trigger_period": "202512Q",
         "weight_change": null,
         "evidence": {
           "etf_actions": [
             {
               "etf": "00981A",
-              "date": "2026-04-20",
+              "date": "2026-04-21",
               "action": "increased",
               "manager": "陳釧瑤",
               "q_weight": 7.13
@@ -3883,14 +4571,14 @@
         "funds": [
           "統一奔騰"
         ],
-        "trigger_date": "2026-04-21",
+        "trigger_date": "2026-04-22",
         "trigger_period": "202512Q",
         "weight_change": null,
         "evidence": {
           "etf_actions": [
             {
               "etf": "00981A",
-              "date": "2026-04-20",
+              "date": "2026-04-21",
               "action": "increased",
               "manager": "陳釧瑤",
               "q_weight": 6.56
@@ -3905,7 +4593,7 @@
         "funds": [
           "統一奔騰"
         ],
-        "trigger_date": "2026-04-21",
+        "trigger_date": "2026-04-22",
         "trigger_period": "202512Q",
         "weight_change": null,
         "evidence": {
@@ -3927,14 +4615,14 @@
         "funds": [
           "統一奔騰"
         ],
-        "trigger_date": "2026-04-21",
+        "trigger_date": "2026-04-22",
         "trigger_period": "202512Q",
         "weight_change": null,
         "evidence": {
           "etf_actions": [
             {
               "etf": "00981A",
-              "date": "2026-04-20",
+              "date": "2026-04-21",
               "action": "increased",
               "manager": "陳釧瑤",
               "q_weight": 6.74
@@ -3949,14 +4637,14 @@
         "funds": [
           "統一奔騰"
         ],
-        "trigger_date": "2026-04-21",
+        "trigger_date": "2026-04-22",
         "trigger_period": "202512Q",
         "weight_change": null,
         "evidence": {
           "etf_actions": [
             {
               "etf": "00981A",
-              "date": "2026-04-20",
+              "date": "2026-04-21",
               "action": "increased",
               "manager": "陳釧瑤",
               "q_weight": 4.45
@@ -3971,14 +4659,14 @@
         "funds": [
           "統一奔騰"
         ],
-        "trigger_date": "2026-04-21",
+        "trigger_date": "2026-04-22",
         "trigger_period": "202512Q",
         "weight_change": null,
         "evidence": {
           "etf_actions": [
             {
               "etf": "00981A",
-              "date": "2026-04-20",
+              "date": "2026-04-21",
               "action": "increased",
               "manager": "陳釧瑤",
               "q_weight": 3.51
@@ -16224,6 +16912,7 @@
   },
   "periods": [
     "2026W17",
+    "2026W16",
     "202603Q",
     "202603M",
     "202602M",

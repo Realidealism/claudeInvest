@@ -9,7 +9,7 @@ class QuarterlyDormantEtfActive(BaseStrategy):
     signal_type = "quarterly_dormant_etf_active"
 
     ETF_LOOKBACK_DAYS = 20
-    MIN_ETF_WEIGHT = 0.3  # ETF must hold >= 0.3% weight
+    MIN_AMOUNT = 500_000  # minimum change amount in TWD
 
     def scan(self, period: str, cur) -> list[dict]:
         """Find tickers held in quarterly report where the same manager's
@@ -60,13 +60,14 @@ class QuarterlyDormantEtfActive(BaseStrategy):
             if key not in etf_activity:
                 etf_activity[key] = r
 
-        # Latest ETF weight lookup
+        # Latest close price per stock for amount calculation
         cur.execute("""
-            SELECT etf_id, stock_id, weight
-            FROM tw.etf_holdings
-            WHERE trade_date = (SELECT MAX(trade_date) FROM tw.etf_holdings)
+            SELECT DISTINCT ON (stock_id) stock_id, close_price
+            FROM tw.daily_prices
+            WHERE close_price IS NOT NULL
+            ORDER BY stock_id, trade_date DESC
         """)
-        etf_weights = {(r["etf_id"], r["stock_id"]): float(r["weight"]) for r in cur.fetchall()}
+        prices = {r["stock_id"]: float(r["close_price"]) for r in cur.fetchall()}
 
         # Match: fund quarterly holding × same-manager ETF recent buy
         ticker_signals = {}
@@ -77,7 +78,9 @@ class QuarterlyDormantEtfActive(BaseStrategy):
                 etf_act = etf_activity.get(etf_key)
                 if not etf_act:
                     continue
-                if etf_weights.get(etf_key, 0) < self.MIN_ETF_WEIGHT:
+                shares = etf_act.get("curr_shares") or abs(etf_act.get("share_diff") or 0)
+                amount = shares * prices.get(ticker, 0)
+                if amount < self.MIN_AMOUNT:
                     continue
 
                 if ticker not in ticker_signals:

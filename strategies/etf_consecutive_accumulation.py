@@ -24,6 +24,7 @@ class EtfConsecutiveAccumulation(BaseStrategy):
     MIN_STREAK = 2
     # Lookback weeks (including current)
     LOOKBACK_WEEKS = 4
+    MIN_AMOUNT = 500_000  # minimum change amount in TWD
 
     def scan(self, period: str, cur) -> list[dict]:
         """Monthly fallback — not used for daily ETF scan."""
@@ -75,6 +76,15 @@ class EtfConsecutiveAccumulation(BaseStrategy):
         cur.execute("SELECT code, name FROM tw.funds WHERE fund_type = 'etf'")
         etf_names = {r["code"]: r["name"] for r in cur.fetchall()}
 
+        # Latest close price per stock for amount calculation
+        cur.execute("""
+            SELECT DISTINCT ON (stock_id) stock_id, close_price
+            FROM tw.daily_prices
+            WHERE close_price IS NOT NULL
+            ORDER BY stock_id, trade_date DESC
+        """)
+        prices = {r["stock_id"]: float(r["close_price"]) for r in cur.fetchall()}
+
         # Check streaks ending at current week (last in week_labels)
         current_week = week_labels[-1] if week_labels else None
         if not current_week:
@@ -97,6 +107,11 @@ class EtfConsecutiveAccumulation(BaseStrategy):
                 continue
 
             streak_weeks.reverse()
+            total = sum(w["net_shares"] for w in streak_weeks)
+            amount = abs(total) * prices.get(stock_id, 0)
+            if amount < self.MIN_AMOUNT:
+                continue
+
             if stock_id not in ticker_signals:
                 ticker_signals[stock_id] = {
                     "stock_name": stock_names.get(stock_id, ""),
