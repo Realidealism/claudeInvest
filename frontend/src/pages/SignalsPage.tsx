@@ -15,6 +15,15 @@ interface SignalsData {
   by_type: Record<string, Signal[]>;
 }
 
+interface FundInfo {
+  code: string;
+  name: string;
+}
+
+interface FundsData {
+  funds: FundInfo[];
+}
+
 const SIGNAL_LABELS: Record<string, string> = {
   quarterly_to_monthly_top10: "季報→月報晉升",
   quarterly_dormant_etf_active: "季報潛伏+ETF激活",
@@ -56,6 +65,7 @@ const PHASE_COLORS: Record<string, string> = {
 
 export default function SignalsPage() {
   const [data, setData] = useState<SignalsData | null>(null);
+  const [fundMap, setFundMap] = useState<Record<string, string>>({});
   const [activeType, setActiveType] = useState<string>("all");
   const [periodFilter, setPeriodFilter] = useState<string>("all");
 
@@ -63,6 +73,13 @@ export default function SignalsPage() {
     fetch("/data/signals.json")
       .then((r) => r.json())
       .then(setData);
+    fetch("/data/funds.json")
+      .then((r) => r.json())
+      .then((d: FundsData) => {
+        const m: Record<string, string> = {};
+        for (const f of d.funds) m[f.name] = f.code;
+        setFundMap(m);
+      });
   }, []);
 
   if (!data) return <div className="text-text-secondary">Loading...</div>;
@@ -166,9 +183,21 @@ export default function SignalsPage() {
                     <span className="text-text-secondary">—</span>
                   )}
                 </td>
-                <td className="py-2 pr-4 text-text-secondary text-xs">
-                  {s.funds.slice(0, 3).join(", ")}
-                  {s.funds.length > 3 && ` +${s.funds.length - 3}`}
+                <td className="py-2 pr-4 text-xs">
+                  {s.funds.slice(0, 3).map((name, j) => {
+                    const code = fundMap[name];
+                    return (
+                      <span key={j}>
+                        {j > 0 && ", "}
+                        {code ? (
+                          <Link to={`/fund/${code}`} className="text-accent hover:underline">{name}</Link>
+                        ) : (
+                          <span className="text-text-secondary">{name}</span>
+                        )}
+                      </span>
+                    );
+                  })}
+                  {s.funds.length > 3 && <span className="text-text-secondary"> +{s.funds.length - 3}</span>}
                 </td>
               </tr>
             ))}

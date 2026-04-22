@@ -1,6 +1,15 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 
+interface FundInfo {
+  code: string;
+  name: string;
+}
+
+interface FundsData {
+  funds: FundInfo[];
+}
+
 interface Signal {
   ticker: string;
   ticker_name: string;
@@ -43,12 +52,20 @@ interface FlatSignal extends Signal {
 
 export default function SearchPage() {
   const [data, setData] = useState<SignalsData | null>(null);
+  const [fundMap, setFundMap] = useState<Record<string, string>>({});
   const [query, setQuery] = useState("");
 
   useEffect(() => {
     fetch("/data/signals.json")
       .then((r) => r.json())
       .then(setData);
+    fetch("/data/funds.json")
+      .then((r) => r.json())
+      .then((d: FundsData) => {
+        const m: Record<string, string> = {};
+        for (const f of d.funds) m[f.name] = f.code;
+        setFundMap(m);
+      });
   }, []);
 
   // Flatten all signals with their type
@@ -148,9 +165,21 @@ export default function SearchPage() {
                             </span>
                           ) : "—"}
                         </td>
-                        <td className="py-1.5 pr-4 text-text-secondary text-xs">
-                          {s.funds.slice(0, 3).join(", ")}
-                          {s.funds.length > 3 && ` +${s.funds.length - 3}`}
+                        <td className="py-1.5 pr-4 text-xs">
+                          {s.funds.slice(0, 3).map((name, j) => {
+                            const code = fundMap[name];
+                            return (
+                              <span key={j}>
+                                {j > 0 && ", "}
+                                {code ? (
+                                  <Link to={`/fund/${code}`} className="text-accent hover:underline">{name}</Link>
+                                ) : (
+                                  <span className="text-text-secondary">{name}</span>
+                                )}
+                              </span>
+                            );
+                          })}
+                          {s.funds.length > 3 && <span className="text-text-secondary"> +{s.funds.length - 3}</span>}
                         </td>
                       </tr>
                     );

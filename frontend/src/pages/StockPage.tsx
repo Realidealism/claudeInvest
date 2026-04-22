@@ -68,11 +68,19 @@ export default function StockPage() {
   const { ticker } = useParams<{ ticker: string }>();
   const [data, setData] = useState<StocksData | null>(null);
   const [priceData, setPriceData] = useState<OHLCV[]>([]);
+  const [fundMap, setFundMap] = useState<Record<string, string>>({});
 
   useEffect(() => {
     fetch("/data/stocks.json")
       .then((r) => r.json())
       .then(setData);
+    fetch("/data/funds.json")
+      .then((r) => r.json())
+      .then((d: { funds: { code: string; name: string }[] }) => {
+        const m: Record<string, string> = {};
+        for (const f of d.funds) m[f.name] = f.code;
+        setFundMap(m);
+      });
   }, []);
 
   useEffect(() => {
@@ -172,9 +180,21 @@ export default function StockPage() {
                     <tr key={i} className="border-b border-border/30">
                       <td className="py-1.5 pr-2 font-mono">{s.trigger_period}</td>
                       <td className="py-1.5 pr-2">{SIGNAL_LABELS[s.signal_type] || s.signal_type}</td>
-                      <td className="py-1.5 pr-2 text-text-secondary">
-                        {s.funds.slice(0, 3).join(", ")}
-                        {s.funds.length > 3 && ` +${s.funds.length - 3}`}
+                      <td className="py-1.5 pr-2 text-xs">
+                        {s.funds.slice(0, 3).map((name, j) => {
+                          const code = fundMap[name];
+                          return (
+                            <span key={j}>
+                              {j > 0 && ", "}
+                              {code ? (
+                                <Link to={`/fund/${code}`} className="text-accent hover:underline">{name}</Link>
+                              ) : (
+                                <span className="text-text-secondary">{name}</span>
+                              )}
+                            </span>
+                          );
+                        })}
+                        {s.funds.length > 3 && <span className="text-text-secondary"> +{s.funds.length - 3}</span>}
                       </td>
                     </tr>
                   ))}
