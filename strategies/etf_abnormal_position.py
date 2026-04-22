@@ -19,8 +19,9 @@ class EtfAbnormalPosition(BaseStrategy):
     MULTIPLE = 3.0
     # Minimum history days for meaningful average
     MIN_HISTORY_DAYS = 5
-    # Fallback: if no history, require at least this many shares added
-    MIN_SHARES_ABSOLUTE = 500_000  # 500張
+    # Fallback: if no history, require change amount >= 5M TWD
+    MIN_AMOUNT_FALLBACK = 5_000_000
+    MIN_WEIGHT_FALLBACK = 0.3  # ETF weight >= 0.3%
     MIN_AMOUNT = 500_000  # minimum change amount in TWD
 
     def scan(self, period: str, cur) -> list[dict]:
@@ -77,6 +78,14 @@ class EtfAbnormalPosition(BaseStrategy):
         """)
         prices = {r["stock_id"]: float(r["close_price"]) for r in cur.fetchall()}
 
+        # Latest ETF weight per (etf, stock) for fallback check
+        cur.execute("""
+            SELECT etf_id, stock_id, weight
+            FROM tw.etf_holdings
+            WHERE trade_date = (SELECT MAX(trade_date) FROM tw.etf_holdings)
+        """)
+        etf_weights = {(r["etf_id"], r["stock_id"]): float(r["weight"]) for r in cur.fetchall()}
+
         ticker_signals: dict[str, dict] = {}
         for r in today:
             etf_id = r["etf_id"]
@@ -90,7 +99,11 @@ class EtfAbnormalPosition(BaseStrategy):
                 if multiple >= self.MULTIPLE:
                     is_abnormal = True
             elif not h or h["days"] < self.MIN_HISTORY_DAYS:
-                if shares >= self.MIN_SHARES_ABSOLUTE:
+                # No history: require both large amount and meaningful weight
+                ticker = r["stock_id"]
+                amt = shares * prices.get(ticker, 0)
+                w = etf_weights.get((etf_id, ticker), 0)
+                if amt >= self.MIN_AMOUNT_FALLBACK and w >= self.MIN_WEIGHT_FALLBACK:
                     is_abnormal = True
 
             if not is_abnormal:

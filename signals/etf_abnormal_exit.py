@@ -10,7 +10,8 @@ from datetime import date
 SIGNAL_TYPE = "etf_abnormal_exit"
 MULTIPLE = 3.0
 MIN_HISTORY_DAYS = 5
-MIN_SHARES_ABSOLUTE = 500_000  # 500張
+MIN_AMOUNT_FALLBACK = 5_000_000  # fallback: change amount >= 5M TWD
+MIN_WEIGHT_FALLBACK = 0.3  # fallback: ETF weight >= 0.3%
 MIN_AMOUNT = 500_000  # minimum change amount in TWD
 
 
@@ -68,6 +69,24 @@ def scan(trade_date: date, cur) -> list[dict]:
     """)
     prices = {r["stock_id"]: float(r["close_price"]) for r in cur.fetchall()}
 
+    # Latest ETF weight per (etf, stock) for fallback check
+    cur.execute("""
+        SELECT etf_id, stock_id, weight
+        FROM tw.etf_holdings
+        WHERE trade_date = (SELECT MAX(trade_date) FROM tw.etf_holdings)
+    """)
+    etf_weights = {(r["etf_id"], r["stock_id"]): float(r["weight"]) for r in cur.fetchall()}
+    # For removed stocks, check prev_weight from diff
+    cur.execute("""
+        SELECT etf_id, stock_id, prev_weight
+        FROM tw.etf_holdings_diff
+        WHERE trade_date = %s AND change_type = 'removed' AND prev_weight IS NOT NULL
+    """, (trade_date,))
+    for r in cur.fetchall():
+        key = (r["etf_id"], r["stock_id"])
+        if key not in etf_weights:
+            etf_weights[key] = float(r["prev_weight"])
+
     ticker_signals: dict[str, dict] = {}
     for r in today:
         etf_id = r["etf_id"]
@@ -81,7 +100,11 @@ def scan(trade_date: date, cur) -> list[dict]:
             if multiple >= MULTIPLE:
                 is_abnormal = True
         elif not h or h["days"] < MIN_HISTORY_DAYS:
-            if shares >= MIN_SHARES_ABSOLUTE:
+            # No history: require both large amount and meaningful weight
+            ticker = r["stock_id"]
+            amt = shares * prices.get(ticker, 0)
+            w = etf_weights.get((etf_id, ticker), 0)
+            if amt >= MIN_AMOUNT_FALLBACK and w >= MIN_WEIGHT_FALLBACK:
                 is_abnormal = True
 
         if not is_abnormal:
