@@ -14,9 +14,16 @@ dist/
 
 # Logs
 shioaji.log
+logs/
 
 # Temp files
 tmp/
+
+# Scraped HTML samples
+*.html
+
+# Generated CSV outputs
+*.csv
 
 # pip install artifacts
 =*

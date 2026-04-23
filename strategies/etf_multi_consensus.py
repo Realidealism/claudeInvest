@@ -18,7 +18,7 @@ class EtfMultiConsensus(BaseStrategy):
     WINDOW_DAYS = 5
     MIN_AMOUNT = 500_000  # minimum change amount in TWD
 
-    def scan(self, period: str, cur) -> list[dict]:
+    def scan(self, period: str, cur, trade_date=None) -> list[dict]:
         """Monthly fallback — not used for daily ETF scan."""
         return []
 
@@ -97,6 +97,7 @@ class EtfMultiConsensus(BaseStrategy):
                 ticker_name=info["stock_name"],
                 funds=etf_list,
                 trigger_period=period_str,
+                trigger_date=trade_date,
                 weight_change=None,
                 evidence={
                     "window": f"{window_start} ~ {trade_date}",

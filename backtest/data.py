@@ -70,6 +70,9 @@ class StockData:
         return len(self.dates)
 
 
+_INDEX_IDS = {"TAIEX", "TPEx"}
+
+
 def load_stock_data(
     stock_id: str,
     start_date: date | None = None,
@@ -80,7 +83,13 @@ def load_stock_data(
 
     If start_date is given, extra warmup days are fetched before it
     so all indicators are valid at start_date.
+
+    Supports index IDs ('TAIEX', 'TPEx') — fetches from tw.index_prices
+    and uses turnover as the volume field.
     """
+    if stock_id in _INDEX_IDS:
+        return _load_index_data(stock_id, start_date, end_date)
+
     stock_name = fetch_stock_name(stock_id)
 
     rows = _fetch_prices(stock_id, start_date, end_date)
@@ -90,6 +99,24 @@ def load_stock_data(
     dates = [r["trade_date"] for r in rows]
     dividends = fetch_dividends(stock_id, dates)
     return build_stock_data(stock_id, stock_name, rows, dividends)
+
+
+def _load_index_data(
+    index_id: str,
+    start_date: date | None = None,
+    end_date: date | None = None,
+) -> StockData:
+    """Load index data from tw.index_prices, using turnover as volume."""
+    rows = _fetch_index_prices(index_id, start_date, end_date)
+    if not rows:
+        raise ValueError(f"No data found for index {index_id}")
+
+    # Map turnover → volume, set ref_price to None (fallback to prev close)
+    for r in rows:
+        r["volume"] = r["turnover"]
+        r["ref_price"] = None
+
+    return build_stock_data(index_id, index_id, rows, dividends=[])
 
 
 def build_stock_data(
@@ -131,7 +158,7 @@ def build_stock_data(
             ref_price[i] = close[i]
 
     close_result = calculate_close(close)
-    volume_result = calculate_volume(volume)
+    volume_result = calculate_volume(volume, open_=open_, close=close, high=high, low=low)
     candle_result = calculate_candle(open_, high, low, close)
     money_result = calculate_money(turnover)
     obv_result = calculate_obv(close, ref_price, high, low, volume)
@@ -202,6 +229,42 @@ def _fetch_prices(
 
     if start_date:
         # Find start index with warmup
+        start_idx = 0
+        for i, r in enumerate(all_rows):
+            if r["trade_date"] >= start_date:
+                start_idx = max(0, i - WARMUP_DAYS)
+                break
+        return all_rows[start_idx:]
+
+    return all_rows
+
+
+def _fetch_index_prices(
+    index_id: str,
+    start_date: date | None,
+    end_date: date | None,
+) -> list[dict]:
+    """Fetch OHLCV from tw.index_prices."""
+    base_query = """
+        SELECT trade_date, open_price, high_price, low_price,
+               close_price, turnover
+        FROM tw.index_prices
+        WHERE index_id = %s
+          AND close_price IS NOT NULL
+    """
+    params: list = [index_id]
+
+    if end_date:
+        base_query += " AND trade_date <= %s"
+        params.append(end_date)
+
+    base_query += " ORDER BY trade_date ASC"
+
+    with get_cursor(commit=False) as cur:
+        cur.execute(base_query, params)
+        all_rows = cur.fetchall()
+
+    if start_date:
         start_idx = 0
         for i, r in enumerate(all_rows):
             if r["trade_date"] >= start_date:

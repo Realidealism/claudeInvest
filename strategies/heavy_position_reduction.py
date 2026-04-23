@@ -27,7 +27,7 @@ class HeavyPositionReduction(BaseStrategy):
     # Fallback: if fund AUM shrank more than this, weight drop may be passive
     AUM_SHRINK_THRESHOLD = -0.05  # -5%
 
-    def scan(self, period: str, cur) -> list[dict]:
+    def scan(self, period: str, cur, trade_date=None) -> list[dict]:
         """Find high-weight positions with actual share reductions.
 
         Detects both weight declines (still in Top 10) and complete
@@ -176,6 +176,7 @@ class HeavyPositionReduction(BaseStrategy):
                 ticker_name=info["ticker_name"],
                 funds=info["funds"],
                 trigger_period=f"{period}M",
+                trigger_date=trade_date,
                 weight_change=info["max_drop"],
                 evidence=info["evidence"],
             )

@@ -13,10 +13,10 @@ from db.connection import get_cursor, init_db
 from strategies.registry import get_strategies, scan_all, save_signals
 
 
-def scan_period(period: str):
+def scan_period(period: str, trade_date=None):
     print(f"\n--- Scanning signals for {period} ---")
     with get_cursor() as cur:
-        signals = scan_all(period, cur)
+        signals = scan_all(period, cur, trade_date)
         if not signals:
             print("  No signals found.")
             return

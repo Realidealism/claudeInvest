@@ -95,17 +95,30 @@ class VolumeResult:
     # Overall status: 0=flood, 1=big, 2=high, 3=normal, 4=low, 5=shrink, 6=sleep
     volume_status: U8Array
 
+    # Flood reference: price at last flood event
+    flood_high: F32Array              # latched high price of most recent flood day
+    flood_low: F32Array               # latched low price of most recent flood day
+    flood_above: BoolArray            # close >= flood_high (strength)
+    flood_below: BoolArray            # close < flood_low (weakness)
+
 
 # ── Main Entry ──────────────────────────────────────────────────────────────
 
 
-def calculate_volume(volume: F32Array) -> VolumeResult:
+def calculate_volume(
+    volume: F32Array,
+    open_: F32Array | None = None,
+    close: F32Array | None = None,
+    high: F32Array | None = None,
+    low: F32Array | None = None,
+) -> VolumeResult:
     """
     Main entry point — equivalent to Go GetCalculateVolume.
 
     Parameters
     ----------
     volume : float32 numpy array of daily volume (oldest first).
+    close, high, low : optional price arrays for flood reference signals.
     """
     n = len(volume)
     vol = volume.astype(F32)
@@ -155,7 +168,7 @@ def calculate_volume(volume: F32Array) -> VolumeResult:
 
     sleep_flag = _calc_sleep(vol, low_d, prev_high, prev_low, prev_vr, prev_ext, extremes, burst)
     flood_flag = _calc_flood(vol, prev_high, prev_vr, prev_ext, extremes, burst)
-    mess_up = _calc_mess_up(high_d)
+    mess_up = _calc_mess_up(vol, high_d)
 
     # Volume status
     prev_vol = _shift1(vol)
@@ -164,6 +177,18 @@ def calculate_volume(volume: F32Array) -> VolumeResult:
         vol, n, high_d, prev_high, prev_vr, prev_ext,
         extremes, sleep_flag, flood_flag, burst,
     )
+
+    # Flood reference signals
+    if open_ is not None and close is not None and high is not None and low is not None:
+        flood_high_arr, flood_low_arr, flood_above, flood_below = _calc_flood_ref(
+            open_.astype(F32), close.astype(F32), high.astype(F32), low.astype(F32),
+            flood_flag, n,
+        )
+    else:
+        flood_high_arr = np.zeros(n, dtype=F32)
+        flood_low_arr = np.zeros(n, dtype=F32)
+        flood_above = np.zeros(n, dtype=np.bool_)
+        flood_below = np.zeros(n, dtype=np.bool_)
 
     return VolumeResult(
         sma=sma_d,
@@ -186,6 +211,10 @@ def calculate_volume(volume: F32Array) -> VolumeResult:
         flood=flood_flag,
         mess_up=mess_up,
         volume_status=volume_status,
+        flood_high=flood_high_arr,
+        flood_low=flood_low_arr,
+        flood_above=flood_above,
+        flood_below=flood_below,
     )
 
 
@@ -386,7 +415,7 @@ def _calc_flood(
 
     return (
         all_big
-        & (cond_short_top | cond_long_top)
+        & (cond_short_top & cond_long_top)
         & cond_sustained
         & cond_burst_or_34
         & cond_range
@@ -396,13 +425,13 @@ def _calc_flood(
 # ── MessUp ──────────────────────────────────────────────────────────────────
 
 
-def _calc_mess_up(high_d: dict[int, F32Array]) -> BoolArray:
+def _calc_mess_up(vol: F32Array, high_d: dict[int, F32Array]) -> BoolArray:
     """MessUp (打混): volume distribution is extremely uneven."""
     h2, h3, h5, h8 = high_d[2], high_d[3], high_d[5], high_d[8]
     return (
-        (h2 < h3 * 0.3) | (h2 < h5 * 0.2)       # recent 2-day max is tiny vs 3/5
-        | (h3 < h5 * 0.3) | (h2 < h5 * 0.2)      # 3-day max tiny vs 5
-        | (h5 < h8 * 0.3) | (h3 < h8 * 0.2)      # 5-day max tiny vs 8
+        (h2 < h3 * 0.3) | (vol < h3 * 0.2)
+        | (h3 < h5 * 0.3) | (h2 < h5 * 0.2)
+        | (h5 < h8 * 0.3) | (h3 < h8 * 0.2)
     )
 
 
@@ -486,3 +515,64 @@ def _calc_volume_status(
     out[is_low] = 4
 
     return out
+
+
+# ── Flood Reference ────────────────────────────────────────────────────────
+
+
+def _calc_flood_ref(
+    open_: F32Array, close: F32Array, high: F32Array, low: F32Array,
+    flood_flag: BoolArray, n: int,
+) -> tuple[F32Array, F32Array, BoolArray, BoolArray]:
+    """
+    Track price reference at the most recent flood event.
+
+    Gap-aware logic:
+      - flood_high (short defense):
+          gap down → prev day's bottom (tighter)
+          gap up / no gap → flood day's high
+      - flood_low (long defense):
+          gap up → prev day's top (tighter)
+          gap down / no gap → flood day's low
+
+    top = max(open, close), bottom = min(open, close).
+
+    Before the first flood event, signals are all False.
+    """
+    candle_top = np.maximum(open_, close)
+    candle_bottom = np.minimum(open_, close)
+
+    flood_high = np.zeros(n, dtype=F32)
+    flood_low = np.zeros(n, dtype=F32)
+    latched_high = F32(0)
+    latched_low = F32(0)
+    has_flood = False
+    for i in range(n):
+        if flood_flag[i] and i > 0:
+            prev_top = candle_top[i - 1]
+            prev_bottom = candle_bottom[i - 1]
+            gap_up = candle_bottom[i] > prev_top
+            gap_down = candle_top[i] < prev_bottom
+
+            # flood_high: short defense
+            latched_high = prev_bottom if gap_down else high[i]
+            # flood_low: long defense
+            latched_low = prev_top if gap_up else low[i]
+            has_flood = True
+        flood_high[i] = latched_high
+        flood_low[i] = latched_low
+
+    if not has_flood:
+        return flood_high, flood_low, np.zeros(n, dtype=np.bool_), np.zeros(n, dtype=np.bool_)
+
+    # Only produce signals after the first flood
+    first_flood = np.argmax(flood_flag)
+    active = np.zeros(n, dtype=np.bool_)
+    active[first_flood + 1:] = True
+    # On flood day itself, no signal (reference just set)
+    active[flood_flag] = False
+
+    flood_above = active & (close >= flood_high)
+    flood_below = active & (close < flood_low)
+
+    return flood_high, flood_low, flood_above, flood_below

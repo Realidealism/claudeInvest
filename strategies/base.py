@@ -13,12 +13,13 @@ class BaseStrategy(ABC):
         """Unique identifier for this signal type."""
 
     @abstractmethod
-    def scan(self, period: str, cur) -> list[dict]:
+    def scan(self, period: str, cur, trade_date: date | None = None) -> list[dict]:
         """Scan for signals in the given period.
 
         Args:
             period: 'YYYYMM' for monthly, 'YYYYMM' (quarter-end month) for quarterly.
             cur: DB cursor (psycopg2 DictCursor).
+            trade_date: The actual trading date to use as trigger_date.
 
         Returns:
             List of signal dicts with keys:
@@ -33,10 +34,11 @@ class BaseStrategy(ABC):
         By default, falls back to monthly scan.
         """
         period = trade_date.strftime("%Y%m")
-        return self.scan(period, cur)
+        return self.scan(period, cur, trade_date)
 
     def _make_signal(self, *, ticker: str, ticker_name: str,
                      funds: list[str], trigger_period: str,
+                     trigger_date: date | None = None,
                      weight_change: float | None = None,
                      evidence: dict | None = None) -> dict:
         return {
@@ -44,7 +46,7 @@ class BaseStrategy(ABC):
             "ticker": ticker,
             "ticker_name": ticker_name,
             "funds": funds,
-            "trigger_date": date.today(),
+            "trigger_date": trigger_date or date.today(),
             "trigger_period": trigger_period,
             "weight_change": weight_change,
             "evidence": evidence or {},

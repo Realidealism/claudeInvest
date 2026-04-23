@@ -71,6 +71,8 @@ class Strategy:
         self.short_entry: list[Condition] = []
         self.short_exit: list[Condition] = []
         self.trailing_stop: TrailingStopConfig | None = None
+        self.long_trailing_stop: TrailingStopConfig | None = None
+        self.short_trailing_stop: TrailingStopConfig | None = None
 
 
 # ── Convenience factories ──────────────────────────────────────────────────

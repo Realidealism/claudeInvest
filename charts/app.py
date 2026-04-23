@@ -382,6 +382,19 @@ app.index_string = """<!DOCTYPE html>
             }, 50);
         });
 
+        // Flood toggle
+        var _floodNames = ['多方防守', '空方防守', '做多進場', '做空進場', '獲利出場', '虧損出場'];
+        document.addEventListener('click', function(e) {
+            var c = document.getElementById('flood-select');
+            if (!c || !c.contains(e.target)) return;
+            setTimeout(function() {
+                var checked = c.querySelector('input') && c.querySelector('input').checked;
+                _floodNames.forEach(function(name) {
+                    _restyleByName(name, checked);
+                });
+            }, 50);
+        });
+
         // Trend toggle
         var _trendNames = ['Trend (短)', 'Trend (中)', 'Trend (長)'];
         document.addEventListener('click', function(e) {
@@ -550,6 +563,22 @@ app.layout = html.Div(
                                     ],
                                     value=[],
                                     inline=True,
+                                    style={"fontSize": "13px", "color": "#eee"},
+                                    inputStyle={"marginRight": "6px", "marginLeft": "12px"},
+                                    labelStyle={"display": "inline-flex", "alignItems": "center",
+                                                "gap": "4px", "marginRight": "8px"},
+                                ),
+                            ], style={"marginBottom": "16px"}),
+                            # Flood reference lines
+                            html.Div([
+                                html.H4("洪量基準", style={"color": "#aaa", "margin": "0 0 6px 0"}),
+                                dcc.Checklist(
+                                    id="flood-select",
+                                    options=[{"label": "洪量高/低", "value": "on"}],
+                                    value=[],
+                                    inline=True,
+                                    persistence=True,
+                                    persistence_type="local",
                                     style={"fontSize": "13px", "color": "#eee"},
                                     inputStyle={"marginRight": "6px", "marginLeft": "12px"},
                                     labelStyle={"display": "inline-flex", "alignItems": "center",
@@ -861,6 +890,7 @@ def _render_inventory(positions: list[dict]) -> list:
     Output("inventory-container", "children"),
     Output("ma-select", "value"),
     Output("wave-select", "value"),
+    Output("flood-select", "value"),
     *[Output(f"signals-{cat}", "value") for cat in get_signal_categories()],
     Input("init-interval", "n_intervals"),
     prevent_initial_call=True,
@@ -871,9 +901,10 @@ def load_settings_from_db(n):
     inventory = _render_inventory(_load_inventory())
     ma = _load_signal_setting("ma_select", ["5", "21", "55"])
     wave = _load_signal_setting("wave_select", [])
+    flood = _load_signal_setting("flood_select", [])
     cats = list(get_signal_categories().keys())
     signal_vals = [_load_signal_setting(f"signals_{cat}", []) for cat in cats]
-    return (wl, taiex, inventory, ma, wave, *signal_vals)
+    return (wl, taiex, inventory, ma, wave, flood, *signal_vals)
 
 
 # Toggle signal settings modal
@@ -898,6 +929,7 @@ def toggle_signal_modal(open_clicks, close_clicks):
 _save_signal_inputs = [
     Input("ma-select", "value"),
     Input("wave-select", "value"),
+    Input("flood-select", "value"),
     Input("obv-select", "value"),
     Input("trend-select", "value"),
 ]
@@ -910,9 +942,10 @@ for _cat in get_signal_categories():
     *_save_signal_inputs,
     prevent_initial_call=True,
 )
-def save_signal_settings(ma_val, wave_val, obv_val, trend_val, *signal_vals):
+def save_signal_settings(ma_val, wave_val, flood_val, obv_val, trend_val, *signal_vals):
     _save_signal_setting("ma_select", ma_val or [])
     _save_signal_setting("wave_select", wave_val or [])
+    _save_signal_setting("flood_select", flood_val or [])
     _save_signal_setting("obv_select", obv_val or [])
     _save_signal_setting("trend_select", trend_val or [])
     cats = list(get_signal_categories().keys())
@@ -983,6 +1016,7 @@ def save_shapes(relayout_data, stored_shapes):
     Input("start-date", "value"),
     Input("end-date", "value"),
     Input("obv-select", "value"),
+    State("flood-select", "value"),
     State("ma-select", "value"),
     State("wave-select", "value"),
     State("trend-select", "value"),
@@ -991,7 +1025,7 @@ def save_shapes(relayout_data, stored_shapes):
     prevent_initial_call=True,
 )
 def update_chart(n_clicks, stock_id, start_date, end_date, obv_select,
-                 ma_select, wave_select, trend_select, *args):
+                 flood_select, ma_select, wave_select, trend_select, *args):
     n_signal_cats = len(get_signal_categories())
     signal_values = list(args[:n_signal_cats])
     stored_shapes = args[n_signal_cats]
@@ -1014,7 +1048,11 @@ def update_chart(n_clicks, stock_id, start_date, end_date, obv_select,
         analysis_results["candle"] = calculate_candle(
             data["open"], data["high"], data["low"], data["close"],
         )
-        analysis_results["volume"] = calculate_volume(data["sub_value"])
+        analysis_results["volume"] = calculate_volume(
+            data["sub_value"],
+            open_=data["open"], close=data["close"],
+            high=data["high"], low=data["low"],
+        )
         analysis_results["close"] = calculate_close(data["close"])
         if not data["is_index"] and "turnover" in data:
             analysis_results["money"] = calculate_money(data["turnover"])
@@ -1141,6 +1179,22 @@ def update_chart(n_clicks, stock_id, start_date, end_date, obv_select,
         except Exception:
             pass
 
+    # Flood backtest overlay
+    flood_overlay = None
+    show_flood = bool(flood_select and "on" in flood_select)
+    if "volume" in analysis_results:
+        vol_r = analysis_results["volume"]
+        if np.any(vol_r.flood_high > 0):
+            from charts.flood_overlay import compute_flood_overlay
+            flood_overlay = compute_flood_overlay(
+                close=data["close"],
+                flood_above=vol_r.flood_above,
+                flood_below=vol_r.flood_below,
+                flood_high=vol_r.flood_high,
+                flood_low=vol_r.flood_low,
+                dates=data["dates"],
+            )
+
     # Build figure with ALL data pre-loaded, visibility set by current state
     fig = build_candlestick_figure(
         dates=data["dates"],
@@ -1157,6 +1211,8 @@ def update_chart(n_clicks, stock_id, start_date, end_date, obv_select,
         enabled_ma=set(ma_select) if ma_select else set(),
         wave_lines=wave_lines if wave_lines else None,
         wave_visible=set(wave_select) if wave_select else set(),
+        flood_overlay=flood_overlay,
+        flood_visible=show_flood,
         obv_data=obv_data,
         show_obv=show_obv,
         trend_data=trend_data,

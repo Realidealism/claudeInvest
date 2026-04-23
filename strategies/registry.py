@@ -33,11 +33,11 @@ def get_strategies() -> list[BaseStrategy]:
     return [cls() for cls in _registry]
 
 
-def scan_all(period: str, cur) -> list[dict]:
+def scan_all(period: str, cur, trade_date=None) -> list[dict]:
     """Run all registered strategies and collect signals."""
     signals = []
     for strategy in get_strategies():
-        signals.extend(strategy.scan(period, cur))
+        signals.extend(strategy.scan(period, cur, trade_date))
     return signals
 
 

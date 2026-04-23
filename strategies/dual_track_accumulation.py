@@ -19,7 +19,7 @@ class DualTrackAccumulation(BaseStrategy):
     # Fallback: if fund AUM shrank more than this, weight rise may be passive
     AUM_SHRINK_THRESHOLD = -0.05  # -5%
 
-    def scan(self, period: str, cur) -> list[dict]:
+    def scan(self, period: str, cur, trade_date=None) -> list[dict]:
         """Find tickers where fund weight increased month-over-month AND
         same-manager ETF also increased holdings recently.
         Verified by share count when available.
@@ -126,6 +126,7 @@ class DualTrackAccumulation(BaseStrategy):
                 ticker_name=info["ticker_name"],
                 funds=info["funds"],
                 trigger_period=f"{period}M",
+                trigger_date=trade_date,
                 weight_change=info["max_change"],
                 evidence=info["evidence"],
             )

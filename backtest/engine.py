@@ -124,10 +124,14 @@ def run_backtest(
                 pos = None
             else:
                 # Update trailing stop defense price
-                if strategy.trailing_stop is not None:
-                    new_defense = float(
-                        strategy.trailing_stop.defense_source(data)[i]
-                    )
+                # Pick side-specific config first, fall back to shared
+                ts_cfg = (
+                    (strategy.long_trailing_stop if pos.side == "long"
+                     else strategy.short_trailing_stop)
+                    or strategy.trailing_stop
+                )
+                if ts_cfg is not None:
+                    new_defense = float(ts_cfg.defense_source(data)[i])
                     if np.isnan(pos.defense_price):
                         pos.defense_price = new_defense
                     elif pos.side == "long":
@@ -230,8 +234,13 @@ def _open_position(
 ) -> _Position:
     """Create a new position."""
     defense = float('nan')
-    if strategy.trailing_stop is not None:
-        defense = float(strategy.trailing_stop.defense_source(data)[i])
+    ts_cfg = (
+        (strategy.long_trailing_stop if side == "long"
+         else strategy.short_trailing_stop)
+        or strategy.trailing_stop
+    )
+    if ts_cfg is not None:
+        defense = float(ts_cfg.defense_source(data)[i])
 
     return _Position(
         side=side,

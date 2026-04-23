@@ -29,6 +29,7 @@ from backtest.strategy import (
 from backtest.engine import run_backtest, InsufficientDataError
 from backtest.report import print_report
 from backtest.chart import plot_backtest
+from backtest.plotly_chart import plot_backtest_interactive
 
 
 def example_strategy() -> Strategy:
@@ -147,6 +148,75 @@ def trend_composite_strategy() -> Strategy:
                        lambda d: d.wave_result.wave_trend.composite)
 
 
+def flood_ref_strategy() -> Strategy:
+    """Flood reference: long when price above last flood high, exit on break below flood low."""
+    s = Strategy("洪量基準")
+
+    s.long_entry = [
+        bool_condition("站上洪量高", lambda d: d.volume_result.flood_above),
+    ]
+    s.long_exit = [
+        bool_condition("跌破洪量低", lambda d: d.volume_result.flood_below),
+    ]
+    s.short_entry = [
+        bool_condition("跌破洪量低", lambda d: d.volume_result.flood_below),
+    ]
+    s.short_exit = [
+        bool_condition("站上洪量高", lambda d: d.volume_result.flood_above),
+    ]
+    # Long: flood_low as defense (only moves up)
+    s.long_trailing_stop = TrailingStopConfig(
+        defense_source=lambda d: d.volume_result.flood_low,
+    )
+    # Short: flood_high as defense (only moves down)
+    s.short_trailing_stop = TrailingStopConfig(
+        defense_source=lambda d: d.volume_result.flood_high,
+    )
+    return s
+
+
+def flood_trend_strategy() -> Strategy:
+    """Flood reference + wave trend filter."""
+    s = Strategy("洪量+趨勢")
+
+    s.long_entry = [
+        bool_condition("站上洪量高", lambda d: d.volume_result.flood_above),
+        threshold_condition("趨勢正向", lambda d: d.wave_result.wave_trend.composite, ">", 0),
+    ]
+    s.long_exit = [
+        bool_condition("跌破洪量低", lambda d: d.volume_result.flood_below),
+    ]
+    s.short_entry = [
+        bool_condition("跌破洪量低", lambda d: d.volume_result.flood_below),
+        threshold_condition("趨勢負向", lambda d: d.wave_result.wave_trend.composite, "<", 0),
+    ]
+    s.short_exit = [
+        bool_condition("站上洪量高", lambda d: d.volume_result.flood_above),
+    ]
+    return s
+
+
+def flood_obv_strategy() -> Strategy:
+    """Flood reference + OBV trend confirmation."""
+    s = Strategy("洪量+OBV")
+
+    s.long_entry = [
+        bool_condition("站上洪量高", lambda d: d.volume_result.flood_above),
+        bool_condition("OBV多方", lambda d: d.obv_result.trend > 0),
+    ]
+    s.long_exit = [
+        bool_condition("跌破洪量低", lambda d: d.volume_result.flood_below),
+    ]
+    s.short_entry = [
+        bool_condition("跌破洪量低", lambda d: d.volume_result.flood_below),
+        bool_condition("OBV空方", lambda d: d.obv_result.trend < 0),
+    ]
+    s.short_exit = [
+        bool_condition("站上洪量高", lambda d: d.volume_result.flood_above),
+    ]
+    return s
+
+
 STRATEGIES = {
     "obv": example_strategy,
     "tip": tip_breakout_strategy,
@@ -156,6 +226,9 @@ STRATEGIES = {
     "t_med": trend_medium_strategy,
     "t_long": trend_long_strategy,
     "t_comp": trend_composite_strategy,
+    "flood": flood_ref_strategy,
+    "flood_trend": flood_trend_strategy,
+    "flood_obv": flood_obv_strategy,
 }
 
 
@@ -175,6 +248,8 @@ def parse_args() -> argparse.Namespace:
                         help="Shares per trade (default: 1000)")
     parser.add_argument("--chart", type=str, default=None,
                         help="Save chart to file (e.g. output.png)")
+    parser.add_argument("--plotly", type=str, default=None,
+                        help="Save interactive Plotly chart (e.g. output.html)")
     return parser.parse_args()
 
 
@@ -217,6 +292,13 @@ def main():
                 base, ext = chart_path.rsplit(".", 1) if "." in chart_path else (chart_path, "png")
                 chart_path = f"{base}_{strategy.name}.{ext}"
             plot_backtest(data, result, save_path=chart_path)
+
+        if args.plotly:
+            plotly_path = args.plotly
+            if len(strategies_to_run) > 1:
+                base, ext = plotly_path.rsplit(".", 1) if "." in plotly_path else (plotly_path, "html")
+                plotly_path = f"{base}_{strategy.name}.{ext}"
+            plot_backtest_interactive(data, result, save_path=plotly_path)
 
 
 if __name__ == "__main__":

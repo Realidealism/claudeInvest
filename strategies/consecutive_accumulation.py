@@ -19,7 +19,7 @@ class ConsecutiveAccumulation(BaseStrategy):
     # Fallback: if fund AUM shrank more than this, weight rise may be passive
     AUM_SHRINK_THRESHOLD = -0.05  # -5%
 
-    def scan(self, period: str, cur) -> list[dict]:
+    def scan(self, period: str, cur, trade_date=None) -> list[dict]:
         """Find tickers in Top 10 for both current and previous month
         with weight increase, verified by share count when available.
 
@@ -102,6 +102,7 @@ class ConsecutiveAccumulation(BaseStrategy):
                 ticker_name=info["ticker_name"],
                 funds=info["funds"],
                 trigger_period=f"{period}M",
+                trigger_date=trade_date,
                 weight_change=info["max_change"],
                 evidence=info["evidence"],
             )

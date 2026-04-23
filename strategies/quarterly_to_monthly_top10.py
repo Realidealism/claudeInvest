@@ -16,7 +16,7 @@ class QuarterlyToMonthlyTop10(BaseStrategy):
     # Quarter-end month → previous quarter-end month
     PREV_QUARTER = {3: 12, 6: 3, 9: 6, 12: 9}
 
-    def scan(self, period: str, cur) -> list[dict]:
+    def scan(self, period: str, cur, trade_date=None) -> list[dict]:
         """Find tickers that were low-weight in last quarterly report
         but entered monthly Top 10 in the given period.
 
@@ -133,6 +133,7 @@ class QuarterlyToMonthlyTop10(BaseStrategy):
                 ticker_name=info["ticker_name"],
                 funds=info["funds"],
                 trigger_period=f"{period}M",
+                trigger_date=trade_date,
                 weight_change=info["weight_change"],
                 evidence=info["evidence"],
             )

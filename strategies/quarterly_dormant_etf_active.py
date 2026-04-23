@@ -11,7 +11,7 @@ class QuarterlyDormantEtfActive(BaseStrategy):
     ETF_LOOKBACK_DAYS = 20
     MIN_AMOUNT = 500_000  # minimum change amount in TWD
 
-    def scan(self, period: str, cur) -> list[dict]:
+    def scan(self, period: str, cur, trade_date=None) -> list[dict]:
         """Find tickers held in quarterly report where the same manager's
         ETF has recently added or increased the position.
 
@@ -105,6 +105,7 @@ class QuarterlyDormantEtfActive(BaseStrategy):
                 ticker_name=info["ticker_name"],
                 funds=info["funds"],
                 trigger_period=f"{period}Q",
+                trigger_date=trade_date,
                 evidence=info["evidence"],
             )
             for ticker, info in ticker_signals.items()

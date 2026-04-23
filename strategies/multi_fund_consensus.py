@@ -10,7 +10,7 @@ class MultiFundConsensus(BaseStrategy):
 
     MIN_FUNDS = 3
 
-    def scan(self, period: str, cur) -> list[dict]:
+    def scan(self, period: str, cur, trade_date=None) -> list[dict]:
         """Find tickers held in monthly Top 10 by >= MIN_FUNDS funds.
 
         period: 'YYYYMM' monthly period.
@@ -36,6 +36,7 @@ class MultiFundConsensus(BaseStrategy):
                 ticker_name=r["ticker_name"],
                 funds=list(r["fund_names"]),
                 trigger_period=f"{period}M",
+                trigger_date=trade_date,
                 evidence={
                     "fund_count": r["fund_count"],
                     "avg_weight": float(r["avg_weight"]) if r["avg_weight"] else None,

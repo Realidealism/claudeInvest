@@ -11,7 +11,7 @@ class ConsensusFormation(BaseStrategy):
 
     ETF_LOOKBACK_DAYS = 30
 
-    def scan(self, period: str, cur) -> list[dict]:
+    def scan(self, period: str, cur, trade_date=None) -> list[dict]:
         """Find tickers where an ETF recently added a new position AND
         a fund (any, not just same-manager) has held it historically.
 
@@ -79,6 +79,7 @@ class ConsensusFormation(BaseStrategy):
                 ticker_name=info["ticker_name"],
                 funds=info["funds"],
                 trigger_period=f"{period}M",
+                trigger_date=trade_date,
                 evidence=info["evidence"],
             )
             for ticker, info in ticker_signals.items()

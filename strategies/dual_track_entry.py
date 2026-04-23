@@ -19,7 +19,7 @@ class DualTrackEntry(BaseStrategy):
     # How many trading days around month-end to look for ETF additions
     ETF_WINDOW_DAYS = 30
 
-    def scan(self, period: str, cur) -> list[dict]:
+    def scan(self, period: str, cur, trade_date=None) -> list[dict]:
         """Find tickers newly appearing in both fund monthly Top 10
         and same-manager ETF holdings in the same month.
 
@@ -98,6 +98,7 @@ class DualTrackEntry(BaseStrategy):
                 ticker_name=info["ticker_name"],
                 funds=info["funds"],
                 trigger_period=f"{period}M",
+                trigger_date=trade_date,
                 weight_change=info["weight_change"],
                 evidence=info["evidence"],
             )

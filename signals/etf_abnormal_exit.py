@@ -131,7 +131,7 @@ def scan(trade_date: date, cur) -> list[dict]:
             "ticker": ticker,
             "ticker_name": info["stock_name"],
             "funds": info["etfs"],
-            "trigger_date": date.today(),
+            "trigger_date": trade_date,
             "trigger_period": period_str,
             "weight_change": None,
             "evidence": {

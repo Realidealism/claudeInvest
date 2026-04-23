@@ -134,15 +134,9 @@ def _calc_obv(
     close: F32Array, limit_refer: F32Array, volume: F32Array, n: int,
 ) -> F32Array:
     """Standard OBV: accumulate volume based on close vs reference."""
-    obv = np.zeros(n, dtype=F32)
-    current = F32(0)
-    for i in range(n):
-        if close[i] > limit_refer[i]:
-            current += volume[i]
-        elif close[i] < limit_refer[i]:
-            current -= volume[i]
-        obv[i] = current
-    return obv
+    signed = np.where(close > limit_refer, volume,
+                      np.where(close < limit_refer, -volume, F32(0)))
+    return np.cumsum(signed).astype(F32)
 
 
 def _calc_shadow_obv(

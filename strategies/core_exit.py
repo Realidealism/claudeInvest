@@ -38,7 +38,7 @@ class CoreExit(BaseStrategy):
     # Fallback: rank at or below this is considered "near bottom" of Top 10
     BOTTOM_WEIGHT_RANK = 8
 
-    def scan(self, period: str, cur) -> list[dict]:
+    def scan(self, period: str, cur, trade_date=None) -> list[dict]:
         """Find tickers that were in Top 10 for MIN_CONSECUTIVE+ months
         but disappeared in the current period.
 
@@ -153,6 +153,7 @@ class CoreExit(BaseStrategy):
                 ticker_name=info["ticker_name"],
                 funds=info["funds"],
                 trigger_period=f"{period}M",
+                trigger_date=trade_date,
                 evidence=info["evidence"],
             )
             for ticker, info in ticker_signals.items()

@@ -26,7 +26,7 @@ class EtfConsecutiveAccumulation(BaseStrategy):
     LOOKBACK_WEEKS = 4
     MIN_AMOUNT = 500_000  # minimum change amount in TWD
 
-    def scan(self, period: str, cur) -> list[dict]:
+    def scan(self, period: str, cur, trade_date=None) -> list[dict]:
         """Monthly fallback — not used for daily ETF scan."""
         return []
 
@@ -136,6 +136,7 @@ class EtfConsecutiveAccumulation(BaseStrategy):
                 ticker_name=info["stock_name"],
                 funds=info["etfs"],
                 trigger_period=current_week_str,
+                trigger_date=trade_date,
                 weight_change=None,
                 evidence={
                     "total_shares": info["total_shares"],

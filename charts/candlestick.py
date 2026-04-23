@@ -61,6 +61,8 @@ def build_candlestick_figure(
     enabled_ma: Optional[set[str]] = None,
     wave_lines: Optional[list[dict]] = None,
     wave_visible: Optional[set[str]] = None,
+    flood_overlay: Optional[dict] = None,
+    flood_visible: bool = False,
     obv_data: Optional[dict[str, np.ndarray]] = None,
     show_obv: bool = False,
     trend_data: Optional[dict[str, list[int]]] = None,
@@ -202,6 +204,63 @@ def build_candlestick_figure(
                 ),
                 row=1, col=1,
             )
+
+    # -- Flood backtest overlay (defense lines + entry/exit markers) --
+    # flood_overlay keys: long_defense, short_defense, entries, exits
+    _flood_trace_specs = [
+        ("多方防守", "long_defense", "#26a69a"),
+        ("空方防守", "short_defense", "#ef5350"),
+    ]
+    for fname, fkey, fcolor in _flood_trace_specs:
+        fdata = flood_overlay.get(fkey) if flood_overlay else None
+        has_data = fdata is not None and len(fdata) > 0
+        vis = has_data and flood_visible
+        fig.add_trace(
+            go.Scatter(
+                x=dates if has_data else [],
+                y=fdata if has_data else [],
+                mode="lines",
+                name=fname,
+                visible=vis,
+                showlegend=vis,
+                line=dict(width=2, color=fcolor, dash="dash"),
+                hovertemplate=f"{fname}: %{{y:.2f}}<extra></extra>",
+                connectgaps=False,
+            ),
+            row=1, col=1,
+        )
+    # Entry/exit markers (4 groups: long_entry, short_entry, win_exit, loss_exit)
+    _marker_specs = [
+        ("做多進場", "long_entry", "triangle-up", "#ef5350", 11),
+        ("做空進場", "short_entry", "triangle-down", "#26a69a", 11),
+        ("獲利出場", "win_exit", "x", "#ffd54f", 10),
+        ("虧損出場", "loss_exit", "x", "#9e9e9e", 10),
+    ]
+    markers_data = flood_overlay.get("markers", {}) if flood_overlay else {}
+    for mname, mkey, msymbol, mcolor, msize in _marker_specs:
+        mgroup = markers_data.get(mkey, {})
+        mx = mgroup.get("x", [])
+        my = mgroup.get("y", [])
+        mt = mgroup.get("text", [])
+        has_data = len(mx) > 0
+        vis = has_data and flood_visible
+        fig.add_trace(
+            go.Scatter(
+                x=mx if has_data else [],
+                y=my if has_data else [],
+                mode="markers",
+                name=mname,
+                visible=vis,
+                showlegend=vis,
+                marker=dict(
+                    symbol=msymbol, size=msize, color=mcolor,
+                    line=dict(width=1, color="white"),
+                ),
+                customdata=mt if has_data else [],
+                hovertemplate="%{customdata}<br>%{x}<br>價格: %{y:.2f}<extra></extra>",
+            ),
+            row=1, col=1,
+        )
 
     # -- Wave lines (always add 4 slots for stable trace count) --
     _wave_slots = [
