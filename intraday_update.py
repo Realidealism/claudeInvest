@@ -7,6 +7,8 @@ Usage:
   python intraday_update.py --no-ws         # REST sweeper only
   python intraday_update.py --no-pre        # skip SinoPac pre-market refresh
   python intraday_update.py --no-failover   # disable SinoPac REST fallback
+  python intraday_update.py --no-orb        # skip ORB detection thread
+  python intraday_update.py --orb-liquid    # ORB watchlist includes all non-dead-fish (~1300)
 
 Startup sequence:
   1. Run DB migrations (idempotent)
@@ -32,7 +34,7 @@ import traceback
 from datetime import date
 
 from db.connection import get_cursor, init_db
-from intraday import sweeper, watcher, signals
+from intraday import sweeper, watcher, signals, orb
 from intraday.sdk_loader import load_sdk
 
 
@@ -104,6 +106,8 @@ def main(argv: list[str]):
     run_ws       = "--no-ws" not in argv
     run_pre      = "--no-pre" not in argv
     run_failover = "--no-failover" not in argv
+    run_orb      = "--no-orb" not in argv
+    orb_liquid   = "--orb-liquid" in argv
 
     print("Initializing database schema ...")
     init_db()
@@ -176,6 +180,19 @@ def main(argv: list[str]):
             daemon=True,
         )
         threads.append(t_sig)
+
+    if run_orb:
+        t_orb = threading.Thread(
+            target=orb.run,
+            kwargs={
+                "stop_event": stop_event,
+                "interval_sec": 20,
+                "include_liquid": orb_liquid,
+            },
+            name="orb",
+            daemon=True,
+        )
+        threads.append(t_orb)
 
     for t in threads:
         t.start()

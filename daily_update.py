@@ -299,7 +299,7 @@ def update_date(trade_date: date):
                 cur.execute("SELECT MAX(period) FROM tw.fund_holdings_monthly")
                 latest = list(cur.fetchone().values())[0]
             if latest:
-                scan_period(latest)
+                scan_period(latest, trade_date)
             results.append(("基金信號掃描", "ok"))
         except Exception:
             print("  [ERROR] Signal scanning failed:")
@@ -363,6 +363,19 @@ def update_date(trade_date: date):
         print("  [ERROR] Market breadth computation failed:")
         traceback.print_exc()
         results.append(("市場廣度", "failed"))
+
+    # Daily stock liquidity: money_level / dead_fish / halted / on_alert.
+    # Consumed by the intraday ORB pipeline to exclude untradable names.
+    print(f"\n--- Daily liquidity ---")
+    try:
+        from analysis.daily_liquidity import compute_daily_liquidity
+        n = compute_daily_liquidity(trade_date)
+        print(f"  Stored liquidity rows: {n}")
+        results.append(("每日流動性", "ok"))
+    except Exception:
+        print("  [ERROR] Daily liquidity computation failed:")
+        traceback.print_exc()
+        results.append(("每日流動性", "failed"))
 
     # Export JSON + git push for Vercel auto-deploy
     print(f"\n--- Frontend export + deploy ---")

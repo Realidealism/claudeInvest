@@ -42,6 +42,32 @@ def fetch_reference_rows(api) -> list[dict]:
     return rows
 
 
+def fetch_halted_codes(api) -> list[str]:
+    """Return stock_ids whose Shioaji contract has reference == 0.
+
+    Taiwan securities with reference price 0 are typically either halted
+    (stopped trading pre-market for material events / corporate actions) or
+    delisted. Callers should cross-check `tw.stocks.is_active` to distinguish
+    the two cases — this function returns raw candidates, dedup / filter is
+    the consumer's job.
+
+    The classifier filter matches fetch_reference_rows so halted warrants /
+    TDRs etc. aren't surfaced.
+    """
+    codes: list[str] = []
+    for ns in (api.Contracts.Stocks.TSE, api.Contracts.Stocks.OTC):
+        for contract in ns:
+            code = (getattr(contract, "code", "") or "").strip()
+            if not code:
+                continue
+            if classify_tw_security(code) is None:
+                continue
+            ref = float(getattr(contract, "reference", 0) or 0)
+            if ref <= 0:
+                codes.append(code)
+    return codes
+
+
 def _iter_exchange(contract_namespace, exchange_name: str) -> Iterable[dict]:
     """Yield normalised dicts for every Stock under one exchange namespace."""
     market = _EXCHANGE_TO_MARKET[exchange_name]

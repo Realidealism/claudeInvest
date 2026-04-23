@@ -20,12 +20,17 @@ from intraday import esun_rest, sinopac_snapshot, store
 
 _TPE_TZ = timezone(timedelta(hours=8))
 
-# TWSE regular session runs 09:00–13:30 local. Give a 5-min buffer so the
-# closing auction snapshot still makes it in.
-_SESSION_OPEN  = dtime(hour=9,  minute=0)
-_SESSION_CLOSE = dtime(hour=13, minute=35)
+# TWSE regular session runs 09:00–13:30 local. Keep sweeping until 13:50 as a
+# safety cutoff in case the closing-auction snapshot is slow to land; the main
+# loop exits early as soon as the 13:30 bucket is confirmed in the DB.
+_SESSION_OPEN       = dtime(hour=9,  minute=0)
+_SESSION_CLOSE      = dtime(hour=13, minute=50)
+_CLOSE_BUCKET_TIME  = dtime(hour=13, minute=30)
 
 _MAX_CONSECUTIVE_FAILURES = 3
+
+# 5-minute bucket boundaries for the value profile curve
+_BUCKET_MINUTES = 5
 
 
 def _now_tpe() -> datetime:
@@ -37,6 +42,25 @@ def _in_session(now: datetime) -> bool:
         return False
     t = now.time()
     return _SESSION_OPEN <= t <= _SESSION_CLOSE
+
+
+def _time_bucket(now: datetime) -> str:
+    """Round down to the nearest 5-minute bucket, e.g. '09:05', '10:30'."""
+    m = now.minute - (now.minute % _BUCKET_MINUTES) + _BUCKET_MINUTES
+    h = now.hour
+    if m >= 60:
+        h += 1
+        m -= 60
+    return f"{h:02d}:{m:02d}"
+
+
+def _record_value_profile(records: list[dict], trade_date, now: datetime):
+    """Sum total_value across all snapshot records and write to profile table."""
+    total = sum(r.get("total_value") or 0 for r in records)
+    if total <= 0:
+        return
+    bucket = _time_bucket(now)
+    store.upsert_value_profile(trade_date, bucket, total)
 
 
 def _seconds_until_next_open(now: datetime) -> float:
@@ -71,17 +95,30 @@ def run(stop_event: threading.Event, sdk, interval_sec: int = 20, force: bool = 
     print(f"[SWEEP] starting, interval={interval_sec}s, force={force}, "
           f"failover={'ready' if failover_ready else 'disabled'}")
 
+    # Tracks the date for which today's session has been marked complete
+    # (either the 13:30 bucket landed, or the 13:50 safety cutoff fired).
+    session_done_date = None
+
     while not stop_event.is_set():
         now = _now_tpe()
+        today = now.date()
+        session_done = (session_done_date == today)
 
-        if not force and not _in_session(now):
+        if not force and (not _in_session(now) or session_done):
+            # If we drifted past 13:50 without the 13:30 bucket, warn once
+            # and mark today as done so the next-open sleep path kicks in.
+            if (session_done_date != today
+                    and now.weekday() < 5
+                    and now.time() > _SESSION_CLOSE):
+                if not store.has_close_bucket(today):
+                    print(f"[SWEEP] [WARN] 13:30 bucket not received by 13:50 for {today}")
+                session_done_date = today
+
             sleep_for = min(_seconds_until_next_open(now), 300.0)
             print(f"[SWEEP] outside session, sleeping {sleep_for:.0f}s")
             if stop_event.wait(sleep_for):
                 break
             continue
-
-        today = now.date()
 
         # Primary path: E.Sun REST
         if not using_fallback:
@@ -91,6 +128,7 @@ def run(stop_event: threading.Event, sdk, interval_sec: int = 20, force: bool = 
 
                 n_tse = store.upsert_quotes(tse, market="TSE", trade_date=today)
                 n_otc = store.upsert_quotes(otc, market="OTC", trade_date=today)
+                _record_value_profile(tse + otc, today, now)
                 print(f"[SWEEP] {now:%H:%M:%S} TSE={n_tse} OTC={n_otc}")
 
                 if consecutive_failures > 0:
@@ -114,6 +152,7 @@ def run(stop_event: threading.Event, sdk, interval_sec: int = 20, force: bool = 
 
                 n_tse = store.upsert_quotes(tse, market="TSE", trade_date=today)
                 n_otc = store.upsert_quotes(otc, market="OTC", trade_date=today)
+                _record_value_profile(tse + otc, today, now)
                 print(f"[SWEEP] {now:%H:%M:%S} TSE={n_tse} OTC={n_otc} (SinoPac fallback)")
 
             except Exception:
@@ -132,6 +171,13 @@ def run(stop_event: threading.Event, sdk, interval_sec: int = 20, force: bool = 
                     print("[SWEEP] E.Sun recovered, switching back to primary")
                 except Exception:
                     pass  # Stay on fallback
+
+        # Early session end: once the 13:30 bucket is written, today's work
+        # for the h(t) curve is complete — mark done and let the next loop
+        # tick fall through to the sleep-until-next-open branch.
+        if now.time() >= _CLOSE_BUCKET_TIME and store.has_close_bucket(today):
+            print(f"[SWEEP] 13:30 bucket confirmed for {today} — ending today's session")
+            session_done_date = today
 
         if stop_event.wait(interval_sec):
             break

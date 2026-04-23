@@ -23,9 +23,9 @@ from db.connection import init_db
 # at module load, which must happen BEFORE sinopac_loader imports shioaji —
 # shioaji transitively injects a C-extension module under the top-level name
 # `utils`, shadowing our local utils/ package for any later imports.
-from intraday.sinopac_reference import fetch_reference_rows
+from intraday.sinopac_reference import fetch_reference_rows, fetch_halted_codes
 from intraday.sinopac_loader import load_api, logout_api
-from intraday.store import upsert_reference
+from intraday.store import upsert_reference, upsert_stock_halts
 
 
 def main(trade_date: date | None = None) -> int:
@@ -49,6 +49,13 @@ def main(trade_date: date | None = None) -> int:
 
         written = upsert_reference(rows, trade_date=trade_date)
         print(f"[PRE] wrote {written} rows to tw.intraday_quotes")
+
+        # Halt detection piggy-backs on the same contract walk: stocks with
+        # reference = 0 are either halted or delisted, and upsert_stock_halts
+        # filters out the delisted ones via tw.stocks.is_active.
+        halted_codes = fetch_halted_codes(api)
+        halted_written = upsert_stock_halts(halted_codes, trade_date=trade_date)
+        print(f"[PRE] halts_today: {halted_written} active stocks flagged halted")
         return 0
     except Exception:
         print("[PRE] [ERROR] pre-market refresh failed:")

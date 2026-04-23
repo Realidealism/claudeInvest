@@ -1,6 +1,6 @@
-"""Upsert helpers for tw.intraday_quotes.
+"""Upsert helpers for tw.intraday_quotes and tw.intraday_value_profile.
 
-Three write paths share this module:
+Four write paths share this module:
 
   * upsert_quotes — bulk writes from the REST sweeper (full OHLCV + cumulative)
   * upsert_trade  — per-tick writes from the WebSocket trades channel
@@ -216,3 +216,92 @@ def upsert_reference(records: list[dict], trade_date) -> int:
             written += 1
 
     return written
+
+
+def upsert_value_profile(trade_date, time_bucket: str, market_total_value: int):
+    """Write one market-wide cumulative value data point for the h(t) curve.
+
+    Called by the sweeper after each TSE+OTC sweep. ON CONFLICT keeps the
+    greater value since cumulative turnover only increases within a session.
+    """
+    with get_cursor() as cur:
+        cur.execute(
+            """
+            INSERT INTO tw.intraday_value_profile
+                (trade_date, time_bucket, market_total_value, updated_at)
+            VALUES (%s, %s, %s, NOW())
+            ON CONFLICT (trade_date, time_bucket) DO UPDATE SET
+                market_total_value = GREATEST(
+                    tw.intraday_value_profile.market_total_value,
+                    EXCLUDED.market_total_value
+                ),
+                updated_at = NOW()
+            """,
+            (trade_date, time_bucket, market_total_value),
+        )
+
+
+def upsert_stock_halts(codes: list[str], trade_date) -> int:
+    """Replace today's halted-stock set in tw.stock_halts_today.
+
+    Idempotent: deletes existing rows for trade_date first so rerunning
+    pre_market_update doesn't accumulate stale entries if a stock came
+    off halt between runs. Rows whose stock_id isn't in tw.stocks are
+    skipped (FK would otherwise fail).
+    """
+    if not codes:
+        # Still clear any prior rows for idempotency.
+        with get_cursor() as cur:
+            cur.execute(
+                "DELETE FROM tw.stock_halts_today WHERE trade_date = %s",
+                (trade_date,),
+            )
+        return 0
+
+    with get_cursor() as cur:
+        # Filter to codes that actually exist in tw.stocks and are active —
+        # delisted codes also carry reference=0 on the Shioaji side.
+        cur.execute(
+            """
+            SELECT stock_id FROM tw.stocks
+            WHERE stock_id = ANY(%s) AND is_active = TRUE
+            """,
+            (codes,),
+        )
+        live = [r[0] if isinstance(r, tuple) else r["stock_id"] for r in cur.fetchall()]
+
+        cur.execute(
+            "DELETE FROM tw.stock_halts_today WHERE trade_date = %s",
+            (trade_date,),
+        )
+        written = 0
+        for code in live:
+            cur.execute(
+                """
+                INSERT INTO tw.stock_halts_today (trade_date, stock_id, detected_at)
+                VALUES (%s, %s, NOW())
+                ON CONFLICT (trade_date, stock_id) DO NOTHING
+                """,
+                (trade_date, code),
+            )
+            written += 1
+        return written
+
+
+def has_close_bucket(trade_date) -> bool:
+    """Return True when the 13:30 bucket is already written for trade_date.
+
+    The sweeper uses this to end the day's session early once the closing
+    bucket lands (typically a few seconds past 13:30 via delayed snapshot).
+    """
+    with get_cursor(commit=False) as cur:
+        cur.execute(
+            """
+            SELECT 1
+            FROM tw.intraday_value_profile
+            WHERE trade_date = %s AND time_bucket = '13:30'
+            LIMIT 1
+            """,
+            (trade_date,),
+        )
+        return cur.fetchone() is not None
