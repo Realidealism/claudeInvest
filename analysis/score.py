@@ -248,6 +248,7 @@ def build_scoreboard() -> ScoreBoard:
     Forming (成形):  sort_forming ±5
     Breadth (大盤):  market trend vs stock sort alignment
     Wave (波浪):     wave_trend cumulative ±5 at 0.3/0.5/0.8
+    Flood (洪量):    ±15 per timeframe — tier 1 / 2 / 3
     """
     board = ScoreBoard("技術評分")
     _add_turn_rules(board)
@@ -255,6 +256,7 @@ def build_scoreboard() -> ScoreBoard:
     breadth = _load_breadth_trends()
     _add_breadth_rules(board, breadth)
     _add_wave_trend_rules(board)
+    _add_flood_rules(board)
     return board
 
 
@@ -443,6 +445,44 @@ def _add_wave_trend_rules(board: ScoreBoard) -> None:
                 lambda d, i, a=wt_attr, t=thresh: float(getattr(d.wave_result.wave_trend, a)[i]) < -t,
                 "波浪",
             ))
+
+
+# ── Flood Reference ────────────────────────────────────────────────────────
+
+FLOOD_TIER_MAP = (
+    ("short", 1),
+    ("medium", 2),
+    ("long", 3),
+)
+
+
+def _add_flood_rules(board: ScoreBoard) -> None:
+    """Add flood-reference scoring: ±15 per timeframe based on above/below tier k."""
+    cards = {"short": board.short, "medium": board.medium, "long": board.long}
+    for scope, tier in FLOOD_TIER_MAP:
+        card = cards[scope]
+        # 站上 k 階洪: long +15, short -15
+        card.add_long(bool_score(
+            f"站上{tier}階洪", 15,
+            lambda d, i, k=tier: bool(d.volume_result.above_tier[k][i]),
+            "洪量",
+        ))
+        card.add_short(bool_score(
+            f"站上{tier}階洪", -15,
+            lambda d, i, k=tier: bool(d.volume_result.above_tier[k][i]),
+            "洪量",
+        ))
+        # 跌破 k 階洪: long -15, short +15
+        card.add_long(bool_score(
+            f"跌破{tier}階洪", -15,
+            lambda d, i, k=tier: bool(d.volume_result.below_tier[k][i]),
+            "洪量",
+        ))
+        card.add_short(bool_score(
+            f"跌破{tier}階洪", 15,
+            lambda d, i, k=tier: bool(d.volume_result.below_tier[k][i]),
+            "洪量",
+        ))
 
 
 # ── Breadth vs Stock Sort ─────────────────────────────────────────────────
