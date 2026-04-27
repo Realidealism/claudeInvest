@@ -558,7 +558,10 @@ def _calc_flood_ref(
       - flood_low_tier[k]  = min of the last k latched low values
       - above_tier[k] requires at least k floods seen AND close >= flood_high_tier[k]
       - below_tier[k] requires at least k floods seen AND close <  flood_low_tier[k]
-      - Signals are suppressed on flood days (reference just updated)
+      - On non-flood days: signal compares close against today's tier reference
+      - On flood days: tier 1 stays suppressed (too noisy); tiers >= 2 fire
+        using yesterday's reference, capturing the flood-day directional move
+        without losing one entry day to confirmation lag
     """
     candle_top = np.maximum(open_, close)
     candle_bottom = np.minimum(open_, close)
@@ -608,5 +611,19 @@ def _calc_flood_ref(
         active_k = not_flood_day & (flood_count_before >= k)
         above_tier[k] = active_k & (close >= flood_high_tier[k])
         below_tier[k] = active_k & (close < flood_low_tier[k])
+
+        # Tier 2+: also fire on flood days, comparing close against yesterday's
+        # reference (i.e., the deque state before today's flood was inserted).
+        # Tier 1 stays suppressed because single-event reference is too noisy.
+        if k >= 2:
+            prev_high_ref = np.roll(flood_high_tier[k], 1)
+            prev_high_ref[0] = 0
+            prev_low_ref = np.roll(flood_low_tier[k], 1)
+            prev_low_ref[0] = 0
+            active_flood = (
+                flood_flag & (flood_count_before >= k) & (prev_high_ref > 0)
+            )
+            above_tier[k] = above_tier[k] | (active_flood & (close >= prev_high_ref))
+            below_tier[k] = below_tier[k] | (active_flood & (close < prev_low_ref))
 
     return flood_high_tier, flood_low_tier, above_tier, below_tier
