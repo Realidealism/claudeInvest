@@ -121,7 +121,7 @@ from analysis.close import calculate_close
 from analysis.candle import calculate_candle
 from analysis.volume import calculate_volume
 from analysis.money import calculate_money
-from analysis.obv import calculate_obv
+from analysis.obv import calculate_obv_multi
 from analysis.wave import calculate_wave
 from charts.candlestick import build_candlestick_figure, DRAWING_BUTTONS
 from charts.signals import (
@@ -595,13 +595,18 @@ app.layout = html.Div(
                             ], style={"marginBottom": "16px"}),
                             # OBV subplot section (toggling rebuilds the figure)
                             html.Div([
-                                html.H4("副圖", style={"color": "#aaa", "margin": "0 0 6px 0"}),
-                                dcc.Checklist(
+                                html.H4("副圖 OBV", style={"color": "#aaa", "margin": "0 0 6px 0"}),
+                                dcc.RadioItems(
                                     id="obv-select",
-                                    options=[{"label": "OBV", "value": "on"}],
-                                    value=[],
+                                    options=[
+                                        {"label": "關閉", "value": ""},
+                                        {"label": "短週期", "value": "short"},
+                                        {"label": "中週期", "value": "medium"},
+                                        {"label": "長週期", "value": "long"},
+                                    ],
+                                    value="",
                                     inline=True,
-                                    persistence=True,
+                                    persistence="v2-period",
                                     persistence_type="local",
                                     style={"fontSize": "13px", "color": "#eee"},
                                     inputStyle={"marginRight": "6px", "marginLeft": "12px"},
@@ -954,7 +959,7 @@ def save_signal_settings(ma_val, wave_val, flood_val, obv_val, trend_val, *signa
     _save_signal_setting("ma_select", ma_val or [])
     _save_signal_setting("wave_select", wave_val or [])
     _save_signal_setting("flood_select", flood_val or [])
-    _save_signal_setting("obv_select", obv_val or [])
+    _save_signal_setting("obv_select", obv_val or "")
     _save_signal_setting("trend_select", trend_val or [])
     cats = list(get_signal_categories().keys())
     for cat, val in zip(cats, signal_vals):
@@ -1065,10 +1070,14 @@ def update_chart(n_clicks, stock_id, start_date, end_date, obv_select,
         if not data["is_index"] and "turnover" in data:
             analysis_results["money"] = calculate_money(data["turnover"])
         if not data["is_index"] and "ref_price" in data:
-            analysis_results["obv"] = calculate_obv(
+            obv_multi = calculate_obv_multi(
                 data["close"], data["ref_price"],
                 data["high"], data["low"], data["sub_value"],
             )
+            # Pick the selected period; default to medium when obv-select is off
+            # (markers always need a result; subplot visibility is gated separately)
+            period = obv_select if obv_select in ("short", "medium", "long") else "medium"
+            analysis_results["obv"] = getattr(obv_multi, period)
     except Exception as e:
         pass  # Partial analysis is ok, signals just won't show
 
@@ -1077,6 +1086,7 @@ def update_chart(n_clicks, stock_id, start_date, end_date, obv_select,
     markers = generate_markers(
         data["dates"], data["high"], data["low"],
         analysis_results, all_signal_keys,
+        close=data["close"],
     )
 
     # Build ALL SMA lines (visibility controlled by JS)
@@ -1153,7 +1163,7 @@ def update_chart(n_clicks, stock_id, start_date, end_date, obv_select,
             "shadow_obv_ema": obv_r.shadow_obv_ema,
             "step_line": obv_r.step_line,
         }
-    show_obv = bool(obv_select and "on" in obv_select) and obv_data is not None
+    show_obv = obv_select in ("short", "medium", "long") and obv_data is not None
 
     # Trend data (index only) — fetch from tw.market_breadth
     trend_data = None

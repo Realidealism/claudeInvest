@@ -39,11 +39,16 @@ SHADOW_DEMA_LEN = 8
 SLOW_LEN = 55
 SLOPE_LEN = 3
 
-# Fibonacci-scaled period parameter sets (only obv_ma / window / slow scale)
+# Unified OBV core (13/26/55), per-period shadow EMA pairs (3+5 / 5+8 / 8+13).
+# Multi-stock sweep showed 5+8 is the sweet spot; 3+5 and 8+13 bracket it for
+# differentiated short/long-period signals.
 PERIOD_PARAMS = {
-    "short":  {"obv_ma_len": 8,  "window_len": 16, "slow_len": 34},
-    "medium": {"obv_ma_len": 13, "window_len": 26, "slow_len": 55},
-    "long":   {"obv_ma_len": 21, "window_len": 42, "slow_len": 89},
+    "short":  {"obv_ma_len": 13, "window_len": 26, "slow_len": 55,
+               "shadow_ema_len1": 3, "shadow_ema_len2": 5},
+    "medium": {"obv_ma_len": 13, "window_len": 26, "slow_len": 55,
+               "shadow_ema_len1": 5, "shadow_ema_len2": 8},
+    "long":   {"obv_ma_len": 13, "window_len": 26, "slow_len": 55,
+               "shadow_ema_len1": 8, "shadow_ema_len2": 13},
 }
 
 
@@ -83,6 +88,8 @@ def calculate_obv(
     obv_ma_len: int = OBV_MA_LEN,
     window_len: int = WINDOW_LEN,
     slow_len: int = SLOW_LEN,
+    shadow_ema_len1: int = SHADOW_EMA_LEN1,
+    shadow_ema_len2: int = SHADOW_EMA_LEN2,
 ) -> OBVResult:
     """
     Main entry point — equivalent to Go GetCalculateOBV.
@@ -121,9 +128,9 @@ def calculate_obv(
     # 3. Shadow OBV
     shadow_obv = _calc_shadow_obv(close, high, low, obv, obv_ma, obv_diff_std, hl_std, n)
 
-    # EMA smoothing: average of EMA(1) and EMA(2)
-    shadow_ema1 = ema(shadow_obv, SHADOW_EMA_LEN1)
-    shadow_ema2 = ema(shadow_obv, SHADOW_EMA_LEN2)
+    # EMA smoothing: average of two EMAs
+    shadow_ema1 = ema(shadow_obv, shadow_ema_len1)
+    shadow_ema2 = ema(shadow_obv, shadow_ema_len2)
     shadow_obv_ema = ((shadow_ema1 + shadow_ema2) / 2).astype(F32)
 
     # 4. MACD: DEMA of shadow - slow EMA of close

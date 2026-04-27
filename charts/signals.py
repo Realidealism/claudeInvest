@@ -28,7 +28,7 @@ class SignalDef:
     category: str           # grouping category
     attr_path: str          # dot-separated path on the result object
     source: str             # which analysis module: 'candle', 'volume', 'close'
-    position: str           # 'above' (use high) or 'below' (use low)
+    position: str           # 'above' (high+offset), 'below' (low-offset), 'on' (close, no offset)
     symbol: str             # plotly marker symbol
     color: str              # marker color
     size: int = 10          # marker size
@@ -73,9 +73,9 @@ SIGNAL_DEFS: list[SignalDef] = [
     SignalDef("knot_break_up", "糾結突破上", "knot", "knot.medium.break_up", "close", "below", "star", "#ffd54f", 13),
     SignalDef("knot_break_down", "糾結突破下", "knot", "knot.medium.break_down", "close", "above", "star", "#7e57c2", 13),
 
-    # -- OBV buy/sell (markers on K line; OBV subplot toggled separately) --
-    SignalDef("obv_buy", "OBV買進", "obv", "signal_up", "obv", "below", "arrow-up-open", "#66bb6a", 13),
-    SignalDef("obv_sell", "OBV賣出", "obv", "signal_down", "obv", "above", "arrow-down-open", "#ef5350", 13),
+    # -- OBV buy/sell (markers placed on K-bar at close price) --
+    SignalDef("obv_buy", "OBV買進", "obv", "signal_up", "obv", "on", "arrow-up", "#ff1744", 13),
+    SignalDef("obv_sell", "OBV賣出", "obv", "signal_down", "obv", "on", "arrow-down", "#00e676", 13),
 ]
 
 
@@ -107,6 +107,7 @@ def generate_markers(
     analysis_results: dict[str, object],
     enabled_signals: list[str],
     offset_pct: float = 0.015,
+    close: Optional[np.ndarray] = None,
 ) -> list[SignalMarker]:
     """
     Generate signal markers from analysis results.
@@ -152,6 +153,8 @@ def generate_markers(
         for idx in indices:
             if sd.position == "above":
                 price = float(high[idx]) + offset
+            elif sd.position == "on" and close is not None:
+                price = float(close[idx])
             else:
                 price = float(low[idx]) - offset
 
