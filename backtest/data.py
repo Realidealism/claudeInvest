@@ -111,6 +111,11 @@ def _load_index_data(
     if not rows:
         raise ValueError(f"No data found for index {index_id}")
 
+    # Drop rows with NULL turnover (incomplete intraday data for current day)
+    rows = [r for r in rows if r["turnover"] is not None]
+    if not rows:
+        raise ValueError(f"No usable data for index {index_id}")
+
     # Map turnover → volume, set ref_price to None (fallback to prev close)
     for r in rows:
         r["volume"] = r["turnover"]
