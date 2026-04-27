@@ -53,11 +53,11 @@ class Strategy:
     Example usage:
         s = Strategy("OBV突破+均線多排")
         s.long_entry = [
-            bool_condition("OBV買訊", lambda d: d.obv_result.signal_up),
+            bool_condition("OBV買訊", lambda d: d.obv.medium.signal_up),
             bool_condition("短排多", lambda d: d.close_result.ma.sort_normal["short"].up),
         ]
         s.long_exit = [
-            bool_condition("OBV賣訊", lambda d: d.obv_result.signal_down),
+            bool_condition("OBV賣訊", lambda d: d.obv.medium.signal_down),
         ]
         s.trailing_stop = TrailingStopConfig(
             defense_source=lambda d: d.close_result.ma.sma[8],

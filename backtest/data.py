@@ -18,7 +18,7 @@ from analysis.close import calculate_close, calc_sort_forming, CloseResult, Sort
 from analysis.volume import calculate_volume, VolumeResult
 from analysis.candle import calculate_candle, CandleResult
 from analysis.money import calculate_money, MoneyResult
-from analysis.obv import calculate_obv, OBVResult
+from analysis.obv import calculate_obv_multi, OBVMultiResult
 from analysis.wave import calculate_wave, WaveResult
 
 F32 = np.float32
@@ -56,7 +56,7 @@ class StockData:
     volume_result: VolumeResult
     candle_result: CandleResult
     money_result: MoneyResult
-    obv_result: OBVResult
+    obv: OBVMultiResult
     wave_result: WaveResult
 
     # Forming sort alignment (depends on close + volume)
@@ -166,7 +166,7 @@ def build_stock_data(
     volume_result = calculate_volume(volume, open_=open_, close=close, high=high, low=low)
     candle_result = calculate_candle(open_, high, low, close)
     money_result = calculate_money(turnover)
-    obv_result = calculate_obv(close, ref_price, high, low, volume)
+    obv = calculate_obv_multi(close, ref_price, high, low, volume)
     wave_result = calculate_wave(
         open_, high, low, close,
         candle_result, close_result.bs,
@@ -189,7 +189,7 @@ def build_stock_data(
         volume_result=volume_result,
         candle_result=candle_result,
         money_result=money_result,
-        obv_result=obv_result,
+        obv=obv,
         wave_result=wave_result,
         sort_forming=sort_forming,
         dividends=dividends,

@@ -382,8 +382,16 @@ app.index_string = """<!DOCTYPE html>
             }, 50);
         });
 
-        // Flood toggle
-        var _floodNames = ['多方防守', '空方防守', '做多進場', '做空進場', '獲利出場', '虧損出場'];
+        // Flood toggle — tier 1/2/3 (6 lines + 12 marker groups = 18 traces)
+        var _floodNames = [];
+        [1,2,3].forEach(function(t) {
+            _floodNames.push(t + '階多方防守');
+            _floodNames.push(t + '階空方防守');
+            _floodNames.push(t + '階做多進場');
+            _floodNames.push(t + '階做空進場');
+            _floodNames.push(t + '階獲利出場');
+            _floodNames.push(t + '階虧損出場');
+        });
         document.addEventListener('click', function(e) {
             var c = document.getElementById('flood-select');
             if (!c || !c.contains(e.target)) return;
@@ -1179,19 +1187,16 @@ def update_chart(n_clicks, stock_id, start_date, end_date, obv_select,
         except Exception:
             pass
 
-    # Flood backtest overlay
+    # Flood backtest overlay (tier 1/2/3)
     flood_overlay = None
     show_flood = bool(flood_select and "on" in flood_select)
     if "volume" in analysis_results:
         vol_r = analysis_results["volume"]
-        if np.any(vol_r.flood_high > 0):
-            from charts.flood_overlay import compute_flood_overlay
-            flood_overlay = compute_flood_overlay(
+        if np.any(vol_r.flood_high_tier[1] > 0):
+            from charts.flood_overlay import compute_flood_overlay_all_tiers
+            flood_overlay = compute_flood_overlay_all_tiers(
                 close=data["close"],
-                flood_above=vol_r.flood_above,
-                flood_below=vol_r.flood_below,
-                flood_high=vol_r.flood_high,
-                flood_low=vol_r.flood_low,
+                vol_r=vol_r,
                 dates=data["dates"],
             )
 

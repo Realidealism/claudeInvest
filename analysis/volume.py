@@ -95,11 +95,17 @@ class VolumeResult:
     # Overall status: 0=flood, 1=big, 2=high, 3=normal, 4=low, 5=shrink, 6=sleep
     volume_status: U8Array
 
-    # Flood reference: price at last flood event
-    flood_high: F32Array              # latched high price of most recent flood day
-    flood_low: F32Array               # latched low price of most recent flood day
-    flood_above: BoolArray            # close >= flood_high (strength)
-    flood_below: BoolArray            # close < flood_low (weakness)
+    # Flood reference: tier k = last k flood events aggregated
+    # tier 1 = most recent flood (equivalent to old flood_high / flood_low)
+    flood_high_tier: dict[int, F32Array]   # {1..5} max of last k floods' high values
+    flood_low_tier: dict[int, F32Array]    # {1..5} min of last k floods' low values
+    above_tier: dict[int, BoolArray]       # {1..5} close >= flood_high_tier[k]
+    below_tier: dict[int, BoolArray]       # {1..5} close <  flood_low_tier[k]
+
+    # Scoring signals for future scoring system — each independently ±15
+    flood_short_score: NDArray[np.int8]    # tier 1: +15 above, -15 below, 0 neutral
+    flood_medium_score: NDArray[np.int8]   # tier 2: +15 above, -15 below, 0 neutral
+    flood_long_score: NDArray[np.int8]     # tier 3: +15 above, -15 below, 0 neutral
 
 
 # ── Main Entry ──────────────────────────────────────────────────────────────
@@ -178,17 +184,28 @@ def calculate_volume(
         extremes, sleep_flag, flood_flag, burst,
     )
 
-    # Flood reference signals
+    # Flood reference signals (tiered: last 1..5 flood events)
+    MAX_TIER = 5
     if open_ is not None and close is not None and high is not None and low is not None:
-        flood_high_arr, flood_low_arr, flood_above, flood_below = _calc_flood_ref(
+        flood_high_tier, flood_low_tier, above_tier, below_tier = _calc_flood_ref(
             open_.astype(F32), close.astype(F32), high.astype(F32), low.astype(F32),
-            flood_flag, n,
+            flood_flag, n, max_tier=MAX_TIER,
         )
     else:
-        flood_high_arr = np.zeros(n, dtype=F32)
-        flood_low_arr = np.zeros(n, dtype=F32)
-        flood_above = np.zeros(n, dtype=np.bool_)
-        flood_below = np.zeros(n, dtype=np.bool_)
+        flood_high_tier = {k: np.zeros(n, dtype=F32) for k in range(1, MAX_TIER + 1)}
+        flood_low_tier = {k: np.zeros(n, dtype=F32) for k in range(1, MAX_TIER + 1)}
+        above_tier = {k: np.zeros(n, dtype=np.bool_) for k in range(1, MAX_TIER + 1)}
+        below_tier = {k: np.zeros(n, dtype=np.bool_) for k in range(1, MAX_TIER + 1)}
+
+    # Per-tier ±15 scores for scoring system
+    def _score(above, below):
+        s = np.zeros(n, dtype=np.int8)
+        s[above] = 15
+        s[below] = -15
+        return s
+    flood_short_score = _score(above_tier[1], below_tier[1])
+    flood_medium_score = _score(above_tier[2], below_tier[2])
+    flood_long_score = _score(above_tier[3], below_tier[3])
 
     return VolumeResult(
         sma=sma_d,
@@ -211,10 +228,13 @@ def calculate_volume(
         flood=flood_flag,
         mess_up=mess_up,
         volume_status=volume_status,
-        flood_high=flood_high_arr,
-        flood_low=flood_low_arr,
-        flood_above=flood_above,
-        flood_below=flood_below,
+        flood_high_tier=flood_high_tier,
+        flood_low_tier=flood_low_tier,
+        above_tier=above_tier,
+        below_tier=below_tier,
+        flood_short_score=flood_short_score,
+        flood_medium_score=flood_medium_score,
+        flood_long_score=flood_long_score,
     )
 
 
@@ -523,56 +543,70 @@ def _calc_volume_status(
 def _calc_flood_ref(
     open_: F32Array, close: F32Array, high: F32Array, low: F32Array,
     flood_flag: BoolArray, n: int,
-) -> tuple[F32Array, F32Array, BoolArray, BoolArray]:
+    max_tier: int = 5,
+) -> tuple[dict[int, F32Array], dict[int, F32Array],
+           dict[int, BoolArray], dict[int, BoolArray]]:
     """
-    Track price reference at the most recent flood event.
+    Track price references for the last `max_tier` flood events.
 
-    Gap-aware logic:
-      - flood_high (short defense):
-          gap down → prev day's bottom (tighter)
-          gap up / no gap → flood day's high
-      - flood_low (long defense):
-          gap up → prev day's top (tighter)
-          gap down / no gap → flood day's low
+    Gap-aware latching (same as before):
+      - high_value: prev_bottom if gap_down else flood day's high
+      - low_value:  prev_top    if gap_up   else flood day's low
 
-    top = max(open, close), bottom = min(open, close).
-
-    Before the first flood event, signals are all False.
+    For tier k (1..max_tier):
+      - flood_high_tier[k] = max of the last k latched high values
+      - flood_low_tier[k]  = min of the last k latched low values
+      - above_tier[k] requires at least k floods seen AND close >= flood_high_tier[k]
+      - below_tier[k] requires at least k floods seen AND close <  flood_low_tier[k]
+      - Signals are suppressed on flood days (reference just updated)
     """
     candle_top = np.maximum(open_, close)
     candle_bottom = np.minimum(open_, close)
 
-    flood_high = np.zeros(n, dtype=F32)
-    flood_low = np.zeros(n, dtype=F32)
-    latched_high = F32(0)
-    latched_low = F32(0)
-    has_flood = False
+    flood_high_tier = {k: np.zeros(n, dtype=F32) for k in range(1, max_tier + 1)}
+    flood_low_tier = {k: np.zeros(n, dtype=F32) for k in range(1, max_tier + 1)}
+
+    # Deque of (high_value, low_value) for last max_tier floods, newest first
+    recent: list[tuple[float, float]] = []
+    # Count of floods seen so far (inclusive of today)
+    flood_count = 0
+    flood_count_before = np.zeros(n, dtype=np.int32)
+
     for i in range(n):
+        flood_count_before[i] = flood_count  # count before today's processing
+
         if flood_flag[i] and i > 0:
             prev_top = candle_top[i - 1]
             prev_bottom = candle_bottom[i - 1]
             gap_up = candle_bottom[i] > prev_top
             gap_down = candle_top[i] < prev_bottom
 
-            # flood_high: short defense
-            latched_high = prev_bottom if gap_down else high[i]
-            # flood_low: long defense
-            latched_low = prev_top if gap_up else low[i]
-            has_flood = True
-        flood_high[i] = latched_high
-        flood_low[i] = latched_low
+            hv = float(prev_bottom) if gap_down else float(high[i])
+            lv = float(prev_top) if gap_up else float(low[i])
 
-    if not has_flood:
-        return flood_high, flood_low, np.zeros(n, dtype=np.bool_), np.zeros(n, dtype=np.bool_)
+            recent.insert(0, (hv, lv))
+            if len(recent) > max_tier:
+                recent.pop()
+            flood_count += 1
 
-    # Only produce signals after the first flood
-    first_flood = np.argmax(flood_flag)
-    active = np.zeros(n, dtype=np.bool_)
-    active[first_flood + 1:] = True
-    # On flood day itself, no signal (reference just set)
-    active[flood_flag] = False
+        # Write tier values based on current deque state
+        if recent:
+            for k in range(1, max_tier + 1):
+                avail = min(k, len(recent))
+                flood_high_tier[k][i] = max(r[0] for r in recent[:avail])
+                flood_low_tier[k][i] = min(r[1] for r in recent[:avail])
 
-    flood_above = active & (close >= flood_high)
-    flood_below = active & (close < flood_low)
+    above_tier = {k: np.zeros(n, dtype=np.bool_) for k in range(1, max_tier + 1)}
+    below_tier = {k: np.zeros(n, dtype=np.bool_) for k in range(1, max_tier + 1)}
 
-    return flood_high, flood_low, flood_above, flood_below
+    if flood_count == 0:
+        return flood_high_tier, flood_low_tier, above_tier, below_tier
+
+    not_flood_day = ~flood_flag
+    for k in range(1, max_tier + 1):
+        # Need at least k floods observed strictly before today, and today not a flood day
+        active_k = not_flood_day & (flood_count_before >= k)
+        above_tier[k] = active_k & (close >= flood_high_tier[k])
+        below_tier[k] = active_k & (close < flood_low_tier[k])
+
+    return flood_high_tier, flood_low_tier, above_tier, below_tier

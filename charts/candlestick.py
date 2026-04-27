@@ -205,62 +205,107 @@ def build_candlestick_figure(
                 row=1, col=1,
             )
 
-    # -- Flood backtest overlay (defense lines + entry/exit markers) --
-    # flood_overlay keys: long_defense, short_defense, entries, exits
-    _flood_trace_specs = [
-        ("多方防守", "long_defense", "#26a69a"),
-        ("空方防守", "short_defense", "#ef5350"),
-    ]
-    for fname, fkey, fcolor in _flood_trace_specs:
-        fdata = flood_overlay.get(fkey) if flood_overlay else None
-        has_data = fdata is not None and len(fdata) > 0
-        vis = has_data and flood_visible
+    # -- Flood backtest overlay (tier 1/2/3) --
+    # flood_overlay is dict[int, dict] keyed by tier.
+    # Each tier has: long_defense, short_defense, markers
+    # Color shades (same family, lighter = higher tier):
+    #   green (long defense): #00695c (tier1) / #26a69a (tier2) / #80cbc4 (tier3)
+    #   red   (short defense): #b71c1c (tier1) / #ef5350 (tier2) / #ffab91 (tier3)
+    _tier_colors = {
+        1: {"long": "#00695c", "short": "#b71c1c"},   # dark
+        2: {"long": "#26a69a", "short": "#ef5350"},   # medium
+        3: {"long": "#80cbc4", "short": "#ffab91"},   # light
+    }
+    _marker_symbol_size = {
+        "long_entry":  ("triangle-up",   None,          10),
+        "short_entry": ("triangle-down", None,          10),
+        "win_exit":    ("x",             "#ffd54f",      9),
+        "loss_exit":   ("x",             "#9e9e9e",      9),
+    }
+
+    # Add tier 1/2/3 in fixed order so trace indices are stable
+    for tier in (1, 2, 3):
+        tier_data = flood_overlay.get(tier) if flood_overlay else None
+        has_tier = tier_data is not None
+
+        # Long defense line (green shade)
+        long_def = tier_data.get("long_defense") if has_tier else None
+        has_ld = long_def is not None and len(long_def) > 0
+        vis_ld = has_ld and flood_visible
         fig.add_trace(
             go.Scatter(
-                x=dates if has_data else [],
-                y=fdata if has_data else [],
+                x=dates if has_ld else [],
+                y=long_def if has_ld else [],
                 mode="lines",
-                name=fname,
-                visible=vis,
-                showlegend=vis,
-                line=dict(width=2, color=fcolor, dash="dash"),
-                hovertemplate=f"{fname}: %{{y:.2f}}<extra></extra>",
+                name=f"{tier}階多方防守",
+                visible=vis_ld,
+                showlegend=vis_ld,
+                line=dict(width=2, color=_tier_colors[tier]["long"], dash="dash"),
+                hovertemplate=f"{tier}階多防: %{{y:.2f}}<extra></extra>",
                 connectgaps=False,
             ),
             row=1, col=1,
         )
-    # Entry/exit markers (4 groups: long_entry, short_entry, win_exit, loss_exit)
-    _marker_specs = [
-        ("做多進場", "long_entry", "triangle-up", "#ef5350", 11),
-        ("做空進場", "short_entry", "triangle-down", "#26a69a", 11),
-        ("獲利出場", "win_exit", "x", "#ffd54f", 10),
-        ("虧損出場", "loss_exit", "x", "#9e9e9e", 10),
-    ]
-    markers_data = flood_overlay.get("markers", {}) if flood_overlay else {}
-    for mname, mkey, msymbol, mcolor, msize in _marker_specs:
-        mgroup = markers_data.get(mkey, {})
-        mx = mgroup.get("x", [])
-        my = mgroup.get("y", [])
-        mt = mgroup.get("text", [])
-        has_data = len(mx) > 0
-        vis = has_data and flood_visible
+
+        # Short defense line (red shade)
+        short_def = tier_data.get("short_defense") if has_tier else None
+        has_sd = short_def is not None and len(short_def) > 0
+        vis_sd = has_sd and flood_visible
         fig.add_trace(
             go.Scatter(
-                x=mx if has_data else [],
-                y=my if has_data else [],
-                mode="markers",
-                name=mname,
-                visible=vis,
-                showlegend=vis,
-                marker=dict(
-                    symbol=msymbol, size=msize, color=mcolor,
-                    line=dict(width=1, color="white"),
-                ),
-                customdata=mt if has_data else [],
-                hovertemplate="%{customdata}<br>%{x}<br>價格: %{y:.2f}<extra></extra>",
+                x=dates if has_sd else [],
+                y=short_def if has_sd else [],
+                mode="lines",
+                name=f"{tier}階空方防守",
+                visible=vis_sd,
+                showlegend=vis_sd,
+                line=dict(width=2, color=_tier_colors[tier]["short"], dash="dash"),
+                hovertemplate=f"{tier}階空防: %{{y:.2f}}<extra></extra>",
+                connectgaps=False,
             ),
             row=1, col=1,
         )
+
+        # Markers per tier — use tier's long/short color for entries,
+        # fixed color for wins/losses
+        markers_data = tier_data.get("markers", {}) if has_tier else {}
+        for mkey, (msymbol, mfix_color, msize) in _marker_symbol_size.items():
+            mgroup = markers_data.get(mkey, {})
+            mx = mgroup.get("x", [])
+            my = mgroup.get("y", [])
+            mt = mgroup.get("text", [])
+            has_m = len(mx) > 0
+            vis_m = has_m and flood_visible
+            # Entry markers use tier color (short=red shade, long=green shade)
+            if mkey == "long_entry":
+                mcolor = _tier_colors[tier]["short"]  # long entry = red triangle (TW convention)
+            elif mkey == "short_entry":
+                mcolor = _tier_colors[tier]["long"]   # short entry = green triangle
+            else:
+                mcolor = mfix_color
+            label_map = {
+                "long_entry": f"{tier}階做多進場",
+                "short_entry": f"{tier}階做空進場",
+                "win_exit": f"{tier}階獲利出場",
+                "loss_exit": f"{tier}階虧損出場",
+            }
+            fig.add_trace(
+                go.Scatter(
+                    x=mx if has_m else [],
+                    y=my if has_m else [],
+                    mode="markers",
+                    name=label_map[mkey],
+                    visible=vis_m,
+                    showlegend=False,  # markers excluded from legend (info via hover)
+                    marker=dict(
+                        symbol=msymbol, size=msize, color=mcolor,
+                        line=dict(width=1, color="white"),
+                    ),
+                    customdata=mt if has_m else [],
+                    hovertemplate="%{customdata}<br>%{x}<br>價格: %{y:.2f}<extra></extra>",
+                ),
+                row=1, col=1,
+            )
 
     # -- Wave lines (always add 4 slots for stable trace count) --
     _wave_slots = [

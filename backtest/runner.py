@@ -32,31 +32,36 @@ from backtest.chart import plot_backtest
 from backtest.plotly_chart import plot_backtest_interactive
 
 
-def example_strategy() -> Strategy:
-    """
-    Placeholder strategy for testing the framework.
-
-    Uses OBV signal_up/down as entry/exit with SMA(8) trailing stop.
-    Replace with real conditions later.
-    """
-    s = Strategy("OBV 範例策略")
+def _obv_period_strategy(name: str, period: str) -> Strategy:
+    """Single-period OBV strategy: exits only on trend reversal (signal flip),
+    no additional trailing stop. `period` is one of 'short', 'medium', 'long'."""
+    s = Strategy(name)
 
     s.long_entry = [
-        bool_condition("OBV買訊", lambda d: d.obv_result.signal_up),
+        bool_condition("OBV買訊", lambda d, p=period: getattr(d.obv, p).signal_up),
     ]
     s.long_exit = [
-        bool_condition("OBV賣訊", lambda d: d.obv_result.signal_down),
+        bool_condition("OBV賣訊", lambda d, p=period: getattr(d.obv, p).signal_down),
     ]
     s.short_entry = [
-        bool_condition("OBV賣訊", lambda d: d.obv_result.signal_down),
+        bool_condition("OBV賣訊", lambda d, p=period: getattr(d.obv, p).signal_down),
     ]
     s.short_exit = [
-        bool_condition("OBV買訊", lambda d: d.obv_result.signal_up),
+        bool_condition("OBV買訊", lambda d, p=period: getattr(d.obv, p).signal_up),
     ]
-    s.trailing_stop = TrailingStopConfig(
-        defense_source=lambda d: d.close_result.ma.sma[8],
-    )
     return s
+
+
+def obv_short_strategy() -> Strategy:
+    return _obv_period_strategy("OBV 短週期 (8/16/34)", "short")
+
+
+def obv_medium_strategy() -> Strategy:
+    return _obv_period_strategy("OBV 中週期 (13/26/55)", "medium")
+
+
+def obv_long_strategy() -> Strategy:
+    return _obv_period_strategy("OBV 長週期 (21/42/89)", "long")
 
 
 def tip_breakout_strategy() -> Strategy:
@@ -153,26 +158,66 @@ def flood_ref_strategy() -> Strategy:
     s = Strategy("洪量基準")
 
     s.long_entry = [
-        bool_condition("站上洪量高", lambda d: d.volume_result.flood_above),
+        bool_condition("站上洪量高", lambda d: d.volume_result.above_tier[1]),
     ]
     s.long_exit = [
-        bool_condition("跌破洪量低", lambda d: d.volume_result.flood_below),
+        bool_condition("跌破洪量低", lambda d: d.volume_result.below_tier[1]),
     ]
     s.short_entry = [
-        bool_condition("跌破洪量低", lambda d: d.volume_result.flood_below),
+        bool_condition("跌破洪量低", lambda d: d.volume_result.below_tier[1]),
     ]
     s.short_exit = [
-        bool_condition("站上洪量高", lambda d: d.volume_result.flood_above),
+        bool_condition("站上洪量高", lambda d: d.volume_result.above_tier[1]),
     ]
     # Long: flood_low as defense (only moves up)
     s.long_trailing_stop = TrailingStopConfig(
-        defense_source=lambda d: d.volume_result.flood_low,
+        defense_source=lambda d: d.volume_result.flood_low_tier[1],
     )
     # Short: flood_high as defense (only moves down)
     s.short_trailing_stop = TrailingStopConfig(
-        defense_source=lambda d: d.volume_result.flood_high,
+        defense_source=lambda d: d.volume_result.flood_high_tier[1],
     )
     return s
+
+
+def flood_tier_strategy(tier: int) -> Strategy:
+    """
+    Flood reference at tier k: long when price above the max of last k flood highs,
+    short when price below the min of last k flood lows.
+    Exit and defense both use tier 1 (nearest flood) — entry threshold is the only
+    difference between tiers.
+    """
+    s = Strategy(f"洪量{tier}階")
+
+    s.long_entry = [
+        bool_condition(f"站上{tier}階洪", lambda d: d.volume_result.above_tier[tier]),
+    ]
+    s.long_exit = [
+        bool_condition("跌破洪量低", lambda d: d.volume_result.below_tier[1]),
+    ]
+    s.short_entry = [
+        bool_condition(f"跌破{tier}階洪", lambda d: d.volume_result.below_tier[tier]),
+    ]
+    s.short_exit = [
+        bool_condition("站上洪量高", lambda d: d.volume_result.above_tier[1]),
+    ]
+    s.long_trailing_stop = TrailingStopConfig(
+        defense_source=lambda d: d.volume_result.flood_low_tier[1],
+    )
+    s.short_trailing_stop = TrailingStopConfig(
+        defense_source=lambda d: d.volume_result.flood_high_tier[1],
+    )
+    return s
+
+
+def flood_tier1_strategy() -> Strategy:
+    return flood_tier_strategy(1)
+
+def flood_tier2_strategy() -> Strategy:
+    return flood_tier_strategy(2)
+
+def flood_tier3_strategy() -> Strategy:
+    return flood_tier_strategy(3)
 
 
 def flood_trend_strategy() -> Strategy:
@@ -180,45 +225,26 @@ def flood_trend_strategy() -> Strategy:
     s = Strategy("洪量+趨勢")
 
     s.long_entry = [
-        bool_condition("站上洪量高", lambda d: d.volume_result.flood_above),
+        bool_condition("站上洪量高", lambda d: d.volume_result.above_tier[1]),
         threshold_condition("趨勢正向", lambda d: d.wave_result.wave_trend.composite, ">", 0),
     ]
     s.long_exit = [
-        bool_condition("跌破洪量低", lambda d: d.volume_result.flood_below),
+        bool_condition("跌破洪量低", lambda d: d.volume_result.below_tier[1]),
     ]
     s.short_entry = [
-        bool_condition("跌破洪量低", lambda d: d.volume_result.flood_below),
+        bool_condition("跌破洪量低", lambda d: d.volume_result.below_tier[1]),
         threshold_condition("趨勢負向", lambda d: d.wave_result.wave_trend.composite, "<", 0),
     ]
     s.short_exit = [
-        bool_condition("站上洪量高", lambda d: d.volume_result.flood_above),
-    ]
-    return s
-
-
-def flood_obv_strategy() -> Strategy:
-    """Flood reference + OBV trend confirmation."""
-    s = Strategy("洪量+OBV")
-
-    s.long_entry = [
-        bool_condition("站上洪量高", lambda d: d.volume_result.flood_above),
-        bool_condition("OBV多方", lambda d: d.obv_result.trend > 0),
-    ]
-    s.long_exit = [
-        bool_condition("跌破洪量低", lambda d: d.volume_result.flood_below),
-    ]
-    s.short_entry = [
-        bool_condition("跌破洪量低", lambda d: d.volume_result.flood_below),
-        bool_condition("OBV空方", lambda d: d.obv_result.trend < 0),
-    ]
-    s.short_exit = [
-        bool_condition("站上洪量高", lambda d: d.volume_result.flood_above),
+        bool_condition("站上洪量高", lambda d: d.volume_result.above_tier[1]),
     ]
     return s
 
 
 STRATEGIES = {
-    "obv": example_strategy,
+    "obv_short":  obv_short_strategy,
+    "obv_medium": obv_medium_strategy,
+    "obv_long":   obv_long_strategy,
     "tip": tip_breakout_strategy,
     "tip_trend": tip_trend_strategy,
     "sink": sink_reversal_strategy,
@@ -227,8 +253,10 @@ STRATEGIES = {
     "t_long": trend_long_strategy,
     "t_comp": trend_composite_strategy,
     "flood": flood_ref_strategy,
+    "flood_t1": flood_tier1_strategy,
+    "flood_t2": flood_tier2_strategy,
+    "flood_t3": flood_tier3_strategy,
     "flood_trend": flood_trend_strategy,
-    "flood_obv": flood_obv_strategy,
 }
 
 
@@ -246,6 +274,10 @@ def parse_args() -> argparse.Namespace:
                         help="Initial capital (default: 1000000)")
     parser.add_argument("--shares", type=int, default=1000,
                         help="Shares per trade (default: 1000)")
+    parser.add_argument("--notional", type=float, default=None,
+                        help="Notional dollars per trade. When set, overrides "
+                             "--shares with shares = notional / entry_price "
+                             "(use this for indices to avoid leverage).")
     parser.add_argument("--chart", type=str, default=None,
                         help="Save chart to file (e.g. output.png)")
     parser.add_argument("--plotly", type=str, default=None,
@@ -279,6 +311,7 @@ def main():
                 data, strategy,
                 capital=args.capital,
                 shares_per_trade=args.shares,
+                notional_per_trade=args.notional,
             )
         except InsufficientDataError as e:
             print(f"\n⚠ 跳過回測: {e}")

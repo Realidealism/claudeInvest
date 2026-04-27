@@ -30,7 +30,7 @@ F32 = np.float32
 F32Array = NDArray[np.float32]
 BoolArray = NDArray[np.bool_]
 
-# Configuration constants (matching Go defaults)
+# Default configuration constants (medium period, matching Go defaults)
 OBV_MA_LEN = 13
 WINDOW_LEN = 26
 SHADOW_EMA_LEN1 = 1
@@ -38,6 +38,13 @@ SHADOW_EMA_LEN2 = 2
 SHADOW_DEMA_LEN = 8
 SLOW_LEN = 55
 SLOPE_LEN = 3
+
+# Fibonacci-scaled period parameter sets (only obv_ma / window / slow scale)
+PERIOD_PARAMS = {
+    "short":  {"obv_ma_len": 8,  "window_len": 16, "slow_len": 34},
+    "medium": {"obv_ma_len": 13, "window_len": 26, "slow_len": 55},
+    "long":   {"obv_ma_len": 21, "window_len": 42, "slow_len": 89},
+}
 
 
 I8Array = NDArray[np.int8]
@@ -57,12 +64,25 @@ class OBVResult:
     trend: I8Array              # +1=bullish, -1=bearish, 0=undetermined
 
 
+@dataclass
+class OBVMultiResult:
+    """Three-period OBV results. Cross-period aggregation is intentionally
+    omitted — it belongs to the future scoring system, not individual signals."""
+    short:  OBVResult
+    medium: OBVResult
+    long:   OBVResult
+
+
 def calculate_obv(
     close: F32Array,
     limit_refer: F32Array,
     high: F32Array,
     low: F32Array,
     volume: F32Array,
+    *,
+    obv_ma_len: int = OBV_MA_LEN,
+    window_len: int = WINDOW_LEN,
+    slow_len: int = SLOW_LEN,
 ) -> OBVResult:
     """
     Main entry point — equivalent to Go GetCalculateOBV.
@@ -73,6 +93,9 @@ def calculate_obv(
     limit_refer : reference price for up/down determination
     high, low : high and low prices
     volume : daily volume
+    obv_ma_len : SMA length for OBV smoothing
+    window_len : rolling-std window for OBV diff and HL diff
+    slow_len : EMA length for the slow close line in MACD
     """
     n = len(close)
     close = close.astype(F32)
@@ -85,15 +108,15 @@ def calculate_obv(
     obv = _calc_obv(close, limit_refer, volume, n)
 
     # 2. OBVMA
-    obv_ma = sma(obv, OBV_MA_LEN)
+    obv_ma = sma(obv, obv_ma_len)
 
     # OBV diff and its rolling std
     obv_diff = obv - obv_ma
-    obv_diff_std = rolling_std(obv_diff, WINDOW_LEN)
+    obv_diff_std = rolling_std(obv_diff, window_len)
 
     # HL diff and its rolling std
     hl_diff = (high - low).astype(F32)
-    hl_std = rolling_std(hl_diff, WINDOW_LEN)
+    hl_std = rolling_std(hl_diff, window_len)
 
     # 3. Shadow OBV
     shadow_obv = _calc_shadow_obv(close, high, low, obv, obv_ma, obv_diff_std, hl_std, n)
@@ -105,7 +128,7 @@ def calculate_obv(
 
     # 4. MACD: DEMA of shadow - slow EMA of close
     shadow_dema = dema(shadow_obv_ema, SHADOW_DEMA_LEN)
-    close_slow_ema = ema(close, SLOW_LEN)
+    close_slow_ema = ema(close, slow_len)
     macd = (shadow_dema - close_slow_ema).astype(F32)
 
     # 5. Linear regression projection
@@ -127,6 +150,24 @@ def calculate_obv(
         signal_up=signal_up,
         signal_down=signal_down,
         trend=trend,
+    )
+
+
+def calculate_obv_multi(
+    close: F32Array,
+    limit_refer: F32Array,
+    high: F32Array,
+    low: F32Array,
+    volume: F32Array,
+) -> OBVMultiResult:
+    """Compute OBV for all three Fibonacci-scaled periods."""
+    return OBVMultiResult(
+        short=calculate_obv(close, limit_refer, high, low, volume,
+                            **PERIOD_PARAMS["short"]),
+        medium=calculate_obv(close, limit_refer, high, low, volume,
+                             **PERIOD_PARAMS["medium"]),
+        long=calculate_obv(close, limit_refer, high, low, volume,
+                           **PERIOD_PARAMS["long"]),
     )
 
 
