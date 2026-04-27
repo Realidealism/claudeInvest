@@ -204,6 +204,13 @@ def fetch_price_data(
 
     if is_index:
         result["sub_value"] = np.array([float(r["turnover"] or 0) for r in rows], dtype=np.float32)
+        # Index has no ref_price column; OBV uses prev close as the fallback.
+        closes = result["close"]
+        ref_price = np.zeros(len(rows), dtype=np.float32)
+        ref_price[0] = closes[0]
+        if len(closes) > 1:
+            ref_price[1:] = closes[:-1]
+        result["ref_price"] = ref_price
     else:
         result["sub_value"] = np.array([float(r["volume"] or 0) for r in rows], dtype=np.float32)
         result["turnover"] = np.array([float(r["turnover"] or 0) for r in rows], dtype=np.float32)
@@ -600,9 +607,9 @@ app.layout = html.Div(
                                     id="obv-select",
                                     options=[
                                         {"label": "關閉", "value": ""},
-                                        {"label": "短週期", "value": "short"},
-                                        {"label": "中週期", "value": "medium"},
-                                        {"label": "長週期", "value": "long"},
+                                        {"label": "短週期 (3+5 / 21)", "value": "short"},
+                                        {"label": "中週期 (5+8 / 13)", "value": "medium"},
+                                        {"label": "長週期 (8+13 / 8)", "value": "long"},
                                     ],
                                     value="",
                                     inline=True,
@@ -1069,7 +1076,8 @@ def update_chart(n_clicks, stock_id, start_date, end_date, obv_select,
         analysis_results["close"] = calculate_close(data["close"])
         if not data["is_index"] and "turnover" in data:
             analysis_results["money"] = calculate_money(data["turnover"])
-        if not data["is_index"] and "ref_price" in data:
+        if "ref_price" in data:
+            # For indices sub_value is turnover (NTD); for stocks it is shares.
             obv_multi = calculate_obv_multi(
                 data["close"], data["ref_price"],
                 data["high"], data["low"], data["sub_value"],
