@@ -35,20 +35,23 @@ OBV_MA_LEN = 13
 WINDOW_LEN = 26
 SHADOW_EMA_LEN1 = 1
 SHADOW_EMA_LEN2 = 2
-SHADOW_DEMA_LEN = 8
+SHADOW_DEMA_LEN = 13
 SLOW_LEN = 55
 SLOPE_LEN = 3
 
-# Unified OBV core (13/26/55), per-period shadow EMA pairs (3+5 / 5+8 / 8+13).
-# Multi-stock sweep showed 5+8 is the sweet spot; 3+5 and 8+13 bracket it for
-# differentiated short/long-period signals.
+# Unified OBV core (13/26/55), per-period shadow EMA pairs (3+5 / 5+8 / 8+13)
+# and reverse-tier DEMA (21 / 13 / 8): short EMA gets more DEMA smoothing to
+# offset its fast reactivity; long EMA already slow so DEMA stays light.
 PERIOD_PARAMS = {
     "short":  {"obv_ma_len": 13, "window_len": 26, "slow_len": 55,
-               "shadow_ema_len1": 3, "shadow_ema_len2": 5},
+               "shadow_ema_len1": 3, "shadow_ema_len2": 5,
+               "shadow_dema_len": 21},
     "medium": {"obv_ma_len": 13, "window_len": 26, "slow_len": 55,
-               "shadow_ema_len1": 5, "shadow_ema_len2": 8},
+               "shadow_ema_len1": 5, "shadow_ema_len2": 8,
+               "shadow_dema_len": 13},
     "long":   {"obv_ma_len": 13, "window_len": 26, "slow_len": 55,
-               "shadow_ema_len1": 8, "shadow_ema_len2": 13},
+               "shadow_ema_len1": 8, "shadow_ema_len2": 13,
+               "shadow_dema_len": 8},
 }
 
 
@@ -90,6 +93,7 @@ def calculate_obv(
     slow_len: int = SLOW_LEN,
     shadow_ema_len1: int = SHADOW_EMA_LEN1,
     shadow_ema_len2: int = SHADOW_EMA_LEN2,
+    shadow_dema_len: int = SHADOW_DEMA_LEN,
 ) -> OBVResult:
     """
     Main entry point — equivalent to Go GetCalculateOBV.
@@ -134,7 +138,7 @@ def calculate_obv(
     shadow_obv_ema = ((shadow_ema1 + shadow_ema2) / 2).astype(F32)
 
     # 4. MACD: DEMA of shadow - slow EMA of close
-    shadow_dema = dema(shadow_obv_ema, SHADOW_DEMA_LEN)
+    shadow_dema = dema(shadow_obv_ema, shadow_dema_len)
     close_slow_ema = ema(close, slow_len)
     macd = (shadow_dema - close_slow_ema).astype(F32)
 
