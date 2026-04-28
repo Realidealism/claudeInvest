@@ -53,7 +53,7 @@ def _obv_period_strategy(name: str, period: str) -> Strategy:
 
 
 def obv_short_strategy() -> Strategy:
-    return _obv_period_strategy("OBV 短週期 (EMA 3+5 / DEMA 21)", "short")
+    return _obv_period_strategy("OBV 短週期 (EMA 3+5 / DEMA 8)", "short")
 
 
 def obv_medium_strategy() -> Strategy:
@@ -61,7 +61,7 @@ def obv_medium_strategy() -> Strategy:
 
 
 def obv_long_strategy() -> Strategy:
-    return _obv_period_strategy("OBV 長週期 (EMA 8+13 / DEMA 8)", "long")
+    return _obv_period_strategy("OBV 長週期 (EMA 8+13 / DEMA 21)", "long")
 
 
 def tip_breakout_strategy() -> Strategy:

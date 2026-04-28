@@ -39,19 +39,18 @@ SHADOW_DEMA_LEN = 13
 SLOW_LEN = 55
 SLOPE_LEN = 3
 
-# Unified OBV core (13/26/55), per-period shadow EMA pairs (3+5 / 5+8 / 8+13)
-# and reverse-tier DEMA (21 / 13 / 8): short EMA gets more DEMA smoothing to
-# offset its fast reactivity; long EMA already slow so DEMA stays light.
+# Forward-tier on both layers — EMA pair (3+5/5+8/8+13) and DEMA (8/13/21),
+# preserving the conventional short>medium>long signal frequency ordering.
 PERIOD_PARAMS = {
     "short":  {"obv_ma_len": 13, "window_len": 26, "slow_len": 55,
                "shadow_ema_len1": 3, "shadow_ema_len2": 5,
-               "shadow_dema_len": 21},
+               "shadow_dema_len": 8},
     "medium": {"obv_ma_len": 13, "window_len": 26, "slow_len": 55,
                "shadow_ema_len1": 5, "shadow_ema_len2": 8,
                "shadow_dema_len": 13},
     "long":   {"obv_ma_len": 13, "window_len": 26, "slow_len": 55,
                "shadow_ema_len1": 8, "shadow_ema_len2": 13,
-               "shadow_dema_len": 8},
+               "shadow_dema_len": 21},
 }
 
 

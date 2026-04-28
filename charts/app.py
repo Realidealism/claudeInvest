@@ -607,9 +607,9 @@ app.layout = html.Div(
                                     id="obv-select",
                                     options=[
                                         {"label": "關閉", "value": ""},
-                                        {"label": "短週期 (3+5 / 21)", "value": "short"},
+                                        {"label": "短週期 (3+5 / 8)", "value": "short"},
                                         {"label": "中週期 (5+8 / 13)", "value": "medium"},
-                                        {"label": "長週期 (8+13 / 8)", "value": "long"},
+                                        {"label": "長週期 (8+13 / 21)", "value": "long"},
                                     ],
                                     value="",
                                     inline=True,
