@@ -249,6 +249,7 @@ def build_scoreboard() -> ScoreBoard:
     Breadth (大盤):  market trend vs stock sort alignment
     Wave (波浪):     wave_trend cumulative ±5 at 0.3/0.5/0.8
     Flood (洪量):    ±15 per timeframe — tier 1 / 2 / 3
+    OBV:            ±15 per timeframe — latched trend state
     """
     board = ScoreBoard("技術評分")
     _add_turn_rules(board)
@@ -257,6 +258,7 @@ def build_scoreboard() -> ScoreBoard:
     _add_breadth_rules(board, breadth)
     _add_wave_trend_rules(board)
     _add_flood_rules(board)
+    _add_obv_rules(board)
     return board
 
 
@@ -482,6 +484,41 @@ def _add_flood_rules(board: ScoreBoard) -> None:
             f"跌破{tier}階洪", 15,
             lambda d, i, k=tier: bool(d.volume_result.below_tier[k][i]),
             "洪量",
+        ))
+
+
+# ── OBV ───────────────────────────────────────────────────────────────────
+
+OBV_PERIODS = ("short", "medium", "long")
+
+
+def _add_obv_rules(board: ScoreBoard) -> None:
+    """Add OBV trend scoring: ±15 per timeframe based on the latched trend
+    state (signal_up latches +1, signal_down latches -1)."""
+    cards = {"short": board.short, "medium": board.medium, "long": board.long}
+    for period in OBV_PERIODS:
+        card = cards[period]
+        # Bullish trend: long +15, short -15
+        card.add_long(bool_score(
+            f"OBV{period}多向", 15,
+            lambda d, i, p=period: int(getattr(d.obv, p).trend[i]) == 1,
+            "OBV",
+        ))
+        card.add_short(bool_score(
+            f"OBV{period}多向", -15,
+            lambda d, i, p=period: int(getattr(d.obv, p).trend[i]) == 1,
+            "OBV",
+        ))
+        # Bearish trend: long -15, short +15
+        card.add_long(bool_score(
+            f"OBV{period}空向", -15,
+            lambda d, i, p=period: int(getattr(d.obv, p).trend[i]) == -1,
+            "OBV",
+        ))
+        card.add_short(bool_score(
+            f"OBV{period}空向", 15,
+            lambda d, i, p=period: int(getattr(d.obv, p).trend[i]) == -1,
+            "OBV",
         ))
 
 
