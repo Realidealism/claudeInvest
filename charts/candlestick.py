@@ -67,6 +67,8 @@ def build_candlestick_figure(
     show_obv: bool = False,
     trend_data: Optional[dict[str, list[int]]] = None,
     trend_visible: bool = False,
+    defense_lines: Optional[dict[str, dict]] = None,
+    enabled_defense: Optional[set[str]] = None,
     title: str = "",
 ) -> go.Figure:
     """
@@ -204,6 +206,40 @@ def build_candlestick_figure(
                 ),
                 row=1, col=1,
             )
+
+    # -- Defense trajectories per condition signal (stable trace count) --
+    # Six fixed slots, one per cond_* signal. Each carries every trade's
+    # step-line trajectory concatenated with None breaks. Visibility is
+    # tied to the matching signal checkbox.
+    _cond_def_keys = (
+        "cond_pick", "cond_touch", "cond_buy",
+        "cond_sell", "cond_buy_flee", "cond_sell_flee",
+    )
+    _def_visible = enabled_defense or set()
+    _defs_by_key = {sd.key: sd for sd in (all_signal_defs or [])}
+    for ck in _cond_def_keys:
+        sd = _defs_by_key.get(ck)
+        color = sd.color if sd else "#888"
+        label = sd.label if sd else ck
+        line_data = (defense_lines or {}).get(ck) or {}
+        xs = line_data.get("xs", [])
+        ys = line_data.get("ys", [])
+        has_data = len(xs) > 0
+        vis = has_data and ck in _def_visible
+        fig.add_trace(
+            go.Scatter(
+                x=xs if has_data else [],
+                y=ys if has_data else [],
+                mode="lines",
+                name=f"def_{ck}",
+                visible=vis,
+                showlegend=False,
+                line=dict(width=1.5, color=color, shape="hv", dash="dot"),
+                connectgaps=False,
+                hovertemplate=f"{label}防守: %{{y:.2f}}<extra></extra>",
+            ),
+            row=1, col=1,
+        )
 
     # -- Flood backtest overlay (tier 1/2/3) --
     # flood_overlay is dict[int, dict] keyed by tier.

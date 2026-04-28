@@ -7,18 +7,25 @@ into SignalMarker lists that candlestick.py can overlay on the chart.
 
 from __future__ import annotations
 
-from dataclasses import dataclass
-from typing import Optional
+from dataclasses import dataclass, field
+from typing import Callable, Optional
 
 import numpy as np
 from numpy.typing import NDArray
 
 from charts.candlestick import SignalMarker
+from signal_backtest.factories._conditions import (
+    pick_condition,
+    touch_condition,
+    buy_condition,
+    sell_condition,
+    buy_flee_signal,
+    sell_flee_signal,
+)
 
 
-# Signal definitions: (analysis_path, display_config)
-# analysis_path: dot-separated path into the analysis result dataclass
-# display_config: visual properties for the marker
+# Signal definitions: either path-based (attr_path under analysis_results[source])
+# or compute-based (callable that takes analysis_results dict and returns BoolArray)
 
 @dataclass
 class SignalDef:
@@ -26,12 +33,13 @@ class SignalDef:
     key: str                # unique identifier
     label: str              # display name (Chinese)
     category: str           # grouping category
-    attr_path: str          # dot-separated path on the result object
-    source: str             # which analysis module: 'candle', 'volume', 'close'
-    position: str           # 'above' (high+offset), 'below' (low-offset), 'on' (close, no offset)
-    symbol: str             # plotly marker symbol
-    color: str              # marker color
+    attr_path: str = ""     # dot-separated path on the result object
+    source: str = ""        # which analysis module: 'candle', 'volume', 'close'
+    position: str = "above" # 'above' (high+offset), 'below' (low-offset), 'on' (close, no offset)
+    symbol: str = "circle"  # plotly marker symbol
+    color: str = "#fff"     # marker color
     size: int = 10          # marker size
+    compute: Optional[Callable[[dict], np.ndarray]] = field(default=None, repr=False)
 
 
 # All available signal definitions
@@ -76,7 +84,30 @@ SIGNAL_DEFS: list[SignalDef] = [
     # -- OBV buy/sell (markers placed on K-bar at close price) --
     SignalDef("obv_buy", "OBV買進", "obv", "signal_up", "obv", "on", "arrow-up", "#ff1744", 13),
     SignalDef("obv_sell", "OBV賣出", "obv", "signal_down", "obv", "on", "arrow-down", "#00e676", 13),
+
+    # -- 進場訊號 (six factory conditions) — compute-based, need StockData view --
+    SignalDef("cond_pick",      "抄底",   "entry",
+              position="below", symbol="star-diamond", color="#00c853", size=14,
+              compute=lambda ar: pick_condition(ar["data"])),
+    SignalDef("cond_touch",     "摸頭",   "entry",
+              position="above", symbol="star-diamond", color="#d32f2f", size=14,
+              compute=lambda ar: touch_condition(ar["data"])),
+    SignalDef("cond_buy",       "波段多", "entry",
+              position="below", symbol="pentagon", color="#76ff03", size=12,
+              compute=lambda ar: buy_condition(ar["data"])),
+    SignalDef("cond_sell",      "波段空", "entry",
+              position="above", symbol="pentagon", color="#ff3d00", size=12,
+              compute=lambda ar: sell_condition(ar["data"])),
+    SignalDef("cond_buy_flee",  "多翻空", "entry",
+              position="above", symbol="x-open", color="#ff1744", size=13),
+    SignalDef("cond_sell_flee", "空翻多", "entry",
+              position="below", symbol="x-open", color="#00b8d4", size=13),
 ]
+
+# Late-bind compute for the two flee signals (separate to keep the list readable)
+_BY_KEY = {sd.key: sd for sd in SIGNAL_DEFS}
+_BY_KEY["cond_buy_flee"].compute = lambda ar: buy_flee_signal(ar["data"])
+_BY_KEY["cond_sell_flee"].compute = lambda ar: sell_flee_signal(ar["data"])
 
 
 def get_signal_categories() -> dict[str, list[SignalDef]]:
@@ -137,14 +168,19 @@ def generate_markers(
         if sd is None:
             continue
 
-        result_obj = analysis_results.get(sd.source)
-        if result_obj is None:
-            continue
-
-        try:
-            flags = _resolve_attr(result_obj, sd.attr_path)
-        except AttributeError:
-            continue
+        if sd.compute is not None:
+            try:
+                flags = sd.compute(analysis_results)
+            except Exception:
+                continue
+        else:
+            result_obj = analysis_results.get(sd.source)
+            if result_obj is None:
+                continue
+            try:
+                flags = _resolve_attr(result_obj, sd.attr_path)
+            except AttributeError:
+                continue
 
         if not isinstance(flags, np.ndarray):
             continue

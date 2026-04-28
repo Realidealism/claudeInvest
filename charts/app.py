@@ -240,30 +240,134 @@ _CATEGORY_LABELS = {
     "bollinger": "布林帶",
     "knot": "均線糾結",
     "obv": "OBV",
+    "entry": "進場訊號",
 }
 
 
 def _build_signal_checklist() -> html.Div:
-    """Build grouped checkboxes for signal selection."""
+    """Build grouped checkboxes for signal selection.
+
+    Each category is wrapped in an HTML5 <details> element so the user
+    can fold/unfold groups to keep the modal compact. All groups start
+    collapsed — there are too many signals for a useful default-open view.
+    """
     categories = get_signal_categories()
     children = []
     for cat_name, defs in categories.items():
         display_name = _CATEGORY_LABELS.get(cat_name, cat_name)
         options = [{"label": f" {d.label}", "value": d.key} for d in defs]
         children.append(
-            html.Div([
-                html.H4(display_name, style={"margin": "8px 0 4px 0", "color": "#aaa"}),
+            html.Details([
+                html.Summary(
+                    f"{display_name} ({len(defs)})",
+                    style={
+                        "cursor": "pointer",
+                        "color": "#aaa",
+                        "padding": "6px 0",
+                        "fontSize": "14px",
+                        "fontWeight": "bold",
+                        "userSelect": "none",
+                    },
+                ),
                 dcc.Checklist(
                     id=f"signals-{cat_name}",
                     options=options,
                     value=[],
                     inline=True,
-                    style={"fontSize": "13px", "color": "#eee"},
+                    style={"fontSize": "13px", "color": "#eee", "padding": "4px 0 8px 12px"},
                     inputStyle={"marginRight": "4px", "marginLeft": "10px"},
                 ),
-            ])
+            ], style={"borderBottom": "1px solid #333"})
         )
     return html.Div(children)
+
+
+class _ConditionDataView:
+    """Minimal StockData-shaped wrapper for SignalDef.compute callbacks
+    and for run_side_backtest (engine treats dates opaquely, so chart's
+    string dates flow through to DefenseEvent.date unchanged).
+    """
+    __slots__ = ("stock_id", "stock_name",
+                 "open", "high", "low", "close", "volume",
+                 "dates", "n",
+                 "close_result", "volume_result", "candle_result")
+
+    def __init__(self, data: dict, ar: dict, stock_id: str = "", stock_name: str = ""):
+        self.stock_id = stock_id
+        self.stock_name = stock_name
+        self.open = data["open"]
+        self.high = data["high"]
+        self.low = data["low"]
+        self.close = data["close"]
+        self.volume = data["sub_value"]
+        self.dates = data["dates"]
+        self.n = len(data["dates"])
+        self.close_result = ar.get("close")
+        self.volume_result = ar.get("volume")
+        self.candle_result = ar.get("candle")
+
+
+def _compute_defense_lines(view: _ConditionDataView) -> dict[str, dict]:
+    """Run the engine for each entry-condition signal and serialize each
+    trade's defense trajectory as a single Scatter (None-separated).
+
+    Returns dict keyed by signal key: {"xs": [...], "ys": [...]}.
+    Empty dict for signals that produced no trades.
+    """
+    from signal_backtest.engine import run_side_backtest, InsufficientDataError
+    from signal_backtest.factories.pick_touch import pick_signal, touch_signal
+    from signal_backtest.factories.buy_sell import buy_signal, sell_signal
+    from signal_backtest.factories.flee import buy_flee_factory, sell_flee_factory
+
+    factories = {
+        "cond_pick":      pick_signal,
+        "cond_touch":     touch_signal,
+        "cond_buy":       buy_signal,
+        "cond_sell":      sell_signal,
+        "cond_buy_flee":  buy_flee_factory,
+        "cond_sell_flee": sell_flee_factory,
+    }
+
+    out: dict[str, dict] = {}
+    for key, factory in factories.items():
+        try:
+            spec = factory(view)
+        except Exception:
+            out[key] = {"xs": [], "ys": []}
+            continue
+
+        xs: list = []
+        ys: list = []
+        for side, entry in (
+            ("long",  spec.signals.long_entry),
+            ("short", spec.signals.short_entry),
+        ):
+            if not entry.any():
+                continue
+            exit_ = spec.signals.long_exit if side == "long" else spec.signals.short_exit
+            rules = spec.long_defense if side == "long" else spec.short_defense
+            try:
+                result = run_side_backtest(view, side, entry, exit_, rules)
+            except InsufficientDataError:
+                continue
+
+            for trade in result.trades:
+                if not trade.defense_events:
+                    continue
+                # Step line: each defense event is a price update; extend last
+                # price flat to exit_date so the trajectory ends at trade exit.
+                t_xs = [ev.date for ev in trade.defense_events]
+                t_ys = [ev.price for ev in trade.defense_events]
+                t_xs.append(trade.exit_date)
+                t_ys.append(t_ys[-1])
+                xs.extend(t_xs)
+                xs.append(None)        # None breaks the line between trades
+                ys.extend(t_ys)
+                ys.append(None)
+
+        out[key] = {"xs": xs, "ys": ys}
+
+    return out
 
 
 # ── Dash App ───────────────────────────────────────────────────────────────
@@ -366,8 +470,10 @@ app.index_string = """<!DOCTYPE html>
                 if (!g || !g.data) return;
                 for (var i = 0; i < g.data.length; i++) {
                     var n = g.data[i].name || '';
-                    if (n.indexOf('sig_') !== 0) continue;
-                    var key = n.substring(4);
+                    var key = null;
+                    if (n.indexOf('sig_') === 0) key = n.substring(4);
+                    else if (n.indexOf('def_') === 0) key = n.substring(4);
+                    else continue;
                     var hasData = g.data[i].x && g.data[i].x.length > 0;
                     Plotly.restyle(g, {visible: [hasData && enabled.has(key)]}, [i]);
                 }
@@ -1089,6 +1195,11 @@ def update_chart(n_clicks, stock_id, start_date, end_date, obv_select,
     except Exception as e:
         pass  # Partial analysis is ok, signals just won't show
 
+    # StockData-shaped view for condition factories (進場訊號 category).
+    # Tucked into analysis_results so SignalDef.compute callbacks can fetch it.
+    cond_view = _ConditionDataView(data, analysis_results, stock_id=stock_id)
+    analysis_results["data"] = cond_view
+
     # Generate ALL signal markers (visibility controlled by JS)
     all_signal_keys = [sd.key for sd in SIGNAL_DEFS]
     markers = generate_markers(
@@ -1096,6 +1207,12 @@ def update_chart(n_clicks, stock_id, start_date, end_date, obv_select,
         analysis_results, all_signal_keys,
         close=data["close"],
     )
+
+    # Defense trajectories per condition signal (engine simulates each trade)
+    try:
+        defense_lines = _compute_defense_lines(cond_view)
+    except Exception:
+        defense_lines = {}
 
     # Build ALL SMA lines (visibility controlled by JS)
     sma_lines = {}
@@ -1240,6 +1357,8 @@ def update_chart(n_clicks, stock_id, start_date, end_date, obv_select,
         show_obv=show_obv,
         trend_data=trend_data,
         trend_visible=bool(trend_select and "trend" in trend_select),
+        defense_lines=defense_lines,
+        enabled_defense=enabled,
         title=f"{stock_id} {data['name']}",
     )
 

@@ -121,18 +121,14 @@ SIGNAL_FACTORIES: dict[str, SignalFactory] = {
 
 
 def _register_factories() -> None:
-    """Lazy import of factories package — defers heavy condition module
-    until first lookup, avoiding cycles when this module is imported by
-    tooling that doesn't need them.
+    """Import factory submodules directly (not via factories package
+    __init__) so that callers who only need _conditions don't trigger a
+    circular import through this module.
     """
-    from signal_backtest.factories import (
-        pick_signal,
-        touch_signal,
-        buy_signal,
-        sell_signal,
-        buy_flee_factory,
-        sell_flee_factory,
-    )
+    from signal_backtest.factories.pick_touch import pick_signal, touch_signal
+    from signal_backtest.factories.buy_sell import buy_signal, sell_signal
+    from signal_backtest.factories.flee import buy_flee_factory, sell_flee_factory
+
     SIGNAL_FACTORIES.update({
         "pick":       pick_signal,
         "touch":      touch_signal,
