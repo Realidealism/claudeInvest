@@ -307,12 +307,19 @@ class _ConditionDataView:
         self.candle_result = ar.get("candle")
 
 
-def _compute_defense_lines(view: _ConditionDataView) -> dict[str, dict]:
-    """Run the engine for each entry-condition signal and serialize each
-    trade's defense trajectory as a single Scatter (None-separated).
+def _compute_defense_lines(
+    view: _ConditionDataView,
+) -> tuple[dict[str, dict], dict[str, list[str]], dict[str, list[tuple]]]:
+    """Run the engine for each entry-condition signal.
 
-    Returns dict keyed by signal key: {"xs": [...], "ys": [...]}.
-    Empty dict for signals that produced no trades.
+    Returns:
+      defense_lines: {key: {"xs": [...], "ys": [...]}} — step trajectories
+        per signal, all trades concatenated with None breaks.
+      entry_dates:   {key: [date_str, ...]} — actual trade entry dates the
+        engine took (consecutive condition-true days that fired while the
+        engine was already holding are excluded — those don't become trades).
+      exit_info:     {key: [(date, price, reason, pnl_pct), ...]} — paired
+        with entry_dates by index.
     """
     from signal_backtest.engine import run_side_backtest, InsufficientDataError
     from signal_backtest.factories.pick_touch import pick_signal, touch_signal
@@ -328,16 +335,22 @@ def _compute_defense_lines(view: _ConditionDataView) -> dict[str, dict]:
         "cond_sell_flee": sell_flee_factory,
     }
 
-    out: dict[str, dict] = {}
+    lines: dict[str, dict] = {}
+    entries: dict[str, list[str]] = {}
+    exits: dict[str, list[tuple]] = {}
     for key, factory in factories.items():
         try:
             spec = factory(view)
         except Exception:
-            out[key] = {"xs": [], "ys": []}
+            lines[key] = {"xs": [], "ys": []}
+            entries[key] = []
+            exits[key] = []
             continue
 
         xs: list = []
         ys: list = []
+        entry_dates: list = []
+        exit_info: list[tuple] = []
         for side, entry in (
             ("long",  spec.signals.long_entry),
             ("short", spec.signals.short_entry),
@@ -352,6 +365,11 @@ def _compute_defense_lines(view: _ConditionDataView) -> dict[str, dict]:
                 continue
 
             for trade in result.trades:
+                entry_dates.append(trade.entry_date)
+                exit_info.append((
+                    trade.exit_date, trade.exit_price,
+                    trade.exit_reason, trade.pnl_pct,
+                ))
                 if not trade.defense_events:
                     continue
                 # Step line: each defense event is a price update; extend last
@@ -365,9 +383,11 @@ def _compute_defense_lines(view: _ConditionDataView) -> dict[str, dict]:
                 ys.extend(t_ys)
                 ys.append(None)
 
-        out[key] = {"xs": xs, "ys": ys}
+        lines[key] = {"xs": xs, "ys": ys}
+        entries[key] = entry_dates
+        exits[key] = exit_info
 
-    return out
+    return lines, entries, exits
 
 
 # ── Dash App ───────────────────────────────────────────────────────────────
@@ -473,6 +493,7 @@ app.index_string = """<!DOCTYPE html>
                     var key = null;
                     if (n.indexOf('sig_') === 0) key = n.substring(4);
                     else if (n.indexOf('def_') === 0) key = n.substring(4);
+                    else if (n.indexOf('sigexit_') === 0) key = n.substring(8);
                     else continue;
                     var hasData = g.data[i].x && g.data[i].x.length > 0;
                     Plotly.restyle(g, {visible: [hasData && enabled.has(key)]}, [i]);
@@ -1200,19 +1221,64 @@ def update_chart(n_clicks, stock_id, start_date, end_date, obv_select,
     cond_view = _ConditionDataView(data, analysis_results, stock_id=stock_id)
     analysis_results["data"] = cond_view
 
-    # Generate ALL signal markers (visibility controlled by JS)
-    all_signal_keys = [sd.key for sd in SIGNAL_DEFS]
+    # Defense trajectories per condition signal (engine simulates each trade).
+    # Also gives back ACTUAL trade-entry dates — we use these for cond_* markers
+    # so each marker pairs with a defense line (raw condition fires more often
+    # than trades because the engine ignores re-entries while holding).
+    try:
+        defense_lines, entry_dates, exit_info = _compute_defense_lines(cond_view)
+    except Exception:
+        defense_lines, entry_dates, exit_info = {}, {}, {}
+
+    # Generate markers for non-cond signals (cond_* are built from entry_dates)
+    non_cond_keys = [sd.key for sd in SIGNAL_DEFS if sd.category != "entry"]
     markers = generate_markers(
         data["dates"], data["high"], data["low"],
-        analysis_results, all_signal_keys,
+        analysis_results, non_cond_keys,
         close=data["close"],
     )
 
-    # Defense trajectories per condition signal (engine simulates each trade)
-    try:
-        defense_lines = _compute_defense_lines(cond_view)
-    except Exception:
-        defense_lines = {}
+    # Build cond_* markers from actual trade entries (1:1 with defense lines)
+    from charts.candlestick import SignalMarker
+    _date_to_idx = {d: i for i, d in enumerate(data["dates"])}
+    _price_range = float(np.max(data["high"]) - np.min(data["low"]))
+    _offset = _price_range * 0.015
+    _defs_by_key = {sd.key: sd for sd in SIGNAL_DEFS if sd.category == "entry"}
+    for key, dates_list in entry_dates.items():
+        sd = _defs_by_key.get(key)
+        if sd is None:
+            continue
+        for d in dates_list:
+            idx = _date_to_idx.get(d)
+            if idx is None:
+                continue
+            if sd.position == "above":
+                price = float(data["high"][idx]) + _offset
+            elif sd.position == "on":
+                price = float(data["close"][idx])
+            else:
+                price = float(data["low"][idx]) - _offset
+            markers.append(SignalMarker(
+                date=d, price=price, symbol=sd.symbol,
+                color=sd.color, label=sd.label, size=sd.size,
+            ))
+
+    # Exit markers per cond signal — placed at the actual exit price (close-on
+    # at exit day). Hover label encodes reason + pnl%. Kept in a separate dict
+    # so candlestick.py can give them their own stable trace per signal.
+    exit_markers: dict[str, list[SignalMarker]] = {}
+    for key, exits in exit_info.items():
+        sd = _defs_by_key.get(key)
+        if sd is None:
+            continue
+        out: list[SignalMarker] = []
+        for d, price, reason, pnl in exits:
+            label = f"{sd.label}出場 ({reason}) {pnl*100:+.2f}%"
+            out.append(SignalMarker(
+                date=d, price=float(price), symbol="x-thin",
+                color=sd.color, label=label, size=12,
+            ))
+        exit_markers[key] = out
 
     # Build ALL SMA lines (visibility controlled by JS)
     sma_lines = {}
@@ -1359,6 +1425,7 @@ def update_chart(n_clicks, stock_id, start_date, end_date, obv_select,
         trend_visible=bool(trend_select and "trend" in trend_select),
         defense_lines=defense_lines,
         enabled_defense=enabled,
+        exit_markers=exit_markers,
         title=f"{stock_id} {data['name']}",
     )
 

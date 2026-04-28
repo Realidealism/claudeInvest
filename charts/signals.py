@@ -86,22 +86,23 @@ SIGNAL_DEFS: list[SignalDef] = [
     SignalDef("obv_sell", "OBV賣出", "obv", "signal_down", "obv", "on", "arrow-down", "#00e676", 13),
 
     # -- 進場訊號 (six factory conditions) — compute-based, need StockData view --
+    # TW convention: long = red family, short = green family.
     SignalDef("cond_pick",      "抄底",   "entry",
-              position="below", symbol="star-diamond", color="#00c853", size=14,
+              position="below", symbol="star-diamond", color="#ff1744", size=14,
               compute=lambda ar: pick_condition(ar["data"])),
     SignalDef("cond_touch",     "摸頭",   "entry",
-              position="above", symbol="star-diamond", color="#d32f2f", size=14,
+              position="above", symbol="star-diamond", color="#00e676", size=14,
               compute=lambda ar: touch_condition(ar["data"])),
     SignalDef("cond_buy",       "波段多", "entry",
-              position="below", symbol="pentagon", color="#76ff03", size=12,
+              position="below", symbol="pentagon", color="#d32f2f", size=12,
               compute=lambda ar: buy_condition(ar["data"])),
     SignalDef("cond_sell",      "波段空", "entry",
-              position="above", symbol="pentagon", color="#ff3d00", size=12,
+              position="above", symbol="pentagon", color="#00c853", size=12,
               compute=lambda ar: sell_condition(ar["data"])),
     SignalDef("cond_buy_flee",  "多翻空", "entry",
-              position="above", symbol="x-open", color="#ff1744", size=13),
+              position="above", symbol="x-open", color="#26a69a", size=13),
     SignalDef("cond_sell_flee", "空翻多", "entry",
-              position="below", symbol="x-open", color="#00b8d4", size=13),
+              position="below", symbol="x-open", color="#ef5350", size=13),
 ]
 
 # Late-bind compute for the two flee signals (separate to keep the list readable)

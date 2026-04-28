@@ -69,6 +69,7 @@ def build_candlestick_figure(
     trend_visible: bool = False,
     defense_lines: Optional[dict[str, dict]] = None,
     enabled_defense: Optional[set[str]] = None,
+    exit_markers: Optional[dict[str, list]] = None,
     title: str = "",
 ) -> go.Figure:
     """
@@ -237,6 +238,33 @@ def build_candlestick_figure(
                 line=dict(width=1.5, color=color, shape="hv", dash="dot"),
                 connectgaps=False,
                 hovertemplate=f"{label}防守: %{{y:.2f}}<extra></extra>",
+            ),
+            row=1, col=1,
+        )
+
+    # -- Exit markers per condition signal (paired with entry markers) --
+    # Same toggle as the entry signal — when "波段多" is checked the user
+    # sees entries (pentagon below), exits (x at exit price) and defense.
+    for ck in _cond_def_keys:
+        sd = _defs_by_key.get(ck)
+        color = sd.color if sd else "#888"
+        markers_for_key = (exit_markers or {}).get(ck) or []
+        has_data = len(markers_for_key) > 0
+        vis = has_data and ck in _enabled_sigs
+        fig.add_trace(
+            go.Scatter(
+                x=[m.date for m in markers_for_key] if has_data else [],
+                y=[m.price for m in markers_for_key] if has_data else [],
+                mode="markers",
+                name=f"sigexit_{ck}",
+                visible=vis,
+                showlegend=False,
+                marker=dict(
+                    symbol="x-thin", size=12, color=color,
+                    line=dict(width=2.5, color=color),
+                ),
+                customdata=[m.label for m in markers_for_key] if has_data else [],
+                hovertemplate="%{customdata}<br>%{x}<br>%{y:.2f}<extra></extra>",
             ),
             row=1, col=1,
         )
