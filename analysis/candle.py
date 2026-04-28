@@ -124,6 +124,12 @@ class CandleResult:
     bottom_rolling: TopBottomRolling  # rolling lowest of candle Bottom
     cut: CutResult
 
+    # Convex (凸) / Concave (凹) by period — recent H/L sits at/near
+    # the N-day rolling extreme, with a 5% buffer of HLD34MA (34-day SMA
+    # of H-L range). Periods 5, 8, 13, 21.
+    convex_n: dict[int, BoolArray]
+    concave_n: dict[int, BoolArray]
+
     # Gap patterns
     jump: BoolArray         # bottom > prev top (gap up)
     squat: BoolArray        # top < prev bottom (gap down)
@@ -230,6 +236,11 @@ def calculate_candle(
     # ── Cut (切) ────────────────────────────────────────────────────────
     cut = _calc_cut(high, low, close, hl_arr)
 
+    # ── Convex / Concave (凸/凹) ────────────────────────────────────────
+    convex_n, concave_n = _calc_convex_concave(
+        high, low, hl_arr, high_rolling, low_rolling,
+    )
+
     return CandleResult(
         candle=candle,
         hl=hl_result,
@@ -240,6 +251,8 @@ def calculate_candle(
         top_rolling=top_rolling,
         bottom_rolling=bottom_rolling,
         cut=cut,
+        convex_n=convex_n,
+        concave_n=concave_n,
         jump=jump,
         squat=squat,
         trigger_high1=trigger_high1,
@@ -345,6 +358,47 @@ def _calc_shadow(
         upper=upper_len > threshold,
         lower=lower_len > threshold,
     )
+
+
+# ── Convex / Concave (凸/凹) ────────────────────────────────────────────────
+
+
+def _calc_convex_concave(
+    high: F32Array,
+    low: F32Array,
+    hl: F32Array,
+    high_rolling: HighLowRolling,
+    low_rolling: HighLowRolling,
+) -> tuple[dict[int, BoolArray], dict[int, BoolArray]]:
+    """Detect Convex (凸) / Concave (凹) shapes — Go formula:
+        凸_N = src_high > (HD_N - HLD34MA * 0.05)
+        凹_N = src_low  < (LD_N + HLD34MA * 0.05)
+
+    For periods 5/8 the source is today's high/low.
+    For periods 13/21 Go uses HD2B/LD2S (2-day rolling extremes).
+    """
+    hld34ma = sma(hl, 34)
+    buf = hld34ma * F32(0.05)
+
+    src_hi_long = high_rolling.high[2]   # HD2B
+    src_lo_long = low_rolling.low[2]     # LD2S
+
+    period_src = {
+        5:  (high, low),
+        8:  (high, low),
+        13: (src_hi_long, src_lo_long),
+        21: (src_hi_long, src_lo_long),
+    }
+
+    convex_n: dict[int, BoolArray] = {}
+    concave_n: dict[int, BoolArray] = {}
+    for p, (src_hi, src_lo) in period_src.items():
+        hd = rolling_highest(high, p)
+        ld = rolling_lowest(low, p)
+        convex_n[p] = src_hi > (hd - buf)
+        concave_n[p] = src_lo < (ld + buf)
+
+    return convex_n, concave_n
 
 
 # ── Cut (切) ────────────────────────────────────────────────────────────────
