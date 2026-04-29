@@ -75,6 +75,18 @@ def _turn_change_down(turn: NDArray[np.uint8]) -> BoolArray:
     return (turn <= 1) & (prev == 2)
 
 
+def _market_strongly_bullish(data: "StockData") -> BoolArray:
+    """Strong bull at any scope (trend code >= 2). Filter for short entries."""
+    ms = data.market_state
+    return (ms.short_trend >= 2) | (ms.medium_trend >= 2) | (ms.long_trend >= 2)
+
+
+def _market_strongly_bearish(data: "StockData") -> BoolArray:
+    """Strong bear at any scope (trend code <= -2). Filter for long entries."""
+    ms = data.market_state
+    return (ms.short_trend <= -2) | (ms.medium_trend <= -2) | (ms.long_trend <= -2)
+
+
 # ── PickCondition / TouchCondition (抄底 / 摸頭) ────────────────────────────
 
 
@@ -91,6 +103,7 @@ def pick_condition(data: "StockData") -> BoolArray:
       4. 不在 tier-1 洪量區下方 (非 Flood 斷頭段)
       5. 非長均糾結連 2 日 (不在僵死段)
       6. 不在連續 3 日凹13（避免接持續創新低的下跌段）
+      7. 大盤非強空（任一尺度 trend <= -2）— 不在崩盤段抄底
     """
     n = data.n
     close = data.close
@@ -99,6 +112,9 @@ def pick_condition(data: "StockData") -> BoolArray:
 
     # 1. 觸或跌破 5/8 日低
     rule_pos = (close <= bs_low[5]) | (close <= bs_low[8])
+
+    # 7. 大盤過濾
+    rule_market = ~_market_strongly_bearish(data)
 
     # 2. 中/長扣抵翻轉（3 日內任一日）
     long_change = _turn_change_up(turn[34]) | _turn_change_up(turn[55])
@@ -122,7 +138,7 @@ def pick_condition(data: "StockData") -> BoolArray:
     concave13 = data.candle_result.concave_n[13]
     rule_concave = ~_last_n_all(concave13, 3)
 
-    return rule_pos & rule_change & rule_vol & rule_flood & rule_knot & rule_concave
+    return rule_pos & rule_change & rule_vol & rule_flood & rule_knot & rule_concave & rule_market
 
 
 def touch_condition(data: "StockData") -> BoolArray:
@@ -136,6 +152,7 @@ def touch_condition(data: "StockData") -> BoolArray:
       4. 不在 tier-1 洪量區上方
       5. 非長均糾結連 2 日
       6. 不在連續 3 日凸13
+      7. 大盤非強多（任一尺度 trend >= 2）— 不在強多段摸頭
     """
     n = data.n
     close = data.close
@@ -169,7 +186,9 @@ def touch_condition(data: "StockData") -> BoolArray:
     convex13 = data.candle_result.convex_n[13]
     rule_convex = ~_last_n_all(convex13, 3)
 
-    return rule_pos & rule_change & rule_vol & rule_flood & rule_knot & rule_convex
+    rule_market = ~_market_strongly_bullish(data)
+
+    return rule_pos & rule_change & rule_vol & rule_flood & rule_knot & rule_convex & rule_market
 
 
 # ── BuyCondition / SellCondition (波段多 / 波段空) ──────────────────────────
@@ -185,12 +204,14 @@ def buy_condition(data: "StockData") -> BoolArray:
       4. 量能配合：今日量 >= VD5 * 1.0 (站上 5 日均量)
       5. 非長均糾結
       6. 不在連續 3 日凸21（避免追在頂部凸點）
+      7. 大盤非強空 — 不在崩盤段做多
     """
     close = data.close
     sma = data.close_result.ma.sma
     turn = data.close_result.turn
 
     rule_ma = (close > sma[8]) & (sma[8] > sma[21])
+    rule_market = ~_market_strongly_bearish(data)
 
     rule_turn = (turn[5] == 2)
 
@@ -208,7 +229,7 @@ def buy_condition(data: "StockData") -> BoolArray:
     convex21 = data.candle_result.convex_n[21]
     rule_convex = ~_last_n_all(convex21, 3)
 
-    return rule_ma & rule_turn & rule_break & rule_vol & rule_knot & rule_convex
+    return rule_ma & rule_turn & rule_break & rule_vol & rule_knot & rule_convex & rule_market
 
 
 def sell_condition(data: "StockData") -> BoolArray:
@@ -221,12 +242,14 @@ def sell_condition(data: "StockData") -> BoolArray:
       4. 量能配合：今日量 >= VD5
       5. 非長均糾結
       6. 不在連續 3 日凹21
+      7. 大盤非強多
     """
     close = data.close
     sma = data.close_result.ma.sma
     turn = data.close_result.turn
 
     rule_ma = (close < sma[8]) & (sma[8] < sma[21])
+    rule_market = ~_market_strongly_bullish(data)
 
     rule_turn = (turn[5] == 0)
 
@@ -244,7 +267,7 @@ def sell_condition(data: "StockData") -> BoolArray:
     concave21 = data.candle_result.concave_n[21]
     rule_concave = ~_last_n_all(concave21, 3)
 
-    return rule_ma & rule_turn & rule_break & rule_vol & rule_knot & rule_concave
+    return rule_ma & rule_turn & rule_break & rule_vol & rule_knot & rule_concave & rule_market
 
 
 # ── BuyFleeSignal / SellFleeSignal (多翻空 / 空翻多) ────────────────────────
@@ -300,7 +323,10 @@ def buy_flee_signal(data: "StockData") -> BoolArray:
     prev_long_knot = _shift(long_knot, 1)
     rule_knot = ~(long_knot & prev_long_knot)
 
-    return prior_strong & rule_trigger & rule_vol & rule_knot
+    # 5. 大盤非強多 — 不在強多段做空
+    rule_market = ~_market_strongly_bullish(data)
+
+    return prior_strong & rule_trigger & rule_vol & rule_knot & rule_market
 
 
 def sell_flee_signal(data: "StockData") -> BoolArray:
@@ -344,4 +370,7 @@ def sell_flee_signal(data: "StockData") -> BoolArray:
     prev_long_knot = _shift(long_knot, 1)
     rule_knot = ~(long_knot & prev_long_knot)
 
-    return prior_weak & rule_trigger & rule_vol & rule_knot
+    # 大盤非強空 — 不在崩盤段做多
+    rule_market = ~_market_strongly_bearish(data)
+
+    return prior_weak & rule_trigger & rule_vol & rule_knot & rule_market

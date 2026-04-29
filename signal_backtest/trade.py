@@ -18,6 +18,7 @@ REASON_FLOOR = "保底"
 REASON_EXIT_SIGNAL = "訊號出場"
 REASON_EXIT_DEFENSE = "防守價觸發"
 REASON_EXIT_END = "回測結束"
+REASON_EXIT_GAP = "異常跳價"
 
 SIDE_LONG = "做多"
 SIDE_SHORT = "做空"

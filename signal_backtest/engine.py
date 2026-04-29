@@ -35,7 +35,15 @@ from signal_backtest.trade import (
     REASON_EXIT_SIGNAL,
     REASON_EXIT_DEFENSE,
     REASON_EXIT_END,
+    REASON_EXIT_GAP,
 )
+
+
+# Single-bar close-to-close jump above this threshold is treated as a
+# corporate-action artifact (TW daily limit is +/-10%, so >15% in one
+# bar is impossible without a reverse split / capital reduction / merger
+# adjustment that the raw daily_prices table doesn't apply).
+GAP_JUMP_THRESHOLD = 0.15
 from signal_backtest.signal import DefenseRule
 
 if TYPE_CHECKING:
@@ -122,6 +130,40 @@ def run_side_backtest(
 
     for i in range(si, n):
         price = float(data.close[i])
+
+        # ── 0. Abnormal-gap detection (corporate-action artifact) ──────
+        # If today's close jumped > 15% from yesterday's, the raw price is
+        # almost certainly tainted by a reverse split / capital reduction
+        # that daily_prices doesn't adjust for. Force-close any open
+        # position at yesterday's close (the last reliable price) and skip
+        # entry on this bar.
+        gap_artifact = False
+        if i > 0:
+            prev_close = float(data.close[i - 1])
+            if prev_close > 0:
+                if abs(price / prev_close - 1.0) > GAP_JUMP_THRESHOLD:
+                    gap_artifact = True
+
+        if pos_entry_date is not None and gap_artifact:
+            trades.append(_make_trade(
+                data=data,
+                side_label=side_label,
+                entry_date=pos_entry_date,
+                entry_price=pos_entry_price,
+                entry_index=pos_entry_index,
+                defense_events=pos_defense_events,
+                exit_index=i - 1,
+                exit_price=prev_close,
+                exit_reason=REASON_EXIT_GAP,
+                is_long=is_long,
+            ))
+            pos_entry_date = None
+            pos_defense_events = []
+            continue
+
+        if gap_artifact:
+            # Flat — just skip this bar so we don't enter at a tainted price
+            continue
 
         if pos_entry_date is not None:
             # ── 1. Trailing-stop trigger ───────────────────────────────
