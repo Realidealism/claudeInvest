@@ -243,6 +243,15 @@ _CATEGORY_LABELS = {
     "entry": "進場訊號",
 }
 
+_section_summary_style = {
+    "cursor": "pointer",
+    "color": "#aaa",
+    "padding": "6px 0",
+    "fontSize": "14px",
+    "fontWeight": "bold",
+    "userSelect": "none",
+}
+
 
 def _build_signal_checklist() -> html.Div:
     """Build grouped checkboxes for signal selection.
@@ -260,14 +269,7 @@ def _build_signal_checklist() -> html.Div:
             html.Details([
                 html.Summary(
                     f"{display_name} ({len(defs)})",
-                    style={
-                        "cursor": "pointer",
-                        "color": "#aaa",
-                        "padding": "6px 0",
-                        "fontSize": "14px",
-                        "fontWeight": "bold",
-                        "userSelect": "none",
-                    },
+                    style=_section_summary_style,
                 ),
                 dcc.Checklist(
                     id=f"signals-{cat_name}",
@@ -603,7 +605,7 @@ app.layout = html.Div(
                         id="start-date",
                         type="text",
                         placeholder="Start (YYYY-MM-DD)",
-                        value=(date.today() - timedelta(days=180)).strftime("%Y-%m-%d"),
+                        value=(date.today() - timedelta(days=365 * 3)).strftime("%Y-%m-%d"),
                         debounce=True,
                         style={**_input_style, "width": "130px"},
                     ),
@@ -670,8 +672,8 @@ app.layout = html.Div(
                                 ],
                             ),
                             # MA section
-                            html.Div([
-                                html.H4("均線 (MA)", style={"color": "#aaa", "margin": "0 0 6px 0"}),
+                            html.Details([
+                                html.Summary("均線 (MA)", style=_section_summary_style),
                                 dcc.Checklist(
                                     id="ma-select",
                                     options=[
@@ -688,15 +690,15 @@ app.layout = html.Div(
                                     ],
                                     value=["5", "21", "55"],
                                     inline=True,
-                                    style={"fontSize": "13px", "color": "#eee"},
+                                    style={"fontSize": "13px", "color": "#eee", "padding": "4px 0 8px 12px"},
                                     inputStyle={"marginRight": "6px", "marginLeft": "12px"},
                                     labelStyle={"display": "inline-flex", "alignItems": "center",
                                                 "gap": "4px", "marginRight": "8px"},
                                 ),
-                            ], style={"marginBottom": "16px"}),
+                            ], style={"borderBottom": "1px solid #333"}),
                             # Wave section
-                            html.Div([
-                                html.H4("波浪", style={"color": "#aaa", "margin": "0 0 6px 0"}),
+                            html.Details([
+                                html.Summary("波浪", style=_section_summary_style),
                                 dcc.Checklist(
                                     id="wave-select",
                                     options=[
@@ -705,15 +707,15 @@ app.layout = html.Div(
                                     ],
                                     value=[],
                                     inline=True,
-                                    style={"fontSize": "13px", "color": "#eee"},
+                                    style={"fontSize": "13px", "color": "#eee", "padding": "4px 0 8px 12px"},
                                     inputStyle={"marginRight": "6px", "marginLeft": "12px"},
                                     labelStyle={"display": "inline-flex", "alignItems": "center",
                                                 "gap": "4px", "marginRight": "8px"},
                                 ),
-                            ], style={"marginBottom": "16px"}),
+                            ], style={"borderBottom": "1px solid #333"}),
                             # Flood reference lines
-                            html.Div([
-                                html.H4("洪量基準", style={"color": "#aaa", "margin": "0 0 6px 0"}),
+                            html.Details([
+                                html.Summary("洪量基準", style=_section_summary_style),
                                 dcc.Checklist(
                                     id="flood-select",
                                     options=[{"label": "洪量高/低", "value": "on"}],
@@ -721,15 +723,15 @@ app.layout = html.Div(
                                     inline=True,
                                     persistence=True,
                                     persistence_type="local",
-                                    style={"fontSize": "13px", "color": "#eee"},
+                                    style={"fontSize": "13px", "color": "#eee", "padding": "4px 0 8px 12px"},
                                     inputStyle={"marginRight": "6px", "marginLeft": "12px"},
                                     labelStyle={"display": "inline-flex", "alignItems": "center",
                                                 "gap": "4px", "marginRight": "8px"},
                                 ),
-                            ], style={"marginBottom": "16px"}),
+                            ], style={"borderBottom": "1px solid #333"}),
                             # OBV subplot section (toggling rebuilds the figure)
-                            html.Div([
-                                html.H4("副圖 OBV", style={"color": "#aaa", "margin": "0 0 6px 0"}),
+                            html.Details([
+                                html.Summary("副圖 OBV", style=_section_summary_style),
                                 dcc.RadioItems(
                                     id="obv-select",
                                     options=[
@@ -742,15 +744,15 @@ app.layout = html.Div(
                                     inline=True,
                                     persistence="v2-period",
                                     persistence_type="local",
-                                    style={"fontSize": "13px", "color": "#eee"},
+                                    style={"fontSize": "13px", "color": "#eee", "padding": "4px 0 8px 12px"},
                                     inputStyle={"marginRight": "6px", "marginLeft": "12px"},
                                     labelStyle={"display": "inline-flex", "alignItems": "center",
                                                 "gap": "4px", "marginRight": "8px"},
                                 ),
-                            ], style={"marginBottom": "16px"}),
+                            ], style={"borderBottom": "1px solid #333"}),
                             # Trend section (index only, JS toggle)
-                            html.Div([
-                                html.H4("趨勢", style={"color": "#aaa", "margin": "0 0 6px 0"}),
+                            html.Details([
+                                html.Summary("趨勢", style=_section_summary_style),
                                 dcc.Checklist(
                                     id="trend-select",
                                     options=[{"label": "趨勢標記", "value": "trend"}],
@@ -758,12 +760,12 @@ app.layout = html.Div(
                                     inline=True,
                                     persistence=True,
                                     persistence_type="local",
-                                    style={"fontSize": "13px", "color": "#eee"},
+                                    style={"fontSize": "13px", "color": "#eee", "padding": "4px 0 8px 12px"},
                                     inputStyle={"marginRight": "6px", "marginLeft": "12px"},
                                     labelStyle={"display": "inline-flex", "alignItems": "center",
                                                 "gap": "4px", "marginRight": "8px"},
                                 ),
-                            ], style={"marginBottom": "16px"}),
+                            ], style={"borderBottom": "1px solid #333"}),
                             # Signal markers section
                             html.Div([
                                 html.H4("訊號標記", style={"color": "#aaa", "margin": "0 0 6px 0"}),
