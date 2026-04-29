@@ -13,6 +13,10 @@ mapping yet — see project memory) and keep ~5–7 core rules per condition.
 Market-breadth filtering (大盤過濾) is also dropped here because per-stock
 factories don't get market context. TODO: pre-compute market state and feed it
 in once we want fidelity.
+
+Defense rules: none currently. The flood-volume rule (v1-v3 in
+data/signal_versions.db) was proven not to materially improve PF and even
+hurt 空翻多, so it was reverted at v0.
 """
 
 from __future__ import annotations
@@ -79,6 +83,9 @@ def pick_condition(data: "StockData") -> BoolArray:
 
     Rules:
       1. 觸 / 跌破 5 或 8 日低 (close <= bs.low[5/8])
+         — v4 嘗試過用 OverLower3/5/8 複合 pattern，PF 反而下降（輸均惡化），
+           已回退簡單版。touch 採 OverUpper 是有效的 (long-bias 市場下找頭適用)，
+           但 pick 找底用簡單條件反而較好。
       2. 最近 3 日有出現中或長期扣抵翻轉 (turn[34/55] 從 0 翻 >=1)
       3. 量能未乾枯：今日量 >= 前日量 * 0.5 AND not (連 3 日 SmallLongMinVolume)
       4. 不在 tier-1 洪量區下方 (非 Flood 斷頭段)
@@ -122,7 +129,8 @@ def touch_condition(data: "StockData") -> BoolArray:
     """摸頭訊號 — short_entry candidate; mirror of pick_condition.
 
     Rules:
-      1. 觸 / 站上 5 或 8 日高
+      1. 強力上漲存在性：(走漲[0..2] OR 召漲[0..2] OR 連 2 日人漲[1..2]) AND
+         今/昨日仍人漲 — 對應 Go OverUpper3/5/8 複合 pattern
       2. 最近 3 日有出現中或長期高拐 (turn[34/55] 從 2 翻 <=1)
       3. 量能未爆衝：今日量 < 前日量 * 1.5 AND not (連 3 日 BigLongMaxVolume)
       4. 不在 tier-1 洪量區上方
@@ -131,10 +139,18 @@ def touch_condition(data: "StockData") -> BoolArray:
     """
     n = data.n
     close = data.close
-    bs_high = data.close_result.bs.high
     turn = data.close_result.turn
+    ob = data.over_breakout
 
-    rule_pos = (close >= bs_high[5]) | (close >= bs_high[8])
+    # 1. 強力上漲存在性（Go pattern：走漲[0..2] OR 召漲[0..2] OR 連 2 日人漲[1..2]）
+    #    AND 今/昨日仍人漲 — 確認漲勢仍在持續
+    ou3, ou5, ou8 = ob.over_upper_3, ob.over_upper_5, ob.over_upper_8
+    walked_or_called = (
+        ou5 | _shift(ou5, 1) | _shift(ou5, 2)
+        | ou8 | _shift(ou8, 1) | _shift(ou8, 2)
+        | (_shift(ou3, 1) & _shift(ou3, 2))
+    )
+    rule_pos = walked_or_called & (ou3 | _shift(ou3, 1))
 
     long_change = _turn_change_down(turn[34]) | _turn_change_down(turn[55])
     rule_change = _last_n_any(long_change, 3)

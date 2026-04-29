@@ -20,6 +20,7 @@ from analysis.candle import calculate_candle, CandleResult
 from analysis.money import calculate_money, MoneyResult
 from analysis.obv import calculate_obv_multi, OBVMultiResult
 from analysis.wave import calculate_wave, WaveResult
+from analysis.over_breakout import calculate_over_breakout, OverBreakoutResult
 
 F32 = np.float32
 F32Array = NDArray[np.float32]
@@ -58,6 +59,7 @@ class StockData:
     money_result: MoneyResult
     obv: OBVMultiResult
     wave_result: WaveResult
+    over_breakout: OverBreakoutResult
 
     # Forming sort alignment (depends on close + volume)
     sort_forming: dict[str, SortResult]
@@ -172,6 +174,9 @@ def build_stock_data(
         candle_result, close_result.bs,
         volume=volume,
     )
+    over_breakout = calculate_over_breakout(
+        high, low, close, candle_result, close_result,
+    )
     sort_forming = calc_sort_forming(close_result, volume_result.volume_status)
 
     return StockData(
@@ -191,6 +196,7 @@ def build_stock_data(
         money_result=money_result,
         obv=obv,
         wave_result=wave_result,
+        over_breakout=over_breakout,
         sort_forming=sort_forming,
         dividends=dividends,
     )
