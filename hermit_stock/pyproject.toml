@@ -1,0 +1,65 @@
+[project]
+name = "hermit-stock"
+version = "0.1.0"
+description = "Taiwan winning-stock fundamental screener and analyzer"
+readme = "README.md"
+requires-python = ">=3.12"
+authors = [
+    { name = "Realidealism", email = "opus28156@gmail.com" }
+]
+dependencies = [
+    "pandas>=2.2",
+    "pyarrow>=16.0",
+    "pydantic>=2.6",
+    "typer>=0.12",
+    "pyyaml>=6.0",
+    "jinja2>=3.1",
+    "openpyxl>=3.1",
+    "matplotlib>=3.8",
+    "psycopg2-binary>=2.9",
+    "python-dotenv>=1.0",
+    "requests>=2.33.1",
+]
+
+[project.scripts]
+hermit-stock = "hermit_stock.cli:app"
+
+[build-system]
+requires = ["uv_build>=0.11.8,<0.12.0"]
+build-backend = "uv_build"
+
+[dependency-groups]
+dev = [
+    "pytest>=8.0",
+    "pytest-cov>=5.0",
+    "ruff>=0.4",
+    "black>=24.0",
+    "mypy>=1.10",
+    "types-PyYAML",
+    "pandas-stubs",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP", "SIM"]
+ignore = ["E501"]
+
+[tool.ruff.lint.per-file-ignores]
+"src/hermit_stock/cli.py" = ["B008"]  # typer.Option in defaults is idiomatic
+
+[tool.black]
+line-length = 100
+target-version = ["py312"]
+
+[tool.mypy]
+python_version = "3.12"
+warn_unused_ignores = true
+warn_redundant_casts = true
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra"

@@ -1,0 +1,27 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+build/
+dist/
+
+# uv
+.venv/
+
+# IDE / OS
+.idea/
+.vscode/
+.DS_Store
+
+# Backtest artifacts (regenerable)
+backtest_out/
+backtest_out_*/
+*.log
+*.xlsx
+
+# Temp reports
+tmp_*.md
+
+# Cache (FinMind raw, parquet, etc.)
+.cache/
