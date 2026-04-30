@@ -620,6 +620,80 @@ def export_prices(cur, out: Path):
 # Main
 # -----------------------------------------------------------------------
 
+def export_hermit(cur, out: Path):
+    """Top picks from hermit_stock daily snapshot (latest date + 30d history)."""
+    cur.execute("""
+        SELECT MAX(snapshot_date) AS d FROM tw.hermit_screen_snapshot
+    """)
+    latest = cur.fetchone()["d"]
+    if latest is None:
+        _write({"snapshot_date": None, "picks": [], "history": []}, out / "hermit.json")
+        return
+
+    # Latest snapshot rows joined with stock name/industry
+    cur.execute("""
+        SELECT s.rank, s.stock_id, st.name, st.industry, s.score, s.grade,
+               s.f1_pass, s.f2_pass, s.f3_pass, s.f4_pass,
+               s.f5_pass, s.f6_pass, s.f7_pass, s.f8_pass,
+               s.val_method, s.val_multiple, s.val_band,
+               s.val_upside_pct, s.val_decision,
+               s.is_new, s.prev_rank, s.rank_delta
+        FROM tw.hermit_screen_snapshot s
+        JOIN tw.stocks st ON st.stock_id = s.stock_id
+        WHERE s.snapshot_date = %s
+        ORDER BY s.rank
+    """, (latest,))
+    picks = []
+    for r in cur.fetchall():
+        picks.append({
+            "rank": r["rank"],
+            "ticker": r["stock_id"],
+            "name": r["name"],
+            "industry": r["industry"],
+            "score": r["score"],
+            "grade": r["grade"],
+            "rules": {
+                f"F{i}": r[f"f{i}_pass"] for i in range(1, 9)
+            },
+            "valuation": {
+                "method": r["val_method"],
+                "multiple": float(r["val_multiple"]) if r["val_multiple"] is not None else None,
+                "band": r["val_band"],
+                "upside_pct": float(r["val_upside_pct"]) if r["val_upside_pct"] is not None else None,
+                "decision": r["val_decision"],
+            },
+            "is_new": r["is_new"],
+            "prev_rank": r["prev_rank"],
+            "rank_delta": r["rank_delta"],
+        })
+
+    # Last 30 trading-snapshot dates with diff summaries
+    cur.execute("""
+        SELECT snapshot_date,
+               COUNT(*) AS top_n,
+               SUM(CASE WHEN is_new THEN 1 ELSE 0 END) AS new_count
+        FROM tw.hermit_screen_snapshot
+        WHERE snapshot_date > %s - INTERVAL '60 days'
+        GROUP BY snapshot_date
+        ORDER BY snapshot_date DESC
+        LIMIT 30
+    """, (latest,))
+    history = [
+        {
+            "date": r["snapshot_date"],
+            "top_n": r["top_n"],
+            "new_count": int(r["new_count"]) if r["new_count"] is not None else 0,
+        }
+        for r in cur.fetchall()
+    ]
+
+    _write({
+        "snapshot_date": latest,
+        "picks": picks,
+        "history": history,
+    }, out / "hermit.json")
+
+
 def export_all(out_dir: str | None = None):
     if out_dir is None:
         import sys
@@ -644,6 +718,7 @@ def export_all(out_dir: str | None = None):
         export_dna(cur, out)
         export_flow(cur, out)
         export_prices(cur, out)
+        export_hermit(cur, out)
 
     print("Done.")
 

@@ -10,6 +10,7 @@ const NAV = [
   { to: "/dna", label: "經理人DNA" },
   { to: "/flow", label: "資金流向" },
   { to: "/search", label: "訊號查詢" },
+  { to: "/hermit", label: "贏勢股篩選" },
 ] as const;
 
 function NavItems({ onClick }: { onClick?: () => void }) {
