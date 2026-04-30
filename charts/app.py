@@ -293,7 +293,8 @@ class _ConditionDataView:
                  "open", "high", "low", "close", "volume",
                  "dates", "n",
                  "close_result", "volume_result", "candle_result",
-                 "over_breakout", "market_state")
+                 "over_breakout", "market_state", "macd",
+                 "wave_result")
 
     def __init__(self, data: dict, ar: dict, stock_id: str = "", stock_name: str = ""):
         self.stock_id = stock_id
@@ -310,6 +311,8 @@ class _ConditionDataView:
         self.candle_result = ar.get("candle")
         self.over_breakout = ar.get("over_breakout")
         self.market_state = ar.get("market_state")
+        self.macd = ar.get("macd")
+        self.wave_result = ar.get("wave_result")
 
 
 def _compute_defense_lines(
@@ -1213,6 +1216,8 @@ def update_chart(n_clicks, stock_id, start_date, end_date, obv_select,
         )
         from analysis.market_state import calculate_market_state
         analysis_results["market_state"] = calculate_market_state(data["dates"])
+        from analysis.macd import calculate_macd
+        analysis_results["macd"] = calculate_macd(data["close"])
         if not data["is_index"] and "turnover" in data:
             analysis_results["money"] = calculate_money(data["turnover"])
         if "ref_price" in data:

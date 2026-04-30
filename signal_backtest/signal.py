@@ -128,6 +128,9 @@ def _register_factories() -> None:
     from signal_backtest.factories.pick_touch import pick_signal, touch_signal
     from signal_backtest.factories.buy_sell import buy_signal, sell_signal
     from signal_backtest.factories.flee import buy_flee_factory, sell_flee_factory
+    from signal_backtest.factories.macd import (
+        macd_short_signal, macd_medium_signal, macd_long_signal,
+    )
 
     SIGNAL_FACTORIES.update({
         "pick":       pick_signal,
@@ -136,6 +139,10 @@ def _register_factories() -> None:
         "sell":       sell_signal,
         "buy_flee":   buy_flee_factory,
         "sell_flee":  sell_flee_factory,
+        # MACD diagnostic — kept for ad-hoc re-validation, not in production
+        "macd_short":  macd_short_signal,
+        "macd_medium": macd_medium_signal,
+        "macd_long":   macd_long_signal,
     })
 
 

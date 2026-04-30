@@ -209,6 +209,13 @@ class WaveResult:
 
     close_cross_wave_d2ma: BoolArray
 
+    # Wave-tip moving averages and derived flags (for Go MAWaveD2/D4 mapping)
+    wave_d2_ma: F32Array            # avg of last 2 tips (NaN before)
+    wave_d4_ma: F32Array            # avg of last 4 tips (NaN before)
+    close_big_wave_d4_ma: BoolArray   # close > wave_d4_ma (and valid)
+    close_small_wave_d4_ma: BoolArray # close < wave_d4_ma (and valid)
+    wave_d4_death: BoolArray        # wave_d2_ma crossed below wave_d4_ma today
+
     red_waterfall0: BoolArray
     black_waterfall0: BoolArray
     red_waterfall1: BoolArray
@@ -286,6 +293,13 @@ def calculate_wave(
     down_price1 = np.zeros(n, dtype=F32)
 
     close_cross_d2ma = np.zeros(n, dtype=np.bool_)
+
+    # Wave-tip moving averages (NaN until enough wave tips exist)
+    wave_d2_ma_arr = np.full(n, np.nan, dtype=F32)
+    wave_d4_ma_arr = np.full(n, np.nan, dtype=F32)
+    close_big_wave_d4_ma = np.zeros(n, dtype=np.bool_)
+    close_small_wave_d4_ma = np.zeros(n, dtype=np.bool_)
+    wave_d4_death = np.zeros(n, dtype=np.bool_)
 
     red_wf0 = np.zeros(n, dtype=np.bool_)
     black_wf0 = np.zeros(n, dtype=np.bool_)
@@ -496,6 +510,7 @@ def calculate_wave(
             down_price1[i] = W.down_price[wc - 2]
             d2ma = (W.tip[wc - 1] + W.tip[wc - 2]) / 2
             close_cross_d2ma[i] = close[i] > d2ma
+            wave_d2_ma_arr[i] = d2ma
 
         if wc > 2:
             tip2[i] = W.tip[wc - 3]
@@ -503,6 +518,21 @@ def calculate_wave(
         if wc > 3:
             sink[i] = (W.tip[wc - 1] < W.tip[wc - 3]
                         and W.tip[wc - 2] <= W.tip[wc - 4])
+
+            # Wave d4 MA (avg of last 4 tips) and close-position flags
+            d4ma = (W.tip[wc - 1] + W.tip[wc - 2]
+                    + W.tip[wc - 3] + W.tip[wc - 4]) / 4
+            wave_d4_ma_arr[i] = d4ma
+            close_big_wave_d4_ma[i]  = close[i] > d4ma
+            close_small_wave_d4_ma[i] = close[i] < d4ma
+
+            # Death cross of wave-MA: wave_d2_ma drops below wave_d4_ma today
+            # (yesterday it was at or above). Both must be valid.
+            prev_d2 = wave_d2_ma_arr[i - 1]
+            prev_d4 = wave_d4_ma_arr[i - 1]
+            today_d2 = wave_d2_ma_arr[i]
+            if not (np.isnan(prev_d2) or np.isnan(prev_d4)):
+                wave_d4_death[i] = (today_d2 < d4ma) and (prev_d2 >= prev_d4)
 
             # Tip breakout: current wave tip exceeds same-direction tip 2 waves ago
             if W.wave[wc - 1]:  # current is UP
@@ -613,6 +643,10 @@ def calculate_wave(
         up_price0=up_price0, mid_price0=mid_price0, down_price0=down_price0,
         up_price1=up_price1, mid_price1=mid_price1, down_price1=down_price1,
         close_cross_d2ma=close_cross_d2ma,
+        wave_d2_ma_arr=wave_d2_ma_arr, wave_d4_ma_arr=wave_d4_ma_arr,
+        close_big_wave_d4_ma=close_big_wave_d4_ma,
+        close_small_wave_d4_ma=close_small_wave_d4_ma,
+        wave_d4_death=wave_d4_death,
         red_wf0=red_wf0, black_wf0=black_wf0,
         red_wf1=red_wf1, black_wf1=black_wf1,
         red_wd1=red_wd1, black_wd1=black_wd1,
@@ -812,15 +846,28 @@ def _build_result(
     direction, tip0, tip1, tip2,
     up_price0, mid_price0, down_price0,
     up_price1, mid_price1, down_price1,
-    close_cross_d2ma, red_wf0, black_wf0, red_wf1, black_wf1,
-    red_wd1, black_wd1,
-    bwf_top, bwf_bot, rwf_top, rwf_bot, bwf_up, rwf_down,
-    close_big_bwf, close_small_rwf, close_break_bwf, close_break_rwf,
-    sink,
-    tip_breakout_up, tip_breakout_down, sink_reversal, length_expansion,
-    wave_volume_up,
-    wave_trend,
+    close_cross_d2ma,
+    wave_d2_ma_arr=None, wave_d4_ma_arr=None,
+    close_big_wave_d4_ma=None, close_small_wave_d4_ma=None,
+    wave_d4_death=None,
+    red_wf0=None, black_wf0=None, red_wf1=None, black_wf1=None,
+    red_wd1=None, black_wd1=None,
+    bwf_top=None, bwf_bot=None, rwf_top=None, rwf_bot=None,
+    bwf_up=None, rwf_down=None,
+    close_big_bwf=None, close_small_rwf=None,
+    close_break_bwf=None, close_break_rwf=None,
+    sink=None,
+    tip_breakout_up=None, tip_breakout_down=None,
+    sink_reversal=None, length_expansion=None,
+    wave_volume_up=None,
+    wave_trend=None,
 ) -> WaveResult:
+    n = len(direction)
+    if wave_d2_ma_arr is None: wave_d2_ma_arr = np.full(n, np.nan, dtype=F32)
+    if wave_d4_ma_arr is None: wave_d4_ma_arr = np.full(n, np.nan, dtype=F32)
+    if close_big_wave_d4_ma is None: close_big_wave_d4_ma = np.zeros(n, dtype=np.bool_)
+    if close_small_wave_d4_ma is None: close_small_wave_d4_ma = np.zeros(n, dtype=np.bool_)
+    if wave_d4_death is None: wave_d4_death = np.zeros(n, dtype=np.bool_)
     return WaveResult(
         waves=waves,
         convex_i=convex_i, convex_ii=convex_ii,
@@ -832,6 +879,11 @@ def _build_result(
         up_price0=up_price0, mid_price0=mid_price0, down_price0=down_price0,
         up_price1=up_price1, mid_price1=mid_price1, down_price1=down_price1,
         close_cross_wave_d2ma=close_cross_d2ma,
+        wave_d2_ma=wave_d2_ma_arr,
+        wave_d4_ma=wave_d4_ma_arr,
+        close_big_wave_d4_ma=close_big_wave_d4_ma,
+        close_small_wave_d4_ma=close_small_wave_d4_ma,
+        wave_d4_death=wave_d4_death,
         red_waterfall0=red_wf0, black_waterfall0=black_wf0,
         red_waterfall1=red_wf1, black_waterfall1=black_wf1,
         red_sizable_wave1=red_wd1, black_sizable_wave1=black_wd1,

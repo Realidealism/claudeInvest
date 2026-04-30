@@ -104,6 +104,8 @@ def pick_condition(data: "StockData") -> BoolArray:
       5. 非長均糾結連 2 日 (不在僵死段)
       6. 不在連續 3 日凹13（避免接持續創新低的下跌段）
       7. 大盤非強空（任一尺度 trend <= -2）— 不在崩盤段抄底
+      8. MACD short 底背離 (convergence_nte)：死叉狀態但動能轉強
+         — touch v12 用 PTE (頂背離) 從 PF 0.86→1.00 成功，這版鏡像試 NTE 給 pick
     """
     n = data.n
     close = data.close
@@ -138,7 +140,10 @@ def pick_condition(data: "StockData") -> BoolArray:
     concave13 = data.candle_result.concave_n[13]
     rule_concave = ~_last_n_all(concave13, 3)
 
-    return rule_pos & rule_change & rule_vol & rule_flood & rule_knot & rule_concave & rule_market
+    # 8. MACD short 底背離 — 死叉狀態但動能轉強 = 底部 likely
+    rule_macd = data.macd.short.macd_convergence_nte
+
+    return rule_pos & rule_change & rule_vol & rule_flood & rule_knot & rule_concave & rule_market & rule_macd
 
 
 def touch_condition(data: "StockData") -> BoolArray:
@@ -153,6 +158,9 @@ def touch_condition(data: "StockData") -> BoolArray:
       5. 非長均糾結連 2 日
       6. 不在連續 3 日凸13
       7. 大盤非強多（任一尺度 trend >= 2）— 不在強多段摸頭
+      8. MACD short 頂背離 (convergence_pte)：金叉狀態但動能轉弱
+         — Go ShortMACDConvergencePTE 用於 BuyCondition exclusion，touch 反向用為
+           positive trigger。v11 用 ~death_gold (狀態確認) 失敗，改用 PTE 早期偵測。
     """
     n = data.n
     close = data.close
@@ -188,7 +196,10 @@ def touch_condition(data: "StockData") -> BoolArray:
 
     rule_market = ~_market_strongly_bullish(data)
 
-    return rule_pos & rule_change & rule_vol & rule_flood & rule_knot & rule_convex & rule_market
+    # 8. MACD short 頂背離 — 早期偵測「金叉狀態但動能轉弱」= 頂部 likely
+    rule_macd = data.macd.short.macd_convergence_pte
+
+    return rule_pos & rule_change & rule_vol & rule_flood & rule_knot & rule_convex & rule_market & rule_macd
 
 
 # ── BuyCondition / SellCondition (波段多 / 波段空) ──────────────────────────
@@ -326,7 +337,10 @@ def buy_flee_signal(data: "StockData") -> BoolArray:
     # 5. 大盤非強多 — 不在強多段做空
     rule_market = ~_market_strongly_bullish(data)
 
-    return prior_strong & rule_trigger & rule_vol & rule_knot & rule_market
+    # 6. MACD short 頂背離 — 鏡像 v12 touch+PTE 成功 pattern，給 reversal 短做空
+    rule_macd = data.macd.short.macd_convergence_pte
+
+    return prior_strong & rule_trigger & rule_vol & rule_knot & rule_market & rule_macd
 
 
 def sell_flee_signal(data: "StockData") -> BoolArray:
@@ -373,4 +387,7 @@ def sell_flee_signal(data: "StockData") -> BoolArray:
     # 大盤非強空 — 不在崩盤段做多
     rule_market = ~_market_strongly_bearish(data)
 
-    return prior_weak & rule_trigger & rule_vol & rule_knot & rule_market
+    # MACD short 底背離 — 鏡像 v13 pick+NTE 成功 pattern，給 reversal 短做多
+    rule_macd = data.macd.short.macd_convergence_nte
+
+    return prior_weak & rule_trigger & rule_vol & rule_knot & rule_market & rule_macd

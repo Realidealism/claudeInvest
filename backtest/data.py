@@ -22,6 +22,7 @@ from analysis.obv import calculate_obv_multi, OBVMultiResult
 from analysis.wave import calculate_wave, WaveResult
 from analysis.over_breakout import calculate_over_breakout, OverBreakoutResult
 from analysis.market_state import calculate_market_state, MarketState
+from analysis.macd import calculate_macd, MACDResult
 
 F32 = np.float32
 F32Array = NDArray[np.float32]
@@ -62,6 +63,7 @@ class StockData:
     wave_result: WaveResult
     over_breakout: OverBreakoutResult
     market_state: MarketState
+    macd: MACDResult
 
     # Forming sort alignment (depends on close + volume)
     sort_forming: dict[str, SortResult]
@@ -180,6 +182,7 @@ def build_stock_data(
         high, low, close, candle_result, close_result,
     )
     market_state = calculate_market_state(dates)
+    macd = calculate_macd(close)
     sort_forming = calc_sort_forming(close_result, volume_result.volume_status)
 
     return StockData(
@@ -201,6 +204,7 @@ def build_stock_data(
         wave_result=wave_result,
         over_breakout=over_breakout,
         market_state=market_state,
+        macd=macd,
         sort_forming=sort_forming,
         dividends=dividends,
     )
