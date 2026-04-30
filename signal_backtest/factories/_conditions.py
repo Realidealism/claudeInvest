@@ -87,6 +87,137 @@ def _market_strongly_bearish(data: "StockData") -> BoolArray:
     return (ms.short_trend <= -2) | (ms.medium_trend <= -2) | (ms.long_trend <= -2)
 
 
+# ── MarketShortTrendStrong / Weak (mirror Go calculatetrade3.go:4151-4188) ──
+#
+# These are "trend-reversal early warning" flags computed per stock-day from
+# (a) the stock's own SMA-sort code (Go ShortTrend 0/1/2, Python's
+# sort_normal[scope].up/.down) and (b) the market's percentage status /
+# direction. Naming caveat: "Strong" = strong bear-onset signal, "Weak" =
+# strong bull-onset signal — they flag the inflection, not the steady state.
+
+
+def _stock_trend_code(data: "StockData", scope: str) -> NDArray[np.int8]:
+    """Map sort_normal up/down to Go's ShortTrend 0/1/2 encoding.
+
+    2 = SMA bullish alignment (sort_normal.up)
+    0 = SMA bearish alignment (sort_normal.down)
+    1 = neither (transitional)
+    """
+    sort_normal = data.close_result.ma.sort_normal[scope]
+    out = np.full(data.n, 1, dtype=np.int8)
+    out[sort_normal.up] = 2
+    out[sort_normal.down] = 0
+    return out
+
+
+def _market_trend_strong(data: "StockData", scope: str) -> BoolArray:
+    """Bear-onset early warning: stock SMA bullish (or transitional + market
+    rolling over) AND market down-direction is rising while up-direction is
+    not. Mirrors Go MarketShortTrendStrong."""
+    ms = data.market_state
+    if scope == "short":
+        status = ms.short_pct_status
+        up_dir = ms.short_up_dir
+        down_dir = ms.short_down_dir
+    elif scope == "medium":
+        status = ms.medium_pct_status
+        up_dir = ms.medium_up_dir
+        down_dir = ms.medium_down_dir
+    else:
+        status = ms.long_pct_status
+        up_dir = ms.long_up_dir
+        down_dir = ms.long_down_dir
+    trend = _stock_trend_code(data, scope)
+    cond_a = (trend == 2) | ((trend == 1) & (status < 2))
+    cond_b = (~up_dir) & (status < 4) & down_dir
+    return cond_a & cond_b
+
+
+def _market_trend_weak(data: "StockData", scope: str) -> BoolArray:
+    """Bull-onset early warning: stock SMA bearish (or transitional + market
+    rolling over) AND market up-direction is rising while down-direction is
+    not. Mirrors Go MarketShortTrendWeak."""
+    ms = data.market_state
+    if scope == "short":
+        status = ms.short_pct_status
+        up_dir = ms.short_up_dir
+        down_dir = ms.short_down_dir
+    elif scope == "medium":
+        status = ms.medium_pct_status
+        up_dir = ms.medium_up_dir
+        down_dir = ms.medium_down_dir
+    else:
+        status = ms.long_pct_status
+        up_dir = ms.long_up_dir
+        down_dir = ms.long_down_dir
+    trend = _stock_trend_code(data, scope)
+    cond_a = (trend == 0) | ((trend == 1) & (status > 3))
+    cond_b = up_dir & (status > 1) & (~down_dir)
+    return cond_a & cond_b
+
+
+# ── OSC defense triggers (mirror Go Pick/Buy 7618-7630 and Touch/Sell 7822-7832) ──
+#
+# Both directions share a "trigger AND NOT (fail-safe stack)" pattern.
+# Direction differs only by which OSCStatus value lights up (true for long
+# entries, false for short) and which side of PercentageStatus / Hot the
+# fail-safes target.
+
+
+def _osc_long_trigger(data: "StockData") -> BoolArray:
+    """Pick / Buy OSC defense (long entry side)."""
+    ms = data.market_state
+    osc = data.macd.short
+    direction = osc.osc_direction
+    prev_direction = _shift(direction, 1)
+    up_weak2 = osc.osc_status_up_weak2
+    down_weak2 = osc.osc_status_down_weak2
+    prev_down_weak2 = _shift(down_weak2, 1)
+
+    short_trend = _stock_trend_code(data, "short")
+    market_strong = _market_trend_strong(data, "short")
+    short_dn_hot = ms.short_down_hot
+    short_dn_hot_2d = short_dn_hot | _shift(short_dn_hot, 1)
+
+    fail_safe = (
+        (ms.short_pct_status < 2)
+        & ~(direction & prev_direction & ~up_weak2)
+        & ~((short_trend == 2) & direction)
+        & ~(down_weak2 & prev_down_weak2)
+        & ~market_strong
+        & ~(short_dn_hot_2d & direction)
+    )
+    trigger = osc.osc_status
+    return trigger & ~fail_safe
+
+
+def _osc_short_trigger(data: "StockData") -> BoolArray:
+    """Touch / Sell OSC defense (short entry side)."""
+    ms = data.market_state
+    osc = data.macd.short
+    direction = osc.osc_direction
+    prev_direction = _shift(direction, 1)
+    up_weak2 = osc.osc_status_up_weak2
+    prev_up_weak2 = _shift(up_weak2, 1)
+    down_weak2 = osc.osc_status_down_weak2
+
+    short_trend = _stock_trend_code(data, "short")
+    market_weak = _market_trend_weak(data, "short")
+    short_up_hot = ms.short_up_hot
+    short_up_hot_2d = short_up_hot | _shift(short_up_hot, 1)
+
+    fail_safe = (
+        (ms.short_pct_status > 3)
+        & ~(~direction & ~prev_direction & ~down_weak2)
+        & ~((short_trend == 0) & ~direction)
+        & ~(up_weak2 & prev_up_weak2)
+        & ~market_weak
+        & ~(short_up_hot_2d & ~direction)
+    )
+    trigger = ~osc.osc_status
+    return trigger & ~fail_safe
+
+
 # ── PickCondition / TouchCondition (抄底 / 摸頭) ────────────────────────────
 
 
@@ -143,7 +274,13 @@ def pick_condition(data: "StockData") -> BoolArray:
     # 8. MACD short 底背離 — 死叉狀態但動能轉強 = 底部 likely
     rule_macd = data.macd.short.macd_convergence_nte
 
-    return rule_pos & rule_change & rule_vol & rule_flood & rule_knot & rule_concave & rule_market & rule_macd
+    # OSC defense from Go PickCondition was tried in v20 and gutted PF
+    # (2.91→1.54): Go's pick "trigger = OSCStatus true" expects momentum
+    # already accelerating, which contradicts our "buy the lowest tick"
+    # design. Reverted in v21.
+
+    return (rule_pos & rule_change & rule_vol & rule_flood & rule_knot
+            & rule_concave & rule_market & rule_macd)
 
 
 def touch_condition(data: "StockData") -> BoolArray:
@@ -199,7 +336,12 @@ def touch_condition(data: "StockData") -> BoolArray:
     # 8. MACD short 頂背離 — 早期偵測「金叉狀態但動能轉弱」= 頂部 likely
     rule_macd = data.macd.short.macd_convergence_pte
 
-    return rule_pos & rule_change & rule_vol & rule_flood & rule_knot & rule_convex & rule_market & rule_macd
+    # OSC defense from Go TouchCondition reverted in v21 — same reason as
+    # pick: Go's "trigger = OSCStatus false" finds momentum-fading entries,
+    # not topping-tail entries which is what our touch is hunting.
+
+    return (rule_pos & rule_change & rule_vol & rule_flood & rule_knot
+            & rule_convex & rule_market & rule_macd)
 
 
 # ── BuyCondition / SellCondition (波段多 / 波段空) ──────────────────────────
@@ -240,7 +382,11 @@ def buy_condition(data: "StockData") -> BoolArray:
     convex21 = data.candle_result.convex_n[21]
     rule_convex = ~_last_n_all(convex21, 3)
 
-    return rule_ma & rule_turn & rule_break & rule_vol & rule_knot & rule_convex & rule_market
+    # 8. OSC 防禦觸發（Go BuyCondition line 7866-7877，trigger_main 部分）
+    rule_osc = _osc_long_trigger(data)
+
+    return (rule_ma & rule_turn & rule_break & rule_vol & rule_knot
+            & rule_convex & rule_market & rule_osc)
 
 
 def sell_condition(data: "StockData") -> BoolArray:
@@ -254,6 +400,7 @@ def sell_condition(data: "StockData") -> BoolArray:
       5. 非長均糾結
       6. 不在連續 3 日凹21
       7. 大盤非強多
+      8. 排除三尺度 down_hot 末端追空陷阱（Go SellCondition line 8038-8040）
     """
     close = data.close
     sma = data.close_result.ma.sma
@@ -278,7 +425,14 @@ def sell_condition(data: "StockData") -> BoolArray:
     concave21 = data.candle_result.concave_n[21]
     rule_concave = ~_last_n_all(concave21, 3)
 
-    return rule_ma & rule_turn & rule_break & rule_vol & rule_knot & rule_concave & rule_market
+    ms = data.market_state
+    rule_not_triple_down_hot = ~(ms.short_down_hot & ms.medium_down_hot & ms.long_down_hot)
+
+    # 9. OSC 防禦觸發（Go SellCondition line 8003-8012）
+    rule_osc = _osc_short_trigger(data)
+
+    return (rule_ma & rule_turn & rule_break & rule_vol & rule_knot
+            & rule_concave & rule_market & rule_not_triple_down_hot & rule_osc)
 
 
 # ── BuyFleeSignal / SellFleeSignal (多翻空 / 空翻多) ────────────────────────

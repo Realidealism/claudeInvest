@@ -61,6 +61,15 @@ class MACDOneScope:
     osc_status_up: BoolArray
     osc_status_down: BoolArray
 
+    # OSCX-momentum weakening flags (mirror Go calculatetrade2.go:19298-19316).
+    # WeakI threshold = 0.8, WeakII = 0.5. Up weakens when OSCX shrinks
+    # (today < any of past 1-3 days × threshold); Down mirrors with > and
+    # !direction.
+    osc_status_up_weak1: BoolArray
+    osc_status_up_weak2: BoolArray
+    osc_status_down_weak1: BoolArray
+    osc_status_down_weak2: BoolArray
+
     macd_death_gold: BoolArray
     macd_death: BoolArray
     macd_gold: BoolArray
@@ -98,6 +107,35 @@ def _shift1(arr: np.ndarray) -> np.ndarray:
     return out
 
 
+def _osc_weak_up(direction: BoolArray, osc_x: F32Array, threshold: float) -> BoolArray:
+    """Mirror Go ShortOSCStatusUpWeak{I,II}: Direction AND (OSCX[i] <
+    OSCX[i-k] * threshold) for any k=1,2,3.
+
+    Early bars (i < k) compare against the value at index 0 (head padding,
+    matching Go's pre-zeroed slot semantics)."""
+    n = len(osc_x)
+    out = np.zeros(n, dtype=np.bool_)
+    for k in (1, 2, 3):
+        prev = np.empty_like(osc_x)
+        prev[:k] = osc_x[0]
+        prev[k:] = osc_x[:-k]
+        out |= osc_x < prev * threshold
+    return out & direction
+
+
+def _osc_weak_down(direction: BoolArray, osc_x: F32Array, threshold: float) -> BoolArray:
+    """Mirror Go ShortOSCStatusDownWeak{I,II}: !Direction AND (OSCX[i] >
+    OSCX[i-k] * threshold)."""
+    n = len(osc_x)
+    out = np.zeros(n, dtype=np.bool_)
+    for k in (1, 2, 3):
+        prev = np.empty_like(osc_x)
+        prev[:k] = osc_x[0]
+        prev[k:] = osc_x[:-k]
+        out |= osc_x > prev * threshold
+    return out & (~direction)
+
+
 def _build_scope(dif: F32Array, dem: F32Array) -> MACDOneScope:
     osc = (dif - dem).astype(F32)
     osc_x = _diff1(osc)
@@ -107,6 +145,11 @@ def _build_scope(dif: F32Array, dem: F32Array) -> MACDOneScope:
     status = osc_x > osc_x_prev
     status_up = direction & (osc_x > osc_x_prev * 0.97)
     status_down = (~direction) & (osc_x < osc_x_prev * 0.97)
+
+    up_weak1 = _osc_weak_up(direction, osc_x, 0.8)
+    up_weak2 = _osc_weak_up(direction, osc_x, 0.5)
+    down_weak1 = _osc_weak_down(direction, osc_x, 0.8)
+    down_weak2 = _osc_weak_down(direction, osc_x, 0.5)
 
     death_gold = osc > 0
     prev_death_gold = _shift1(death_gold)
@@ -125,6 +168,10 @@ def _build_scope(dif: F32Array, dem: F32Array) -> MACDOneScope:
         osc_status=status,
         osc_status_up=status_up,
         osc_status_down=status_down,
+        osc_status_up_weak1=up_weak1,
+        osc_status_up_weak2=up_weak2,
+        osc_status_down_weak1=down_weak1,
+        osc_status_down_weak2=down_weak2,
         macd_death_gold=death_gold,
         macd_death=macd_death,
         macd_gold=macd_gold,
