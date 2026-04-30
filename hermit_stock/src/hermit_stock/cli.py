@@ -149,6 +149,12 @@ def backtest(
         "--macro-filter",
         help="In Bear regime, halve top_k (concentrate into highest-conviction names)",
     ),
+    elite_override: bool = typer.Option(
+        False,
+        "--elite-override",
+        help="Rescue F7/F8-only gate fails when score>=7 + elite quality "
+        "(gross margin >=40%, op margin >=25%, ROE >=20%, or FCF margin >=20%).",
+    ),
     min_avg_turnover: float = typer.Option(
         0.0,
         "--min-avg-turnover",
@@ -184,9 +190,7 @@ def backtest(
     start_d = date.fromisoformat(start)
     end_d = date.fromisoformat(end)
 
-    typer.echo(
-        f"[backtest] loading universe (include_delisted={include_delisted}) ..."
-    )
+    typer.echo(f"[backtest] loading universe (include_delisted={include_delisted}) ...")
     metas = db_adapter.load_active_stocks(include_delisted=include_delisted)
     ticker_list = [m.ticker for m in metas]
     typer.echo(f"[backtest] universe size: {len(ticker_list)}")
@@ -222,6 +226,8 @@ def backtest(
         label = label + "_full"
     if min_avg_turnover > 0:
         label = label + f"_liq{int(min_avg_turnover/1e6)}M"
+    if elite_override:
+        label = label + "_elite"
     cfg = BacktestConfig(
         start=start_d,
         end=end_d,
@@ -232,6 +238,7 @@ def backtest(
         thresholds=thresholds,
         macro_filter=macro_filter,
         min_avg_turnover=min_avg_turnover,
+        elite_override=elite_override,
         label=label,
     )
     typer.echo(f"[backtest] main run: {start_d} → {end_d}, top_k={top_k}, floor={min_score_floor}")

@@ -27,6 +27,7 @@ def make_quarter(
     capex: Decimal | None = None,
     free_cash_flow: Decimal | None = None,
     book_value_per_share: Decimal | None = None,
+    operating_income: Decimal | None = None,
     ticker: str = "TEST",
 ) -> QuarterlyReport:
     return QuarterlyReport(
@@ -38,6 +39,7 @@ def make_quarter(
         revenue=revenue,
         cost_of_revenue=cogs,
         gross_profit=gross_profit,
+        operating_income=operating_income,
         net_income=net_income,
         eps=eps,
         inventory=inventory,

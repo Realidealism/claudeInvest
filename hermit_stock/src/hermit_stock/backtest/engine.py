@@ -21,9 +21,14 @@ import pandas as pd
 from ..data.adjusted_price import adjusted_close_series
 from ..data.as_of import filter_monthly, filter_quarterly
 from ..data.models import DailyPrice, MonthlyRevenue, QuarterlyReport, StockMeta
+from ..scoring.elite import has_elite_quality
 from ..scoring.rules import RuleResult, Thresholds, evaluate_all
 from .calendar import rebalance_dates
 from .portfolio import Portfolio
+
+# When elite override fires, only these gate codes are "rescuable" — failing
+# F6 (FCF) is too fundamental to override.
+RESCUABLE_GATES = frozenset({"F7", "F8"})
 
 
 @dataclass
@@ -38,6 +43,7 @@ class BacktestConfig:
     thresholds: Thresholds | None = None  # None = defaults
     macro_filter: bool = False  # enable Bear-regime top_k reduction
     min_avg_turnover: float = 0.0  # 60-day rolling mean turnover (NTD); 0 disables
+    elite_override: bool = False  # rescue F7/F8-only fails when score>=7 + elite quality
     label: str = "main"  # for ablation reporting
 
 
@@ -90,6 +96,7 @@ def select_top_k(
     min_score_floor: int,
     gate_rules: frozenset[str] = frozenset(),
     thresholds: Thresholds | None = None,
+    elite_override: bool = False,
 ) -> list[tuple[str, int, list[RuleResult]]]:
     """Run scoring at `rebalance_date`, filter & sort, return up to `top_k`.
 
@@ -109,12 +116,22 @@ def select_top_k(
         if not qs and not ms:
             continue
         results = evaluate_all(qs, ms, thresholds)
+        score_full = sum(1 for r in results if r.passed is True)
         if gate_rules:
             by_code = {r.code: r for r in results}
-            if any(by_code.get(g) is None or by_code[g].passed is not True for g in gate_rules):
-                continue
+            failed = {
+                g for g in gate_rules if by_code.get(g) is None or by_code[g].passed is not True
+            }
+            if failed:
+                rescued = (
+                    elite_override
+                    and score_full >= 7
+                    and failed.issubset(RESCUABLE_GATES)
+                    and has_elite_quality(qs)
+                )
+                if not rescued:
+                    continue
         score_enabled = sum(1 for r in results if r.code in scoring_rules and r.passed is True)
-        score_full = sum(1 for r in results if r.passed is True)
         if score_enabled < min_score_floor:
             continue
         out.append((ticker, score_enabled, score_full, results))
@@ -173,7 +190,8 @@ def run_backtest(
                 if len(idx) > 0:
                     last_row = turnover_60d.loc[idx[-1]]
                     liquid = {
-                        t for t, v in last_row.items()
+                        t
+                        for t, v in last_row.items()
                         if pd.notna(v) and float(v) >= config.min_avg_turnover
                     }
                     eligible_metas = [m for m in metas if m.ticker in liquid]
@@ -188,6 +206,7 @@ def run_backtest(
                 min_score_floor=config.min_score_floor,
                 gate_rules=config.gate_rules,
                 thresholds=config.thresholds,
+                elite_override=config.elite_override,
             )
             target_tickers = [t for (t, _s, _r) in picks]
             portfolio.rebalance_equal_weight(d, target_tickers, prices)

@@ -19,11 +19,13 @@ from psycopg2.extras import RealDictCursor, execute_batch
 
 from .data.adapters.db_adapter import _connect
 from .reports.screener import ScreenRow, screen_from_db
-
+from .scoring.elite import has_elite_quality
 
 GATE_RULES = frozenset({"F6", "F7", "F8"})
+RESCUABLE_GATES = frozenset({"F7", "F8"})  # F6 is non-rescuable
 FLOOR = 3
 TOP_N = 100
+ELITE_OVERRIDE = False  # A/B test: rescue dropped cumret 5317% → 963%
 
 
 @dataclass(frozen=True)
@@ -47,6 +49,21 @@ class DiffRow:
         if self.today_rank > self.prev_rank:
             return f"DN {self.today_rank - self.prev_rank}"
         return "FLAT"
+
+
+def _gate_status(r: ScreenRow) -> str:
+    """Return 'pass' | 'fail_rescuable' | 'fail'.
+
+    'fail_rescuable' = only F7 and/or F8 failed (potentially eligible for
+    elite override). F6 fail is non-rescuable.
+    """
+    by_code = {rr.code: rr for rr in r.rule_results}
+    failed = {g for g in GATE_RULES if not (by_code.get(g) and by_code[g].passed is True)}
+    if not failed:
+        return "pass"
+    if failed.issubset(RESCUABLE_GATES):
+        return "fail_rescuable"
+    return "fail"
 
 
 def _previous_snapshot_date(snapshot_date: date) -> date | None:
@@ -79,10 +96,10 @@ def _save_snapshot(snapshot_date: date, rows: list[ScreenRow], prev: dict[str, d
     insert_rows = []
     for i, r in enumerate(rows[:TOP_N], start=1):
         by_code = {rr.code: rr for rr in r.rule_results}
-
-        def passed(code: str) -> bool | None:
+        flags: dict[str, bool | None] = {}
+        for code in ("F1", "F2", "F3", "F4", "F5", "F6", "F7", "F8"):
             rr = by_code.get(code)
-            return rr.passed if rr else None
+            flags[code] = rr.passed if rr else None
 
         v = r.valuation
         prev_row = prev.get(r.ticker)
@@ -90,23 +107,31 @@ def _save_snapshot(snapshot_date: date, rows: list[ScreenRow], prev: dict[str, d
         rank_delta = (prev_rank - i) if prev_rank is not None else None
         is_new = prev_rank is None
 
-        insert_rows.append((
-            snapshot_date,
-            i,
-            r.ticker,
-            r.scoreboard.score,
-            r.scoreboard.grade,
-            passed("F1"), passed("F2"), passed("F3"), passed("F4"),
-            passed("F5"), passed("F6"), passed("F7"), passed("F8"),
-            v.method if v else None,
-            round(v.current_multiple, 2) if v and v.current_multiple else None,
-            v.band_position if v else None,
-            round(v.upside_mean * 100, 2) if v and v.upside_mean is not None else None,
-            v.decision if v else None,
-            is_new,
-            prev_rank,
-            rank_delta,
-        ))
+        insert_rows.append(
+            (
+                snapshot_date,
+                i,
+                r.ticker,
+                r.scoreboard.score,
+                r.scoreboard.grade,
+                flags["F1"],
+                flags["F2"],
+                flags["F3"],
+                flags["F4"],
+                flags["F5"],
+                flags["F6"],
+                flags["F7"],
+                flags["F8"],
+                v.method if v else None,
+                round(v.current_multiple, 2) if v and v.current_multiple else None,
+                v.band_position if v else None,
+                round(v.upside_mean * 100, 2) if v and v.upside_mean is not None else None,
+                v.decision if v else None,
+                is_new,
+                prev_rank,
+                rank_delta,
+            )
+        )
 
     sql = """
         INSERT INTO tw.hermit_screen_snapshot
@@ -116,24 +141,15 @@ def _save_snapshot(snapshot_date: date, rows: list[ScreenRow], prev: dict[str, d
          is_new, prev_rank, rank_delta)
         VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
                 %s, %s, %s, %s, %s, %s, %s, %s)
-        ON CONFLICT (snapshot_date, stock_id) DO UPDATE SET
-            rank = EXCLUDED.rank,
-            score = EXCLUDED.score,
-            grade = EXCLUDED.grade,
-            f1_pass = EXCLUDED.f1_pass, f2_pass = EXCLUDED.f2_pass,
-            f3_pass = EXCLUDED.f3_pass, f4_pass = EXCLUDED.f4_pass,
-            f5_pass = EXCLUDED.f5_pass, f6_pass = EXCLUDED.f6_pass,
-            f7_pass = EXCLUDED.f7_pass, f8_pass = EXCLUDED.f8_pass,
-            val_method = EXCLUDED.val_method,
-            val_multiple = EXCLUDED.val_multiple,
-            val_band = EXCLUDED.val_band,
-            val_upside_pct = EXCLUDED.val_upside_pct,
-            val_decision = EXCLUDED.val_decision,
-            is_new = EXCLUDED.is_new,
-            prev_rank = EXCLUDED.prev_rank,
-            rank_delta = EXCLUDED.rank_delta
     """
+    # Delete-then-insert: ensures stale rows from previous runs (e.g. when
+    # TOP_N changes or elite override flips an entrant's eligibility) don't
+    # accumulate as orphans outside the current Top-N.
     with _connect() as conn, conn.cursor() as cur:
+        cur.execute(
+            "DELETE FROM tw.hermit_screen_snapshot WHERE snapshot_date = %s",
+            (snapshot_date,),
+        )
         execute_batch(cur, sql, insert_rows)
         conn.commit()
     return len(insert_rows)
@@ -156,17 +172,21 @@ def _print_diff(snapshot_date: date, rows: list[ScreenRow], prev: dict[str, dict
 
     print(f"  Top-{TOP_N} snapshot: {snapshot_date}")
     if not prev:
-        print(f"  (first snapshot — no diff)")
+        print("  (first snapshot — no diff)")
         return
-    print(f"  vs prev snapshot: {len(new_ticks)} NEW, {len(exit_ticks)} EXIT, "
-          f"{len(big_movers)} big-movers")
+    print(
+        f"  vs prev snapshot: {len(new_ticks)} NEW, {len(exit_ticks)} EXIT, "
+        f"{len(big_movers)} big-movers"
+    )
 
     if new_ticks:
         print("  NEW entrants:")
         for r in new_ticks[:10]:
-            print(f"    + {r.ticker} {name_by.get(r.ticker, '')} "
-                  f"(rank {rank_today[r.ticker]}, score {r.scoreboard.score}/8, "
-                  f"{r.valuation.decision if r.valuation else '-'})")
+            print(
+                f"    + {r.ticker} {name_by.get(r.ticker, '')} "
+                f"(rank {rank_today[r.ticker]}, score {r.scoreboard.score}/8, "
+                f"{r.valuation.decision if r.valuation else '-'})"
+            )
         if len(new_ticks) > 10:
             print(f"    ... +{len(new_ticks) - 10} more")
 
@@ -192,12 +212,37 @@ def run(snapshot_date: date) -> dict[str, int]:
         with_valuation=True,
         min_valuation_score=FLOOR,
     )
-    # Apply gate filter (must pass F6+F7+F8) — same as production strategy
-    def _passes_gates(r: ScreenRow) -> bool:
-        by_code = {rr.code: rr for rr in r.rule_results}
-        return all(by_code.get(g) and by_code[g].passed is True for g in GATE_RULES)
+    # Apply gate filter (must pass F6+F7+F8) with elite override:
+    # F7/F8 fail can be rescued for score≥7 elite-quality names (e.g. 2330
+    # in growth-deceleration phases).
+    candidates = [r for r in rows if r.scoreboard.score >= 7]
+    rescue_tickers = {
+        r.ticker for r in candidates if _gate_status(r) == "fail_rescuable" and ELITE_OVERRIDE
+    }
+    if rescue_tickers:
+        from .data.adapters import db_adapter
+        from .data.as_of import filter_quarterly
 
-    rows = [r for r in rows if _passes_gates(r)]
+        all_q = db_adapter.load_all_quarterly_reports(list(rescue_tickers))
+
+        def _is_rescued(ticker: str) -> bool:
+            qs = filter_quarterly(all_q.get(ticker, []), snapshot_date)
+            return has_elite_quality(qs)
+
+    else:
+
+        def _is_rescued(ticker: str) -> bool:
+            return False
+
+    def _passes_or_rescued(r: ScreenRow) -> bool:
+        status = _gate_status(r)
+        if status == "pass":
+            return True
+        if status == "fail_rescuable" and ELITE_OVERRIDE:
+            return _is_rescued(r.ticker)
+        return False
+
+    rows = [r for r in rows if _passes_or_rescued(r)]
     rows.sort(key=lambda r: (-r.scoreboard.score, r.ticker))
 
     prev_date = _previous_snapshot_date(snapshot_date)
