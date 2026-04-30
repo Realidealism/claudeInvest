@@ -247,27 +247,23 @@ def build_scoreboard() -> ScoreBoard:
     Sort (排列):     sort_normal ±10, sort_lp ±10
     Forming (成形):  sort_forming ±5
     Breadth (大盤):  market trend vs stock sort alignment
-    Wave (波浪):     wave_trend cumulative ±5 at 0.3/0.5/0.8
     Flood (洪量):    ±15 per timeframe — tier 1 / 2 / 3
-    OBV:            ±15 per timeframe — latched trend state
     """
     board = ScoreBoard("技術評分")
     _add_turn_rules(board)
     _add_sort_rules(board)
     breadth = _load_breadth_trends()
     _add_breadth_rules(board, breadth)
-    _add_wave_trend_rules(board)
     _add_flood_rules(board)
-    _add_obv_rules(board)
     return board
 
 
 def _add_turn_rules(board: ScoreBoard) -> None:
-    """Add turn-point scoring rules to all three timeframes."""
-    for p in SHORT_PERIODS:
-        _add_turn_pair(board.short, p, 5, "扣抵")
-    _add_fuzzy(board.short, SHORT_PERIODS, [(13, 5)], "扣抵")
+    """Add turn-point scoring rules to medium / long timeframes.
 
+    Short timeframe was removed after cross-sectional ablation showed
+    扣抵_short dragging cross-sectional spread at H=20/60.
+    """
     for p in MEDIUM_PERIODS:
         _add_turn_pair(board.medium, p, 5, "扣抵")
     _add_fuzzy(board.medium, MEDIUM_PERIODS, [(13, 2.5), (89, 2.5)], "扣抵")
@@ -277,7 +273,7 @@ def _add_turn_rules(board: ScoreBoard) -> None:
     _add_fuzzy(board.long, LONG_PERIODS, [(89, 5)], "扣抵")
 
 
-SORT_LABELS = ("short", "medium", "long")
+SORT_LABELS = ("medium", "long")
 
 
 def _add_sort_rules(board: ScoreBoard) -> None:
@@ -407,48 +403,6 @@ def _add_forming_pair(
     ))
 
 
-# ── Wave Trend ────────────────────────────────────────────────────────────
-
-WAVE_THRESHOLDS = (0.3, 0.5, 0.8)
-
-WAVE_SCOPES = (
-    ("short", "short"),
-    ("medium", "medium"),
-    ("long", "long"),
-)
-
-
-def _add_wave_trend_rules(board: ScoreBoard) -> None:
-    """Add cumulative wave trend scoring: ±5 at each threshold."""
-    cards = {"short": board.short, "medium": board.medium, "long": board.long}
-
-    for scope, wt_attr in WAVE_SCOPES:
-        card = cards[scope]
-        for thresh in WAVE_THRESHOLDS:
-            # Bullish: wave_trend > thresh → long +5, short -5
-            card.add_long(bool_score(
-                f"波浪{scope}>{thresh}", 5,
-                lambda d, i, a=wt_attr, t=thresh: float(getattr(d.wave_result.wave_trend, a)[i]) > t,
-                "波浪",
-            ))
-            card.add_short(bool_score(
-                f"波浪{scope}>{thresh}", -5,
-                lambda d, i, a=wt_attr, t=thresh: float(getattr(d.wave_result.wave_trend, a)[i]) > t,
-                "波浪",
-            ))
-            # Bearish: wave_trend < -thresh → long -5, short +5
-            card.add_long(bool_score(
-                f"波浪{scope}<{-thresh}", -5,
-                lambda d, i, a=wt_attr, t=thresh: float(getattr(d.wave_result.wave_trend, a)[i]) < -t,
-                "波浪",
-            ))
-            card.add_short(bool_score(
-                f"波浪{scope}<{-thresh}", 5,
-                lambda d, i, a=wt_attr, t=thresh: float(getattr(d.wave_result.wave_trend, a)[i]) < -t,
-                "波浪",
-            ))
-
-
 # ── Flood Reference ────────────────────────────────────────────────────────
 
 FLOOD_TIER_MAP = (
@@ -487,41 +441,6 @@ def _add_flood_rules(board: ScoreBoard) -> None:
         ))
 
 
-# ── OBV ───────────────────────────────────────────────────────────────────
-
-OBV_PERIODS = ("short", "medium", "long")
-
-
-def _add_obv_rules(board: ScoreBoard) -> None:
-    """Add OBV trend scoring: ±15 per timeframe based on the latched trend
-    state (signal_up latches +1, signal_down latches -1)."""
-    cards = {"short": board.short, "medium": board.medium, "long": board.long}
-    for period in OBV_PERIODS:
-        card = cards[period]
-        # Bullish trend: long +15, short -15
-        card.add_long(bool_score(
-            f"OBV{period}多向", 15,
-            lambda d, i, p=period: int(getattr(d.obv, p).trend[i]) == 1,
-            "OBV",
-        ))
-        card.add_short(bool_score(
-            f"OBV{period}多向", -15,
-            lambda d, i, p=period: int(getattr(d.obv, p).trend[i]) == 1,
-            "OBV",
-        ))
-        # Bearish trend: long -15, short +15
-        card.add_long(bool_score(
-            f"OBV{period}空向", -15,
-            lambda d, i, p=period: int(getattr(d.obv, p).trend[i]) == -1,
-            "OBV",
-        ))
-        card.add_short(bool_score(
-            f"OBV{period}空向", 15,
-            lambda d, i, p=period: int(getattr(d.obv, p).trend[i]) == -1,
-            "OBV",
-        ))
-
-
 # ── Breadth vs Stock Sort ─────────────────────────────────────────────────
 
 # (trend_codes, stock_sort_state, long_side_pts)
@@ -537,7 +456,6 @@ BREADTH_LONG_RULES: list[tuple[set[int], str, float]] = [
 ]
 
 BREADTH_SCOPES = (
-    ("short", "short_trend"),
     ("medium", "medium_trend"),
     ("long", "long_trend"),
 )
