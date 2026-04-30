@@ -42,6 +42,7 @@ def run_backtest(
     strategy: Strategy,
     capital: float = 1_000_000.0,
     shares_per_trade: int = 1000,
+    notional_per_trade: float | None = None,
     start_index: int | None = None,
 ) -> BacktestResult:
     """
@@ -52,7 +53,12 @@ def run_backtest(
     data : StockData with raw prices and analysis results
     strategy : Strategy with entry/exit conditions
     capital : initial cash
-    shares_per_trade : fixed position size
+    shares_per_trade : fixed share count per trade (used when
+        notional_per_trade is None)
+    notional_per_trade : fixed dollar notional per trade. When set,
+        shares = notional_per_trade / entry_price (fractional). Use this for
+        indices or any instrument where a fixed share count produces extreme
+        leverage at high prices.
     start_index : day index to start trading (default: 55)
     """
     MIN_DAYS = 13
@@ -141,10 +147,13 @@ def run_backtest(
 
         # 3. Entry check (if flat)
         if pos is None:
+            shares = (notional_per_trade / price
+                      if notional_per_trade is not None
+                      else float(shares_per_trade))
             entry_reasons = _check_entry(data, i, strategy.long_entry)
             if entry_reasons:
                 pos = _open_position(
-                    "long", data, i, price, shares_per_trade,
+                    "long", data, i, price, shares,
                     entry_reasons, strategy,
                 )
                 cash -= price * pos.shares
@@ -152,7 +161,7 @@ def run_backtest(
                 entry_reasons = _check_entry(data, i, strategy.short_entry)
                 if entry_reasons:
                     pos = _open_position(
-                        "short", data, i, price, shares_per_trade,
+                        "short", data, i, price, shares,
                         entry_reasons, strategy,
                     )
                     # Short: reserve entry cost from cash
@@ -228,7 +237,7 @@ def _open_position(
     data: StockData,
     i: int,
     price: float,
-    shares: int,
+    shares: float,
     entry_reasons: list[str],
     strategy: Strategy,
 ) -> _Position:
