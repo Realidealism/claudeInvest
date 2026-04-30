@@ -73,13 +73,20 @@ def render_phase2_report(
     method = select_valuation_method(qs)
     daily = daily_multiples(qs, ps) if qs and ps else pd.DataFrame()
     band = rolling_band(daily, method.lower(), window_years=5) if not daily.empty else None
-    forward_eps_value: float | None = None
-    if use_forward_eps and method == "PE":
-        fe = forward_eps_revenue_momentum(qs, ms)
-        if fe is not None:
-            forward_eps_value = float(fe)
+    forward_metric_value: float | None = None
+    if use_forward_eps:
+        from ..valuation.forward_eps import forward_sps_revenue_momentum
+
+        if method == "PE":
+            fv = forward_eps_revenue_momentum(qs, ms)
+        elif method == "PS":
+            fv = forward_sps_revenue_momentum(qs, ms)
+        else:
+            fv = None  # PB: no forward
+        if fv is not None:
+            forward_metric_value = float(fv)
     snapshot: ValuationSnapshot | None = (
-        make_snapshot(daily, method, band, forward_eps=forward_eps_value)
+        make_snapshot(daily, method, band, forward_metric=forward_metric_value)
         if band is not None
         else None
     )
@@ -173,10 +180,14 @@ def _render(
         lines.append(f"- 自動選用方法：**{s.method}**")
         lines.append(f"- 最新收盤：{_fmt(s.current_close)}")
         lines.append(f"- 當前 trailing {s.method}：{_fmt(s.current_multiple)}")
-        if s.forward_eps is not None:
-            lines.append(f"- **Forward EPS（月營收動能外推）：{_fmt(s.forward_eps)}**")
-            lines.append(f"- **Forward PE（close / forward_EPS）：{_fmt(s.forward_pe)}**")
-            lines.append("- 上行空間使用 forward EPS 與歷史 trailing PE band 比較（不對稱）")
+        if s.forward_metric is not None:
+            label_map = {"PE": ("Forward EPS", "Forward PE"), "PS": ("Forward SPS", "Forward PS")}
+            metric_label, multi_label = label_map.get(s.method, ("Forward metric", "Forward multiple"))
+            lines.append(f"- **{metric_label}（月營收動能外推）：{_fmt(s.forward_metric)}**")
+            lines.append(
+                f"- **{multi_label}（close / {metric_label.split()[-1]}）：{_fmt(s.forward_multiple)}**"
+            )
+            lines.append(f"- 上行空間使用 {metric_label} 與歷史 trailing {s.method} band 比較（不對稱）")
         else:
             lines.append(f"- 每股指標（{_per_share_label(s.method)}）：{_fmt(s.per_share_metric)}")
         if s.band.mean is not None:

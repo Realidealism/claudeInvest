@@ -149,6 +149,19 @@ def backtest(
         "--macro-filter",
         help="In Bear regime, halve top_k (concentrate into highest-conviction names)",
     ),
+    min_avg_turnover: float = typer.Option(
+        0.0,
+        "--min-avg-turnover",
+        help="Liquidity filter: minimum 60-day rolling-mean turnover (NTD) at rebalance day. "
+        "0 disables. Practical floor: 50_000_000 (5000 萬) for mid-caps; "
+        "200_000_000 (2 億) for larger institutional friendly.",
+    ),
+    include_delisted: bool = typer.Option(
+        False,
+        "--include-delisted",
+        help="Include delisted stocks in universe (eliminates survivorship bias). "
+        "Slower but yields a more honest backtest result.",
+    ),
     benchmark: str = typer.Option("TAIEX", "--benchmark"),
 ) -> None:
     """Run the strategy backtest, write summary + PNG + CSV to --output."""
@@ -171,9 +184,12 @@ def backtest(
     start_d = date.fromisoformat(start)
     end_d = date.fromisoformat(end)
 
-    typer.echo("[backtest] loading universe ...")
-    metas = db_adapter.load_active_stocks()
+    typer.echo(
+        f"[backtest] loading universe (include_delisted={include_delisted}) ..."
+    )
+    metas = db_adapter.load_active_stocks(include_delisted=include_delisted)
     ticker_list = [m.ticker for m in metas]
+    typer.echo(f"[backtest] universe size: {len(ticker_list)}")
 
     typer.echo(
         f"[backtest] loading quarterly + monthly + prices for {len(ticker_list)} tickers ..."
@@ -202,6 +218,10 @@ def backtest(
     label = "main_" + "_".join(label_parts) if label_parts else "main"
     if macro_filter:
         label = label + "_macro"
+    if include_delisted:
+        label = label + "_full"
+    if min_avg_turnover > 0:
+        label = label + f"_liq{int(min_avg_turnover/1e6)}M"
     cfg = BacktestConfig(
         start=start_d,
         end=end_d,
@@ -211,6 +231,7 @@ def backtest(
         gate_rules=gate_set,
         thresholds=thresholds,
         macro_filter=macro_filter,
+        min_avg_turnover=min_avg_turnover,
         label=label,
     )
     typer.echo(f"[backtest] main run: {start_d} → {end_d}, top_k={top_k}, floor={min_score_floor}")
@@ -229,6 +250,14 @@ def backtest(
             counts = regime_ts.value_counts().to_dict()
             typer.echo(f"[backtest] regime distribution: {counts}")
 
+    turnover_60d: pd.DataFrame | None = None
+    if min_avg_turnover > 0:
+        typer.echo("[backtest] loading turnover for liquidity filter ...")
+        raw_turnover = db_adapter.load_turnover_table(ticker_list)
+        # 60-trading-day rolling mean, computed once on the wide table
+        turnover_60d = raw_turnover.rolling(window=60, min_periods=20).mean()
+        typer.echo(f"[backtest] turnover_60d shape: {turnover_60d.shape}")
+
     main = _rb(
         cfg,
         metas=metas,
@@ -236,6 +265,7 @@ def backtest(
         monthly_by_ticker=monthly,
         adj_close=adj_close,
         regime_series=regime_ts,
+        turnover_60d=turnover_60d,
     )
 
     bench_pairs = db_adapter.load_index_close(benchmark)

@@ -37,6 +37,7 @@ class BacktestConfig:
     gate_rules: frozenset[str] = frozenset()  # must-all-pass; excluded from score
     thresholds: Thresholds | None = None  # None = defaults
     macro_filter: bool = False  # enable Bear-regime top_k reduction
+    min_avg_turnover: float = 0.0  # 60-day rolling mean turnover (NTD); 0 disables
     label: str = "main"  # for ablation reporting
 
 
@@ -130,6 +131,7 @@ def run_backtest(
     monthly_by_ticker: dict[str, list[MonthlyRevenue]],
     adj_close: pd.DataFrame,
     regime_series: pd.Series | None = None,
+    turnover_60d: pd.DataFrame | None = None,
 ) -> BacktestResult:
     """Pure-function backtest. Caller pre-loads all data.
 
@@ -163,9 +165,22 @@ def run_backtest(
                     cur_regime = str(regime_series.loc[idx[-1]])
                     if cur_regime == "Bear":
                         effective_top_k = (config.top_k + 1) // 2  # halve, round up
+
+            eligible_metas = metas
+            if config.min_avg_turnover > 0 and turnover_60d is not None:
+                ts = pd.Timestamp(d)
+                idx = turnover_60d.index[turnover_60d.index <= ts]
+                if len(idx) > 0:
+                    last_row = turnover_60d.loc[idx[-1]]
+                    liquid = {
+                        t for t, v in last_row.items()
+                        if pd.notna(v) and float(v) >= config.min_avg_turnover
+                    }
+                    eligible_metas = [m for m in metas if m.ticker in liquid]
+
             picks = select_top_k(
                 d,
-                metas,
+                eligible_metas,
                 quarterly_by_ticker,
                 monthly_by_ticker,
                 enabled_rules=config.enabled_rules,

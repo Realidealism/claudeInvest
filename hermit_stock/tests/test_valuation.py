@@ -212,7 +212,7 @@ def test_make_snapshot_hold_when_neutral() -> None:
     assert snap.decision == "HOLD"
 
 
-def test_make_snapshot_with_forward_eps_uses_it_for_upside() -> None:
+def test_make_snapshot_with_forward_metric_uses_it_for_upside() -> None:
     idx = pd.date_range("2020-01-01", periods=400, freq="D")
     # Trailing PE = 20 (close 100 / ttm_eps 5)
     df = pd.DataFrame({"close": [100.0] * 400, "pe": [20.0] * 400}, index=idx)
@@ -226,18 +226,35 @@ def test_make_snapshot_with_forward_eps_uses_it_for_upside() -> None:
         n_obs=400,
     )
     # Forward EPS = 10 (50% growth from ttm 5)
-    snap = make_snapshot(df, "PE", band, forward_eps=10.0)
+    snap = make_snapshot(df, "PE", band, forward_metric=10.0)
     assert snap is not None
-    assert snap.forward_eps == 10.0
-    # forward_pe = 100 / 10 = 10
-    assert snap.forward_pe == pytest.approx(10.0)
-    # target_mean uses forward_eps × historical mean = 10 × 15 = 150
-    # upside = (150 - 100) / 100 = 0.5
+    assert snap.forward_metric == 10.0
+    assert snap.forward_eps == 10.0  # backwards-compat alias
+    assert snap.forward_multiple == pytest.approx(10.0)
     assert snap.upside_mean == pytest.approx(0.5)
     assert snap.decision == "BUY"
 
 
-def test_make_snapshot_forward_only_active_for_pe_method() -> None:
+def test_make_snapshot_forward_works_for_ps_method() -> None:
+    idx = pd.date_range("2020-01-01", periods=400, freq="D")
+    # Trailing PS = 5 (close 100 / ttm_sps 20)
+    df = pd.DataFrame({"close": [100.0] * 400, "ps": [5.0] * 400}, index=idx)
+    band = Band(
+        mean=4.0, std=0.5, minus_2sd=3.0, minus_1sd=3.5,
+        plus_1sd=4.5, plus_2sd=5.0, n_obs=400,
+    )
+    # Forward SPS = 30 (50% growth from ttm 20)
+    snap = make_snapshot(df, "PS", band, forward_metric=30.0)
+    assert snap is not None
+    assert snap.forward_metric == 30.0
+    # forward_ps_multiple = 100 / 30 ≈ 3.33
+    assert snap.forward_multiple == pytest.approx(100 / 30.0)
+    # target_mean = 30 × 4 = 120; upside = (120-100)/100 = 0.20
+    assert snap.upside_mean == pytest.approx(0.20)
+    assert snap.decision == "BUY"
+
+
+def test_make_snapshot_forward_ignored_for_pb_method() -> None:
     idx = pd.date_range("2020-01-01", periods=400, freq="D")
     df = pd.DataFrame({"close": [100.0] * 400, "pb": [2.0] * 400}, index=idx)
     band = Band(
@@ -249,11 +266,11 @@ def test_make_snapshot_forward_only_active_for_pe_method() -> None:
         plus_2sd=1.7,
         n_obs=400,
     )
-    # forward_eps should be ignored for PB method
-    snap = make_snapshot(df, "PB", band, forward_eps=99.0)
+    # forward_metric should be ignored for PB method (we don't model forward BVPS)
+    snap = make_snapshot(df, "PB", band, forward_metric=99.0)
     assert snap is not None
-    assert snap.forward_eps is None
-    assert snap.forward_pe is None
+    assert snap.forward_metric is None
+    assert snap.forward_multiple is None
 
 
 def test_make_snapshot_returns_none_for_empty_frame() -> None:

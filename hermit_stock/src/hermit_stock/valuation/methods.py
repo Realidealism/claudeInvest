@@ -19,7 +19,7 @@ class ValuationSnapshot:
     current_close: float
     current_multiple: float | None  # PE / PB / PS at the latest day (TRAILING)
     per_share_metric: float | None  # eps_ttm / bvps / sps_ttm — actual numerator used for upside
-    band: Band  # historical 5Y trailing PE band (always trailing)
+    band: Band  # historical 5Y trailing PE/PB/PS band (always trailing)
     band_position: str | None  # where the trailing multiple sits in the band
     target_mean: float | None
     target_minus_1sd: float | None
@@ -28,9 +28,18 @@ class ValuationSnapshot:
     upside_lower: float | None
     upside_upper: float | None
     decision: Decision
-    # Forward-mode fields (None when not enabled)
-    forward_eps: float | None = None
-    forward_pe: float | None = None  # close / forward_eps
+    # Forward-mode fields (None when not enabled / not applicable)
+    forward_metric: float | None = None  # forward_eps for PE, forward_sps for PS
+    forward_multiple: float | None = None  # close / forward_metric
+
+    # Backwards-compat aliases (older readers may still use these names)
+    @property
+    def forward_eps(self) -> float | None:
+        return self.forward_metric if self.method == "PE" else None
+
+    @property
+    def forward_pe(self) -> float | None:
+        return self.forward_multiple if self.method == "PE" else None
 
 
 def _safe_div(a: float | None, b: float | None) -> float | None:
@@ -46,14 +55,17 @@ def make_snapshot(
     *,
     buy_threshold: float = 0.20,
     sell_threshold: float = 0.0,
-    forward_eps: float | None = None,
+    forward_metric: float | None = None,
 ) -> ValuationSnapshot | None:
     """Build a snapshot of the latest day in `daily`. Returns None if empty.
 
-    When `forward_eps` is provided AND method == "PE", the upside calculation
-    uses forward EPS as the per-share numerator (compared against the
-    historical trailing 5Y PE band — see forward_eps.py for the rationale of
-    the trailing-vs-forward asymmetry).
+    When `forward_metric` is provided, it must match the method:
+      method == "PE" → forward_metric is forward_eps
+      method == "PS" → forward_metric is forward_sps
+      method == "PB" → ignored (we don't model forward BVPS)
+
+    The upside uses the forward metric vs the historical 5Y *trailing* PE/PS
+    band — see forward_eps.py for the trailing-vs-forward asymmetry rationale.
     """
     if daily.empty:
         return None
@@ -64,9 +76,9 @@ def make_snapshot(
     cur_multiple = float(cur_multiple) if pd.notna(cur_multiple) else None
     trailing_per_share = _safe_div(close, cur_multiple)
 
-    use_forward = forward_eps is not None and method == "PE"
-    per_share = forward_eps if use_forward else trailing_per_share
-    fwd_pe = _safe_div(close, forward_eps) if use_forward else None
+    use_forward = forward_metric is not None and method in ("PE", "PS")
+    per_share = forward_metric if use_forward else trailing_per_share
+    fwd_multiple = _safe_div(close, forward_metric) if use_forward else None
 
     band_pos = band.classify(cur_multiple)
 
@@ -110,6 +122,6 @@ def make_snapshot(
         upside_lower=upside_lower,
         upside_upper=upside_upper,
         decision=decision,
-        forward_eps=forward_eps if use_forward else None,
-        forward_pe=fwd_pe,
+        forward_metric=forward_metric if use_forward else None,
+        forward_multiple=fwd_multiple,
     )

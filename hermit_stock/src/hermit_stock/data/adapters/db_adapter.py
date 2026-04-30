@@ -17,6 +17,7 @@ from decimal import Decimal
 from pathlib import Path
 from typing import Any
 
+import pandas as pd
 import psycopg2
 from dotenv import load_dotenv
 from psycopg2.extras import RealDictCursor
@@ -72,12 +73,21 @@ def _to_decimal(value: Any) -> Decimal | None:
 def load_active_stocks(
     markets: tuple[str, ...] = ("TWSE", "TPEx"),
     security_types: tuple[str, ...] = ("STOCK",),
+    *,
+    include_delisted: bool = False,
 ) -> list[StockMeta]:
-    """List all active stocks for screener input."""
-    sql = """
+    """List stocks for screener / backtest input.
+
+    `include_delisted=False` (default) keeps only `is_active=True` rows —
+    convenient for live screening.
+    `include_delisted=True` returns ALL stocks (active + delisted), required
+    for survivorship-bias-free backtesting.
+    """
+    where_active = "" if include_delisted else "AND is_active"
+    sql = f"""
         SELECT stock_id, name, market, industry, listed_date
         FROM tw.stocks
-        WHERE is_active
+        WHERE TRUE {where_active}
           AND market = ANY(%s)
           AND (security_type = ANY(%s) OR security_type IS NULL)
         ORDER BY stock_id
@@ -484,6 +494,31 @@ def load_all_capital_reductions(
             continue
         out.setdefault(r["stock_id"], []).append((r["effective_date"], ratio))
     return out
+
+
+def load_turnover_table(tickers: list[str]) -> pd.DataFrame:
+    """Wide DataFrame: index=trade_date, columns=ticker, values=turnover (NTD).
+
+    Daily turnover = close_price * volume (already in tw.daily_prices).
+    Used by the liquidity filter at backtest time — at each rebalance date,
+    we look up the 60-day rolling mean turnover up to (but not including)
+    that day to decide which tickers are tradable.
+    """
+    sql = """
+        SELECT stock_id, trade_date, turnover
+        FROM tw.daily_prices
+        WHERE stock_id = ANY(%s) AND turnover IS NOT NULL
+        ORDER BY stock_id, trade_date
+    """
+    with _connect() as conn, conn.cursor(cursor_factory=RealDictCursor) as cur:
+        cur.execute(sql, (tickers,))
+        rows = cur.fetchall()
+    if not rows:
+        return pd.DataFrame()
+    df = pd.DataFrame(rows)
+    df["trade_date"] = pd.to_datetime(df["trade_date"])
+    df["turnover"] = df["turnover"].astype(float)
+    return df.pivot(index="trade_date", columns="stock_id", values="turnover").sort_index()
 
 
 def load_index_close(index_id: str = "TAIEX") -> list[tuple[date, float]]:
