@@ -212,6 +212,50 @@ def test_make_snapshot_hold_when_neutral() -> None:
     assert snap.decision == "HOLD"
 
 
+def test_make_snapshot_with_forward_eps_uses_it_for_upside() -> None:
+    idx = pd.date_range("2020-01-01", periods=400, freq="D")
+    # Trailing PE = 20 (close 100 / ttm_eps 5)
+    df = pd.DataFrame({"close": [100.0] * 400, "pe": [20.0] * 400}, index=idx)
+    band = Band(
+        mean=15.0,
+        std=1.0,
+        minus_2sd=13.0,
+        minus_1sd=14.0,
+        plus_1sd=16.0,
+        plus_2sd=17.0,
+        n_obs=400,
+    )
+    # Forward EPS = 10 (50% growth from ttm 5)
+    snap = make_snapshot(df, "PE", band, forward_eps=10.0)
+    assert snap is not None
+    assert snap.forward_eps == 10.0
+    # forward_pe = 100 / 10 = 10
+    assert snap.forward_pe == pytest.approx(10.0)
+    # target_mean uses forward_eps × historical mean = 10 × 15 = 150
+    # upside = (150 - 100) / 100 = 0.5
+    assert snap.upside_mean == pytest.approx(0.5)
+    assert snap.decision == "BUY"
+
+
+def test_make_snapshot_forward_only_active_for_pe_method() -> None:
+    idx = pd.date_range("2020-01-01", periods=400, freq="D")
+    df = pd.DataFrame({"close": [100.0] * 400, "pb": [2.0] * 400}, index=idx)
+    band = Band(
+        mean=1.5,
+        std=0.1,
+        minus_2sd=1.3,
+        minus_1sd=1.4,
+        plus_1sd=1.6,
+        plus_2sd=1.7,
+        n_obs=400,
+    )
+    # forward_eps should be ignored for PB method
+    snap = make_snapshot(df, "PB", band, forward_eps=99.0)
+    assert snap is not None
+    assert snap.forward_eps is None
+    assert snap.forward_pe is None
+
+
 def test_make_snapshot_returns_none_for_empty_frame() -> None:
     snap = make_snapshot(
         pd.DataFrame(columns=["close", "pe"]), "PE", Band(None, None, None, None, None, None, 0)

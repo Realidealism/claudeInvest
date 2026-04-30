@@ -33,6 +33,11 @@ def analyze(
     output: Path | None = typer.Option(
         None, "--output", "-o", help="Write report to file (default: print to stdout)"
     ),
+    forward_eps: bool = typer.Option(
+        False,
+        "--forward-eps",
+        help="Compute forward PE from monthly-revenue YoY momentum and use it for upside",
+    ),
 ) -> None:
     """Phase 2 analyzer: indicators + scoring + valuation, lookahead-bias safe."""
     from datetime import date as _date
@@ -60,7 +65,16 @@ def analyze(
     macro_snap = snapshot_at(
         as_of_d, taiex=taiex, breadth_df=breadth, foreign_daily=fnet, margin=margin
     )
-    report = render_phase2_report(ticker, meta, quarterly, monthly, prices, as_of, macro=macro_snap)
+    report = render_phase2_report(
+        ticker,
+        meta,
+        quarterly,
+        monthly,
+        prices,
+        as_of,
+        macro=macro_snap,
+        use_forward_eps=forward_eps,
+    )
     if output:
         output.write_text(report, encoding="utf-8")
         typer.echo(f"wrote {output}")

@@ -17,10 +17,10 @@ Decision = Literal["BUY", "SELL", "HOLD"]
 class ValuationSnapshot:
     method: ValuationMethod
     current_close: float
-    current_multiple: float | None  # PE / PB / PS at the latest day
-    per_share_metric: float | None  # eps_ttm / bvps / sps_ttm
-    band: Band
-    band_position: str | None  # e.g. "−1σ ~ mean"
+    current_multiple: float | None  # PE / PB / PS at the latest day (TRAILING)
+    per_share_metric: float | None  # eps_ttm / bvps / sps_ttm — actual numerator used for upside
+    band: Band  # historical 5Y trailing PE band (always trailing)
+    band_position: str | None  # where the trailing multiple sits in the band
     target_mean: float | None
     target_minus_1sd: float | None
     target_plus_1sd: float | None
@@ -28,6 +28,9 @@ class ValuationSnapshot:
     upside_lower: float | None
     upside_upper: float | None
     decision: Decision
+    # Forward-mode fields (None when not enabled)
+    forward_eps: float | None = None
+    forward_pe: float | None = None  # close / forward_eps
 
 
 def _safe_div(a: float | None, b: float | None) -> float | None:
@@ -43,8 +46,15 @@ def make_snapshot(
     *,
     buy_threshold: float = 0.20,
     sell_threshold: float = 0.0,
+    forward_eps: float | None = None,
 ) -> ValuationSnapshot | None:
-    """Build a snapshot of the latest day in `daily`. Returns None if empty."""
+    """Build a snapshot of the latest day in `daily`. Returns None if empty.
+
+    When `forward_eps` is provided AND method == "PE", the upside calculation
+    uses forward EPS as the per-share numerator (compared against the
+    historical trailing 5Y PE band — see forward_eps.py for the rationale of
+    the trailing-vs-forward asymmetry).
+    """
     if daily.empty:
         return None
     last_row = daily.iloc[-1]
@@ -52,7 +62,11 @@ def make_snapshot(
     col = method.lower()  # "pe" / "pb" / "ps"
     cur_multiple = last_row.get(col)
     cur_multiple = float(cur_multiple) if pd.notna(cur_multiple) else None
-    per_share = _safe_div(close, cur_multiple)
+    trailing_per_share = _safe_div(close, cur_multiple)
+
+    use_forward = forward_eps is not None and method == "PE"
+    per_share = forward_eps if use_forward else trailing_per_share
+    fwd_pe = _safe_div(close, forward_eps) if use_forward else None
 
     band_pos = band.classify(cur_multiple)
 
@@ -96,4 +110,6 @@ def make_snapshot(
         upside_lower=upside_lower,
         upside_upper=upside_upper,
         decision=decision,
+        forward_eps=forward_eps if use_forward else None,
+        forward_pe=fwd_pe,
     )

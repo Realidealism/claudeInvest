@@ -55,7 +55,10 @@ def render_phase2_report(
     prices: list[DailyPrice],
     as_of_label: str,
     macro: MacroSnapshot | None = None,
+    use_forward_eps: bool = False,
 ) -> str:
+    from ..valuation.forward_eps import forward_eps_revenue_momentum
+
     as_of = _resolve_as_of(as_of_label)
     qs = filter_quarterly(quarterly, as_of)
     ms = filter_monthly(monthly, as_of)
@@ -70,8 +73,15 @@ def render_phase2_report(
     method = select_valuation_method(qs)
     daily = daily_multiples(qs, ps) if qs and ps else pd.DataFrame()
     band = rolling_band(daily, method.lower(), window_years=5) if not daily.empty else None
+    forward_eps_value: float | None = None
+    if use_forward_eps and method == "PE":
+        fe = forward_eps_revenue_momentum(qs, ms)
+        if fe is not None:
+            forward_eps_value = float(fe)
     snapshot: ValuationSnapshot | None = (
-        make_snapshot(daily, method, band) if band is not None else None
+        make_snapshot(daily, method, band, forward_eps=forward_eps_value)
+        if band is not None
+        else None
     )
 
     return _render(
@@ -162,8 +172,13 @@ def _render(
         s = snapshot
         lines.append(f"- 自動選用方法：**{s.method}**")
         lines.append(f"- 最新收盤：{_fmt(s.current_close)}")
-        lines.append(f"- 當前 {s.method}：{_fmt(s.current_multiple)}")
-        lines.append(f"- 每股指標（{_per_share_label(s.method)}）：{_fmt(s.per_share_metric)}")
+        lines.append(f"- 當前 trailing {s.method}：{_fmt(s.current_multiple)}")
+        if s.forward_eps is not None:
+            lines.append(f"- **Forward EPS（月營收動能外推）：{_fmt(s.forward_eps)}**")
+            lines.append(f"- **Forward PE（close / forward_EPS）：{_fmt(s.forward_pe)}**")
+            lines.append("- 上行空間使用 forward EPS 與歷史 trailing PE band 比較（不對稱）")
+        else:
+            lines.append(f"- 每股指標（{_per_share_label(s.method)}）：{_fmt(s.per_share_metric)}")
         if s.band.mean is not None:
             lines.append(
                 f"- 5Y {s.method} 區間：mean={_fmt(s.band.mean)}，"
