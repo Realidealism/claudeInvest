@@ -23,7 +23,7 @@ from .reports.screener import ScreenRow, screen_from_db
 
 GATE_RULES = frozenset({"F6", "F7", "F8"})
 FLOOR = 3
-TOP_N = 50
+TOP_N = 100
 
 
 @dataclass(frozen=True)
