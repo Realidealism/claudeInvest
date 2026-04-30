@@ -1,0 +1,35 @@
+__pycache__/
+*.pyc
+.env
+*.egg-info/
+.venv/
+venv/
+
+# PyInstaller outputs
+build/
+dist/
+
+# Generated reports
+*.xlsx
+
+# Logs
+shioaji.log
+logs/
+
+# Temp files
+tmp/
+
+# Scraped HTML samples
+*.html
+
+# Generated CSV outputs
+*.csv
+
+# pip install artifacts
+=*
+
+# Node
+node_modules/
+
+# Claude Code internal
+.claude/

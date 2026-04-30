@@ -1,0 +1,60 @@
+"""Reversal signal factories — Flee系列.
+
+  buy_flee  : short_entry = BuyFleeSignal,  short_exit = PickCondition
+              (多翻空就做空，看到底訊就出場)
+  sell_flee : long_entry  = SellFleeSignal, long_exit  = TouchCondition
+              (空翻多就做多，看到頭訊就出場)
+"""
+
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
+import numpy as np
+
+from signal_backtest.signal import SignalSet, SignalSpec
+from signal_backtest.factories._conditions import (
+    buy_flee_signal,
+    sell_flee_signal,
+    pick_condition,
+    touch_condition,
+)
+
+if TYPE_CHECKING:
+    from backtest.data import StockData
+
+
+def buy_flee_factory(data: "StockData") -> SignalSpec:
+    """多翻空反轉 (short-only)."""
+    n = data.n
+    short_entry = buy_flee_signal(data)
+    short_exit = pick_condition(data)
+    zero = np.zeros(n, dtype=np.bool_)
+
+    return SignalSpec(
+        name="buy_flee",
+        signals=SignalSet(
+            long_entry=zero,
+            long_exit=zero,
+            short_entry=short_entry,
+            short_exit=short_exit,
+        ),
+    )
+
+
+def sell_flee_factory(data: "StockData") -> SignalSpec:
+    """空翻多反轉 (long-only)."""
+    n = data.n
+    long_entry = sell_flee_signal(data)
+    long_exit = touch_condition(data)
+    zero = np.zeros(n, dtype=np.bool_)
+
+    return SignalSpec(
+        name="sell_flee",
+        signals=SignalSet(
+            long_entry=long_entry,
+            long_exit=long_exit,
+            short_entry=zero,
+            short_exit=zero,
+        ),
+    )

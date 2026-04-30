@@ -1,0 +1,38 @@
+# -*- mode: python ; coding: utf-8 -*-
+
+
+a = Analysis(
+    ['daily_update.py'],
+    pathex=[],
+    binaries=[],
+    datas=[('db/migrations', 'db/migrations')],
+    hiddenimports=['scrapers.twse', 'scrapers.tpex', 'scrapers.twse_after_hours', 'scrapers.tpex_after_hours', 'scrapers.tpex_emerging', 'scrapers.odd_lot', 'scrapers.margin', 'scrapers.price_limits', 'scrapers.institutional', 'scrapers.index_prices', 'scrapers.revenue', 'scrapers.etf_holdings', 'scrapers.sitca', 'scrapers.securities_lending', 'scrapers.day_trading', 'scrapers.stock_alerts', 'scrapers.shareholder_distribution', 'scrapers.insider_holdings', 'scrapers.treasury_stock', 'analysis.market_breadth', 'analysis.close', 'analysis.money', 'analysis.volume', 'scan_signals', 'strategies', 'strategies.registry', 'strategies.base', 'strategies.quarterly_to_monthly_top10', 'strategies.quarterly_dormant_etf_active', 'strategies.dual_track_entry', 'strategies.multi_fund_consensus', 'strategies.consecutive_accumulation', 'strategies.dual_track_accumulation', 'strategies.consensus_formation', 'strategies.heavy_position_reduction', 'strategies.core_exit', 'strategies.utils', 'strategies.etf_multi_consensus', 'strategies.etf_consecutive_accumulation', 'strategies.etf_abnormal_position', 'signals', 'signals.etf_multi_exit', 'signals.etf_consecutive_reduction', 'signals.etf_abnormal_exit', 'export', 'export.generate', 'backtest', 'backtest.signals', 'numpy'],
+    hookspath=[],
+    hooksconfig={},
+    runtime_hooks=[],
+    excludes=[],
+    noarchive=False,
+    optimize=0,
+)
+pyz = PYZ(a.pure)
+
+exe = EXE(
+    pyz,
+    a.scripts,
+    a.binaries,
+    a.datas,
+    [],
+    name='daily_update',
+    debug=False,
+    bootloader_ignore_signals=False,
+    strip=False,
+    upx=True,
+    upx_exclude=[],
+    runtime_tmpdir=None,
+    console=True,
+    disable_windowed_traceback=False,
+    argv_emulation=False,
+    target_arch=None,
+    codesign_identity=None,
+    entitlements_file=None,
+)

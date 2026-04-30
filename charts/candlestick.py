@@ -1,0 +1,559 @@
+"""
+Interactive candlestick chart builder using Plotly.
+
+Builds a two-panel figure (price + volume) with drawing tools enabled,
+and accepts signal markers to overlay on the chart.
+"""
+
+from __future__ import annotations
+
+from dataclasses import dataclass
+from typing import Optional, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from charts.signals import SignalDef
+
+import numpy as np
+import plotly.graph_objects as go
+from plotly.subplots import make_subplots
+
+
+@dataclass
+class SignalMarker:
+    """A single signal marker to display on the chart."""
+    date: str               # trade date string
+    price: float            # y-position (typically high or low)
+    symbol: str             # plotly marker symbol: 'triangle-up', 'triangle-down', etc.
+    color: str              # marker color
+    label: str              # signal name for legend/hover
+    size: int = 12          # marker size
+
+
+# Trend code → display color / label
+TREND_COLORS: dict[int, str] = {
+    -3: "#1a237e",  # bear_exhausting
+    -2: "#1565c0",  # strong_bear
+    -1: "#4fc3f7",  # bear
+     0: "#9e9e9e",  # neutral
+     1: "#ef9a9a",  # bull
+     2: "#e53935",  # strong_bull
+     3: "#b71c1c",  # bull_exhausting
+}
+TREND_LABELS: dict[int, str] = {
+    -3: "衰竭空", -2: "強空", -1: "空",
+     0: "中性",
+     1: "多",  2: "強多",  3: "衰竭多",
+}
+
+
+def build_candlestick_figure(
+    dates: list[str],
+    open_: np.ndarray,
+    high: np.ndarray,
+    low: np.ndarray,
+    close: np.ndarray,
+    sub_value: np.ndarray,
+    is_index: bool = False,
+    signals: Optional[list[SignalMarker]] = None,
+    all_signal_defs: Optional[list] = None,
+    enabled_signals: Optional[set[str]] = None,
+    sma_lines: Optional[dict[str, np.ndarray]] = None,
+    enabled_ma: Optional[set[str]] = None,
+    wave_lines: Optional[list[dict]] = None,
+    wave_visible: Optional[set[str]] = None,
+    flood_overlay: Optional[dict] = None,
+    flood_visible: bool = False,
+    obv_data: Optional[dict[str, np.ndarray]] = None,
+    show_obv: bool = False,
+    trend_data: Optional[dict[str, list[int]]] = None,
+    trend_visible: bool = False,
+    defense_lines: Optional[dict[str, dict]] = None,
+    enabled_defense: Optional[set[str]] = None,
+    exit_markers: Optional[dict[str, list]] = None,
+    title: str = "",
+) -> go.Figure:
+    """
+    Build an interactive candlestick chart with volume/turnover subplot.
+
+    Parameters
+    ----------
+    dates : list of date strings (oldest first)
+    open_, high, low, close : price arrays
+    sub_value : volume (shares) for stocks, turnover (NTD) for indices
+    is_index : if True, sub_value is turnover displayed in 億元
+    signals : optional list of SignalMarker to overlay
+    sma_lines : optional dict of {label: values} for MA overlay lines
+    wave_lines : optional list of wave line dicts with keys:
+        dates, prices, name, color
+    title : chart title
+
+    Returns
+    -------
+    Plotly Figure with drawing tools enabled.
+    """
+    obv_enabled = show_obv and obv_data is not None
+    if obv_enabled:
+        fig = make_subplots(
+            rows=3, cols=1,
+            shared_xaxes=True,
+            vertical_spacing=0.03,
+            row_heights=[0.60, 0.20, 0.20],
+        )
+    else:
+        fig = make_subplots(
+            rows=2, cols=1,
+            shared_xaxes=True,
+            vertical_spacing=0.03,
+            row_heights=[0.75, 0.25],
+        )
+
+    # -- Candlestick --
+    fig.add_trace(
+        go.Candlestick(
+            x=dates,
+            open=open_,
+            high=high,
+            low=low,
+            close=close,
+            increasing_line_color="#ef5350",   # red for up (TW convention)
+            decreasing_line_color="#26a69a",   # green for down
+            increasing_fillcolor="#ef5350",
+            decreasing_fillcolor="#26a69a",
+            name="K Line",
+        ),
+        row=1, col=1,
+    )
+
+    # -- MA lines (always add all 10 slots for stable trace count) --
+    _ma_periods = ["3", "5", "8", "13", "21", "34", "55", "89", "144", "233"]
+    _ma_colors = [
+        "#ff9800", "#2196f3", "#9c27b0", "#4caf50",
+        "#f44336", "#00bcd4", "#795548", "#607d8b", "#e91e63", "#cddc39",
+    ]
+    _enabled_ma = enabled_ma or set()
+    if not sma_lines:
+        sma_lines = {}
+    for i, p in enumerate(_ma_periods):
+        label = f"MA{p}"
+        values = sma_lines.get(label)
+        has_data = values is not None
+        vis = has_data and p in _enabled_ma
+        fig.add_trace(
+            go.Scatter(
+                x=dates if has_data else [],
+                y=values if has_data else [],
+                mode="lines",
+                name=label,
+                visible=vis,
+                showlegend=vis,
+                line=dict(width=1, color=_ma_colors[i]),
+                hovertemplate=f"{label}: %{{y:.2f}}<extra></extra>",
+            ),
+            row=1, col=1,
+        )
+
+    # -- Sub chart bars (volume or turnover) --
+    bar_colors = np.where(
+        close >= open_,
+        "rgba(239, 83, 80, 0.7)",    # red
+        "rgba(38, 166, 154, 0.7)",   # green
+    )
+    if is_index:
+        bar_y = sub_value / 1e8  # convert NTD -> 億元
+        bar_name = "Turnover"
+        bar_hover = "成交金額: %{y:,.1f} 億<extra></extra>"
+    else:
+        bar_y = sub_value
+        bar_name = "Volume"
+        bar_hover = "成交量: %{y:,.0f}<extra></extra>"
+    fig.add_trace(
+        go.Bar(
+            x=dates,
+            y=bar_y,
+            marker_color=bar_colors.tolist(),
+            name=bar_name,
+            showlegend=False,
+            hovertemplate=bar_hover,
+        ),
+        row=2, col=1,
+    )
+
+    # -- Signal markers (always add ALL defined signals for stable trace count) --
+    _enabled_sigs = enabled_signals or set()
+    signals_by_label: dict[str, list[SignalMarker]] = {}
+    if signals:
+        for s in signals:
+            signals_by_label.setdefault(s.label, []).append(s)
+    if all_signal_defs:
+        for sd in all_signal_defs:
+            markers_for_key = signals_by_label.get(sd.label, [])
+            has_data = len(markers_for_key) > 0
+            vis = has_data and sd.key in _enabled_sigs
+            fig.add_trace(
+                go.Scatter(
+                    x=[m.date for m in markers_for_key] if has_data else [],
+                    y=[m.price for m in markers_for_key] if has_data else [],
+                    mode="markers",
+                    name=f"sig_{sd.key}",
+                    visible=vis,
+                    showlegend=False,
+                    marker=dict(
+                        symbol=sd.symbol,
+                        size=sd.size,
+                        color=sd.color,
+                        line=dict(width=1, color="white"),
+                    ),
+                    hovertemplate=f"{sd.label}<br>%{{x}}<br>%{{y:.2f}}<extra></extra>",
+                ),
+                row=1, col=1,
+            )
+
+    # -- Defense trajectories per condition signal (stable trace count) --
+    # Six fixed slots, one per cond_* signal. Each carries every trade's
+    # step-line trajectory concatenated with None breaks. Visibility is
+    # tied to the matching signal checkbox.
+    _cond_def_keys = (
+        "cond_pick", "cond_touch", "cond_buy",
+        "cond_sell", "cond_buy_flee", "cond_sell_flee",
+    )
+    _def_visible = enabled_defense or set()
+    _defs_by_key = {sd.key: sd for sd in (all_signal_defs or [])}
+    for ck in _cond_def_keys:
+        sd = _defs_by_key.get(ck)
+        color = sd.color if sd else "#888"
+        label = sd.label if sd else ck
+        line_data = (defense_lines or {}).get(ck) or {}
+        xs = line_data.get("xs", [])
+        ys = line_data.get("ys", [])
+        has_data = len(xs) > 0
+        vis = has_data and ck in _def_visible
+        fig.add_trace(
+            go.Scatter(
+                x=xs if has_data else [],
+                y=ys if has_data else [],
+                mode="lines",
+                name=f"def_{ck}",
+                visible=vis,
+                showlegend=False,
+                line=dict(width=1.5, color=color, shape="hv", dash="dot"),
+                connectgaps=False,
+                hovertemplate=f"{label}防守: %{{y:.2f}}<extra></extra>",
+            ),
+            row=1, col=1,
+        )
+
+    # -- Exit markers per condition signal (paired with entry markers) --
+    # Same toggle as the entry signal — when "波段多" is checked the user
+    # sees entries (pentagon below), exits (x at exit price) and defense.
+    for ck in _cond_def_keys:
+        sd = _defs_by_key.get(ck)
+        color = sd.color if sd else "#888"
+        markers_for_key = (exit_markers or {}).get(ck) or []
+        has_data = len(markers_for_key) > 0
+        vis = has_data and ck in _enabled_sigs
+        fig.add_trace(
+            go.Scatter(
+                x=[m.date for m in markers_for_key] if has_data else [],
+                y=[m.price for m in markers_for_key] if has_data else [],
+                mode="markers",
+                name=f"sigexit_{ck}",
+                visible=vis,
+                showlegend=False,
+                marker=dict(
+                    symbol="x-thin", size=12, color=color,
+                    line=dict(width=2.5, color=color),
+                ),
+                customdata=[m.label for m in markers_for_key] if has_data else [],
+                hovertemplate="%{customdata}<br>%{x}<br>%{y:.2f}<extra></extra>",
+            ),
+            row=1, col=1,
+        )
+
+    # -- Flood backtest overlay (tier 1/2/3) --
+    # flood_overlay is dict[int, dict] keyed by tier.
+    # Each tier has: long_defense, short_defense, markers
+    # Color shades (same family, lighter = higher tier):
+    #   green (long defense): #00695c (tier1) / #26a69a (tier2) / #80cbc4 (tier3)
+    #   red   (short defense): #b71c1c (tier1) / #ef5350 (tier2) / #ffab91 (tier3)
+    _tier_colors = {
+        1: {"long": "#00695c", "short": "#b71c1c"},   # dark
+        2: {"long": "#26a69a", "short": "#ef5350"},   # medium
+        3: {"long": "#80cbc4", "short": "#ffab91"},   # light
+    }
+    _marker_symbol_size = {
+        "long_entry":  ("triangle-up",   None,          10),
+        "short_entry": ("triangle-down", None,          10),
+        "win_exit":    ("x",             "#ffd54f",      9),
+        "loss_exit":   ("x",             "#9e9e9e",      9),
+    }
+
+    # Add tier 1/2/3 in fixed order so trace indices are stable
+    for tier in (1, 2, 3):
+        tier_data = flood_overlay.get(tier) if flood_overlay else None
+        has_tier = tier_data is not None
+
+        # Long defense line (green shade)
+        long_def = tier_data.get("long_defense") if has_tier else None
+        has_ld = long_def is not None and len(long_def) > 0
+        vis_ld = has_ld and flood_visible
+        fig.add_trace(
+            go.Scatter(
+                x=dates if has_ld else [],
+                y=long_def if has_ld else [],
+                mode="lines",
+                name=f"{tier}階多方防守",
+                visible=vis_ld,
+                showlegend=vis_ld,
+                line=dict(width=2, color=_tier_colors[tier]["long"], dash="dash"),
+                hovertemplate=f"{tier}階多防: %{{y:.2f}}<extra></extra>",
+                connectgaps=False,
+            ),
+            row=1, col=1,
+        )
+
+        # Short defense line (red shade)
+        short_def = tier_data.get("short_defense") if has_tier else None
+        has_sd = short_def is not None and len(short_def) > 0
+        vis_sd = has_sd and flood_visible
+        fig.add_trace(
+            go.Scatter(
+                x=dates if has_sd else [],
+                y=short_def if has_sd else [],
+                mode="lines",
+                name=f"{tier}階空方防守",
+                visible=vis_sd,
+                showlegend=vis_sd,
+                line=dict(width=2, color=_tier_colors[tier]["short"], dash="dash"),
+                hovertemplate=f"{tier}階空防: %{{y:.2f}}<extra></extra>",
+                connectgaps=False,
+            ),
+            row=1, col=1,
+        )
+
+        # Markers per tier — use tier's long/short color for entries,
+        # fixed color for wins/losses
+        markers_data = tier_data.get("markers", {}) if has_tier else {}
+        for mkey, (msymbol, mfix_color, msize) in _marker_symbol_size.items():
+            mgroup = markers_data.get(mkey, {})
+            mx = mgroup.get("x", [])
+            my = mgroup.get("y", [])
+            mt = mgroup.get("text", [])
+            has_m = len(mx) > 0
+            vis_m = has_m and flood_visible
+            # Entry markers use tier color (short=red shade, long=green shade)
+            if mkey == "long_entry":
+                mcolor = _tier_colors[tier]["short"]  # long entry = red triangle (TW convention)
+            elif mkey == "short_entry":
+                mcolor = _tier_colors[tier]["long"]   # short entry = green triangle
+            else:
+                mcolor = mfix_color
+            label_map = {
+                "long_entry": f"{tier}階做多進場",
+                "short_entry": f"{tier}階做空進場",
+                "win_exit": f"{tier}階獲利出場",
+                "loss_exit": f"{tier}階虧損出場",
+            }
+            fig.add_trace(
+                go.Scatter(
+                    x=mx if has_m else [],
+                    y=my if has_m else [],
+                    mode="markers",
+                    name=label_map[mkey],
+                    visible=vis_m,
+                    showlegend=False,  # markers excluded from legend (info via hover)
+                    marker=dict(
+                        symbol=msymbol, size=msize, color=mcolor,
+                        line=dict(width=1, color="white"),
+                    ),
+                    customdata=mt if has_m else [],
+                    hovertemplate="%{customdata}<br>%{x}<br>價格: %{y:.2f}<extra></extra>",
+                ),
+                row=1, col=1,
+            )
+
+    # -- Wave lines (always add 4 slots for stable trace count) --
+    _wave_slots = [
+        ("Wave", "wave", "#ffd54f", True),
+        ("浪瀑(多)", "wf", "#ef5350", False),
+        ("浪瀑(空)", "wf", "#26a69a", False),
+        ("浪溝", "wf", "#9e9e9e", False),
+    ]
+    _wv = wave_visible or set()
+    wave_data = {}
+    if wave_lines:
+        for wl in wave_lines:
+            wave_data[wl["name"]] = wl
+    for wname, wgroup, wcolor, is_line_type in _wave_slots:
+        wl = wave_data.get(wname)
+        has_data = wl is not None and len(wl["dates"]) > 0
+        vis = has_data and wgroup in _wv
+        fig.add_trace(
+            go.Scatter(
+                x=wl["dates"] if has_data else [],
+                y=wl["prices"] if has_data else [],
+                mode="lines+markers" if is_line_type else "markers",
+                name=wname,
+                visible=vis,
+                showlegend=False,
+                line=dict(width=1.5, color=wcolor, dash="dot") if is_line_type else None,
+                marker=dict(
+                    size=4 if is_line_type else 10,
+                    color=wcolor,
+                    symbol="circle" if is_line_type else "diamond",
+                    line=dict(width=1, color=wcolor) if not is_line_type else None,
+                ),
+                hovertemplate="%{y:.2f}<extra>" + wname + "</extra>",
+            ),
+            row=1, col=1,
+        )
+
+    # -- Trend daily markers (index only) --
+    if trend_data and len(high) > 0:
+        y_min = float(np.min(low))
+        y_max = float(np.max(high))
+        gap = (y_max - y_min) * 0.022
+        _trend_specs = [
+            ("Trend (長)", "long", 1),
+            ("Trend (中)", "medium", 2),
+            ("Trend (短)", "short", 3),
+        ]
+        for tname, scope, row_offset in _trend_specs:
+            codes = trend_data.get(scope)
+            if not codes:
+                continue
+            y_pos = y_min - gap * row_offset
+            colors = [TREND_COLORS.get(c, "#9e9e9e") for c in codes]
+            hover = [TREND_LABELS.get(c, "?") for c in codes]
+            fig.add_trace(
+                go.Scatter(
+                    x=dates[:len(codes)],
+                    y=[y_pos] * len(codes),
+                    mode="markers",
+                    name=tname,
+                    visible=trend_visible,
+                    showlegend=True,
+                    marker=dict(symbol="square", size=7, color=colors,
+                                line=dict(width=0)),
+                    hovertemplate="%{customdata}<extra>" + tname + "</extra>",
+                    customdata=hover,
+                ),
+                row=1, col=1,
+            )
+
+    # -- OBV subplot (row 3) --
+    if obv_enabled:
+        _obv_specs = [
+            ("OBV", "obv", "#90a4ae", 1),
+            ("OBV_MA", "obv_ma", "#42a5f5", 1.5),
+            ("Shadow OBV", "shadow_obv_ema", "#ab47bc", 1.2),
+            ("Step Line", "step_line", "#ffca28", 1.5),
+        ]
+        for name, key, color, width in _obv_specs:
+            values = obv_data.get(key)
+            has_data = values is not None and len(values) > 0
+            fig.add_trace(
+                go.Scatter(
+                    x=dates if has_data else [],
+                    y=values if has_data else [],
+                    mode="lines",
+                    name=name,
+                    showlegend=True,
+                    line=dict(width=width, color=color),
+                    hovertemplate=f"{name}: %{{y:,.0f}}<extra></extra>",
+                ),
+                row=3, col=1,
+            )
+
+    # -- Layout --
+    fig.update_layout(
+        title=dict(text=title, x=0.5),
+        template="plotly_dark",
+        xaxis_rangeslider_visible=False,
+        height=900 if obv_enabled else 700,
+        autosize=True,
+        margin=dict(l=80, r=40, t=80, b=30, autoexpand=False),
+        legend=dict(
+            orientation="h",
+            yanchor="bottom",
+            y=1.02,
+            xanchor="left",
+            x=0,
+            font=dict(size=10, color="#eee"),
+            bgcolor="rgba(0,0,0,0)",
+        ),
+        dragmode="pan",
+        hovermode="x unified",
+    )
+
+    # Enable drawing tools in the modebar
+    fig.update_layout(
+        newshape=dict(
+            line_color="#ffd54f",
+            line_width=1.5,
+            opacity=0.8,
+        ),
+    )
+
+    n = len(dates)
+    fig.update_xaxes(
+        type="category",
+        categoryorder="array",
+        categoryarray=dates,
+        range=[-0.5, n - 0.5] if n > 0 else None,
+        autorange=False if n > 0 else None,
+        row=1, col=1,
+    )
+    fig.update_xaxes(
+        type="category",
+        categoryorder="array",
+        categoryarray=dates,
+        range=[-0.5, n - 0.5] if n > 0 else None,
+        autorange=False if n > 0 else None,
+        row=2, col=1,
+    )
+    # Lock y-axis ranges to prevent autorange recalculation when
+    # signal markers or wave traces change visibility
+    if len(high) > 0:
+        y_min, y_max = float(np.min(low)), float(np.max(high))
+        pad = (y_max - y_min) * 0.06
+        # Reserve space below price for trend dots (3 rows × gap)
+        trend_pad = (y_max - y_min) * 0.022 * 4 if trend_data else 0
+        fig.update_yaxes(title_text="Price", tickformat=",", automargin=False,
+                         range=[y_min - pad - trend_pad, y_max + pad], autorange=False,
+                         row=1, col=1)
+    else:
+        fig.update_yaxes(title_text="Price", tickformat=",", automargin=False, row=1, col=1)
+
+    if len(sub_value) > 0:
+        sub_max = float(np.max(bar_y))
+        fig.update_yaxes(title_text="成交金額 (億)" if is_index else "Volume",
+                         tickformat=",", automargin=False,
+                         range=[0, sub_max * 1.1], autorange=False,
+                         row=2, col=1)
+    else:
+        fig.update_yaxes(title_text="成交金額 (億)" if is_index else "Volume",
+                         tickformat=",", automargin=False, row=2, col=1)
+
+    if obv_enabled:
+        fig.update_xaxes(
+            type="category",
+            categoryorder="array",
+            categoryarray=dates,
+            range=[-0.5, n - 0.5] if n > 0 else None,
+            autorange=False if n > 0 else None,
+            row=3, col=1,
+        )
+        fig.update_yaxes(title_text="OBV", tickformat=",", automargin=False,
+                         row=3, col=1)
+
+    return fig
+
+
+
+# Drawing tool config for Dash / standalone usage
+DRAWING_BUTTONS = [
+    "drawline",
+    "drawrect",
+    "drawcircle",
+    "eraseshape",
+]
