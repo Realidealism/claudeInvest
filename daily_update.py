@@ -340,6 +340,36 @@ def update_date(trade_date: date):
         traceback.print_exc()
         results.append(("ETF 信號掃描", "failed"))
 
+    # Hermit-stock fundamental screener snapshot.
+    # Runs every weekday: ~20s, writes top-50 to tw.hermit_screen_snapshot,
+    # diffs vs previous snapshot to flag NEW entrants / EXITs / big movers.
+    # Invoked as a subprocess through hermit_stock's own uv-managed venv to
+    # avoid dependency conflicts (hermit_stock pulls pydantic/typer/etc.
+    # which are not in this parent project's venv).
+    print(f"\n--- Hermit-stock fundamental snapshot ---")
+    try:
+        import subprocess as _sp
+        hs_dir = Path(__file__).parent / "hermit_stock"
+        proc = _sp.run(
+            ["uv", "run", "python", "-m", "hermit_stock.daily_check",
+             trade_date.isoformat()],
+            cwd=str(hs_dir),
+            capture_output=True, text=True,
+            encoding="utf-8", errors="replace",  # tolerate cp950 in uv warnings
+            timeout=300, check=False,
+        )
+        if proc.stdout:
+            print(proc.stdout, end="")
+        if proc.returncode != 0:
+            print(proc.stderr or "<no stderr>", end="")
+            results.append(("贏勢股快照", "failed"))
+        else:
+            results.append(("贏勢股快照", "ok"))
+    except Exception:
+        print("  [ERROR] Hermit-stock daily check failed:")
+        traceback.print_exc()
+        results.append(("贏勢股快照", "failed"))
+
     # Detect delisted stocks after all price scrapers have run
     print(f"\n--- Delist detection ---")
     try:
