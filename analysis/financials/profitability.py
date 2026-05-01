@@ -75,9 +75,9 @@ def get_profitability(stock_id: str, quarters: int = 8) -> list[dict]:
             "gross_margin":      _pct(r["gross_profit"], r["revenue"]),
             "operating_margin":  _pct(r["operating_income"], r["revenue"]),
             "net_margin":        _pct(r["net_income_attributable"], r["revenue"]),
-            "roe_annualized":    _pct(r["net_income_attributable"] * 4 if r["net_income_attributable"] else None,
+            "roe_annualized":    _pct(r["net_income_attributable"] * 4 if r["net_income_attributable"] is not None else None,
                                       avg_equity),
-            "roa_annualized":    _pct(r["net_income"] * 4 if r["net_income"] else None,
+            "roa_annualized":    _pct(r["net_income"] * 4 if r["net_income"] is not None else None,
                                       avg_assets),
             "eps":               float(r["eps"]) if r["eps"] is not None else None,
         })

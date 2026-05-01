@@ -104,15 +104,15 @@ def get_cashflow_analysis(stock_id: str, quarters: int = 8) -> list[dict]:
         prior = by_yq.get((base["year"] - 1, base["quarter"]))
 
         ar_growth = _pct(base["accounts_receivable"] - prior["accounts_receivable"]
-                         if prior and base["accounts_receivable"] and prior["accounts_receivable"]
+                         if prior and base["accounts_receivable"] is not None and prior["accounts_receivable"] is not None
                          else None,
                          prior["accounts_receivable"] if prior else None)
         inv_growth = _pct(base["inventory"] - prior["inventory"]
-                          if prior and base["inventory"] and prior["inventory"]
+                          if prior and base["inventory"] is not None and prior["inventory"] is not None
                           else None,
                           prior["inventory"] if prior else None)
         rev_growth = _pct(base["revenue"] - prior["revenue"]
-                          if prior and base["revenue"] and prior["revenue"]
+                          if prior and base["revenue"] is not None and prior["revenue"] is not None
                           else None,
                           prior["revenue"] if prior else None)
 
@@ -127,14 +127,14 @@ def get_cashflow_analysis(stock_id: str, quarters: int = 8) -> list[dict]:
             "fcf":               cf.get("free_cash_flow"),
             "ocf_to_ni":         round(_div(cf.get("operating_cash_flow"),
                                             base["net_income_attributable"]), 2)
-                                  if cf.get("operating_cash_flow") and base["net_income_attributable"]
+                                  if cf.get("operating_cash_flow") is not None and base["net_income_attributable"]
                                   else None,
             "fcf_margin":        _pct(cf.get("free_cash_flow"), base["revenue"]),
             "fcf_to_ni":         round(_div(cf.get("free_cash_flow"),
                                             base["net_income_attributable"]), 2)
-                                  if cf.get("free_cash_flow") and base["net_income_attributable"]
+                                  if cf.get("free_cash_flow") is not None and base["net_income_attributable"]
                                   else None,
-            "capex_intensity":   _pct(abs(cf["capex"]) if cf.get("capex") else None,
+            "capex_intensity":   _pct(abs(cf["capex"]) if cf.get("capex") is not None else None,
                                       base["revenue"]),
             # Earnings quality red flags (YoY growth diff, %-points)
             "ar_growth_vs_rev":  round(ar_growth - rev_growth, 2)
