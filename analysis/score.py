@@ -243,11 +243,11 @@ def build_scoreboard() -> ScoreBoard:
     """
     Build a unified ScoreBoard with all technical scoring rules.
 
-    Turn (扣抵):     per-MA ±5, fuzzy conditions when neutral
-    Sort (排列):     sort_normal ±10, sort_lp ±10
-    Forming (成形):  sort_forming ±5
-    Breadth (大盤):  market trend vs stock sort alignment
-    Flood (洪量):    ±15 per timeframe — tier 1 / 2 / 3
+    Turn (扣抵):     per-MA ±5, fuzzy conditions when neutral (medium + long)
+    Sort (排列):     sort_normal ±10 (medium + long)
+    Forming (成形):  sort_forming ±5 (medium + long)
+    Breadth (大盤):  market trend vs stock sort alignment (medium + long)
+    Flood (洪量):    ±15 per timeframe — tier 1 / 2 / 3 (all three)
     """
     board = ScoreBoard("技術評分")
     _add_turn_rules(board)
