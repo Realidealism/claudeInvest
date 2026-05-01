@@ -84,7 +84,6 @@ def _ttm_cf(cf_rows, year, quarter, key):
     total = 0.0
     count = 0
     # Iterate backward: sum last 4 single-quarter values
-    prev = None
     by_yq = {(r["year"], r["quarter"]): r for r in cf_rows}
     # Walk back 4 quarters
     y, q = year, quarter
