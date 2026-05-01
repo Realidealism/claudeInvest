@@ -18,6 +18,7 @@ from signal_backtest.factories._conditions import (
     sell_flee_signal,
     pick_condition,
     touch_condition,
+    long_pressure_short_defense_rule,
 )
 
 if TYPE_CHECKING:
@@ -39,6 +40,7 @@ def buy_flee_factory(data: "StockData") -> SignalSpec:
             short_entry=short_entry,
             short_exit=short_exit,
         ),
+        short_defense=[long_pressure_short_defense_rule(data)],
     )
 
 

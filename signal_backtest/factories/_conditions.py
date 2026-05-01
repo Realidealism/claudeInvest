@@ -26,6 +26,8 @@ from typing import TYPE_CHECKING
 import numpy as np
 from numpy.typing import NDArray
 
+from signal_backtest.signal import DefenseRule
+
 if TYPE_CHECKING:
     from backtest.data import StockData
 
@@ -545,3 +547,17 @@ def sell_flee_signal(data: "StockData") -> BoolArray:
     rule_macd = data.macd.short.macd_convergence_nte
 
     return prior_weak & rule_trigger & rule_vol & rule_knot & rule_market & rule_macd
+
+
+# ── Cross-signal defense (v22): long pressure caps short defense at HH3 ─────
+
+
+def long_pressure_short_defense_rule(data: "StockData") -> DefenseRule:
+    """When any long-side signal fires, feed HH3 as a defense candidate to
+    short positions. Engine's single-direction rule (short defense only
+    moves down) means HH3 only commits when it is tighter than the current
+    defense — so this acts as an upper cap of HH3 on short-side defense.
+    """
+    trigger = pick_condition(data) | buy_condition(data) | sell_flee_signal(data)
+    source = data.candle_result.high_rolling.high[3]
+    return DefenseRule(name="多訊壓制HH3", trigger=trigger, source=source)
