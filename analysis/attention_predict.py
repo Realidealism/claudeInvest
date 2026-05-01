@@ -356,8 +356,11 @@ def _check_rule_12(prices: list, meta: dict, mkt: dict) -> Alert | None:
     if diff < threshold:
         return None
 
-    is_high = today == high_6d or (today == closes_6d[-1] and today > closes_6d[0])
-    is_low = today == low_6d or (today == closes_6d[-1] and today < closes_6d[0])
+    # §12 itself only requires the 6-day diff threshold; new-high / new-low
+    # is a heuristic gate the report adds. Loose form: alert when today is
+    # the 6-day extreme OR has moved net up/down vs the 6-day-ago close.
+    is_high = today == high_6d or today > closes_6d[0]
+    is_low = today == low_6d or today < closes_6d[0]
     if not is_high and not is_low:
         return None
 
@@ -437,7 +440,9 @@ def predict_disposal(trade_date: date) -> list[DisposalRisk]:
             WHERE index_id = 'TAIEX' AND trade_date <= %s
             ORDER BY trade_date DESC LIMIT 10
         """, (trade_date,))
-        trading_days = [r["trade_date"] for r in cur.fetchall()]
+        # Re-sort ascending so consecutive-day arithmetic below (idx_cur >
+        # idx_prev for later dates) matches the natural mental model.
+        trading_days = sorted(r["trade_date"] for r in cur.fetchall())
 
         if len(trading_days) < 3:
             return []
@@ -449,7 +454,7 @@ def predict_disposal(trade_date: date) -> list[DisposalRisk]:
             WHERE sa.alert_type = 'attention'
               AND sa.alert_date >= %s
             ORDER BY sa.stock_id, sa.alert_date
-        """, (trading_days[-1],))
+        """, (trading_days[0],))
         rows = cur.fetchall()
 
     by_stock: dict[str, list] = {}
