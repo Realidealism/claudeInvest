@@ -202,12 +202,17 @@ def _replay_signals(bars: list[dict], or_high: float, or_low: float) -> dict | N
             elif hit_dn:
                 direction = "D"
 
+            # breakout_price mirrors live (intraday/orb.py): the actual price
+            # at the moment of detection, not the OR boundary. Live polls
+            # last_price every 20s; in 1-min K the closest analogue is the
+            # breakout bar's close (same proxy used by the bar_close entry
+            # method in backtest/orb_strategy.py).
             if direction == "U":
-                breakout_price = or_high
+                breakout_price = float(bar["close"])
                 breakout_at = bar["time"]
                 breakout_bar = bar
             elif direction == "D":
-                breakout_price = or_low
+                breakout_price = float(bar["close"])
                 breakout_at = bar["time"]
                 breakout_bar = bar
 
