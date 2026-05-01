@@ -87,6 +87,13 @@ def _market_strongly_bearish(data: "StockData") -> BoolArray:
     return (ms.short_trend <= -2) | (ms.medium_trend <= -2) | (ms.long_trend <= -2)
 
 
+def _market_any_bear(data: "StockData") -> BoolArray:
+    """At least one scope shows bear (trend code <= -1). Stricter than
+    ~strongly_bullish — also filters out neutral markets."""
+    ms = data.market_state
+    return (ms.short_trend <= -1) | (ms.medium_trend <= -1) | (ms.long_trend <= -1)
+
+
 # ── MarketShortTrendStrong / Weak (mirror Go calculatetrade3.go:4151-4188) ──
 #
 # These are "trend-reversal early warning" flags computed per stock-day from
@@ -399,15 +406,17 @@ def sell_condition(data: "StockData") -> BoolArray:
       4. 量能配合：今日量 >= VD5
       5. 非長均糾結
       6. 不在連續 3 日凹21
-      7. 大盤非強多
-      8. 排除三尺度 down_hot 末端追空陷阱（Go SellCondition line 8038-8040）
+      7. 大盤要求至少一尺度 bear (trend <= -1)：強化過濾，排除中性市場下的隨機跌破
+         （v24 從「非強多」改「至少一尺度 bear」）
+      8. 排除短+中尺度 down_hot 末端追空陷阱（v25 從三尺度 AND 縮為短+中尺度，
+         觸發率從 1.1% 拉到 ~3-5%；原 Go 規則 line 8038-8040 為三尺度 AND）
     """
     close = data.close
     sma = data.close_result.ma.sma
     turn = data.close_result.turn
 
     rule_ma = (close < sma[8]) & (sma[8] < sma[21])
-    rule_market = ~_market_strongly_bullish(data)
+    rule_market = _market_any_bear(data)
 
     rule_turn = (turn[5] == 0)
 
@@ -426,13 +435,13 @@ def sell_condition(data: "StockData") -> BoolArray:
     rule_concave = ~_last_n_all(concave21, 3)
 
     ms = data.market_state
-    rule_not_triple_down_hot = ~(ms.short_down_hot & ms.medium_down_hot & ms.long_down_hot)
+    rule_not_double_down_hot = ~(ms.short_down_hot & ms.medium_down_hot)
 
     # 9. OSC 防禦觸發（Go SellCondition line 8003-8012）
     rule_osc = _osc_short_trigger(data)
 
     return (rule_ma & rule_turn & rule_break & rule_vol & rule_knot
-            & rule_concave & rule_market & rule_not_triple_down_hot & rule_osc)
+            & rule_concave & rule_market & rule_not_double_down_hot & rule_osc)
 
 
 # ── BuyFleeSignal / SellFleeSignal (多翻空 / 空翻多) ────────────────────────
