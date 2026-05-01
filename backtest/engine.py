@@ -94,10 +94,19 @@ def run_backtest(
         if pos is not None and i in div_map:
             div = div_map[i]
             if div.cash_dividend > 0:
-                pos.cash_dividends += pos.shares * div.cash_dividend
-                cash += pos.shares * div.cash_dividend
+                div_amount = pos.shares * div.cash_dividend
+                pos.cash_dividends += div_amount
+                if pos.side == "long":
+                    cash += div_amount
+                else:
+                    # Short borrower pays the dividend to the lender.
+                    cash -= div_amount
             if div.stock_dividend > 0:
-                pos.shares *= (1 + div.stock_dividend / 10)
+                # Raw close drops by 1/factor on ex-date; scale entry_price
+                # by the same factor so cost basis (entry * shares) is preserved.
+                factor = 1 + div.stock_dividend / 10
+                pos.shares *= factor
+                pos.entry_price /= factor
 
         # 2. Exit check (before entry)
         if pos is not None:
@@ -176,7 +185,7 @@ def run_backtest(
                 unrealized = (price - pos.entry_price) * pos.shares
             else:
                 unrealized = (pos.entry_price - price) * pos.shares
-            equity[i] = F32(cash + price * pos.shares + pos.cash_dividends
+            equity[i] = F32(cash + price * pos.shares
                             if pos.side == "long"
                             else cash + unrealized + pos.entry_price * pos.shares)
         else:
