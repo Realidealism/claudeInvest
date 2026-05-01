@@ -57,3 +57,9 @@
 ## Commands
 - 提示使用者執行的指令必須是完整、可直接複製貼上執行的成品，不可省略參數或用 placeholder
 
+## Signal Factory Optimization Constraints
+- 訊號工廠的優化範圍鎖定在現有 6 個訊號：pick / touch / buy / sell / buy_flee / sell_flee
+- 不新增訊號（既有 macd 第 7 個訊號不在優化範圍內）
+- 不移除任何訊號（即使 PF<1 也要修，不刪）
+- 所有改動只能透過調整這 6 個訊號的技術分析條件（filter / trigger / exit）來達成
+
