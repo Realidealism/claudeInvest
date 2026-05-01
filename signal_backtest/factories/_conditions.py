@@ -338,7 +338,12 @@ def touch_condition(data: "StockData") -> BoolArray:
     convex13 = data.candle_result.convex_n[13]
     rule_convex = ~_last_n_all(convex13, 3)
 
-    rule_market = ~_market_strongly_bullish(data)
+    # v31 鏡像 sell v24：從「~strongly_bullish」改「any_bear」，要求市場已有空方順風
+    rule_market = _market_any_bear(data)
+
+    # v32 鏡像 sell v25：加短+中尺度 down_hot 排除，避免在底部過熱時摸頭做空
+    ms = data.market_state
+    rule_not_double_down_hot = ~(ms.short_down_hot & ms.medium_down_hot)
 
     # 8. MACD short 頂背離 — 早期偵測「金叉狀態但動能轉弱」= 頂部 likely
     rule_macd = data.macd.short.macd_convergence_pte
@@ -348,7 +353,7 @@ def touch_condition(data: "StockData") -> BoolArray:
     # not topping-tail entries which is what our touch is hunting.
 
     return (rule_pos & rule_change & rule_vol & rule_flood & rule_knot
-            & rule_convex & rule_market & rule_macd)
+            & rule_convex & rule_market & rule_not_double_down_hot & rule_macd)
 
 
 # ── BuyCondition / SellCondition (波段多 / 波段空) ──────────────────────────
