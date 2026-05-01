@@ -379,20 +379,22 @@ def calculate_wave(
     cd2s = close_bs.low[2]
 
     # ── Initialize first wave pair ──────────────────────────────────────
+    # tip0 = newest wave (wc-1), tip1 = previous wave (wc-2). Matches the
+    # convention used in the main loop at the bottom of this function.
     if close[0] >= (high[0] + low[0]) / 2:  # bullish first bar
         W.append_wave(False, float(low[0]), float(high[0]), float(low[0]),
                        float(c_top[0]), float(c_bot[0]), 0)
         W.append_wave(True, float(high[0]), float(high[0]), float(low[0]),
                        float(c_top[0]), float(c_bot[0]), 0)
-        tip0[0] = float(low[0])
-        tip1[0] = float(high[0])
+        tip0[0] = float(high[0])
+        tip1[0] = float(low[0])
     else:
         W.append_wave(True, float(high[0]), float(high[0]), float(low[0]),
                        float(c_top[0]), float(c_bot[0]), 0)
         W.append_wave(False, float(low[0]), float(high[0]), float(low[0]),
                        float(c_top[0]), float(c_bot[0]), 0)
-        tip0[0] = float(high[0])
-        tip1[0] = float(low[0])
+        tip0[0] = float(low[0])
+        tip1[0] = float(high[0])
 
     # Populate remaining Day 0 arrays from initialized waves
     wc0 = W.count()
