@@ -119,6 +119,10 @@ def _merge_intraday_into_daily(
         return daily_rows
     if intraday_row is None or intraday_row.get("trade_date") is None:
         return daily_rows
+    # Pre-market or zero-trade snapshot: ref_price may be populated but the
+    # OHLC / volume fields are still NULL. Skip — no forming bar to build.
+    if intraday_row.get("last_price") is None:
+        return daily_rows
 
     existing_dates = {r["trade_date"] for r in daily_rows}
     if intraday_row["trade_date"] in existing_dates:
