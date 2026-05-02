@@ -520,6 +520,10 @@ def sell_flee_signal(data: "StockData") -> BoolArray:
          OR 大紅K 站上 SMA8
       3. 量增上漲
       4. 非長均糾結 2 日
+
+    Plus Go subclause A (v36): yesterday's BuyFlee + today's gap_up
+    fires regardless of the other rules — captures "failed top reversal
+    bounces back" pattern (Go CalculateTrade2.go:8098-8100).
     """
     close = data.close
     sma = data.close_result.ma.sma
@@ -558,4 +562,13 @@ def sell_flee_signal(data: "StockData") -> BoolArray:
     # MACD short 底背離 — 鏡像 v13 pick+NTE 成功 pattern，給 reversal 短做多
     rule_macd = data.macd.short.macd_convergence_nte
 
-    return prior_weak & rule_trigger & rule_vol & rule_knot & rule_market & rule_macd
+    main_clause = (
+        prior_weak & rule_trigger & rule_vol & rule_knot & rule_market & rule_macd
+    )
+
+    # Go 子句 A：昨日 BuyFlee 觸發後今日 gap_up → 假崩跌反彈再翻多
+    # gap_up 已包含 open>prev_high AND close>prev_up_cut，等同 Go 8098-8100
+    prev_buy_flee = _shift(buy_flee_signal(data), 1)
+    flip_after_bf = prev_buy_flee & gap_up
+
+    return main_clause | flip_after_bf
