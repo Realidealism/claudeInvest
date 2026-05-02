@@ -39,6 +39,8 @@ def buy_flee_factory(data: "StockData") -> SignalSpec:
             short_entry=short_entry,
             short_exit=short_exit,
         ),
+        # v38: 做空訊號 floor ratchet 從 13d 拉緊到 8d，左尾風險改善
+        short_floor_period=8,
     )
 
 

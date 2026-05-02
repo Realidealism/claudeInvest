@@ -68,6 +68,7 @@ def run_side_backtest(
     exit_: BoolArray,
     defense_rules: list[DefenseRule] | None = None,
     start_index: int = DEFAULT_START_INDEX,
+    floor_period: int = 13,
 ) -> SideResult:
     """Run one side of a signal backtest on a single stock."""
     if side not in ("long", "short"):
@@ -87,13 +88,13 @@ def run_side_backtest(
 
     # Pre-computed rolling extremes on intraday H/L:
     #   initial_arr — entry-day default defense (5-bar)
-    #   floor_arr   — daily floor ratchet (13-bar)
+    #   floor_arr   — daily floor ratchet (floor_period bars, default 13)
     if is_long:
         initial_arr = rolling_lowest(data.low, 5)
-        floor_arr = rolling_lowest(data.low, 13)
+        floor_arr = rolling_lowest(data.low, floor_period)
     else:
         initial_arr = rolling_highest(data.high, 5)
-        floor_arr = rolling_highest(data.high, 13)
+        floor_arr = rolling_highest(data.high, floor_period)
 
     trades: list[Trade] = []
 

@@ -62,6 +62,12 @@ class SignalSpec:
     signals: SignalSet
     long_defense: list[DefenseRule] | None = None
     short_defense: list[DefenseRule] | None = None
+    # Floor-ratchet lookback window for trailing stop. Engine uses
+    # rolling_lowest(low, n) for long and rolling_highest(high, n) for
+    # short. Smaller = tighter stop, faster to cut losers but also early
+    # cut winners. Default 13 matches engine's historical behavior.
+    long_floor_period: int = 13
+    short_floor_period: int = 13
 
 
 SignalFactory = Callable[["StockData"], SignalSpec]
