@@ -12,7 +12,8 @@ from typing import TYPE_CHECKING
 
 import numpy as np
 
-from signal_backtest.signal import SignalSet, SignalSpec
+from analysis.indicators import rolling_highest, rolling_lowest
+from signal_backtest.signal import DefenseRule, SignalSet, SignalSpec
 from signal_backtest.factories._conditions import (
     buy_flee_signal,
     sell_flee_signal,
@@ -31,6 +32,7 @@ def buy_flee_factory(data: "StockData") -> SignalSpec:
     short_exit = pick_condition(data)
     zero = np.zeros(n, dtype=np.bool_)
 
+    # v43: 洪量規則對 buy_flee 邊際負（短側 floor 已 8d，flood 規則只是 redundant），不加
     return SignalSpec(
         name="buy_flee",
         signals=SignalSet(
@@ -51,6 +53,7 @@ def sell_flee_factory(data: "StockData") -> SignalSpec:
     long_exit = touch_condition(data)
     zero = np.zeros(n, dtype=np.bool_)
 
+    # v43: 洪量規則對 sell_flee 持續負向（持倉 20d 太長被殺贏單），不加
     return SignalSpec(
         name="sell_flee",
         signals=SignalSet(

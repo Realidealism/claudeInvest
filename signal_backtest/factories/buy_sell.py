@@ -10,7 +10,8 @@ from typing import TYPE_CHECKING
 
 import numpy as np
 
-from signal_backtest.signal import SignalSet, SignalSpec
+from analysis.indicators import rolling_highest, rolling_lowest
+from signal_backtest.signal import DefenseRule, SignalSet, SignalSpec
 from signal_backtest.factories._conditions import (
     buy_condition,
     sell_condition,
@@ -29,6 +30,7 @@ def buy_signal(data: "StockData") -> SignalSpec:
     long_exit = buy_flee_signal(data)
     zero = np.zeros(n, dtype=np.bool_)
 
+    # v43: 洪量規則對 buy 的所有變種都是負向（持倉 26d 太長被殺贏單），不加洪量規則
     return SignalSpec(
         name="buy",
         signals=SignalSet(
@@ -47,6 +49,12 @@ def sell_signal(data: "StockData") -> SignalSpec:
     short_exit = sell_flee_signal(data)
     zero = np.zeros(n, dtype=np.bool_)
 
+    flood = data.volume_result.flood
+    short_defense = [
+        DefenseRule(name="洪量當日3日高",
+                    trigger=flood, source=rolling_highest(data.high, 3)),
+    ]
+
     return SignalSpec(
         name="sell",
         signals=SignalSet(
@@ -55,6 +63,7 @@ def sell_signal(data: "StockData") -> SignalSpec:
             short_entry=short_entry,
             short_exit=short_exit,
         ),
+        short_defense=short_defense,
         # v38: 做空訊號 floor ratchet 從 13d 拉緊到 8d，左尾風險改善
         short_floor_period=8,
     )
