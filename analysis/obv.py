@@ -39,18 +39,20 @@ SHADOW_DEMA_LEN = 13
 SLOW_LEN = 55
 SLOPE_LEN = 3
 
-# Forward-tier on both layers — EMA pair (3+5/5+8/8+13) and DEMA (8/13/21),
-# preserving the conventional short>medium>long signal frequency ordering.
+# Tiered Fibonacci speeds across all three scopes:
+#   shadow EMA pair + DEMA: short(3,5,8) / medium(8,13,21) / long(21,34,55)
+#   slow_len for close baseline scaled to stay > DEMA so macd doesn't collapse:
+#     short=21 / medium=55 / long=144
 PERIOD_PARAMS = {
-    "short":  {"obv_ma_len": 13, "window_len": 26, "slow_len": 55,
+    "short":  {"obv_ma_len": 13, "window_len": 26, "slow_len": 21,
                "shadow_ema_len1": 3, "shadow_ema_len2": 5,
                "shadow_dema_len": 8},
     "medium": {"obv_ma_len": 13, "window_len": 26, "slow_len": 55,
-               "shadow_ema_len1": 5, "shadow_ema_len2": 8,
-               "shadow_dema_len": 13},
-    "long":   {"obv_ma_len": 13, "window_len": 26, "slow_len": 55,
                "shadow_ema_len1": 8, "shadow_ema_len2": 13,
                "shadow_dema_len": 21},
+    "long":   {"obv_ma_len": 13, "window_len": 26, "slow_len": 144,
+               "shadow_ema_len1": 21, "shadow_ema_len2": 34,
+               "shadow_dema_len": 55},
 }
 
 

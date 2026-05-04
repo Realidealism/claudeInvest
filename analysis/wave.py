@@ -211,10 +211,18 @@ class WaveResult:
 
     # Wave-tip moving averages and derived flags (for Go MAWaveD2/D4 mapping)
     wave_d2_ma: F32Array            # avg of last 2 tips (NaN before)
+    wave_d3_ma: F32Array            # avg of last 3 tips (NaN before)
     wave_d4_ma: F32Array            # avg of last 4 tips (NaN before)
+    wave_d6_ma: F32Array            # avg of last 6 tips (NaN before)
+    wave_d8_ma: F32Array            # avg of last 8 tips (NaN before)
     close_big_wave_d4_ma: BoolArray   # close > wave_d4_ma (and valid)
     close_small_wave_d4_ma: BoolArray # close < wave_d4_ma (and valid)
-    wave_d4_death: BoolArray        # wave_d2_ma crossed below wave_d4_ma today
+    wave_d4_death: BoolArray        # short scope: wave_d2_ma crossed below wave_d4_ma
+    wave_d4_gold: BoolArray         # short scope: wave_d2_ma crossed above wave_d4_ma
+    wave_d6_death: BoolArray        # medium scope: wave_d3_ma crossed below wave_d6_ma
+    wave_d6_gold: BoolArray         # medium scope: wave_d3_ma crossed above wave_d6_ma
+    wave_d8_death: BoolArray        # long scope: wave_d4_ma crossed below wave_d8_ma
+    wave_d8_gold: BoolArray         # long scope: wave_d4_ma crossed above wave_d8_ma
 
     red_waterfall0: BoolArray
     black_waterfall0: BoolArray
@@ -296,10 +304,18 @@ def calculate_wave(
 
     # Wave-tip moving averages (NaN until enough wave tips exist)
     wave_d2_ma_arr = np.full(n, np.nan, dtype=F32)
+    wave_d3_ma_arr = np.full(n, np.nan, dtype=F32)
     wave_d4_ma_arr = np.full(n, np.nan, dtype=F32)
+    wave_d6_ma_arr = np.full(n, np.nan, dtype=F32)
+    wave_d8_ma_arr = np.full(n, np.nan, dtype=F32)
     close_big_wave_d4_ma = np.zeros(n, dtype=np.bool_)
     close_small_wave_d4_ma = np.zeros(n, dtype=np.bool_)
     wave_d4_death = np.zeros(n, dtype=np.bool_)
+    wave_d4_gold = np.zeros(n, dtype=np.bool_)
+    wave_d6_death = np.zeros(n, dtype=np.bool_)
+    wave_d6_gold = np.zeros(n, dtype=np.bool_)
+    wave_d8_death = np.zeros(n, dtype=np.bool_)
+    wave_d8_gold = np.zeros(n, dtype=np.bool_)
 
     red_wf0 = np.zeros(n, dtype=np.bool_)
     black_wf0 = np.zeros(n, dtype=np.bool_)
@@ -516,6 +532,8 @@ def calculate_wave(
 
         if wc > 2:
             tip2[i] = W.tip[wc - 3]
+            d3ma = (W.tip[wc - 1] + W.tip[wc - 2] + W.tip[wc - 3]) / 3
+            wave_d3_ma_arr[i] = d3ma
 
         if wc > 3:
             sink[i] = (W.tip[wc - 1] < W.tip[wc - 3]
@@ -528,13 +546,37 @@ def calculate_wave(
             close_big_wave_d4_ma[i]  = close[i] > d4ma
             close_small_wave_d4_ma[i] = close[i] < d4ma
 
-            # Death cross of wave-MA: wave_d2_ma drops below wave_d4_ma today
-            # (yesterday it was at or above). Both must be valid.
+            # Short-scope cross: wave_d2_ma vs wave_d4_ma
             prev_d2 = wave_d2_ma_arr[i - 1]
             prev_d4 = wave_d4_ma_arr[i - 1]
             today_d2 = wave_d2_ma_arr[i]
             if not (np.isnan(prev_d2) or np.isnan(prev_d4)):
                 wave_d4_death[i] = (today_d2 < d4ma) and (prev_d2 >= prev_d4)
+                wave_d4_gold[i] = (today_d2 > d4ma) and (prev_d2 <= prev_d4)
+
+        if wc > 5:
+            # Medium-scope MA + cross: wave_d3_ma vs wave_d6_ma
+            d6ma = (W.tip[wc - 1] + W.tip[wc - 2] + W.tip[wc - 3]
+                    + W.tip[wc - 4] + W.tip[wc - 5] + W.tip[wc - 6]) / 6
+            wave_d6_ma_arr[i] = d6ma
+            prev_d3 = wave_d3_ma_arr[i - 1]
+            prev_d6 = wave_d6_ma_arr[i - 1]
+            today_d3 = wave_d3_ma_arr[i]
+            if not (np.isnan(prev_d3) or np.isnan(prev_d6)):
+                wave_d6_death[i] = (today_d3 < d6ma) and (prev_d3 >= prev_d6)
+                wave_d6_gold[i] = (today_d3 > d6ma) and (prev_d3 <= prev_d6)
+
+        if wc > 7:
+            # Long-scope MA + cross: wave_d4_ma vs wave_d8_ma
+            d8ma = (W.tip[wc - 1] + W.tip[wc - 2] + W.tip[wc - 3] + W.tip[wc - 4]
+                    + W.tip[wc - 5] + W.tip[wc - 6] + W.tip[wc - 7] + W.tip[wc - 8]) / 8
+            wave_d8_ma_arr[i] = d8ma
+            today_d4 = wave_d4_ma_arr[i]
+            prev_d4_for_d8 = wave_d4_ma_arr[i - 1]
+            prev_d8 = wave_d8_ma_arr[i - 1]
+            if not (np.isnan(prev_d4_for_d8) or np.isnan(prev_d8)):
+                wave_d8_death[i] = (today_d4 < d8ma) and (prev_d4_for_d8 >= prev_d8)
+                wave_d8_gold[i] = (today_d4 > d8ma) and (prev_d4_for_d8 <= prev_d8)
 
             # Tip breakout: current wave tip exceeds same-direction tip 2 waves ago
             if W.wave[wc - 1]:  # current is UP
@@ -645,10 +687,19 @@ def calculate_wave(
         up_price0=up_price0, mid_price0=mid_price0, down_price0=down_price0,
         up_price1=up_price1, mid_price1=mid_price1, down_price1=down_price1,
         close_cross_d2ma=close_cross_d2ma,
-        wave_d2_ma_arr=wave_d2_ma_arr, wave_d4_ma_arr=wave_d4_ma_arr,
+        wave_d2_ma_arr=wave_d2_ma_arr,
+        wave_d3_ma_arr=wave_d3_ma_arr,
+        wave_d4_ma_arr=wave_d4_ma_arr,
+        wave_d6_ma_arr=wave_d6_ma_arr,
+        wave_d8_ma_arr=wave_d8_ma_arr,
         close_big_wave_d4_ma=close_big_wave_d4_ma,
         close_small_wave_d4_ma=close_small_wave_d4_ma,
         wave_d4_death=wave_d4_death,
+        wave_d4_gold=wave_d4_gold,
+        wave_d6_death=wave_d6_death,
+        wave_d6_gold=wave_d6_gold,
+        wave_d8_death=wave_d8_death,
+        wave_d8_gold=wave_d8_gold,
         red_wf0=red_wf0, black_wf0=black_wf0,
         red_wf1=red_wf1, black_wf1=black_wf1,
         red_wd1=red_wd1, black_wd1=black_wd1,
@@ -849,9 +900,12 @@ def _build_result(
     up_price0, mid_price0, down_price0,
     up_price1, mid_price1, down_price1,
     close_cross_d2ma,
-    wave_d2_ma_arr=None, wave_d4_ma_arr=None,
+    wave_d2_ma_arr=None, wave_d3_ma_arr=None, wave_d4_ma_arr=None,
+    wave_d6_ma_arr=None, wave_d8_ma_arr=None,
     close_big_wave_d4_ma=None, close_small_wave_d4_ma=None,
-    wave_d4_death=None,
+    wave_d4_death=None, wave_d4_gold=None,
+    wave_d6_death=None, wave_d6_gold=None,
+    wave_d8_death=None, wave_d8_gold=None,
     red_wf0=None, black_wf0=None, red_wf1=None, black_wf1=None,
     red_wd1=None, black_wd1=None,
     bwf_top=None, bwf_bot=None, rwf_top=None, rwf_bot=None,
@@ -866,10 +920,18 @@ def _build_result(
 ) -> WaveResult:
     n = len(direction)
     if wave_d2_ma_arr is None: wave_d2_ma_arr = np.full(n, np.nan, dtype=F32)
+    if wave_d3_ma_arr is None: wave_d3_ma_arr = np.full(n, np.nan, dtype=F32)
     if wave_d4_ma_arr is None: wave_d4_ma_arr = np.full(n, np.nan, dtype=F32)
+    if wave_d6_ma_arr is None: wave_d6_ma_arr = np.full(n, np.nan, dtype=F32)
+    if wave_d8_ma_arr is None: wave_d8_ma_arr = np.full(n, np.nan, dtype=F32)
     if close_big_wave_d4_ma is None: close_big_wave_d4_ma = np.zeros(n, dtype=np.bool_)
     if close_small_wave_d4_ma is None: close_small_wave_d4_ma = np.zeros(n, dtype=np.bool_)
     if wave_d4_death is None: wave_d4_death = np.zeros(n, dtype=np.bool_)
+    if wave_d4_gold is None: wave_d4_gold = np.zeros(n, dtype=np.bool_)
+    if wave_d6_death is None: wave_d6_death = np.zeros(n, dtype=np.bool_)
+    if wave_d6_gold is None: wave_d6_gold = np.zeros(n, dtype=np.bool_)
+    if wave_d8_death is None: wave_d8_death = np.zeros(n, dtype=np.bool_)
+    if wave_d8_gold is None: wave_d8_gold = np.zeros(n, dtype=np.bool_)
     return WaveResult(
         waves=waves,
         convex_i=convex_i, convex_ii=convex_ii,
@@ -882,10 +944,18 @@ def _build_result(
         up_price1=up_price1, mid_price1=mid_price1, down_price1=down_price1,
         close_cross_wave_d2ma=close_cross_d2ma,
         wave_d2_ma=wave_d2_ma_arr,
+        wave_d3_ma=wave_d3_ma_arr,
         wave_d4_ma=wave_d4_ma_arr,
+        wave_d6_ma=wave_d6_ma_arr,
+        wave_d8_ma=wave_d8_ma_arr,
         close_big_wave_d4_ma=close_big_wave_d4_ma,
         close_small_wave_d4_ma=close_small_wave_d4_ma,
         wave_d4_death=wave_d4_death,
+        wave_d4_gold=wave_d4_gold,
+        wave_d6_death=wave_d6_death,
+        wave_d6_gold=wave_d6_gold,
+        wave_d8_death=wave_d8_death,
+        wave_d8_gold=wave_d8_gold,
         red_waterfall0=red_wf0, black_waterfall0=black_wf0,
         red_waterfall1=red_wf1, black_waterfall1=black_wf1,
         red_sizable_wave1=red_wd1, black_sizable_wave1=black_wd1,

@@ -61,14 +61,16 @@ class MACDOneScope:
     osc_status_up: BoolArray
     osc_status_down: BoolArray
 
-    # OSCX-momentum weakening flags (mirror Go calculatetrade2.go:19298-19316).
-    # WeakI threshold = 0.8, WeakII = 0.5. Up weakens when OSCX shrinks
-    # (today < any of past 1-3 days × threshold); Down mirrors with > and
-    # !direction.
+    # OSCX-momentum weakening flags (mirror Go calculatetrade2.go:19288-19316).
+    # WeakI threshold = 0.8, WeakII = 0.5, WeakIII = 0.3. Up weakens when
+    # OSCX shrinks (today < any of past 1-3 days × threshold); Down mirrors
+    # with > and !direction.
     osc_status_up_weak1: BoolArray
     osc_status_up_weak2: BoolArray
+    osc_status_up_weak3: BoolArray
     osc_status_down_weak1: BoolArray
     osc_status_down_weak2: BoolArray
+    osc_status_down_weak3: BoolArray
 
     macd_death_gold: BoolArray
     macd_death: BoolArray
@@ -148,8 +150,10 @@ def _build_scope(dif: F32Array, dem: F32Array) -> MACDOneScope:
 
     up_weak1 = _osc_weak_up(direction, osc_x, 0.8)
     up_weak2 = _osc_weak_up(direction, osc_x, 0.5)
+    up_weak3 = _osc_weak_up(direction, osc_x, 0.3)
     down_weak1 = _osc_weak_down(direction, osc_x, 0.8)
     down_weak2 = _osc_weak_down(direction, osc_x, 0.5)
+    down_weak3 = _osc_weak_down(direction, osc_x, 0.3)
 
     death_gold = osc > 0
     prev_death_gold = _shift1(death_gold)
@@ -170,8 +174,10 @@ def _build_scope(dif: F32Array, dem: F32Array) -> MACDOneScope:
         osc_status_down=status_down,
         osc_status_up_weak1=up_weak1,
         osc_status_up_weak2=up_weak2,
+        osc_status_up_weak3=up_weak3,
         osc_status_down_weak1=down_weak1,
         osc_status_down_weak2=down_weak2,
+        osc_status_down_weak3=down_weak3,
         macd_death_gold=death_gold,
         macd_death=macd_death,
         macd_gold=macd_gold,

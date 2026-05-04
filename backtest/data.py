@@ -23,6 +23,21 @@ from analysis.wave import calculate_wave, WaveResult
 from analysis.over_breakout import calculate_over_breakout, OverBreakoutResult
 from analysis.market_state import calculate_market_state, MarketState
 from analysis.macd import calculate_macd, MACDResult
+from analysis.donchian import calculate_donchian, DonchianResult
+
+
+@dataclass
+class DonchianMulti:
+    """Three-scope Donchian breakout signals (production: long-only scored).
+
+    Long entry=233 / exit=144 (Fibonacci, golden-ratio exit).
+    Window sweep on 89/123/144/233/377 picked 233 for best balance:
+    H=60 全期 +0.023pp (alpha), H=60 空頭 +0.023pp (only positive in bear).
+    short/medium computed but NOT added to ScoreBoard (subset trap).
+    """
+    short: DonchianResult   # entry=21 / exit=8
+    medium: DonchianResult  # entry=55 / exit=21
+    long: DonchianResult    # entry=233 / exit=144
 
 F32 = np.float32
 F32Array = NDArray[np.float32]
@@ -64,6 +79,7 @@ class StockData:
     over_breakout: OverBreakoutResult
     market_state: MarketState
     macd: MACDResult
+    donchian: DonchianMulti
 
     # Forming sort alignment (depends on close + volume)
     sort_forming: dict[str, SortResult]
@@ -183,6 +199,11 @@ def build_stock_data(
     )
     market_state = calculate_market_state(dates)
     macd = calculate_macd(close)
+    donchian = DonchianMulti(
+        short=calculate_donchian(high, low, close, entry_length=21, exit_length=8),
+        medium=calculate_donchian(high, low, close, entry_length=55, exit_length=21),
+        long=calculate_donchian(high, low, close, entry_length=233, exit_length=144),
+    )
     sort_forming = calc_sort_forming(close_result, volume_result.volume_status)
 
     return StockData(
@@ -205,6 +226,7 @@ def build_stock_data(
         over_breakout=over_breakout,
         market_state=market_state,
         macd=macd,
+        donchian=donchian,
         sort_forming=sort_forming,
         dividends=dividends,
     )
