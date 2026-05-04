@@ -470,6 +470,8 @@ def buy_flee_signal(data: "StockData") -> BoolArray:
          OR 大黑K 跌破 SMA8
       3. 量增下跌：vol > prev_vol AND close < prev close
       4. 非長均糾結 2 日
+      7. v59 加個股 short scope MA 全空頭：sort_normal["short"].down
+         (SMA3 < SMA8 < SMA21) 確認短期 MA 已轉空
     """
     close = data.close
     sma = data.close_result.ma.sma
@@ -514,7 +516,11 @@ def buy_flee_signal(data: "StockData") -> BoolArray:
     # 6. MACD short 頂背離 — 鏡像 v12 touch+PTE 成功 pattern，給 reversal 短做空
     rule_macd = data.macd.short.macd_convergence_pte
 
-    return prior_strong & rule_trigger & rule_vol & rule_knot & rule_market & rule_macd
+    # 7. v59 個股 short scope MA 全空頭排列（SMA3<SMA8<SMA21）
+    rule_short_ma_bear = data.close_result.ma.sort_normal["short"].down
+
+    return (prior_strong & rule_trigger & rule_vol & rule_knot & rule_market
+            & rule_macd & rule_short_ma_bear)
 
 
 def sell_flee_signal(data: "StockData") -> BoolArray:
