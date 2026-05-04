@@ -368,8 +368,8 @@ def buy_condition(data: "StockData") -> BoolArray:
       3. 突破或新高：close > prev close.bs.high[8]
       4. 量能配合：今日量 >= VD5 * 1.0 (站上 5 日均量)
       5. 非長均糾結
-      6. 不在連續 3 日凸21（避免追在頂部凸點）
-      7. 大盤非強空 — 不在崩盤段做多
+      6. 大盤非強空 — 不在崩盤段做多
+      (v63 移除原規則 6「不在連續 3 日凸21」: 對直線飆漲股會卡死所有進場)
     """
     close = data.close
     sma = data.close_result.ma.sma
@@ -391,14 +391,11 @@ def buy_condition(data: "StockData") -> BoolArray:
     long_knot = data.close_result.knot["long"].flag
     rule_knot = ~long_knot
 
-    convex21 = data.candle_result.convex_n[21]
-    rule_convex = ~_last_n_all(convex21, 3)
-
-    # 8. OSC 防禦觸發（Go BuyCondition line 7866-7877，trigger_main 部分）
+    # 7. OSC 防禦觸發（Go BuyCondition line 7866-7877，trigger_main 部分）
     rule_osc = _osc_long_trigger(data)
 
     return (rule_ma & rule_turn & rule_break & rule_vol & rule_knot
-            & rule_convex & rule_market & rule_osc)
+            & rule_market & rule_osc)
 
 
 def sell_condition(data: "StockData") -> BoolArray:
@@ -410,13 +407,13 @@ def sell_condition(data: "StockData") -> BoolArray:
       3. 跌破：close < prev close.bs.low[8]
       4. 量能配合：今日量 >= VD5
       5. 非長均糾結
-      6. 不在連續 3 日凹21
-      7. 大盤要求至少一尺度 bear (trend <= -1)：強化過濾，排除中性市場下的隨機跌破
+      6. 大盤要求至少一尺度 bear (trend <= -1)：強化過濾，排除中性市場下的隨機跌破
          （v24 從「非強多」改「至少一尺度 bear」）
-      8. 排除短+中尺度 down_hot 末端追空陷阱（v25 從三尺度 AND 縮為短+中尺度，
+      7. 排除短+中尺度 down_hot 末端追空陷阱（v25 從三尺度 AND 縮為短+中尺度，
          觸發率從 1.1% 拉到 ~3-5%；原 Go 規則 line 8038-8040 為三尺度 AND）
-      9. v58 加個股 medium scope MA 全空頭：SMA5 < SMA13 < SMA34
+      8. v58 加個股 medium scope MA 全空頭：SMA5 < SMA13 < SMA34
          （sort_normal["medium"].down 確認中期 MA 結構也已轉空）
+      (v63 移除原規則 6「不在連續 3 日凹21」: 對直線崩跌股會卡死所有進場)
     """
     close = data.close
     sma = data.close_result.ma.sma
@@ -438,9 +435,6 @@ def sell_condition(data: "StockData") -> BoolArray:
     long_knot = data.close_result.knot["long"].flag
     rule_knot = ~long_knot
 
-    concave21 = data.candle_result.concave_n[21]
-    rule_concave = ~_last_n_all(concave21, 3)
-
     ms = data.market_state
     rule_not_double_down_hot = ~(ms.short_down_hot & ms.medium_down_hot)
 
@@ -451,7 +445,7 @@ def sell_condition(data: "StockData") -> BoolArray:
     rule_medium_ma_bear = data.close_result.ma.sort_normal["medium"].down
 
     return (rule_ma & rule_turn & rule_break & rule_vol & rule_knot
-            & rule_concave & rule_market & rule_not_double_down_hot & rule_osc
+            & rule_market & rule_not_double_down_hot & rule_osc
             & rule_medium_ma_bear)
 
 
