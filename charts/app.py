@@ -329,10 +329,15 @@ def _compute_defense_lines(
       exit_info:     {key: [(date, price, reason, pnl_pct), ...]} — paired
         with entry_dates by index.
     """
-    from signal_backtest.engine import run_side_backtest, InsufficientDataError
+    from signal_backtest.engine import (
+        run_side_backtest, run_side_backtest_tiered, InsufficientDataError,
+    )
     from signal_backtest.factories.pick_touch import pick_signal, touch_signal
     from signal_backtest.factories.buy_sell import buy_signal, sell_signal
     from signal_backtest.factories.flee import buy_flee_factory, sell_flee_factory
+    from signal_backtest.factories.unified import (
+        unified_long_factory, unified_short_factory,
+    )
 
     factories = {
         "cond_pick":      pick_signal,
@@ -341,6 +346,8 @@ def _compute_defense_lines(
         "cond_sell":      sell_signal,
         "cond_buy_flee":  buy_flee_factory,
         "cond_sell_flee": sell_flee_factory,
+        "unified_long_entry":  unified_long_factory,
+        "unified_short_entry": unified_short_factory,
     }
 
     lines: dict[str, dict] = {}
@@ -367,8 +374,21 @@ def _compute_defense_lines(
                 continue
             exit_ = spec.signals.long_exit if side == "long" else spec.signals.short_exit
             rules = spec.long_defense if side == "long" else spec.short_defense
+            tiers = spec.long_tiers if side == "long" else spec.short_tiers
+            floor_period = (
+                spec.long_floor_period if side == "long" else spec.short_floor_period
+            )
             try:
-                result = run_side_backtest(view, side, entry, exit_, rules)
+                if tiers is not None:
+                    result = run_side_backtest_tiered(
+                        view, side, tiers, exit_=exit_,
+                        floor_period=floor_period,
+                    )
+                else:
+                    result = run_side_backtest(
+                        view, side, entry, exit_, rules,
+                        floor_period=floor_period,
+                    )
             except InsufficientDataError:
                 continue
 
@@ -1247,20 +1267,28 @@ def update_chart(n_clicks, stock_id, start_date, end_date, obv_select,
     except Exception:
         defense_lines, entry_dates, exit_info = {}, {}, {}
 
-    # Generate markers for non-cond signals (cond_* are built from entry_dates)
-    non_cond_keys = [sd.key for sd in SIGNAL_DEFS if sd.category != "entry"]
+    # Generate markers for non-cond / non-unified signals (cond_* and unified
+    # entries are built from actual trade entries, not raw OR firings).
+    non_cond_keys = [
+        sd.key for sd in SIGNAL_DEFS
+        if sd.category not in ("entry", "unified")
+    ]
     markers = generate_markers(
         data["dates"], data["high"], data["low"],
         analysis_results, non_cond_keys,
         close=data["close"],
     )
 
-    # Build cond_* markers from actual trade entries (1:1 with defense lines)
+    # Build cond_* and unified_*_entry markers from actual trade entries
+    # (1:1 with defense lines)
     from charts.candlestick import SignalMarker
     _date_to_idx = {d: i for i, d in enumerate(data["dates"])}
     _price_range = float(np.max(data["high"]) - np.min(data["low"]))
     _offset = _price_range * 0.015
-    _defs_by_key = {sd.key: sd for sd in SIGNAL_DEFS if sd.category == "entry"}
+    _defs_by_key = {
+        sd.key: sd for sd in SIGNAL_DEFS
+        if sd.category in ("entry", "unified")
+    }
     for key, dates_list in entry_dates.items():
         sd = _defs_by_key.get(key)
         if sd is None:
