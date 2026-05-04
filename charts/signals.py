@@ -103,6 +103,25 @@ SIGNAL_DEFS: list[SignalDef] = [
               position="above", symbol="x-open", color="#26a69a", size=13),
     SignalDef("cond_sell_flee", "空翻多", "entry",
               position="below", symbol="x-open", color="#ef5350", size=13),
+
+    # -- Unified position machine entries (pick/buy/sell_flee for long;
+    #    touch/sell/buy_flee for short). Marker fires anywhere any of the
+    #    three tier-source signals trigger; the engine state machine
+    #    resolves the actual entry tier at runtime.
+    SignalDef("unified_long_entry",  "統一做多", "unified",
+              position="below", symbol="hexagon", color="#ff5722", size=15,
+              compute=lambda ar: (
+                  pick_condition(ar["data"])
+                  | buy_condition(ar["data"])
+                  | sell_flee_signal(ar["data"])
+              )),
+    SignalDef("unified_short_entry", "統一做空", "unified",
+              position="above", symbol="hexagon", color="#388e3c", size=15,
+              compute=lambda ar: (
+                  touch_condition(ar["data"])
+                  | sell_condition(ar["data"])
+                  | buy_flee_signal(ar["data"])
+              )),
 ]
 
 # Late-bind compute for the two flee signals (separate to keep the list readable)
