@@ -415,6 +415,8 @@ def sell_condition(data: "StockData") -> BoolArray:
          （v24 從「非強多」改「至少一尺度 bear」）
       8. 排除短+中尺度 down_hot 末端追空陷阱（v25 從三尺度 AND 縮為短+中尺度，
          觸發率從 1.1% 拉到 ~3-5%；原 Go 規則 line 8038-8040 為三尺度 AND）
+      9. v58 加個股 medium scope MA 全空頭：SMA5 < SMA13 < SMA34
+         （sort_normal["medium"].down 確認中期 MA 結構也已轉空）
     """
     close = data.close
     sma = data.close_result.ma.sma
@@ -445,8 +447,12 @@ def sell_condition(data: "StockData") -> BoolArray:
     # 9. OSC 防禦觸發（Go SellCondition line 8003-8012）
     rule_osc = _osc_short_trigger(data)
 
+    # 10. v58 個股 medium scope MA 全空頭排列（SMA5<SMA13<SMA34）
+    rule_medium_ma_bear = data.close_result.ma.sort_normal["medium"].down
+
     return (rule_ma & rule_turn & rule_break & rule_vol & rule_knot
-            & rule_concave & rule_market & rule_not_double_down_hot & rule_osc)
+            & rule_concave & rule_market & rule_not_double_down_hot & rule_osc
+            & rule_medium_ma_bear)
 
 
 # ── BuyFleeSignal / SellFleeSignal (多翻空 / 空翻多) ────────────────────────
