@@ -56,6 +56,28 @@ class DefenseRule:
 
 
 @dataclass
+class TierConfig:
+    """One tier in a dynamic multi-tier signal spec.
+
+    Tiers are ordered list[0] = strictest (low conviction, tight defense)
+    to list[-1] = loosest (high conviction, loose defense). Engine state
+    machine while holding:
+
+      * current_tier_idx — only ratchets UP (toward looser); tracks the
+        loosest tier whose entry signal has fired since entry.
+      * temp_strict_tier_idx — when a stricter tier's entry fires, that
+        stricter tier's defense rules become active for `temp_strict_days`
+        bars, then revert to current_tier's rules.
+
+    Exit is NOT tier-specific — set on SignalSet.long_exit/short_exit and
+    applies regardless of active tier.
+    """
+    name: str           # "pick", "buy", "sell_flee", etc.
+    entry: BoolArray
+    defense_rules: list[DefenseRule] | None = None
+
+
+@dataclass
 class SignalSpec:
     """Complete signal specification returned by a factory."""
     name: str
@@ -68,6 +90,11 @@ class SignalSpec:
     # cut winners. Default 13 matches engine's historical behavior.
     long_floor_period: int = 13
     short_floor_period: int = 13
+    # Optional tiered mode: if set, engine uses run_side_backtest_tiered
+    # with these tier configs. Tiers are priority-ordered (first tier in
+    # the list has highest entry priority).
+    long_tiers: list[TierConfig] | None = None
+    short_tiers: list[TierConfig] | None = None
 
 
 SignalFactory = Callable[["StockData"], SignalSpec]
@@ -137,6 +164,9 @@ def _register_factories() -> None:
     from signal_backtest.factories.macd import (
         macd_short_signal, macd_medium_signal, macd_long_signal,
     )
+    from signal_backtest.factories.unified import (
+        unified_long_factory, unified_short_factory,
+    )
 
     SIGNAL_FACTORIES.update({
         "pick":       pick_signal,
@@ -145,6 +175,10 @@ def _register_factories() -> None:
         "sell":       sell_signal,
         "buy_flee":   buy_flee_factory,
         "sell_flee":  sell_flee_factory,
+        # Unified position machines — pick/buy/sell_flee → buy_flee for long;
+        # touch/sell/buy_flee → sell_flee for short.
+        "unified_long":  unified_long_factory,
+        "unified_short": unified_short_factory,
         # MACD diagnostic — kept for ad-hoc re-validation, not in production
         "macd_short":  macd_short_signal,
         "macd_medium": macd_medium_signal,

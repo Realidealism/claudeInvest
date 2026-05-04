@@ -19,6 +19,7 @@ from db.connection import get_cursor
 from backtest.data import load_stock_data
 from signal_backtest.engine import (
     run_side_backtest,
+    run_side_backtest_tiered,
     InsufficientDataError,
     DEFAULT_START_INDEX,
 )
@@ -118,24 +119,34 @@ def run_batch(
             skipped.append((sid, f"signal: {e}"))
             continue
 
-        for side, entry, exit_, defense_rules, floor_period in (
+        for side, entry, exit_, defense_rules, floor_period, tiers in (
             ("long",
              spec.signals.long_entry,
              spec.signals.long_exit,
              spec.long_defense,
-             spec.long_floor_period),
+             spec.long_floor_period,
+             spec.long_tiers),
             ("short",
              spec.signals.short_entry,
              spec.signals.short_exit,
              spec.short_defense,
-             spec.short_floor_period),
+             spec.short_floor_period,
+             spec.short_tiers),
         ):
             try:
-                result = run_side_backtest(
-                    data, side, entry, exit_, defense_rules,
-                    start_index=start_index,
-                    floor_period=floor_period,
-                )
+                if tiers is not None:
+                    result = run_side_backtest_tiered(
+                        data, side, tiers,
+                        exit_=exit_,
+                        start_index=start_index,
+                        floor_period=floor_period,
+                    )
+                else:
+                    result = run_side_backtest(
+                        data, side, entry, exit_, defense_rules,
+                        start_index=start_index,
+                        floor_period=floor_period,
+                    )
             except InsufficientDataError as e:
                 skipped.append((sid, str(e)))
                 continue
