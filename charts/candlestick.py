@@ -209,12 +209,14 @@ def build_candlestick_figure(
             )
 
     # -- Defense trajectories per condition signal (stable trace count) --
-    # Six fixed slots, one per cond_* signal. Each carries every trade's
-    # step-line trajectory concatenated with None breaks. Visibility is
-    # tied to the matching signal checkbox.
+    # Eight fixed slots — six per-cond_* signals plus the two unified
+    # position-machine entries. Each carries every trade's step-line
+    # trajectory concatenated with None breaks. Visibility is tied to
+    # the matching signal checkbox.
     _cond_def_keys = (
         "cond_pick", "cond_touch", "cond_buy",
         "cond_sell", "cond_buy_flee", "cond_sell_flee",
+        "unified_long_entry", "unified_short_entry",
     )
     _def_visible = enabled_defense or set()
     _defs_by_key = {sd.key: sd for sd in (all_signal_defs or [])}
