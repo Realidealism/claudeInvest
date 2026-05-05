@@ -59,11 +59,12 @@ N_WORKERS = int(os.environ.get("DAILY_SNAPSHOT_WORKERS", str(DEFAULT_WORKERS)))
 # (8-day SMA turnover < 27M TWD; one tier above the 'dead fish' cutoff).
 MIN_MONEY_LEVEL = int(os.environ.get("DAILY_SNAPSHOT_MIN_LEVEL", "4"))
 
-# Calendar-day window of history loaded per stock. ~2.7 years — long enough
-# to cover SMA-377 warmup AND avoid the unified-backtest false-positive
-# regime where a too-short window invents fresh entries that the full-
-# history simulation would have already exited.
-HISTORY_DAYS = int(os.environ.get("DAILY_SNAPSHOT_HISTORY_DAYS", "1100"))
+# Calendar-day window of history loaded per stock. ~2.5 years — long enough
+# to cover SMA-377 warmup AND past the unified-backtest equilibrium point
+# (open-position count converges by ~700 calendar days; longer windows
+# don't change the result). Tunable via env var if data growth makes
+# this too tight in the future.
+HISTORY_DAYS = int(os.environ.get("DAILY_SNAPSHOT_HISTORY_DAYS", "900"))
 
 # (signal_name, condition_fn) — kept in display order; CHECK constraint in
 # tw.signal_snapshot enforces the same set of names.
