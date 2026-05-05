@@ -476,6 +476,12 @@ def update_range(start: date, end: date):
 # Entry point
 # ---------------------------------------------------------------------------
 if __name__ == "__main__":
+    # Required when packaged as a Windows exe — multiprocessing workers
+    # spawn by re-running the executable, and without freeze_support they'd
+    # re-execute __main__ recursively. No-op in unfrozen Python.
+    from multiprocessing import freeze_support
+    freeze_support()
+
     from db.connection import init_db
     print("Initializing database schema ...")
     init_db()
