@@ -34,6 +34,10 @@ TOP_N = 100
 DEFAULT_WORKERS = max(1, min(cpu_count() or 1, 8))
 N_WORKERS = int(os.environ.get("DAILY_SNAPSHOT_WORKERS", str(DEFAULT_WORKERS)))
 
+# Skip stocks with money_level < this on the snapshot date. Default 3 (the
+# 'dead fish' cutoff in analysis/money.py — 8-day SMA turnover < 9M TWD).
+MIN_MONEY_LEVEL = int(os.environ.get("DAILY_SNAPSHOT_MIN_LEVEL", "3"))
+
 # (signal_name, condition_fn) — kept in display order; CHECK constraint in
 # tw.signal_snapshot enforces the same set of names.
 SIGNALS = [
@@ -111,15 +115,39 @@ def _eval_stock(sid: str) -> dict | None:
 
 # ── Main side ──────────────────────────────────────────────────────────────
 
-def _load_active_stock_ids() -> list[str]:
+def _check_liquidity_fresh(snapshot_date: date) -> None:
+    """Precondition: stock_liquidity_daily must have rows for snapshot_date.
+    Without it the JOIN below silently returns 0 rows and the snapshot
+    writes nothing."""
+    with get_cursor(commit=False) as cur:
+        cur.execute(
+            "SELECT COUNT(*) AS n FROM tw.stock_liquidity_daily WHERE trade_date = %s",
+            (snapshot_date,),
+        )
+        n = cur.fetchone()["n"]
+    if n == 0:
+        raise RuntimeError(
+            f"tw.stock_liquidity_daily empty for {snapshot_date}. "
+            f"Run analysis.daily_liquidity.compute_daily_liquidity({snapshot_date}) first."
+        )
+
+
+def _load_active_stock_ids(snapshot_date: date) -> list[str]:
+    """Active TWSE/TPEx stocks with money_level >= MIN_MONEY_LEVEL on the
+    snapshot date. Dead-fish (level < 3) are excluded — their signals are
+    too noisy from anaemic turnover."""
     with get_cursor(commit=False) as cur:
         cur.execute("""
-            SELECT stock_id FROM tw.stocks
-            WHERE is_active = TRUE
-              AND security_type = 'STOCK'
-              AND market IN ('TWSE', 'TPEx')
-            ORDER BY stock_id
-        """)
+            SELECT s.stock_id
+            FROM tw.stocks s
+            JOIN tw.stock_liquidity_daily l
+              ON l.stock_id = s.stock_id AND l.trade_date = %s
+            WHERE s.is_active = TRUE
+              AND s.security_type = 'STOCK'
+              AND s.market IN ('TWSE', 'TPEx')
+              AND l.money_level >= %s
+            ORDER BY s.stock_id
+        """, (snapshot_date, MIN_MONEY_LEVEL))
         return [r["stock_id"] for r in cur.fetchall()]
 
 
@@ -233,11 +261,12 @@ def run(snapshot_date: date) -> dict:
     """Main entry. Parallelizes per-stock evaluation across N_WORKERS,
     then writes both score and signal snapshots."""
     _check_market_breadth_fresh(snapshot_date)
+    _check_liquidity_fresh(snapshot_date)
 
     t0 = time.time()
-    print(f"  Daily snapshot @ {snapshot_date} (workers={N_WORKERS}) ...")
-    stock_ids = _load_active_stock_ids()
-    print(f"  Loaded {len(stock_ids)} active stocks", file=sys.stderr)
+    print(f"  Daily snapshot @ {snapshot_date} (workers={N_WORKERS}, min_level={MIN_MONEY_LEVEL}) ...")
+    stock_ids = _load_active_stock_ids(snapshot_date)
+    print(f"  Loaded {len(stock_ids)} active stocks (after dead-fish filter)", file=sys.stderr)
 
     results: list[dict] = []
     with Pool(N_WORKERS, initializer=_init_worker) as pool:
