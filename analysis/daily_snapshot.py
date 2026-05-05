@@ -1,19 +1,27 @@
-"""Combined daily snapshot — score top-100 long/short + signal-factory fires
-for the 6 conditions, in a single multiprocessing pass.
+"""Combined daily snapshot — three outputs from a single per-stock pass:
 
-Replaces the previous separate analysis/score_snapshot.py and
-analysis/signal_snapshot.py. Each worker process loads a stock once, then
-runs both the 4-bar scoreboard evaluations and the 6 condition functions
-before moving on. Workers run in parallel via multiprocessing.Pool.
+  1. Top-100 long/short ScoreBoard (tw.score_snapshot)
+  2. Signal-factory fires for the 6 conditions (tw.signal_snapshot)
+  3. Currently-open unified-strategy positions (tw.open_positions)
 
-Set DAILY_SNAPSHOT_WORKERS env var to override the worker count (default 8,
-tuned for an 8 P-core CPU; raise on bigger machines, lower if memory is
-tight).
+Each worker loads a stock once, runs the 4-bar scoreboard evaluations,
+the 6 condition functions on the latest bar, and the unified long/short
+backtests, then returns a flat dict to the main process. Workers run in
+parallel via multiprocessing.Pool.
+
+Replaces the earlier separate score_snapshot / signal_snapshot /
+position_snapshot modules; merging eliminates ~50% redundant
+load_stock_data calls and a redundant active-stock query per snapshot.
+
+Env vars:
+  DAILY_SNAPSHOT_WORKERS   — worker count (default 8, tuned for 8 P-cores)
+  DAILY_SNAPSHOT_MIN_LEVEL — money_level cutoff (default 4)
 """
 
 from __future__ import annotations
 
 import os
+import re
 import sys
 import time
 from datetime import date
@@ -29,6 +37,15 @@ from signal_backtest.factories._conditions import (
     buy_condition, sell_condition,
     buy_flee_signal, sell_flee_signal,
 )
+# Pull unified factories via SIGNAL_FACTORIES rather than direct import
+# from signal_backtest.factories.unified — the latter has a circular
+# import with signal_backtest.signal._register_factories.
+from signal_backtest.signal import SIGNAL_FACTORIES
+from signal_backtest.engine import run_side_backtest_tiered
+from signal_backtest.trade import REASON_EXIT_END, REASON_ENTRY_INIT
+
+unified_long_factory = SIGNAL_FACTORIES["unified_long"]
+unified_short_factory = SIGNAL_FACTORIES["unified_short"]
 
 TOP_N = 100
 DEFAULT_WORKERS = max(1, min(cpu_count() or 1, 8))
@@ -48,6 +65,9 @@ SIGNALS = [
     ("buy_flee",  buy_flee_signal),
     ("sell_flee", sell_flee_signal),
 ]
+
+# Defense event 0 has reason like '進場初始[pick]'; pull out 'pick'.
+_TIER_RE = re.compile(rf"^{re.escape(REASON_ENTRY_INIT)}\[(\w+)\]$")
 
 
 # ── Worker side ────────────────────────────────────────────────────────────
@@ -72,10 +92,49 @@ def _eval_pct(data, idx: int) -> tuple[float | None, float | None]:
     return (r.total.long.pct, r.total.short.pct)
 
 
+def _safe_num(x: float) -> float | None:
+    """NaN -> None for DB; psycopg2 NUMERIC won't accept NaN."""
+    return None if x != x else x
+
+
+def _extract_open_position(result, side: str, last_trade_date) -> dict | None:
+    """Inspect a SideResult; return open-position summary if the engine's
+    end-of-history force-close emitted a Trade with REASON_EXIT_END on the
+    latest bar, else None."""
+    if not result.trades:
+        return None
+    last = result.trades[-1]
+    if last.exit_reason != REASON_EXIT_END or last.exit_date != last_trade_date:
+        return None
+    if not last.defense_events:
+        return None
+
+    m = _TIER_RE.match(last.defense_events[0].reason)
+    if m is None:
+        return None
+    entry_tier = m.group(1)
+
+    cur_def = last.defense_events[-1]
+    return {
+        "side": side,
+        "entry_date": last.entry_date,
+        "entry_price": float(last.entry_price),
+        "entry_tier": entry_tier,
+        "current_close": float(last.exit_price),
+        # Trade.pnl_pct is a fraction (0.107 = 10.7%); scale to percentage.
+        "pnl_pct": float(last.pnl_pct) * 100.0,
+        "bars_held": int(last.holding_days),
+        "defense_price": _safe_num(float(cur_def.price)),
+        "defense_reason": cur_def.reason,
+        "defense_date": cur_def.date,
+    }
+
+
 def _eval_stock(sid: str) -> dict | None:
-    """Worker-process entry. Load one stock, evaluate scoreboard at 4 bars
-    and 6 signal conditions on the latest bar. Returns flat dict of
-    primitives so the result pickles cheaply, or None when unusable."""
+    """Worker-process entry. One load_stock_data per stock; produces score
+    pcts at 4 bars, signal-factory fires on the latest bar, and unified-
+    strategy open-position info. Returns flat dict so result pickles
+    cheaply, or None when the stock is unusable."""
     try:
         data = load_stock_data(sid)
     except Exception:
@@ -84,6 +143,9 @@ def _eval_stock(sid: str) -> dict | None:
         return None
 
     idx = data.n - 1
+    last_date = data.dates[-1]
+
+    # 1. ScoreBoard at 4 bars.
     lp, sp = _eval_pct(data, idx)
     if lp is None:
         return None
@@ -91,6 +153,7 @@ def _eval_stock(sid: str) -> dict | None:
     lp_d2, sp_d2 = _eval_pct(data, idx - 2)
     lp_d3, sp_d3 = _eval_pct(data, idx - 3)
 
+    # 2. Signal conditions on the latest bar.
     fires: list[str] = []
     for name, fn in SIGNALS:
         try:
@@ -99,6 +162,33 @@ def _eval_stock(sid: str) -> dict | None:
             continue
         if bool(arr[idx]):
             fires.append(name)
+
+    # 3. Unified-strategy open positions (full backtest each side).
+    open_positions: list[dict] = []
+    for side, factory in (
+        ("long",  unified_long_factory),
+        ("short", unified_short_factory),
+    ):
+        try:
+            spec = factory(data)
+        except Exception:
+            continue
+        tiers = spec.long_tiers if side == "long" else spec.short_tiers
+        exit_arr = spec.signals.long_exit if side == "long" else spec.signals.short_exit
+        if not tiers:
+            continue
+        try:
+            result = run_side_backtest_tiered(
+                data, side, tiers,
+                exit_=exit_arr,
+                floor_period=spec.long_floor_period if side == "long"
+                              else spec.short_floor_period,
+            )
+        except Exception:
+            continue
+        pos = _extract_open_position(result, side, last_date)
+        if pos is not None:
+            open_positions.append(pos)
 
     tv_raw = float(data.turnover[idx])
     tv = tv_raw if tv_raw == tv_raw else 0.0
@@ -110,6 +200,7 @@ def _eval_stock(sid: str) -> dict | None:
         "lp_d2": lp_d2, "sp_d2": sp_d2,
         "lp_d3": lp_d3, "sp_d3": sp_d3,
         "fires": fires,
+        "open_positions": open_positions,
     }
 
 
@@ -239,6 +330,49 @@ def _save_signal_fires(snapshot_date: date, results: list[dict]) -> dict[str, in
     return counts
 
 
+def _save_open_positions(snapshot_date: date, results: list[dict]) -> dict[str, int]:
+    counts = {"long": 0, "short": 0}
+    rows = []
+    for r in results:
+        for p in r["open_positions"]:
+            counts[p["side"]] += 1
+            rows.append((
+                snapshot_date,
+                r["sid"],
+                p["side"],
+                p["entry_date"],
+                round(p["entry_price"], 2),
+                p["entry_tier"],
+                round(p["current_close"], 2),
+                round(p["pnl_pct"], 3),
+                p["bars_held"],
+                round(r["tv"], 2),
+                round(p["defense_price"], 2) if p["defense_price"] is not None else None,
+                p["defense_reason"],
+                p["defense_date"],
+            ))
+
+    sql = """
+        INSERT INTO tw.open_positions
+        (snapshot_date, stock_id, side, entry_date, entry_price, entry_tier,
+         current_close, pnl_pct, bars_held, turnover,
+         defense_price, defense_reason, defense_date)
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+    """
+    conn = get_connection()
+    try:
+        cur = conn.cursor()
+        cur.execute(
+            "DELETE FROM tw.open_positions WHERE snapshot_date = %s",
+            (snapshot_date,),
+        )
+        execute_batch(cur, sql, rows)
+        conn.commit()
+    finally:
+        conn.close()
+    return counts
+
+
 def _check_market_breadth_fresh(snapshot_date: date) -> None:
     """Precondition: tw.market_breadth must reach snapshot_date.
 
@@ -288,12 +422,16 @@ def run(snapshot_date: date) -> dict:
     for name, _ in SIGNALS:
         print(f"  signal {name}: {counts[name]}")
 
+    pos_counts = _save_open_positions(snapshot_date, results)
+    print(f"  Open positions long: {pos_counts['long']} / short: {pos_counts['short']}")
+
     print(f"  Total wall time: {time.time() - t0:.1f}s")
     return {
         "stocks_evaluated": len(results),
         "score_long": long_n,
         "score_short": short_n,
         "signal_counts": counts,
+        "position_counts": pos_counts,
     }
 
 
