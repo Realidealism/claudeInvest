@@ -757,6 +757,44 @@ def export_scores(cur, out: Path):
     }, out / "scores.json")
 
 
+def export_operations(cur, out: Path):
+    """Daily signal-factory snapshot — 6 signals × stocks fired."""
+    # Display order, matches analysis/signal_snapshot.py SIGNALS list.
+    SIGNAL_ORDER = ["pick", "touch", "buy", "sell", "buy_flee", "sell_flee"]
+
+    cur.execute("SELECT MAX(snapshot_date) AS d FROM tw.signal_snapshot")
+    latest = cur.fetchone()["d"]
+    if latest is None:
+        empty = {sig: [] for sig in SIGNAL_ORDER}
+        _write({"snapshot_date": None, "signals": empty}, out / "operations.json")
+        return
+
+    cur.execute("""
+        SELECT s.signal, s.stock_id, st.name, st.market, s.turnover
+        FROM tw.signal_snapshot s
+        JOIN tw.stocks st ON st.stock_id = s.stock_id
+        WHERE s.snapshot_date = %s
+        ORDER BY s.turnover DESC NULLS LAST, s.stock_id
+    """, (latest,))
+
+    grouped: dict[str, list] = {sig: [] for sig in SIGNAL_ORDER}
+    for r in cur.fetchall():
+        sig = r["signal"]
+        if sig not in grouped:
+            continue  # safety; CHECK constraint should prevent this
+        grouped[sig].append({
+            "ticker": r["stock_id"],
+            "name": r["name"],
+            "market": r["market"],
+            "turnover": float(r["turnover"]) if r["turnover"] is not None else 0.0,
+        })
+
+    _write({
+        "snapshot_date": latest,
+        "signals": grouped,
+    }, out / "operations.json")
+
+
 def export_all(out_dir: str | None = None):
     if out_dir is None:
         import sys
@@ -783,6 +821,7 @@ def export_all(out_dir: str | None = None):
         export_prices(cur, out)
         export_hermit(cur, out)
         export_scores(cur, out)
+        export_operations(cur, out)
 
     print("Done.")
 

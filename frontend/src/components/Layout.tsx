@@ -12,6 +12,7 @@ const NAV = [
   { to: "/search", label: "訊號查詢" },
   { to: "/hermit", label: "贏勢股篩選" },
   { to: "/scores", label: "多空評比" },
+  { to: "/operations", label: "操作訊號" },
 ] as const;
 
 function NavItems({ onClick }: { onClick?: () => void }) {

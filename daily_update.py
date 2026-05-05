@@ -418,6 +418,17 @@ def update_date(trade_date: date):
         traceback.print_exc()
         results.append(("多空評比快照", "failed"))
 
+    # Signal-factory daily snapshot — 6 conditions × today's hits per stock.
+    print(f"\n--- Signal snapshot ---")
+    try:
+        from analysis.signal_snapshot import run as run_signal_snapshot
+        run_signal_snapshot(trade_date)
+        results.append(("操作訊號快照", "ok"))
+    except Exception:
+        print("  [ERROR] Signal snapshot failed:")
+        traceback.print_exc()
+        results.append(("操作訊號快照", "failed"))
+
     # Export JSON + git push for Vercel auto-deploy
     print(f"\n--- Frontend export + deploy ---")
     try:

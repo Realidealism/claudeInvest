@@ -12,6 +12,7 @@ import FlowPage from "./pages/FlowPage";
 import SearchPage from "./pages/SearchPage";
 import HermitPage from "./pages/HermitPage";
 import ScoresPage from "./pages/ScoresPage";
+import OperationsPage from "./pages/OperationsPage";
 
 export default function App() {
   return (
@@ -30,6 +31,7 @@ export default function App() {
         <Route path="/search" element={<SearchPage />} />
         <Route path="/hermit" element={<HermitPage />} />
         <Route path="/scores" element={<ScoresPage />} />
+        <Route path="/operations" element={<OperationsPage />} />
       </Route>
     </Routes>
   );
