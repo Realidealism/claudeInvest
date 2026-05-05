@@ -407,6 +407,17 @@ def update_date(trade_date: date):
         traceback.print_exc()
         results.append(("每日流動性", "failed"))
 
+    # ScoreBoard daily snapshot — top-100 long + top-100 short.
+    print(f"\n--- ScoreBoard snapshot ---")
+    try:
+        from analysis.score_snapshot import run as run_score_snapshot
+        run_score_snapshot(trade_date)
+        results.append(("多空評比快照", "ok"))
+    except Exception:
+        print("  [ERROR] ScoreBoard snapshot failed:")
+        traceback.print_exc()
+        results.append(("多空評比快照", "failed"))
+
     # Export JSON + git push for Vercel auto-deploy
     print(f"\n--- Frontend export + deploy ---")
     try:

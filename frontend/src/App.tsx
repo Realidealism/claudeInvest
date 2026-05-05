@@ -11,6 +11,7 @@ import DnaPage from "./pages/DnaPage";
 import FlowPage from "./pages/FlowPage";
 import SearchPage from "./pages/SearchPage";
 import HermitPage from "./pages/HermitPage";
+import ScoresPage from "./pages/ScoresPage";
 
 export default function App() {
   return (
@@ -28,6 +29,7 @@ export default function App() {
         <Route path="/flow" element={<FlowPage />} />
         <Route path="/search" element={<SearchPage />} />
         <Route path="/hermit" element={<HermitPage />} />
+        <Route path="/scores" element={<ScoresPage />} />
       </Route>
     </Routes>
   );

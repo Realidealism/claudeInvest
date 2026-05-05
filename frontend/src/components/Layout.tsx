@@ -11,6 +11,7 @@ const NAV = [
   { to: "/flow", label: "資金流向" },
   { to: "/search", label: "訊號查詢" },
   { to: "/hermit", label: "贏勢股篩選" },
+  { to: "/scores", label: "多空評比" },
 ] as const;
 
 function NavItems({ onClick }: { onClick?: () => void }) {

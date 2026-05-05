@@ -694,6 +694,66 @@ def export_hermit(cur, out: Path):
     }, out / "hermit.json")
 
 
+def export_scores(cur, out: Path):
+    """Daily ScoreBoard snapshot — top-100 long + top-100 short."""
+    cur.execute("SELECT MAX(snapshot_date) AS d FROM tw.score_snapshot")
+    latest = cur.fetchone()["d"]
+    if latest is None:
+        _write({"snapshot_date": None, "long": [], "short": [], "history": []},
+               out / "scores.json")
+        return
+
+    sides = {"long": [], "short": []}
+    for side in ("long", "short"):
+        cur.execute("""
+            SELECT s.rank, s.stock_id, st.name, st.market,
+                   s.total_pct, s.turnover,
+                   s.is_new, s.prev_rank, s.rank_delta
+            FROM tw.score_snapshot s
+            JOIN tw.stocks st ON st.stock_id = s.stock_id
+            WHERE s.snapshot_date = %s AND s.side = %s
+            ORDER BY s.rank
+        """, (latest, side))
+        for r in cur.fetchall():
+            sides[side].append({
+                "rank": r["rank"],
+                "ticker": r["stock_id"],
+                "name": r["name"],
+                "market": r["market"],
+                "total_pct": float(r["total_pct"]),
+                "turnover": float(r["turnover"]) if r["turnover"] is not None else 0.0,
+                "is_new": r["is_new"],
+                "prev_rank": r["prev_rank"],
+                "rank_delta": r["rank_delta"],
+            })
+
+    cur.execute("""
+        SELECT snapshot_date,
+               SUM(CASE WHEN side='long'  AND is_new THEN 1 ELSE 0 END) AS new_long,
+               SUM(CASE WHEN side='short' AND is_new THEN 1 ELSE 0 END) AS new_short
+        FROM tw.score_snapshot
+        WHERE snapshot_date > %s - INTERVAL '60 days'
+        GROUP BY snapshot_date
+        ORDER BY snapshot_date DESC
+        LIMIT 30
+    """, (latest,))
+    history = [
+        {
+            "date": r["snapshot_date"],
+            "new_long": int(r["new_long"]) if r["new_long"] is not None else 0,
+            "new_short": int(r["new_short"]) if r["new_short"] is not None else 0,
+        }
+        for r in cur.fetchall()
+    ]
+
+    _write({
+        "snapshot_date": latest,
+        "long": sides["long"],
+        "short": sides["short"],
+        "history": history,
+    }, out / "scores.json")
+
+
 def export_all(out_dir: str | None = None):
     if out_dir is None:
         import sys
@@ -719,6 +779,7 @@ def export_all(out_dir: str | None = None):
         export_flow(cur, out)
         export_prices(cur, out)
         export_hermit(cur, out)
+        export_scores(cur, out)
 
     print("Done.")
 
