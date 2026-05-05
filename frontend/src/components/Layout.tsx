@@ -1,40 +1,125 @@
-import { useState } from "react";
-import { NavLink, Outlet } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { NavLink, Outlet, useLocation } from "react-router-dom";
 
-const NAV = [
-  { to: "/signals", label: "訊號總覽" },
-  { to: "/backtest", label: "策略績效" },
-  { to: "/funds", label: "基金分析" },
-  { to: "/dual-track", label: "雙軌比對" },
-  { to: "/timeline", label: "月季交叉" },
-  { to: "/dna", label: "經理人DNA" },
-  { to: "/flow", label: "資金流向" },
-  { to: "/search", label: "訊號查詢" },
-  { to: "/hermit", label: "贏勢股篩選" },
-  { to: "/scores", label: "多空評比" },
-  { to: "/operations", label: "操作訊號" },
+const NAV_GROUPS = [
+  {
+    key: "chips",
+    label: "籌碼面",
+    items: [
+      { to: "/signals",    label: "訊號總覽" },
+      { to: "/backtest",   label: "策略績效" },
+      { to: "/funds",      label: "基金分析" },
+      { to: "/dual-track", label: "雙軌比對" },
+      { to: "/timeline",   label: "月季交叉" },
+      { to: "/dna",        label: "經理人DNA" },
+      { to: "/flow",       label: "資金流向" },
+      { to: "/search",     label: "訊號查詢" },
+    ],
+  },
+  {
+    key: "fundamentals",
+    label: "基本面",
+    items: [
+      { to: "/hermit", label: "贏勢股篩選" },
+    ],
+  },
+  {
+    key: "technicals",
+    label: "技術面",
+    items: [
+      { to: "/scores",     label: "多空評比" },
+      { to: "/operations", label: "操作訊號" },
+    ],
+  },
 ] as const;
 
+const COLLAPSE_KEY = "nav-collapsed-groups";
+
+// Default: collapse every group except the one containing the current
+// page, so first-time users land on a tidy sidebar that already shows
+// related pages. Subsequent toggles persist via localStorage.
+function initialCollapsed(currentPath: string): Set<string> {
+  try {
+    const raw = localStorage.getItem(COLLAPSE_KEY);
+    if (raw) return new Set(JSON.parse(raw) as string[]);
+  } catch {
+    // ignore parse / storage errors
+  }
+  const activeKey = NAV_GROUPS.find((g) =>
+    g.items.some((it) => it.to === currentPath)
+  )?.key;
+  return new Set(NAV_GROUPS.filter((g) => g.key !== activeKey).map((g) => g.key));
+}
+
 function NavItems({ onClick }: { onClick?: () => void }) {
+  const { pathname } = useLocation();
+  const [collapsed, setCollapsed] = useState<Set<string>>(() => initialCollapsed(pathname));
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(COLLAPSE_KEY, JSON.stringify([...collapsed]));
+    } catch {
+      // ignore storage errors
+    }
+  }, [collapsed]);
+
+  const toggle = (key: string) => {
+    setCollapsed((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  };
+
   return (
-    <ul className="flex-1 py-2">
-      {NAV.map(({ to, label }) => (
-        <li key={to}>
-          <NavLink
-            to={to}
-            onClick={onClick}
-            className={({ isActive }) =>
-              `block px-4 py-2 text-sm transition-colors ${
-                isActive
-                  ? "bg-accent/10 text-accent font-medium border-r-2 border-accent"
-                  : "text-text-secondary hover:bg-surface-hover hover:text-text-primary"
-              }`
-            }
-          >
-            {label}
-          </NavLink>
-        </li>
-      ))}
+    <ul className="flex-1 py-2 overflow-y-auto">
+      {NAV_GROUPS.map((group) => {
+        const isCollapsed = collapsed.has(group.key);
+        return (
+          <li key={group.key} className="mb-1">
+            <button
+              type="button"
+              onClick={() => toggle(group.key)}
+              className="w-full flex items-center justify-between px-4 py-1.5 text-xs font-bold tracking-wide text-text-secondary hover:text-text-primary"
+            >
+              <span>{group.label}</span>
+              <svg
+                width="10"
+                height="10"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                className={`transition-transform ${isCollapsed ? "" : "rotate-90"}`}
+              >
+                <path d="M9 18l6-6-6-6" />
+              </svg>
+            </button>
+            {!isCollapsed && (
+              <ul>
+                {group.items.map(({ to, label }) => (
+                  <li key={to}>
+                    <NavLink
+                      to={to}
+                      onClick={onClick}
+                      className={({ isActive }) =>
+                        `block pl-7 pr-4 py-2 text-sm transition-colors ${
+                          isActive
+                            ? "bg-accent/10 text-accent font-medium border-r-2 border-accent"
+                            : "text-text-secondary hover:bg-surface-hover hover:text-text-primary"
+                        }`
+                      }
+                    >
+                      {label}
+                    </NavLink>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </li>
+        );
+      })}
     </ul>
   );
 }
