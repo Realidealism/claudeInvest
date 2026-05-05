@@ -29,6 +29,7 @@ const NAV_GROUPS = [
     items: [
       { to: "/scores",     label: "多空評比" },
       { to: "/operations", label: "操作訊號" },
+      { to: "/positions",  label: "策略持倉" },
     ],
   },
 ] as const;

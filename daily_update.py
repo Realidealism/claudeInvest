@@ -427,6 +427,23 @@ def update_date(trade_date: date):
             traceback.print_exc()
             results.append(("多空評比 + 操作訊號快照", "failed"))
 
+    # Unified-strategy open positions — runs full backtest per stock/side and
+    # captures the still-open trade (force-closed at end with REASON_EXIT_END).
+    # Same market_state dependency, so same skip rule.
+    print(f"\n--- Position snapshot (unified strategy holdings) ---")
+    if not breadth_ok:
+        print("  [SKIP] market_breadth failed; position_snapshot needs fresh market_state.")
+        results.append(("策略持倉快照", "skip"))
+    else:
+        try:
+            from analysis.position_snapshot import run as run_position_snapshot
+            run_position_snapshot(trade_date)
+            results.append(("策略持倉快照", "ok"))
+        except Exception:
+            print("  [ERROR] Position snapshot failed:")
+            traceback.print_exc()
+            results.append(("策略持倉快照", "failed"))
+
     # Export JSON + git push for Vercel auto-deploy
     print(f"\n--- Frontend export + deploy ---")
     try:

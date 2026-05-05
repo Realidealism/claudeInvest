@@ -796,6 +796,51 @@ def export_operations(cur, out: Path):
     }, out / "operations.json")
 
 
+def export_positions(cur, out: Path):
+    """Daily snapshot of unified-strategy open positions (long + short)."""
+    cur.execute("SELECT MAX(snapshot_date) AS d FROM tw.open_positions")
+    latest = cur.fetchone()["d"]
+    if latest is None:
+        _write({"snapshot_date": None, "long": [], "short": []},
+               out / "positions.json")
+        return
+
+    sides = {"long": [], "short": []}
+    for side in ("long", "short"):
+        cur.execute("""
+            SELECT p.stock_id, st.name, st.market,
+                   p.entry_date, p.entry_price, p.entry_tier,
+                   p.current_close, p.pnl_pct, p.bars_held, p.turnover,
+                   p.defense_price, p.defense_reason, p.defense_date
+            FROM tw.open_positions p
+            JOIN tw.stocks st ON st.stock_id = p.stock_id
+            WHERE p.snapshot_date = %s AND p.side = %s
+            ORDER BY p.turnover DESC NULLS LAST, p.stock_id
+        """, (latest, side))
+        for r in cur.fetchall():
+            sides[side].append({
+                "ticker": r["stock_id"],
+                "name": r["name"],
+                "market": r["market"],
+                "entry_date": r["entry_date"],
+                "entry_price": float(r["entry_price"]),
+                "entry_tier": r["entry_tier"],
+                "current_close": float(r["current_close"]),
+                "pnl_pct": float(r["pnl_pct"]),
+                "bars_held": r["bars_held"],
+                "turnover": float(r["turnover"]) if r["turnover"] is not None else 0.0,
+                "defense_price": float(r["defense_price"]) if r["defense_price"] is not None else None,
+                "defense_reason": r["defense_reason"],
+                "defense_date": r["defense_date"],
+            })
+
+    _write({
+        "snapshot_date": latest,
+        "long": sides["long"],
+        "short": sides["short"],
+    }, out / "positions.json")
+
+
 def export_all(out_dir: str | None = None):
     if out_dir is None:
         import sys
@@ -823,6 +868,7 @@ def export_all(out_dir: str | None = None):
         export_hermit(cur, out)
         export_scores(cur, out)
         export_operations(cur, out)
+        export_positions(cur, out)
 
     print("Done.")
 
