@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
 
 interface ScoreRow {
   rank: number;
@@ -32,6 +31,12 @@ function fmtTurnover(t: number): string {
   if (t >= 1e8) return `${(t / 1e8).toFixed(2)}億`;
   if (t >= 1e4) return `${(t / 1e4).toFixed(0)}萬`;
   return t.toFixed(0);
+}
+
+// TradingView uses 'TWSE:' for TWSE and 'TPEX:' (all caps) for TPEx.
+function tvUrl(ticker: string, market: string): string {
+  const prefix = market === "TPEx" ? "TPEX" : "TWSE";
+  return `https://www.tradingview.com/chart/?symbol=${prefix}:${ticker}`;
 }
 
 export default function ScoresPage() {
@@ -109,9 +114,14 @@ export default function ScoresPage() {
               >
                 <td className="px-2 py-1.5">{p.rank}</td>
                 <td className="px-2 py-1.5 font-mono">
-                  <Link to={`/stock/${p.ticker}`} className="text-accent hover:underline">
+                  <a
+                    href={tvUrl(p.ticker, p.market)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-accent hover:underline"
+                  >
                     {p.ticker}
-                  </Link>
+                  </a>
                 </td>
                 <td className="px-2 py-1.5">{p.name}</td>
                 <td className="px-2 py-1.5 hidden md:table-cell text-text-secondary">
