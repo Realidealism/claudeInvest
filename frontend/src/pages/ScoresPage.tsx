@@ -50,8 +50,8 @@ function turnoverClass(t: number): string {
 }
 
 // Day-over-day delta vs prev (Taiwan convention: red = up, green = down).
-function deltaClass(today: number, prev: number | null): string {
-  if (prev === null) return "text-text-secondary";
+function deltaClass(today: number | null, prev: number | null): string {
+  if (today === null || prev === null) return "text-text-secondary";
   if (today > prev) return "text-long-strong";
   if (today < prev) return "text-short-strong";
   return "text-text-secondary";
@@ -146,7 +146,7 @@ export default function ScoresPage() {
                   {p.total_pct >= 0 ? "+" : ""}
                   {p.total_pct.toFixed(1)}
                 </td>
-                <td className="px-2 py-1.5 text-right font-mono text-text-secondary hidden sm:table-cell">
+                <td className={`px-2 py-1.5 text-right font-mono hidden sm:table-cell ${deltaClass(p.pct_d1, p.pct_d2)}`}>
                   {p.pct_d1 !== null
                     ? `${p.pct_d1 >= 0 ? "+" : ""}${p.pct_d1.toFixed(1)}`
                     : "—"}
