@@ -49,6 +49,14 @@ function turnoverClass(t: number): string {
   return "text-orange-300 font-bold";
 }
 
+// Day-over-day delta vs prev (Taiwan convention: red = up, green = down).
+function deltaClass(today: number, prev: number | null): string {
+  if (prev === null) return "text-text-secondary";
+  if (today > prev) return "text-long-strong";
+  if (today < prev) return "text-short-strong";
+  return "text-text-secondary";
+}
+
 export default function ScoresPage() {
   const [data, setData] = useState<ScoresData | null>(null);
   const [side, setSide] = useState<Side>("long");
@@ -72,7 +80,6 @@ export default function ScoresPage() {
   }
 
   const rows = side === "long" ? data.long : data.short;
-  const sideColor = side === "long" ? "text-long-strong" : "text-short-strong";
   const sideLabel = side === "long" ? "做多" : "做空";
 
   return (
@@ -135,7 +142,7 @@ export default function ScoresPage() {
                   </a>
                 </td>
                 <td className="px-2 py-1.5">{p.name}</td>
-                <td className={`px-2 py-1.5 text-right font-mono font-bold ${sideColor}`}>
+                <td className={`px-2 py-1.5 text-right font-mono font-bold ${deltaClass(p.total_pct, p.pct_d1)}`}>
                   {p.total_pct >= 0 ? "+" : ""}
                   {p.total_pct.toFixed(1)}
                 </td>
