@@ -407,27 +407,17 @@ def update_date(trade_date: date):
         traceback.print_exc()
         results.append(("每日流動性", "failed"))
 
-    # ScoreBoard daily snapshot — top-100 long + top-100 short.
-    print(f"\n--- ScoreBoard snapshot ---")
+    # Combined daily snapshot — score top-100 long/short + 6 signal-factory
+    # fires, parallelized across CPU cores in a single load_stock_data pass.
+    print(f"\n--- Daily snapshot (score + signal) ---")
     try:
-        from analysis.score_snapshot import run as run_score_snapshot
-        run_score_snapshot(trade_date)
-        results.append(("多空評比快照", "ok"))
+        from analysis.daily_snapshot import run as run_daily_snapshot
+        run_daily_snapshot(trade_date)
+        results.append(("多空評比 + 操作訊號快照", "ok"))
     except Exception:
-        print("  [ERROR] ScoreBoard snapshot failed:")
+        print("  [ERROR] Daily snapshot failed:")
         traceback.print_exc()
-        results.append(("多空評比快照", "failed"))
-
-    # Signal-factory daily snapshot — 6 conditions × today's hits per stock.
-    print(f"\n--- Signal snapshot ---")
-    try:
-        from analysis.signal_snapshot import run as run_signal_snapshot
-        run_signal_snapshot(trade_date)
-        results.append(("操作訊號快照", "ok"))
-    except Exception:
-        print("  [ERROR] Signal snapshot failed:")
-        traceback.print_exc()
-        results.append(("操作訊號快照", "failed"))
+        results.append(("多空評比 + 操作訊號快照", "failed"))
 
     # Export JSON + git push for Vercel auto-deploy
     print(f"\n--- Frontend export + deploy ---")
