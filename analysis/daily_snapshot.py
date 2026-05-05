@@ -14,8 +14,12 @@ position_snapshot modules; merging eliminates ~50% redundant
 load_stock_data calls and a redundant active-stock query per snapshot.
 
 Env vars:
-  DAILY_SNAPSHOT_WORKERS   — worker count (default 8, tuned for 8 P-cores)
-  DAILY_SNAPSHOT_MIN_LEVEL — money_level cutoff (default 4)
+  DAILY_SNAPSHOT_WORKERS      — worker count (default 8, tuned for 8 P-cores)
+  DAILY_SNAPSHOT_MIN_LEVEL    — money_level cutoff (default 4)
+  DAILY_SNAPSHOT_HISTORY_DAYS — calendar days of history per stock
+                                (default 900 ≈ 2.5y; covers all but the
+                                very-long-held unified positions while
+                                cutting load_stock_data + indicator cost)
 """
 
 from __future__ import annotations
@@ -24,7 +28,7 @@ import os
 import re
 import sys
 import time
-from datetime import date
+from datetime import date, timedelta
 from multiprocessing import Pool, cpu_count
 
 from psycopg2.extras import execute_batch
@@ -54,6 +58,12 @@ N_WORKERS = int(os.environ.get("DAILY_SNAPSHOT_WORKERS", str(DEFAULT_WORKERS)))
 # Skip stocks with money_level < this on the snapshot date. Default 4
 # (8-day SMA turnover < 27M TWD; one tier above the 'dead fish' cutoff).
 MIN_MONEY_LEVEL = int(os.environ.get("DAILY_SNAPSHOT_MIN_LEVEL", "4"))
+
+# Calendar-day window of history loaded per stock. ~2.7 years — long enough
+# to cover SMA-377 warmup AND avoid the unified-backtest false-positive
+# regime where a too-short window invents fresh entries that the full-
+# history simulation would have already exited.
+HISTORY_DAYS = int(os.environ.get("DAILY_SNAPSHOT_HISTORY_DAYS", "1100"))
 
 # (signal_name, condition_fn) — kept in display order; CHECK constraint in
 # tw.signal_snapshot enforces the same set of names.
@@ -130,13 +140,14 @@ def _extract_open_position(result, side: str, last_trade_date) -> dict | None:
     }
 
 
-def _eval_stock(sid: str) -> dict | None:
-    """Worker-process entry. One load_stock_data per stock; produces score
-    pcts at 4 bars, signal-factory fires on the latest bar, and unified-
-    strategy open-position info. Returns flat dict so result pickles
-    cheaply, or None when the stock is unusable."""
+def _eval_stock(args: tuple[str, date]) -> dict | None:
+    """Worker-process entry. One load_stock_data per stock (windowed by
+    start_date); produces score pcts at 4 bars, signal-factory fires on
+    the latest bar, and unified-strategy open-position info. Returns flat
+    dict so result pickles cheaply, or None when the stock is unusable."""
+    sid, start_date = args
     try:
-        data = load_stock_data(sid)
+        data = load_stock_data(sid, start_date=start_date)
     except Exception:
         return None
     if data.n < 60:
@@ -398,13 +409,16 @@ def run(snapshot_date: date) -> dict:
     _check_liquidity_fresh(snapshot_date)
 
     t0 = time.time()
-    print(f"  Daily snapshot @ {snapshot_date} (workers={N_WORKERS}, min_level={MIN_MONEY_LEVEL}) ...")
+    print(f"  Daily snapshot @ {snapshot_date} (workers={N_WORKERS}, min_level={MIN_MONEY_LEVEL}, history={HISTORY_DAYS}d) ...")
     stock_ids = _load_active_stock_ids(snapshot_date)
     print(f"  Loaded {len(stock_ids)} active stocks (after dead-fish filter)", file=sys.stderr)
 
+    start_date = snapshot_date - timedelta(days=HISTORY_DAYS)
+    work_items = [(sid, start_date) for sid in stock_ids]
+
     results: list[dict] = []
     with Pool(N_WORKERS, initializer=_init_worker) as pool:
-        for r in pool.imap_unordered(_eval_stock, stock_ids, chunksize=20):
+        for r in pool.imap_unordered(_eval_stock, work_items, chunksize=20):
             if r is not None:
                 results.append(r)
                 if len(results) % 200 == 0:
