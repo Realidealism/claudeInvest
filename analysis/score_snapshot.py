@@ -54,14 +54,27 @@ def _load_prev_snapshot(snapshot_date: date, side: str) -> dict[str, int]:
         return {r["stock_id"]: r["rank"] for r in cur.fetchall()}
 
 
-def _evaluate_all() -> list[tuple[str, float, float, float]]:
-    """Return [(stock_id, long_pct, short_pct, turnover), ...] for every
-    stock that loads + has >=60 bars + evaluates without error."""
+def _eval_pct(board, data, idx: int) -> tuple[float | None, float | None]:
+    """Evaluate scoreboard at bar idx; return (long_pct, short_pct) or (None, None)."""
+    if idx < 0:
+        return (None, None)
+    try:
+        r = board.evaluate(data, idx)
+    except Exception:
+        return (None, None)
+    return (r.total.long.pct, r.total.short.pct)
+
+
+def _evaluate_all() -> list[tuple]:
+    """Return per-stock tuple
+        (stock_id, long_pct, short_pct, turnover,
+         long_pct_d1, short_pct_d1, long_pct_d2, short_pct_d2)
+    Today's bar is data.n-1; d1 = data.n-2; d2 = data.n-3."""
     stocks = _load_active_stocks()
     print(f"  Loaded {len(stocks)} active stocks", file=sys.stderr)
 
     board = build_scoreboard()
-    out: list[tuple[str, float, float, float]] = []
+    out: list[tuple] = []
 
     for k, (sid, _name) in enumerate(stocks):
         if k % 200 == 0 and k > 0:
@@ -72,34 +85,41 @@ def _evaluate_all() -> list[tuple[str, float, float, float]]:
             continue
         if data.n < 60:
             continue
-        try:
-            result = board.evaluate(data, data.n - 1)
-        except Exception:
+        lp, sp = _eval_pct(board, data, data.n - 1)
+        if lp is None:
             continue
+        lp_d1, sp_d1 = _eval_pct(board, data, data.n - 2)
+        lp_d2, sp_d2 = _eval_pct(board, data, data.n - 3)
         # turnover may be NaN for halted bars
         tv_raw = float(data.turnover[-1])
         tv = tv_raw if tv_raw == tv_raw else 0.0
-        out.append((sid, result.total.long.pct, result.total.short.pct, tv))
+        out.append((sid, lp, sp, tv, lp_d1, sp_d1, lp_d2, sp_d2))
 
     return out
 
 
 def _save_side(snapshot_date: date, side: str,
-               results: list[tuple[str, float, float, float]],
+               results: list[tuple],
                prev: dict[str, int]) -> int:
-    """Sort by side's pct desc (turnover tie-breaker), keep top N, write rows."""
+    """Sort by side's pct desc (turnover tie-breaker), keep top N, write rows.
+
+    For each row, pct_d1/pct_d2 store the SAME side's pct evaluated at the
+    previous 2 trading bars."""
+    # tuple layout: (sid, long, short, tv, long_d1, short_d1, long_d2, short_d2)
     if side == "long":
         ranked = sorted(results, key=lambda r: (-r[1], -r[3]))[:TOP_N]
-        pct_idx = 1
+        pct_idx, d1_idx, d2_idx = 1, 4, 6
     else:
         ranked = sorted(results, key=lambda r: (-r[2], -r[3]))[:TOP_N]
-        pct_idx = 2
+        pct_idx, d1_idx, d2_idx = 2, 5, 7
 
     rows = []
     for i, r in enumerate(ranked, start=1):
         sid = r[0]
         pct = r[pct_idx]
         turnover = r[3]
+        pct_d1 = r[d1_idx]
+        pct_d2 = r[d2_idx]
         prev_rank = prev.get(sid)
         is_new = prev_rank is None
         rank_delta = (prev_rank - i) if prev_rank is not None else None
@@ -107,13 +127,15 @@ def _save_side(snapshot_date: date, side: str,
             snapshot_date, side, i, sid,
             round(pct, 3), round(turnover, 2),
             is_new, prev_rank, rank_delta,
+            round(pct_d1, 3) if pct_d1 is not None else None,
+            round(pct_d2, 3) if pct_d2 is not None else None,
         ))
 
     sql = """
         INSERT INTO tw.score_snapshot
         (snapshot_date, side, rank, stock_id, total_pct, turnover,
-         is_new, prev_rank, rank_delta)
-        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+         is_new, prev_rank, rank_delta, pct_d1, pct_d2)
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
     """
     conn = get_connection()
     try:
@@ -142,12 +164,12 @@ def run(snapshot_date: date) -> dict[str, int]:
     long_n = _save_side(snapshot_date, "long", results, prev_long)
     short_n = _save_side(snapshot_date, "short", results, prev_short)
 
-    new_long = sum(1 for sid, lp, _sp, _tv in
+    new_long = sum(1 for r in
                    sorted(results, key=lambda r: (-r[1], -r[3]))[:TOP_N]
-                   if sid not in prev_long)
-    new_short = sum(1 for sid, _lp, sp, _tv in
+                   if r[0] not in prev_long)
+    new_short = sum(1 for r in
                     sorted(results, key=lambda r: (-r[2], -r[3]))[:TOP_N]
-                    if sid not in prev_short)
+                    if r[0] not in prev_short)
 
     print(f"  Top-{TOP_N} long: {long_n} rows ({new_long} NEW)")
     print(f"  Top-{TOP_N} short: {short_n} rows ({new_short} NEW)")

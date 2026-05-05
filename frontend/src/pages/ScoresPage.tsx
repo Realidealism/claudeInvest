@@ -10,6 +10,8 @@ interface ScoreRow {
   is_new: boolean;
   prev_rank: number | null;
   rank_delta: number | null;
+  pct_d1: number | null;
+  pct_d2: number | null;
 }
 
 interface HistoryItem {
@@ -102,6 +104,8 @@ export default function ScoresPage() {
               <th className="px-2 py-2">名稱</th>
               <th className="px-2 py-2 hidden md:table-cell">市場</th>
               <th className="px-2 py-2 text-right">{sideLabel}%</th>
+              <th className="px-2 py-2 text-right hidden sm:table-cell">前1日</th>
+              <th className="px-2 py-2 text-right hidden sm:table-cell">前2日</th>
               <th className="px-2 py-2 text-right">成交金額</th>
               <th className="px-2 py-2 text-center">變動</th>
             </tr>
@@ -130,6 +134,16 @@ export default function ScoresPage() {
                 <td className={`px-2 py-1.5 text-right font-mono font-bold ${sideColor}`}>
                   {p.total_pct >= 0 ? "+" : ""}
                   {p.total_pct.toFixed(1)}
+                </td>
+                <td className="px-2 py-1.5 text-right font-mono text-text-secondary hidden sm:table-cell">
+                  {p.pct_d1 !== null
+                    ? `${p.pct_d1 >= 0 ? "+" : ""}${p.pct_d1.toFixed(1)}`
+                    : "—"}
+                </td>
+                <td className="px-2 py-1.5 text-right font-mono text-text-secondary hidden sm:table-cell">
+                  {p.pct_d2 !== null
+                    ? `${p.pct_d2 >= 0 ? "+" : ""}${p.pct_d2.toFixed(1)}`
+                    : "—"}
                 </td>
                 <td className="px-2 py-1.5 text-right font-mono text-text-secondary">
                   {fmtTurnover(p.turnover)}

@@ -708,7 +708,8 @@ def export_scores(cur, out: Path):
         cur.execute("""
             SELECT s.rank, s.stock_id, st.name, st.market,
                    s.total_pct, s.turnover,
-                   s.is_new, s.prev_rank, s.rank_delta
+                   s.is_new, s.prev_rank, s.rank_delta,
+                   s.pct_d1, s.pct_d2
             FROM tw.score_snapshot s
             JOIN tw.stocks st ON st.stock_id = s.stock_id
             WHERE s.snapshot_date = %s AND s.side = %s
@@ -725,6 +726,8 @@ def export_scores(cur, out: Path):
                 "is_new": r["is_new"],
                 "prev_rank": r["prev_rank"],
                 "rank_delta": r["rank_delta"],
+                "pct_d1": float(r["pct_d1"]) if r["pct_d1"] is not None else None,
+                "pct_d2": float(r["pct_d2"]) if r["pct_d2"] is not None else None,
             })
 
     cur.execute("""
