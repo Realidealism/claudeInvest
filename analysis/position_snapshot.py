@@ -45,9 +45,10 @@ unified_short_factory = SIGNAL_FACTORIES["unified_short"]
 DEFAULT_WORKERS = max(1, min(cpu_count() or 1, 8))
 N_WORKERS = int(os.environ.get("POSITION_SNAPSHOT_WORKERS", str(DEFAULT_WORKERS)))
 
-# Skip stocks with money_level < this on the snapshot date. Default 3 (the
-# 'dead fish' cutoff). Same env-var convention as daily_snapshot.
-MIN_MONEY_LEVEL = int(os.environ.get("DAILY_SNAPSHOT_MIN_LEVEL", "3"))
+# Skip stocks with money_level < this on the snapshot date. Default 4
+# (one tier above the 'dead fish' cutoff). Same env-var convention as
+# daily_snapshot.
+MIN_MONEY_LEVEL = int(os.environ.get("DAILY_SNAPSHOT_MIN_LEVEL", "4"))
 
 _TIER_RE = re.compile(rf"^{re.escape(REASON_ENTRY_INIT)}\[(\w+)\]$")
 

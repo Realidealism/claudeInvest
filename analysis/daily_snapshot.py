@@ -34,9 +34,9 @@ TOP_N = 100
 DEFAULT_WORKERS = max(1, min(cpu_count() or 1, 8))
 N_WORKERS = int(os.environ.get("DAILY_SNAPSHOT_WORKERS", str(DEFAULT_WORKERS)))
 
-# Skip stocks with money_level < this on the snapshot date. Default 3 (the
-# 'dead fish' cutoff in analysis/money.py — 8-day SMA turnover < 9M TWD).
-MIN_MONEY_LEVEL = int(os.environ.get("DAILY_SNAPSHOT_MIN_LEVEL", "3"))
+# Skip stocks with money_level < this on the snapshot date. Default 4
+# (8-day SMA turnover < 27M TWD; one tier above the 'dead fish' cutoff).
+MIN_MONEY_LEVEL = int(os.environ.get("DAILY_SNAPSHOT_MIN_LEVEL", "4"))
 
 # (signal_name, condition_fn) — kept in display order; CHECK constraint in
 # tw.signal_snapshot enforces the same set of names.
