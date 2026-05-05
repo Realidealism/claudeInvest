@@ -41,6 +41,14 @@ function tvUrl(ticker: string, market: string): string {
   return `https://www.tradingview.com/chart/?symbol=${prefix}:${ticker}`;
 }
 
+// Turnover heat tiers (TWD): cold → hot.
+function turnoverClass(t: number): string {
+  if (t < 1e7) return "text-text-secondary";
+  if (t < 1e8) return "text-yellow-400";
+  if (t < 5e8) return "text-orange-400";
+  return "text-orange-300 font-bold";
+}
+
 export default function ScoresPage() {
   const [data, setData] = useState<ScoresData | null>(null);
   const [side, setSide] = useState<Side>("long");
@@ -145,7 +153,7 @@ export default function ScoresPage() {
                     ? `${p.pct_d2 >= 0 ? "+" : ""}${p.pct_d2.toFixed(1)}`
                     : "—"}
                 </td>
-                <td className="px-2 py-1.5 text-right font-mono text-text-secondary">
+                <td className={`px-2 py-1.5 text-right font-mono ${turnoverClass(p.turnover)}`}>
                   {fmtTurnover(p.turnover)}
                 </td>
                 <td className="px-2 py-1.5 text-center">
