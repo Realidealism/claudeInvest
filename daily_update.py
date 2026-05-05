@@ -382,6 +382,7 @@ def update_date(trade_date: date):
 
     # Market breadth aggregate (depends on close/money/volume per stock).
     breadth_days = 0
+    breadth_ok = False
     print(f"\n--- Market breadth ---")
     try:
         from analysis.market_breadth import calculate_market_breadth, save_market_breadth
@@ -389,6 +390,7 @@ def update_date(trade_date: date):
         breadth_days = save_market_breadth(mb_results)
         print(f"  Updated {breadth_days} day(s) of market_breadth.")
         results.append(("市場廣度", "ok"))
+        breadth_ok = True
     except Exception:
         print("  [ERROR] Market breadth computation failed:")
         traceback.print_exc()
@@ -409,15 +411,21 @@ def update_date(trade_date: date):
 
     # Combined daily snapshot — score top-100 long/short + 6 signal-factory
     # fires, parallelized across CPU cores in a single load_stock_data pass.
+    # Skip if market_breadth failed: load_stock_data pulls market_state from
+    # tw.market_breadth, and stale rows would silently degrade the snapshot.
     print(f"\n--- Daily snapshot (score + signal) ---")
-    try:
-        from analysis.daily_snapshot import run as run_daily_snapshot
-        run_daily_snapshot(trade_date)
-        results.append(("多空評比 + 操作訊號快照", "ok"))
-    except Exception:
-        print("  [ERROR] Daily snapshot failed:")
-        traceback.print_exc()
-        results.append(("多空評比 + 操作訊號快照", "failed"))
+    if not breadth_ok:
+        print("  [SKIP] market_breadth failed; daily_snapshot needs fresh market_state.")
+        results.append(("多空評比 + 操作訊號快照", "skip"))
+    else:
+        try:
+            from analysis.daily_snapshot import run as run_daily_snapshot
+            run_daily_snapshot(trade_date)
+            results.append(("多空評比 + 操作訊號快照", "ok"))
+        except Exception:
+            print("  [ERROR] Daily snapshot failed:")
+            traceback.print_exc()
+            results.append(("多空評比 + 操作訊號快照", "failed"))
 
     # Export JSON + git push for Vercel auto-deploy
     print(f"\n--- Frontend export + deploy ---")

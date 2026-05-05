@@ -211,9 +211,29 @@ def _save_signal_fires(snapshot_date: date, results: list[dict]) -> dict[str, in
     return counts
 
 
+def _check_market_breadth_fresh(snapshot_date: date) -> None:
+    """Precondition: tw.market_breadth must reach snapshot_date.
+
+    load_stock_data() pulls market_state from this table; stale rows
+    silently degrade signal evaluation rather than failing loudly. We
+    enforce the freshness contract here so manual / cron callers fail
+    fast instead of producing snapshots with mixed-vintage market state.
+    """
+    with get_cursor(commit=False) as cur:
+        cur.execute("SELECT MAX(trade_date) AS d FROM tw.market_breadth")
+        latest = cur.fetchone()["d"]
+    if latest is None or latest < snapshot_date:
+        raise RuntimeError(
+            f"tw.market_breadth latest = {latest}, snapshot_date = {snapshot_date}. "
+            f"Run analysis.market_breadth.calculate_market_breadth + save first."
+        )
+
+
 def run(snapshot_date: date) -> dict:
     """Main entry. Parallelizes per-stock evaluation across N_WORKERS,
     then writes both score and signal snapshots."""
+    _check_market_breadth_fresh(snapshot_date)
+
     t0 = time.time()
     print(f"  Daily snapshot @ {snapshot_date} (workers={N_WORKERS}) ...")
     stock_ids = _load_active_stock_ids()
