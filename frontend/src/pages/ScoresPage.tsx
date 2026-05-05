@@ -12,6 +12,7 @@ interface ScoreRow {
   rank_delta: number | null;
   pct_d1: number | null;
   pct_d2: number | null;
+  pct_d3: number | null;
 }
 
 interface HistoryItem {
@@ -151,7 +152,7 @@ export default function ScoresPage() {
                     ? `${p.pct_d1 >= 0 ? "+" : ""}${p.pct_d1.toFixed(1)}`
                     : "—"}
                 </td>
-                <td className="px-2 py-1.5 text-right font-mono text-text-secondary hidden sm:table-cell">
+                <td className={`px-2 py-1.5 text-right font-mono hidden sm:table-cell ${deltaClass(p.pct_d2, p.pct_d3)}`}>
                   {p.pct_d2 !== null
                     ? `${p.pct_d2 >= 0 ? "+" : ""}${p.pct_d2.toFixed(1)}`
                     : "—"}

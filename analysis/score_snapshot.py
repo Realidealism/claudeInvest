@@ -68,8 +68,9 @@ def _eval_pct(board, data, idx: int) -> tuple[float | None, float | None]:
 def _evaluate_all() -> list[tuple]:
     """Return per-stock tuple
         (stock_id, long_pct, short_pct, turnover,
-         long_pct_d1, short_pct_d1, long_pct_d2, short_pct_d2)
-    Today's bar is data.n-1; d1 = data.n-2; d2 = data.n-3."""
+         long_pct_d1, short_pct_d1, long_pct_d2, short_pct_d2,
+         long_pct_d3, short_pct_d3)
+    Today's bar is data.n-1; d1 = data.n-2; d2 = data.n-3; d3 = data.n-4."""
     stocks = _load_active_stocks()
     print(f"  Loaded {len(stocks)} active stocks", file=sys.stderr)
 
@@ -90,10 +91,12 @@ def _evaluate_all() -> list[tuple]:
             continue
         lp_d1, sp_d1 = _eval_pct(board, data, data.n - 2)
         lp_d2, sp_d2 = _eval_pct(board, data, data.n - 3)
+        lp_d3, sp_d3 = _eval_pct(board, data, data.n - 4)
         # turnover may be NaN for halted bars
         tv_raw = float(data.turnover[-1])
         tv = tv_raw if tv_raw == tv_raw else 0.0
-        out.append((sid, lp, sp, tv, lp_d1, sp_d1, lp_d2, sp_d2))
+        out.append((sid, lp, sp, tv,
+                    lp_d1, sp_d1, lp_d2, sp_d2, lp_d3, sp_d3))
 
     return out
 
@@ -105,13 +108,15 @@ def _save_side(snapshot_date: date, side: str,
 
     For each row, pct_d1/pct_d2 store the SAME side's pct evaluated at the
     previous 2 trading bars."""
-    # tuple layout: (sid, long, short, tv, long_d1, short_d1, long_d2, short_d2)
+    # tuple layout:
+    #   (sid, long, short, tv,
+    #    long_d1, short_d1, long_d2, short_d2, long_d3, short_d3)
     if side == "long":
         ranked = sorted(results, key=lambda r: (-r[1], -r[3]))[:TOP_N]
-        pct_idx, d1_idx, d2_idx = 1, 4, 6
+        pct_idx, d1_idx, d2_idx, d3_idx = 1, 4, 6, 8
     else:
         ranked = sorted(results, key=lambda r: (-r[2], -r[3]))[:TOP_N]
-        pct_idx, d1_idx, d2_idx = 2, 5, 7
+        pct_idx, d1_idx, d2_idx, d3_idx = 2, 5, 7, 9
 
     rows = []
     for i, r in enumerate(ranked, start=1):
@@ -120,6 +125,7 @@ def _save_side(snapshot_date: date, side: str,
         turnover = r[3]
         pct_d1 = r[d1_idx]
         pct_d2 = r[d2_idx]
+        pct_d3 = r[d3_idx]
         prev_rank = prev.get(sid)
         is_new = prev_rank is None
         rank_delta = (prev_rank - i) if prev_rank is not None else None
@@ -129,13 +135,14 @@ def _save_side(snapshot_date: date, side: str,
             is_new, prev_rank, rank_delta,
             round(pct_d1, 3) if pct_d1 is not None else None,
             round(pct_d2, 3) if pct_d2 is not None else None,
+            round(pct_d3, 3) if pct_d3 is not None else None,
         ))
 
     sql = """
         INSERT INTO tw.score_snapshot
         (snapshot_date, side, rank, stock_id, total_pct, turnover,
-         is_new, prev_rank, rank_delta, pct_d1, pct_d2)
-        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+         is_new, prev_rank, rank_delta, pct_d1, pct_d2, pct_d3)
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
     """
     conn = get_connection()
     try:
