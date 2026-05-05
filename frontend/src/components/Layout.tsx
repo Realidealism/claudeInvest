@@ -48,9 +48,9 @@ export default function Layout() {
       <nav className="hidden md:flex w-52 shrink-0 border-r border-border bg-surface-alt flex-col">
         <div className="px-4 py-5 border-b border-border">
           <h1 className="text-sm font-bold tracking-wide text-text-primary">
-            持股交叉比對
+            個股策略中心
           </h1>
-          <p className="text-xs text-text-secondary mt-0.5">Fund Holdings X-Ref</p>
+          <p className="text-xs text-text-secondary mt-0.5">TW Equity Strategy Hub</p>
         </div>
         <NavItems />
         <div className="px-4 py-3 text-xs text-text-secondary border-t border-border">
@@ -75,9 +75,9 @@ export default function Layout() {
         <div className="px-4 py-5 border-b border-border flex items-center justify-between">
           <div>
             <h1 className="text-sm font-bold tracking-wide text-text-primary">
-              持股交叉比對
+              個股策略中心
             </h1>
-            <p className="text-xs text-text-secondary mt-0.5">Fund Holdings X-Ref</p>
+            <p className="text-xs text-text-secondary mt-0.5">TW Equity Strategy Hub</p>
           </div>
           <button
             onClick={() => setOpen(false)}
@@ -106,7 +106,7 @@ export default function Layout() {
               <path d="M3 12h18M3 6h18M3 18h18" />
             </svg>
           </button>
-          <h1 className="text-sm font-bold text-text-primary">持股交叉比對</h1>
+          <h1 className="text-sm font-bold text-text-primary">個股策略中心</h1>
         </header>
 
         <main className="flex-1 overflow-y-auto p-4 md:p-6">
