@@ -299,6 +299,8 @@ def pick_condition(data: "StockData") -> BoolArray:
            — 動能轉強來源加入「峰的高低變」
       v84: 加 Go G10 排除 — 量衰退 (sma5<sma13) AND 多重量縮比例 (VD13<VD21*0.55 OR ...)
            — 排除「縮量陰跌」段
+      v110: Port Go (D) 嚴閾值版本：階梯改 40/35/30（v109 用 Go 原 35.5/30.5/25.5
+           觸發過低，filter 掉的 74 筆反而是好的；提高閾值看是否反轉成功）
     """
     n = data.n
     close = data.close
@@ -350,13 +352,32 @@ def pick_condition(data: "StockData") -> BoolArray:
     # 7. MACD short 底背離 — 死叉狀態但動能轉強 = 底部 likely
     rule_macd = data.macd.short.macd_convergence_nte
 
+    # 8. v110 port Go (D) 嚴閾值版本：階梯 40/35/30（Go 原為 35.5/30.5/25.5）
+    # Go (CalculateTrade2.go:7548-7553):
+    #   ~(SellAlone[t]>0.355 & SellAlone[t-1]>0.305 & SellAlone[t-2]>0.255
+    #     & (close[t]<LD55S[t-1] | close[t-1]<LD55S[t-2] | close[t-2]<LD55S[t-3]))
+    short_pct = _short_pct_array(data)
+    sp_t = short_pct
+    sp_t1 = _shift(short_pct, 1)
+    sp_t2 = _shift(short_pct, 2)
+    ratchet = (sp_t >= 40) & (sp_t1 >= 35) & (sp_t2 >= 30)
+
+    ld55 = data.close_result.bs.low[55]
+    close_t = data.close
+    close_t1 = _shift(data.close, 1)
+    close_t2 = _shift(data.close, 2)
+    break_55 = ((close_t < _shift(ld55, 1)) |
+                (close_t1 < _shift(ld55, 2)) |
+                (close_t2 < _shift(ld55, 3)))
+    rule_not_strong_bear = ~(ratchet & break_55)
+
     # OSC defense from Go PickCondition was tried in v20 and gutted PF
     # (2.91→1.54): Go's pick "trigger = OSCStatus true" expects momentum
     # already accelerating, which contradicts our "buy the lowest tick"
     # design. Reverted in v21.
 
     return (rule_pos & rule_change & rule_vol & rule_flood & rule_g19
-            & rule_g10 & rule_market & rule_macd)
+            & rule_g10 & rule_market & rule_macd & rule_not_strong_bear)
 
 
 def touch_condition(data: "StockData") -> BoolArray:
@@ -438,6 +459,8 @@ def buy_condition(data: "StockData") -> BoolArray:
       4. 量能配合：今日量 >= VD5 * 1.0 (站上 5 日均量)
       5. 非長均糾結
       6. 大盤非強空 — 不在崩盤段做多
+      7. OSC 長部位防禦觸發
+      8. v106 long_pct gate：long_pct >= 35（v107 試 40 失敗，portfolio -0.014 退步，已 revert）
       (v63 移除原規則 6「不在連續 3 日凸21」: 對直線飆漲股會卡死所有進場)
     """
     close = data.close
@@ -463,8 +486,11 @@ def buy_condition(data: "StockData") -> BoolArray:
     # 7. OSC 防禦觸發（Go BuyCondition line 7866-7877，trigger_main 部分）
     rule_osc = _osc_long_trigger(data)
 
+    # 8. v106 long_pct gate：個股做多評分 >=35（v107 試 40 退步，已 revert）
+    rule_long_pct_gate = _long_pct_array(data) >= 35
+
     return (rule_ma & rule_turn & rule_break & rule_vol & rule_knot
-            & rule_market & rule_osc)
+            & rule_market & rule_osc & rule_long_pct_gate)
 
 
 def sell_condition(data: "StockData") -> BoolArray:
@@ -482,8 +508,8 @@ def sell_condition(data: "StockData") -> BoolArray:
          觸發率從 1.1% 拉到 ~3-5%；原 Go 規則 line 8038-8040 為三尺度 AND）
       8. v58 加個股 medium scope MA 全空頭：SMA5 < SMA13 < SMA34
          （sort_normal["medium"].down 確認中期 MA 結構也已轉空）
-      9. v102 short_pct gate B：short_pct >= 20（嚴格偏空 gate）
-         （要求個股做空評分明顯偏空才允許做空）
+      9. v106 short_pct gate：short_pct >= 35（鏡像 v105 buy 的 long_pct >= 35）
+         （v102/v103 sweep 0/20/30 單調改善，鏡像 buy 的閾值往同方向推）
       (v63 移除原規則 6「不在連續 3 日凹21」: 對直線崩跌股會卡死所有進場)
       (v96 嘗試加 short_ma_bear 失敗，trades 只 -0.94%、PF 無變化，已 revert)
       (v97 嘗試加 turn[3]==0 共振失敗，0 trades 變化、PF 無變化，已 revert)
@@ -519,8 +545,8 @@ def sell_condition(data: "StockData") -> BoolArray:
     # 10. v58 個股 medium scope MA 全空頭排列（SMA5<SMA13<SMA34）
     rule_medium_ma_bear = data.close_result.ma.sort_normal["medium"].down
 
-    # 11. v102 short_pct gate B：嚴格偏空閾值
-    rule_short_pct_gate = _short_pct_array(data) >= 20
+    # 11. v106 short_pct gate：閾值 >=35（鏡像 v105 buy）
+    rule_short_pct_gate = _short_pct_array(data) >= 35
 
     return (rule_ma & rule_turn & rule_break & rule_vol & rule_knot
             & rule_market & rule_not_double_down_hot & rule_osc
