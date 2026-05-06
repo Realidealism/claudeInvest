@@ -48,9 +48,10 @@ if TYPE_CHECKING:
 def unified_long_factory(data: "StockData") -> SignalSpec:
     """統一做多 dynamic-tier：pick/buy/sell_flee 動態 tier，buy_flee 全局出場."""
     n = data.n
-    pick = pick_condition(data)
-    buy = buy_condition(data)
-    sell_flee = sell_flee_signal(data)
+    not_dead_fish = ~data.money_result.dead  # money_level >= 3 (>= 9M turnover)
+    pick = pick_condition(data) & not_dead_fish
+    buy = buy_condition(data) & not_dead_fish
+    sell_flee = sell_flee_signal(data) & not_dead_fish
     long_exit = buy_flee_signal(data)
 
     pick_spec = pick_signal(data)
@@ -82,9 +83,10 @@ def unified_long_factory(data: "StockData") -> SignalSpec:
 def unified_short_factory(data: "StockData") -> SignalSpec:
     """統一做空 dynamic-tier：touch/sell/buy_flee 動態 tier，sell_flee 全局出場."""
     n = data.n
-    touch = touch_condition(data)
-    sell = sell_condition(data)
-    buy_flee = buy_flee_signal(data)
+    not_dead_fish = ~data.money_result.dead  # money_level >= 3 (>= 9M turnover)
+    touch = touch_condition(data) & not_dead_fish
+    sell = sell_condition(data) & not_dead_fish
+    buy_flee = buy_flee_signal(data) & not_dead_fish
     short_exit = sell_flee_signal(data)
 
     touch_spec = touch_signal(data)

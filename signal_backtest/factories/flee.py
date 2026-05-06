@@ -1,9 +1,9 @@
 """Reversal signal factories — Flee系列.
 
-  buy_flee  : short_entry = BuyFleeSignal,  short_exit = PickCondition
-              (多翻空就做空，看到底訊就出場)
-  sell_flee : long_entry  = SellFleeSignal, long_exit  = TouchCondition
-              (空翻多就做多，看到頭訊就出場)
+  buy_flee  : short_entry = BuyFleeSignal,  short_exit = SellFleeSignal
+              (多翻空進場做空，看到空翻多 = 趨勢再反轉就出場)
+  sell_flee : long_entry  = SellFleeSignal, long_exit  = BuyFleeSignal
+              (空翻多進場做多，看到多翻空 = 趨勢再反轉就出場)
 """
 
 from __future__ import annotations
@@ -17,8 +17,6 @@ from signal_backtest.signal import DefenseRule, SignalSet, SignalSpec
 from signal_backtest.factories._conditions import (
     buy_flee_signal,
     sell_flee_signal,
-    pick_condition,
-    touch_condition,
 )
 
 if TYPE_CHECKING:
@@ -28,8 +26,9 @@ if TYPE_CHECKING:
 def buy_flee_factory(data: "StockData") -> SignalSpec:
     """多翻空反轉 (short-only)."""
     n = data.n
-    short_entry = buy_flee_signal(data)
-    short_exit = pick_condition(data)
+    not_dead_fish = ~data.money_result.dead  # money_level >= 3 (>= 9M turnover)
+    short_entry = buy_flee_signal(data) & not_dead_fish
+    short_exit = sell_flee_signal(data)  # 出場：趨勢再反轉（空翻多）
     zero = np.zeros(n, dtype=np.bool_)
 
     # v43: 洪量規則對 buy_flee 邊際負（短側 floor 已 8d，flood 規則只是 redundant），不加
@@ -60,8 +59,9 @@ def buy_flee_factory(data: "StockData") -> SignalSpec:
 def sell_flee_factory(data: "StockData") -> SignalSpec:
     """空翻多反轉 (long-only)."""
     n = data.n
-    long_entry = sell_flee_signal(data)
-    long_exit = touch_condition(data)
+    not_dead_fish = ~data.money_result.dead  # money_level >= 3 (>= 9M turnover)
+    long_entry = sell_flee_signal(data) & not_dead_fish
+    long_exit = buy_flee_signal(data)  # 出場：趨勢再反轉（多翻空）
     zero = np.zeros(n, dtype=np.bool_)
 
     # v43: 洪量規則對 sell_flee 持續負向（持倉 20d 太長被殺贏單），不加

@@ -26,7 +26,8 @@ if TYPE_CHECKING:
 def buy_signal(data: "StockData") -> SignalSpec:
     """波段多 (long-only)."""
     n = data.n
-    long_entry = buy_condition(data)
+    not_dead_fish = ~data.money_result.dead  # money_level >= 3 (>= 9M turnover)
+    long_entry = buy_condition(data) & not_dead_fish
     long_exit = buy_flee_signal(data)
     zero = np.zeros(n, dtype=np.bool_)
 
@@ -56,7 +57,8 @@ def buy_signal(data: "StockData") -> SignalSpec:
 def sell_signal(data: "StockData") -> SignalSpec:
     """波段空 (short-only)."""
     n = data.n
-    short_entry = sell_condition(data)
+    not_dead_fish = ~data.money_result.dead  # money_level >= 3 (>= 9M turnover)
+    short_entry = sell_condition(data) & not_dead_fish
     short_exit = sell_flee_signal(data)
     zero = np.zeros(n, dtype=np.bool_)
 
