@@ -20,7 +20,8 @@ const NAV_GROUPS = [
     key: "fundamentals",
     label: "基本面",
     items: [
-      { to: "/hermit", label: "贏勢股篩選" },
+      { to: "/hermit",  label: "贏勢股篩選" },
+      { to: "/revenue", label: "月營收選股" },
     ],
   },
   {

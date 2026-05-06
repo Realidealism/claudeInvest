@@ -694,6 +694,261 @@ def export_hermit(cur, out: Path):
     }, out / "hermit.json")
 
 
+# Definitions for the 8 monthly-revenue screeners. The screen() functions live
+# in analysis/revenue_*.py; we reuse them as-is and just pull metadata + the
+# column layout the frontend should render.
+_REVENUE_STRATEGIES = [
+    {
+        "key": "three_arrows",
+        "label": "營收三支箭",
+        "side": "long",
+        "description": "當月營收 > 歷史均值 + YoY 加速 + 歷史新高",
+        "module": "analysis.revenue_three_arrows",
+        "columns": [
+            ("stock_id", "代號", None),
+            ("name", "名稱", None),
+            ("industry", "產業", None),
+            ("revenue", "當月營收(千)", "int"),
+            ("rev_vs_avg_pct", "超越均值%", "pct"),
+            ("yoy_pct", "單月YoY%", "pct"),
+            ("cum_yoy_pct", "累計YoY%", "pct"),
+            ("mom_pct", "MoM%", "pct"),
+        ],
+    },
+    {
+        "key": "turnaround",
+        "label": "營收轉機股",
+        "side": "long",
+        "description": "YoY 連續 ≥3 個月負後當月轉正",
+        "module": "analysis.revenue_turnaround",
+        "columns": [
+            ("stock_id", "代號", None),
+            ("name", "名稱", None),
+            ("industry", "產業", None),
+            ("revenue", "當月營收(千)", "int"),
+            ("yoy_pct", "當月YoY%", "pct"),
+            ("prev_yoy_pct", "前月YoY%", "pct"),
+            ("decline_months", "前期衰退月數", "int"),
+            ("mom_pct", "MoM%", "pct"),
+        ],
+    },
+    {
+        "key": "streak",
+        "label": "連續成長股",
+        "side": "long",
+        "description": "YoY 連續 ≥6 個月為正",
+        "module": "analysis.revenue_streak",
+        "columns": [
+            ("stock_id", "代號", None),
+            ("name", "名稱", None),
+            ("industry", "產業", None),
+            ("revenue", "當月營收(千)", "int"),
+            ("yoy_pct", "當月YoY%", "pct"),
+            ("streak", "連續成長月數", "int"),
+            ("avg_yoy_pct", "期間平均YoY%", "pct"),
+            ("min_yoy_pct", "期間最低YoY%", "pct"),
+            ("max_yoy_pct", "期間最高YoY%", "pct"),
+            ("mom_pct", "MoM%", "pct"),
+        ],
+    },
+    {
+        "key": "off_season",
+        "label": "淡季不淡",
+        "side": "long",
+        "description": "有季節性 + 當月為淡季 + 營收高於歷年同月均值",
+        "module": "analysis.revenue_off_season",
+        "columns": [
+            ("stock_id", "代號", None),
+            ("name", "名稱", None),
+            ("industry", "產業", None),
+            ("revenue", "當月營收(千)", "int"),
+            ("beat_pct", "超越均值%", "pct"),
+            ("seasonal_coeff", "淡季係數", "ratio3"),
+            ("hist_avg", "歷年同月均值(千)", "int"),
+            ("yoy_pct", "YoY%", "pct"),
+            ("mom_pct", "MoM%", "pct"),
+        ],
+    },
+    {
+        "key": "deceleration",
+        "label": "成長減速預警",
+        "side": "short",
+        "description": "連 ≥6 月 YoY 正、但 YoY% 連 ≥3 月下滑",
+        "module": "analysis.revenue_deceleration",
+        "columns": [
+            ("stock_id", "代號", None),
+            ("name", "名稱", None),
+            ("industry", "產業", None),
+            ("revenue", "當月營收(千)", "int"),
+            ("yoy_pct", "當月YoY%", "pct"),
+            ("peak_yoy_pct", "波段最高YoY%", "pct"),
+            ("yoy_drop_pct", "YoY下降幅度", "pct"),
+            ("growth_streak", "連續成長月數", "int"),
+            ("decel_months", "連續減速月數", "int"),
+            ("mom_pct", "MoM%", "pct"),
+        ],
+    },
+    {
+        "key": "decline",
+        "label": "連續衰退",
+        "side": "short",
+        "description": "YoY 連續 ≥6 個月為負且持續惡化",
+        "module": "analysis.revenue_decline",
+        "columns": [
+            ("stock_id", "代號", None),
+            ("name", "名稱", None),
+            ("industry", "產業", None),
+            ("revenue", "當月營收(千)", "int"),
+            ("yoy_pct", "當月YoY%", "pct"),
+            ("streak", "連續衰退月數", "int"),
+            ("avg_yoy_pct", "期間平均YoY%", "pct"),
+            ("worst_yoy_pct", "期間最差YoY%", "pct"),
+            ("mom_pct", "MoM%", "pct"),
+        ],
+    },
+    {
+        "key": "historic_low",
+        "label": "營收歷史新低",
+        "side": "short",
+        "description": "當月營收為歷史最低（≥24 個月歷史）",
+        "module": "analysis.revenue_historic_low",
+        "columns": [
+            ("stock_id", "代號", None),
+            ("name", "名稱", None),
+            ("industry", "產業", None),
+            ("revenue", "當月營收(千)", "int"),
+            ("prev_min_revenue", "前歷史低(千)", "int"),
+            ("below_avg_pct", "低於均值%", "pct"),
+            ("yoy_pct", "YoY%", "pct"),
+            ("mom_pct", "MoM%", "pct"),
+        ],
+    },
+    {
+        "key": "peak_miss",
+        "label": "旺季不旺",
+        "side": "short",
+        "description": "有季節性 + 當月為旺季 + 營收低於歷年同月均值",
+        "module": "analysis.revenue_peak_miss",
+        "columns": [
+            ("stock_id", "代號", None),
+            ("name", "名稱", None),
+            ("industry", "產業", None),
+            ("revenue", "當月營收(千)", "int"),
+            ("miss_pct", "落後均值%", "pct"),
+            ("seasonal_coeff", "旺季係數", "ratio3"),
+            ("hist_avg", "歷年同月均值(千)", "int"),
+            ("yoy_pct", "YoY%", "pct"),
+            ("mom_pct", "MoM%", "pct"),
+        ],
+    },
+]
+
+
+def export_revenue_screens(cur, out: Path, n_months: int = 4):
+    """Run all 8 monthly-revenue screeners for the most recent n_months and
+    bundle results into a single JSON for the frontend. Each screen() opens
+    its own cursor via get_cursor(), so the cur argument here is only used to
+    discover the latest months that have revenue data.
+
+    Tracks first_seen date per (year_month, strategy, stock_id) in a state
+    file so each row carries an is_new flag (true iff first_seen == today).
+    """
+    import importlib
+
+    cur.execute("""
+        SELECT DISTINCT year_month FROM tw.monthly_revenue
+        ORDER BY year_month DESC LIMIT %s
+    """, (n_months,))
+    months = [r["year_month"] for r in cur.fetchall()]
+
+    if not months:
+        _write({
+            "generated_at": datetime.now().isoformat(timespec="seconds"),
+            "available_months": [],
+            "strategies": [],
+            "data": {},
+        }, out / "revenue_screens.json")
+        return
+
+    # Load first_seen state. Schema: { year_month: { strategy_key: { stock_id: date_str } } }.
+    state_path = Path(__file__).parent.parent / "data" / "revenue_screens_first_seen.json"
+    if state_path.exists():
+        with open(state_path, encoding="utf-8") as f:
+            first_seen = json.load(f)
+    else:
+        first_seen = {}
+
+    today_str = date.today().isoformat()
+
+    # Drop months that are no longer in the window so the state file stays bounded.
+    for ym in list(first_seen.keys()):
+        if ym not in months:
+            del first_seen[ym]
+
+    strategies_meta = []
+    for s in _REVENUE_STRATEGIES:
+        strategies_meta.append({
+            "key": s["key"],
+            "label": s["label"],
+            "side": s["side"],
+            "description": s["description"],
+            "columns": [
+                {"key": k, "label": l, "format": fmt}
+                for (k, l, fmt) in s["columns"]
+            ],
+        })
+
+    data = {}
+    for ym in months:
+        data[ym] = {}
+        ym_state = first_seen.setdefault(ym, {})
+        for s in _REVENUE_STRATEGIES:
+            mod = importlib.import_module(s["module"])
+            try:
+                results = mod.screen(ym)
+            except Exception as e:
+                print(f"  [WARN] {s['key']} {ym} failed: {e}")
+                results = []
+            keys = [k for (k, _, _) in s["columns"]]
+            strat_state = ym_state.setdefault(s["key"], {})
+
+            current_ids = set()
+            rows = []
+            for r in results:
+                stock_id = r.get("stock_id")
+                if stock_id is None:
+                    continue
+                current_ids.add(stock_id)
+                if stock_id not in strat_state:
+                    strat_state[stock_id] = today_str
+                row = {k: r.get(k) for k in keys}
+                # Always carry market for the TradingView link, even if not
+                # displayed as a column.
+                row["market"] = r.get("market")
+                row["is_new"] = strat_state[stock_id] == today_str
+                rows.append(row)
+
+            # Forget stocks that left the screen — if they come back later they
+            # should re-trigger NEW.
+            for sid in list(strat_state.keys()):
+                if sid not in current_ids:
+                    del strat_state[sid]
+
+            data[ym][s["key"]] = rows
+
+    state_path.parent.mkdir(parents=True, exist_ok=True)
+    with open(state_path, "w", encoding="utf-8") as f:
+        json.dump(first_seen, f, ensure_ascii=False, indent=2)
+
+    _write({
+        "generated_at": datetime.now().isoformat(timespec="seconds"),
+        "export_date": today_str,
+        "available_months": months,
+        "strategies": strategies_meta,
+        "data": data,
+    }, out / "revenue_screens.json")
+
+
 def export_scores(cur, out: Path):
     """Daily ScoreBoard snapshot — top-100 long + top-100 short."""
     cur.execute("SELECT MAX(snapshot_date) AS d FROM tw.score_snapshot")
@@ -866,6 +1121,7 @@ def export_all(out_dir: str | None = None):
         export_flow(cur, out)
         export_prices(cur, out)
         export_hermit(cur, out)
+        export_revenue_screens(cur, out)
         export_scores(cur, out)
         export_operations(cur, out)
         export_positions(cur, out)

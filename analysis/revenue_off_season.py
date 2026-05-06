@@ -92,8 +92,10 @@ def _same_month_history(cur, stock_id: str, period: str,
         rows = cur.fetchall()
         if not rows:
             return None, 0
-        # Divide by 2 to get monthly average for comparison
-        avg = mean(r["total"] / 2 for r in rows)
+        # Divide by 2 to get monthly average for comparison.
+        # SUM(BIGINT) returns Decimal in postgres; cast so callers don't have
+        # to mix Decimal and float arithmetic.
+        avg = mean(float(r["total"]) / 2 for r in rows)
         return avg, len(rows)
     else:
         month_str = period.zfill(2)
