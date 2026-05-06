@@ -166,7 +166,7 @@ export default function ScoresPage() {
                       NEW
                     </span>
                   ) : p.rank_delta !== null && p.rank_delta !== 0 ? (
-                    <span className={p.rank_delta > 0 ? "text-green-300" : "text-red-300"}>
+                    <span className={p.rank_delta > 0 ? "text-red-300" : "text-green-300"}>
                       {p.rank_delta > 0 ? "↑" : "↓"}
                       {Math.abs(p.rank_delta)}
                     </span>
