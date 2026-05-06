@@ -103,27 +103,50 @@ def _market_any_bear(data: "StockData") -> BoolArray:
 # strong bull-onset signal — they flag the inflection, not the steady state.
 
 
-def _long_score_array(data: "StockData") -> NDArray[np.float32]:
-    """Compute long_score for every bar, cached on the StockData instance.
+def _eval_pct_arrays(
+    data: "StockData",
+) -> tuple[NDArray[np.float32], NDArray[np.float32]]:
+    """Compute (long_pct, short_pct) arrays in one evaluate cycle, cached.
+
+    Currently short_pct ≡ -long_pct (~99.98% mirror pair) because every
+    ScoreItem registers symmetric ±pts on long/short sides. They diverge
+    only in rare knot-rescue cap edge cases. Kept as separate caches so
+    callers don't have to know about the symmetry — future ScoreItem or
+    rescue changes may break the mirror without rewriting signal code.
 
     Score system is not vectorized — calls board.evaluate(i) per bar, so we
-    pay O(n) once per stock then reuse. Cache lives on `data` so it dies with
-    the instance (no cross-process / cross-test leakage).
+    pay O(n) once per stock then reuse. Cache lives on `data` so it dies
+    with the instance (no cross-process / cross-test leakage).
     """
-    cached = getattr(data, "_long_score_cache", None)
-    if cached is not None:
-        return cached
+    long_cache = getattr(data, "_long_pct_cache", None)
+    short_cache = getattr(data, "_short_pct_cache", None)
+    if long_cache is not None and short_cache is not None:
+        return long_cache, short_cache
     from analysis.score import build_scoreboard
     board = build_scoreboard()
     n = data.n
-    out = np.zeros(n, dtype=np.float32)
+    long_out = np.zeros(n, dtype=np.float32)
+    short_out = np.zeros(n, dtype=np.float32)
     for i in range(60, n):
         try:
-            out[i] = board.evaluate(data, i).total.long.score
+            r = board.evaluate(data, i)
+            long_out[i] = r.total.long.pct
+            short_out[i] = r.total.short.pct
         except Exception:
             pass
-    data._long_score_cache = out
-    return out
+    data._long_pct_cache = long_out
+    data._short_pct_cache = short_out
+    return long_out, short_out
+
+
+def _long_pct_array(data: "StockData") -> NDArray[np.float32]:
+    """total.long.pct (-100~+100) per bar. Use for 多方訊號 score conditions."""
+    return _eval_pct_arrays(data)[0]
+
+
+def _short_pct_array(data: "StockData") -> NDArray[np.float32]:
+    """total.short.pct (-100~+100) per bar. Use for 空方訊號 score conditions."""
+    return _eval_pct_arrays(data)[1]
 
 
 def _stock_trend_code(data: "StockData", scope: str) -> NDArray[np.int8]:
@@ -459,7 +482,13 @@ def sell_condition(data: "StockData") -> BoolArray:
          觸發率從 1.1% 拉到 ~3-5%；原 Go 規則 line 8038-8040 為三尺度 AND）
       8. v58 加個股 medium scope MA 全空頭：SMA5 < SMA13 < SMA34
          （sort_normal["medium"].down 確認中期 MA 結構也已轉空）
+      9. v102 short_pct gate B：short_pct >= 20（嚴格偏空 gate）
+         （要求個股做空評分明顯偏空才允許做空）
       (v63 移除原規則 6「不在連續 3 日凹21」: 對直線崩跌股會卡死所有進場)
+      (v96 嘗試加 short_ma_bear 失敗，trades 只 -0.94%、PF 無變化，已 revert)
+      (v97 嘗試加 turn[3]==0 共振失敗，0 trades 變化、PF 無變化，已 revert)
+      (v100 加 A short_pct>=0 + C short_pct rising 失敗，trades -1223 但 PF 反降 0.01)
+      (v101 單獨 C short_pct rising 失敗，trades -1108 但 PF 反降 0.01)
     """
     close = data.close
     sma = data.close_result.ma.sma
@@ -490,45 +519,58 @@ def sell_condition(data: "StockData") -> BoolArray:
     # 10. v58 個股 medium scope MA 全空頭排列（SMA5<SMA13<SMA34）
     rule_medium_ma_bear = data.close_result.ma.sort_normal["medium"].down
 
+    # 11. v102 short_pct gate B：嚴格偏空閾值
+    rule_short_pct_gate = _short_pct_array(data) >= 20
+
     return (rule_ma & rule_turn & rule_break & rule_vol & rule_knot
             & rule_market & rule_not_double_down_hot & rule_osc
-            & rule_medium_ma_bear)
+            & rule_medium_ma_bear
+            & rule_short_pct_gate)
 
 
 # ── BuyFleeSignal / SellFleeSignal (多翻空 / 空翻多) ────────────────────────
 
 
+# Pct equivalents of original raw-score thresholds (v98 unit change).
+# Raw score range is ±279.52 (stock-invariant), so pct = score / 2.7952.
+# Original thresholds: ±75 → ±26.83; ±115 → ±41.14.
+_PCT_DELTA1_THRESHOLD = 75.0 / 2.7952   # ≈ 26.83 (~P0.5 of 1-day delta)
+_PCT_DELTA3_THRESHOLD = 115.0 / 2.7952  # ≈ 41.14 (~P0.5 of 3-day delta)
+
+
 def _buy_flee_main(data: "StockData") -> BoolArray:
-    """多翻空 main — 純 score-based (鏡像 sell_flee 的 P0.5 級閾值).
+    """多翻空 main — 純 pct-based (空方訊號用 short_pct, P0.5 級閾值).
 
-    long_score 從中性/正分急降到負 = 多頭翻空頭：
-      fall1 = delta1 <= -75 & prev1 >= 0
-      fall3 = delta3 <= -115 & prev3 >= 0
+    short_pct 從中性/負分急升到正 = 空方分數突然走強 = 多頭翻空頭：
+      rise1 = delta1 >= 26.83 & prev1 <= 0
+      rise3 = delta3 >= 41.14 & prev3 <= 0
     """
-    long_score = _long_score_array(data)
-    prev1 = _shift(long_score, 1)
-    prev3 = _shift(long_score, 3)
-    delta1 = long_score - prev1
-    delta3 = long_score - prev3
+    short_pct = _short_pct_array(data)
+    prev1 = _shift(short_pct, 1)
+    prev3 = _shift(short_pct, 3)
+    delta1 = short_pct - prev1
+    delta3 = short_pct - prev3
 
-    fall1 = (delta1 <= -75) & (prev1 >= 0)
-    fall3 = (delta3 <= -115) & (prev3 >= 0)
-    return fall1 | fall3
+    rise1 = (delta1 >= _PCT_DELTA1_THRESHOLD) & (prev1 <= 0)
+    rise3 = (delta3 >= _PCT_DELTA3_THRESHOLD) & (prev3 <= 0)
+    return rise1 | rise3
 
 
 def _sell_flee_main(data: "StockData") -> BoolArray:
     """空翻多 main 子句 (v91 score-rise, 不含 bait_flip).
 
-    P0.5 級閾值: rise1 = delta1>=75 & prev1<=0, rise3 = delta3>=115 & prev3<=0.
+    多方訊號用 long_pct, P0.5 級閾值:
+      rise1 = delta1>=26.83 & prev1<=0
+      rise3 = delta3>=41.14 & prev3<=0
     """
-    long_score = _long_score_array(data)
-    prev1 = _shift(long_score, 1)
-    prev3 = _shift(long_score, 3)
-    delta1 = long_score - prev1
-    delta3 = long_score - prev3
+    long_pct = _long_pct_array(data)
+    prev1 = _shift(long_pct, 1)
+    prev3 = _shift(long_pct, 3)
+    delta1 = long_pct - prev1
+    delta3 = long_pct - prev3
 
-    rise1 = (delta1 >= 75) & (prev1 <= 0)
-    rise3 = (delta3 >= 115) & (prev3 <= 0)
+    rise1 = (delta1 >= _PCT_DELTA1_THRESHOLD) & (prev1 <= 0)
+    rise3 = (delta3 >= _PCT_DELTA3_THRESHOLD) & (prev3 <= 0)
     return rise1 | rise3
 
 
