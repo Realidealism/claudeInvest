@@ -7,8 +7,11 @@ and bundles everything into a single StockData object.
 
 from __future__ import annotations
 
+import os
+import pickle
 from dataclasses import dataclass
 from datetime import date
+from pathlib import Path
 
 import numpy as np
 from numpy.typing import NDArray
@@ -95,10 +98,58 @@ class StockData:
 _INDEX_IDS = {"TAIEX", "TPEx"}
 
 
+# ── Pickle cache for built StockData ─────────────────────────────────────────
+# Profile shows 79% of load time is the analysis pipeline (build_stock_data),
+# only 21% is DB IO — so caching just raw rows would barely help. We pickle the
+# full StockData (numpy arrays + nested dataclasses) and key the file by the
+# DB's latest trade_date, which auto-invalidates after daily_update.py.
+
+CACHE_DIR = Path("data/stock_cache")
+_DB_MAX_DATE: date | None = None  # session-scoped, queried once per process
+
+
+def _get_db_max_date() -> date:
+    """Return max(trade_date) across tw.daily_prices. Cached per process."""
+    global _DB_MAX_DATE
+    if _DB_MAX_DATE is None:
+        with get_cursor(commit=False) as cur:
+            cur.execute("SELECT MAX(trade_date) AS d FROM tw.daily_prices")
+            row = cur.fetchone()
+            _DB_MAX_DATE = row["d"]
+    return _DB_MAX_DATE
+
+
+def _cache_path(stock_id: str, db_date: date) -> Path:
+    """Cache file is keyed by stock_id + DB latest trade_date."""
+    return CACHE_DIR / f"{stock_id}_{db_date.isoformat()}.pkl"
+
+
+def _try_load_cache(path: Path) -> StockData | None:
+    """Read pickled StockData if file exists and is loadable."""
+    if not path.exists():
+        return None
+    try:
+        with path.open("rb") as f:
+            return pickle.load(f)
+    except Exception:
+        # Stale schema, partial write, etc. — fall back to rebuild.
+        return None
+
+
+def _write_cache(path: Path, data: StockData) -> None:
+    """Write pickle atomically (tmp + rename) so concurrent workers are safe."""
+    CACHE_DIR.mkdir(parents=True, exist_ok=True)
+    tmp = path.with_suffix(path.suffix + f".tmp{os.getpid()}")
+    with tmp.open("wb") as f:
+        pickle.dump(data, f, protocol=pickle.HIGHEST_PROTOCOL)
+    os.replace(tmp, path)
+
+
 def load_stock_data(
     stock_id: str,
     start_date: date | None = None,
     end_date: date | None = None,
+    use_cache: bool = False,
 ) -> StockData:
     """
     Load stock data and run full analysis pipeline.
@@ -108,9 +159,22 @@ def load_stock_data(
 
     Supports index IDs ('TAIEX', 'TPEx') — fetches from tw.index_prices
     and uses turnover as the volume field.
+
+    When ``use_cache=True`` and no date range is specified, looks up a
+    pickled StockData under ``data/stock_cache/<stock_id>_<db_date>.pkl``
+    and rebuilds + writes the cache on miss. Cache is keyed by the DB's
+    latest trade_date so it auto-invalidates after fresh data is loaded.
     """
     if stock_id in _INDEX_IDS:
         return _load_index_data(stock_id, start_date, end_date)
+
+    cache_eligible = use_cache and start_date is None and end_date is None
+    cache_file: Path | None = None
+    if cache_eligible:
+        cache_file = _cache_path(stock_id, _get_db_max_date())
+        cached = _try_load_cache(cache_file)
+        if cached is not None:
+            return cached
 
     stock_name = fetch_stock_name(stock_id)
 
@@ -120,7 +184,16 @@ def load_stock_data(
 
     dates = [r["trade_date"] for r in rows]
     dividends = fetch_dividends(stock_id, dates)
-    return build_stock_data(stock_id, stock_name, rows, dividends)
+    data = build_stock_data(stock_id, stock_name, rows, dividends)
+
+    if cache_file is not None:
+        try:
+            _write_cache(cache_file, data)
+        except Exception:
+            # Cache write failure should never break the run.
+            pass
+
+    return data
 
 
 def _load_index_data(
