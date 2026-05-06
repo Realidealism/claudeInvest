@@ -301,6 +301,17 @@ def pick_condition(data: "StockData") -> BoolArray:
            — 排除「縮量陰跌」段
       v110: Port Go (D) 嚴閾值版本：階梯改 40/35/30（v109 用 Go 原 35.5/30.5/25.5
            觸發過低，filter 掉的 74 筆反而是好的；提高閾值看是否反轉成功）
+      (v111 試移除 rule_macd: pick 自身 PF 0.95→1.20 但 trades 475→17382 過量稀釋
+       unified_long PF 1.46→1.42, portfolio -0.018, 已 revert 回 v110)
+      (v112 在 v111 基礎再移除 turn[34/55] 翻轉: 邊際改善 pick PF +0.01，
+       但 portfolio 仍輸 v110, 已 revert)
+      (v113 試 3日窗口: pick PF 0.95→1.15, trades 475→2831, portfolio -0.0035 仍輸 v110)
+      (v114 試 2日窗口: pick PF 0.95→1.19, trades 475→1878, portfolio 1.3101 雜訊持平)
+      (v115 試 nte 2日 OR gold 2日: pick PF 1.18, portfolio 1.3092 雜訊輸 v110)
+      (v116 試 nte 當天 OR gold 當天: macd_gold 是 nte 子集，trades +1 等同 v110)
+      v117: rule_macd = nte AND ~osc_status_up_weak1 (動能未衰退到 80%)
+            pick 自身 PF 0.95→0.84 但 portfolio +0.0004 (1.3111 peak)
+            (v118 ~weak2 / v119 ~weak3 都比 v117 差，v117 是 weak filter 甜蜜點)
     """
     n = data.n
     close = data.close
@@ -349,8 +360,10 @@ def pick_condition(data: "StockData") -> BoolArray:
                     (vh[5] < vh[8] * 0.21))
     rule_g10 = ~(weakening & shrink_ratio)
 
-    # 7. MACD short 底背離 — 死叉狀態但動能轉強 = 底部 likely
-    rule_macd = data.macd.short.macd_convergence_nte
+    # 7. v117: rule_macd = nte AND ~osc_status_up_weak1
+    # 動能未衰退到 80% (weak filter 甜蜜點，~weak2/~weak3 反而更差)
+    macd_short = data.macd.short
+    rule_macd = macd_short.macd_convergence_nte & ~macd_short.osc_status_up_weak1
 
     # 8. v110 port Go (D) 嚴閾值版本：階梯 40/35/30（Go 原為 35.5/30.5/25.5）
     # Go (CalculateTrade2.go:7548-7553):
