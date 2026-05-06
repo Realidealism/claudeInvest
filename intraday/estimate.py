@@ -83,7 +83,7 @@ def _fetch_bucket_data(lookback_days: int) -> tuple[list, dict[str, dict[str, in
             """,
             (lookback_days,),
         )
-        dates = [row[0] for row in cur.fetchall()]
+        dates = [row["trade_date"] for row in cur.fetchall()]
 
         if not dates:
             return [], {}
@@ -102,8 +102,18 @@ def _fetch_bucket_data(lookback_days: int) -> tuple[list, dict[str, dict[str, in
 
     # Group by date: {date: {bucket: value}}
     by_date: dict[str, dict[str, int]] = {}
-    for trade_date, bucket, value in rows:
-        by_date.setdefault(trade_date, {})[bucket] = value
+    for row in rows:
+        by_date.setdefault(row["trade_date"], {})[row["time_bucket"]] = row["market_total_value"]
+
+    # Drop days that would distort the curve:
+    #   - missing 09:05 (incomplete-start days, e.g. sweeper started late)
+    #   - 09:05 value == 13:30 value (stale/holiday days, no real trading)
+    for d in list(by_date.keys()):
+        buckets = by_date[d]
+        first = buckets.get("09:05")
+        last = buckets.get("13:30")
+        if first is None or last is None or first == last:
+            del by_date[d]
 
     # Sort dates chronologically (oldest first) for EMA calculation
     return sorted(by_date.keys()), by_date

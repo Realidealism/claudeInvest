@@ -258,7 +258,7 @@ def update_date(trade_date: date):
     if trade_date.day <= 20:
         print(f"\n--- SITCA monthly fund holdings ---")
         try:
-            from scrapers.sitca import scrape_monthly
+            from scrapers.sitca import scrape_monthly, PeriodNotAvailable
             m = trade_date.month - 1
             y = trade_date.year
             if m == 0:
@@ -266,6 +266,9 @@ def update_date(trade_date: date):
                 y -= 1
             scrape_monthly(f"{y}{m:02d}")
             results.append(("SITCA 月持股", "ok"))
+        except PeriodNotAvailable as e:
+            print(f"  [SKIP] {e}")
+            results.append(("SITCA 月持股", "skip"))
         except Exception:
             print("  [ERROR] SITCA monthly scraper failed:")
             traceback.print_exc()
@@ -278,11 +281,14 @@ def update_date(trade_date: date):
     if trade_date.month in quarter_end_months and trade_date.day <= 20:
         print(f"\n--- SITCA quarterly fund holdings ---")
         try:
-            from scrapers.sitca import scrape_quarterly
+            from scrapers.sitca import scrape_quarterly, PeriodNotAvailable
             qm = quarter_end_months[trade_date.month]
             qy = trade_date.year if qm < trade_date.month else trade_date.year - 1
             scrape_quarterly(f"{qy}{qm:02d}")
             results.append(("SITCA 季持股", "ok"))
+        except PeriodNotAvailable as e:
+            print(f"  [SKIP] {e}")
+            results.append(("SITCA 季持股", "skip"))
         except Exception:
             print("  [ERROR] SITCA quarterly scraper failed:")
             traceback.print_exc()

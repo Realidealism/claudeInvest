@@ -53,6 +53,14 @@ FUND_REGISTRY = {
 SITCA_URL = "https://www.sitca.org.tw/ROC/Industry/IN2629.aspx?PGMID=IN0202"
 SITCA_Q_URL = "https://www.sitca.org.tw/ROC/Industry/IN2630.aspx?PGMID=IN0203"
 
+
+class PeriodNotAvailable(Exception):
+    """Raised when the requested SITCA period has not yet been published.
+
+    SITCA returns HTTP 404 (redirect to GenericError.html) for unreleased
+    periods; callers should treat this as a skip rather than a failure.
+    """
+
 # ---------------------------------------------------------------------------
 # Form helpers
 # ---------------------------------------------------------------------------
@@ -378,7 +386,14 @@ def _setup_period(session: requests.Session, url: str,
 
     time.sleep(2)
     resp = session.post(url, data=step, headers=headers, timeout=60)
-    resp.raise_for_status()
+    try:
+        resp.raise_for_status()
+    except requests.HTTPError as e:
+        if e.response is not None and e.response.status_code == 404:
+            raise PeriodNotAvailable(
+                f"SITCA period {period} not yet published"
+            ) from None
+        raise
     return _collect_form_fields(resp.text)
 
 

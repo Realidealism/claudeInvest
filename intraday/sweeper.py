@@ -29,8 +29,26 @@ _CLOSE_BUCKET_TIME  = dtime(hour=13, minute=30)
 
 _MAX_CONSECUTIVE_FAILURES = 3
 
+# E.Sun sdk_token is fixed at login() time and silently goes stale across the
+# day boundary — the API then returns 200 with data=[] instead of 401, so we
+# both relogin on date change and after N consecutive empty responses.
+_MAX_CONSECUTIVE_EMPTY = 3
+
 # 5-minute bucket boundaries for the value profile curve
 _BUCKET_MINUTES = 5
+
+
+def _try_relogin(sdk, reason: str) -> bool:
+    """Refresh the E.Sun SDK token. Returns True on success."""
+    print(f"[SWEEP] relogin: {reason}")
+    try:
+        sdk.login()
+        print("[SWEEP] relogin ok")
+        return True
+    except Exception:
+        print("[SWEEP] [ERROR] relogin failed:")
+        traceback.print_exc()
+        return False
 
 
 def _now_tpe() -> datetime:
@@ -90,7 +108,10 @@ def run(stop_event: threading.Event, sdk, interval_sec: int = 20, force: bool = 
     """
     failover_ready = sinopac_api is not None and sinopac_contracts is not None
     consecutive_failures = 0
+    consecutive_empty = 0
     using_fallback = False
+    # Caller has just authenticated the SDK; treat today as the login date.
+    last_login_date = _now_tpe().date()
 
     print(f"[SWEEP] starting, interval={interval_sec}s, force={force}, "
           f"failover={'ready' if failover_ready else 'disabled'}")
@@ -103,6 +124,12 @@ def run(stop_event: threading.Event, sdk, interval_sec: int = 20, force: bool = 
         now = _now_tpe()
         today = now.date()
         session_done = (session_done_date == today)
+
+        # Day rollover — refresh the SDK token before today's first sweep.
+        if today != last_login_date:
+            if _try_relogin(sdk, f"date changed {last_login_date} -> {today}"):
+                last_login_date = today
+                consecutive_empty = 0
 
         if not force and (not _in_session(now) or session_done):
             # If we drifted past 13:50 without the 13:30 bucket, warn once
@@ -130,6 +157,18 @@ def run(stop_event: threading.Event, sdk, interval_sec: int = 20, force: bool = 
                 n_otc = store.upsert_quotes(otc, market="OTC", trade_date=today)
                 _record_value_profile(tse + otc, today, now)
                 print(f"[SWEEP] {now:%H:%M:%S} TSE={n_tse} OTC={n_otc}")
+
+                # Empty 200-OK responses are the silent-stale-token symptom.
+                # Force a relogin once the count crosses the threshold.
+                if not tse and not otc:
+                    consecutive_empty += 1
+                    print(f"[SWEEP] [WARN] empty snapshot ({consecutive_empty}/{_MAX_CONSECUTIVE_EMPTY})")
+                    if consecutive_empty >= _MAX_CONSECUTIVE_EMPTY:
+                        if _try_relogin(sdk, f"{consecutive_empty} consecutive empty snapshots"):
+                            last_login_date = today
+                        consecutive_empty = 0
+                else:
+                    consecutive_empty = 0
 
                 if consecutive_failures > 0:
                     print(f"[SWEEP] E.Sun recovered after {consecutive_failures} failure(s)")
