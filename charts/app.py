@@ -294,7 +294,8 @@ class _ConditionDataView:
                  "dates", "n",
                  "close_result", "volume_result", "candle_result",
                  "over_breakout", "market_state", "macd",
-                 "wave_result")
+                 "wave_result", "sort_forming", "donchian",
+                 "money_result", "obv")
 
     def __init__(self, data: dict, ar: dict, stock_id: str = "", stock_name: str = ""):
         self.stock_id = stock_id
@@ -313,6 +314,13 @@ class _ConditionDataView:
         self.market_state = ar.get("market_state")
         self.macd = ar.get("macd")
         self.wave_result = ar.get("wave_result")
+        self.sort_forming = ar.get("sort_forming")
+        self.donchian = ar.get("donchian")
+        self.money_result = ar.get("money")
+        # score system reads d.obv.short/.medium/.long — pass the full multi-period
+        # bundle, not a single-period slice (which is what analysis_results["obv"]
+        # holds for chart's own marker/subplot use).
+        self.obv = ar.get("obv_multi")
 
 
 def _compute_defense_lines(
@@ -1246,10 +1254,29 @@ def update_chart(n_clicks, stock_id, start_date, end_date, obv_select,
                 data["close"], data["ref_price"],
                 data["high"], data["low"], data["sub_value"],
             )
+            # Multi-period bundle for score system (d.obv.short/.medium/.long).
+            analysis_results["obv_multi"] = obv_multi
             # Pick the selected period; default to medium when obv-select is off
             # (markers always need a result; subplot visibility is gated separately)
             period = obv_select if obv_select in ("short", "medium", "long") else "medium"
             analysis_results["obv"] = getattr(obv_multi, period)
+        # Extra indicators required by score system (sort_forming, donchian,
+        # wave) — chart didn't need them before; cond_buy_flee score-based
+        # fix exposed the gap.
+        from analysis.close import calc_sort_forming
+        analysis_results["sort_forming"] = calc_sort_forming(
+            analysis_results["close"], analysis_results["volume"].volume_status,
+        )
+        from analysis.donchian import calculate_donchian
+        analysis_results["donchian"] = calculate_donchian(
+            data["high"], data["low"], data["close"],
+        )
+        from analysis.wave import calculate_wave
+        analysis_results["wave_result"] = calculate_wave(
+            data["open"], data["high"], data["low"], data["close"],
+            analysis_results["candle"], analysis_results["close"].bs,
+            volume=data["sub_value"],
+        )
     except Exception as e:
         pass  # Partial analysis is ok, signals just won't show
 
