@@ -103,6 +103,29 @@ def _market_any_bear(data: "StockData") -> BoolArray:
 # strong bull-onset signal — they flag the inflection, not the steady state.
 
 
+def _long_score_array(data: "StockData") -> NDArray[np.float32]:
+    """Compute long_score for every bar, cached on the StockData instance.
+
+    Score system is not vectorized — calls board.evaluate(i) per bar, so we
+    pay O(n) once per stock then reuse. Cache lives on `data` so it dies with
+    the instance (no cross-process / cross-test leakage).
+    """
+    cached = getattr(data, "_long_score_cache", None)
+    if cached is not None:
+        return cached
+    from analysis.score import build_scoreboard
+    board = build_scoreboard()
+    n = data.n
+    out = np.zeros(n, dtype=np.float32)
+    for i in range(60, n):
+        try:
+            out[i] = board.evaluate(data, i).total.long.score
+        except Exception:
+            pass
+    data._long_score_cache = out
+    return out
+
+
 def _stock_trend_code(data: "StockData", scope: str) -> NDArray[np.int8]:
     """Map sort_normal up/down to Go's ShortTrend 0/1/2 encoding.
 
@@ -233,32 +256,47 @@ def pick_condition(data: "StockData") -> BoolArray:
 
     Rules:
       1. 觸 / 跌破 5 或 8 日低 (close <= bs.low[5/8])
-         — v4 嘗試過用 OverLower3/5/8 複合 pattern，PF 反而下降（輸均惡化），
-           已回退簡單版。touch 採 OverUpper 是有效的 (long-bias 市場下找頭適用)，
-           但 pick 找底用簡單條件反而較好。
+         AND v81: 最近 3 日內 OverLower3 (Go 原版 #21 雙重位置確認)
+         — v4 嘗試過用 OverLower3/5/8 複合 pattern 取代 bs_low，PF 反而下降；
+           v81 改用「保留 bs_low + AND 上 OL3 雙重確認」鏡像 Go #20+#21
       2. 最近 3 日有出現中或長期扣抵翻轉 (turn[34/55] 從 0 翻 >=1)
       3. 量能未乾枯：今日量 >= 前日量 * 0.5 AND not (連 3 日 SmallLongMinVolume)
       4. 不在 tier-1 洪量區下方 (非 Flood 斷頭段)
-      5. 非長均糾結連 2 日 (不在僵死段)
-      6. 不在連續 3 日凹13（避免接持續創新低的下跌段）
-      7. 大盤非強空（任一尺度 trend <= -2）— 不在崩盤段抄底
-      8. MACD short 底背離 (convergence_nte)：死叉狀態但動能轉強
+      5. v82 改用 Go G19: 排除「短均糾結連2 + 中均糾結任一 + 不在凹13」
+         — Go 邏輯：凹13 反而是底部 cycle 訊號，糾結但不在凹底才是真壞
+         — 取代 v78-v81 的「連3日凹13 排除」(概念相反)
+      6. 大盤非強空（任一尺度 trend <= -2）— 不在崩盤段抄底
+      7. MACD short 底背離 (convergence_nte)：死叉狀態但動能轉強
          — touch v12 用 PTE (頂背離) 從 PF 0.86→1.00 成功，這版鏡像試 NTE 給 pick
+      v79: 試拿掉「不在連續 3 日凹13」失敗（trades +50% 但 PF 0.34→0.29），已還原
+      v80: 拿掉原規則 5「非長均糾結連 2 日」— knot 多代表盤整尾聲反而接近反彈點
+      v81: rule_pos 加 OL3 雙重位置確認（Go #21）
+      v82: rule_concave (禁凹13) 改成 Go G19 (糾結+不凹13 才禁) — 凹13 反向為正
+      v83: rule_change 補 Go G22 (medium_hl 任一[0..2] OR long_hl 任一[0..4])
+           — 動能轉強來源加入「峰的高低變」
+      v84: 加 Go G10 排除 — 量衰退 (sma5<sma13) AND 多重量縮比例 (VD13<VD21*0.55 OR ...)
+           — 排除「縮量陰跌」段
     """
     n = data.n
     close = data.close
     bs_low = data.close_result.bs.low
     turn = data.close_result.turn
 
-    # 1. 觸或跌破 5/8 日低
-    rule_pos = (close <= bs_low[5]) | (close <= bs_low[8])
+    # 1. 觸或跌破 5/8 日低 AND v81: 最近 3 日內 OverLower3 雙重確認
+    bs58 = (close <= bs_low[5]) | (close <= bs_low[8])
+    ol3 = data.over_breakout.over_lower_3
+    rule_pos = bs58 & _last_n_any(ol3, 3)
 
-    # 7. 大盤過濾
+    # 6. 大盤過濾
     rule_market = ~_market_strongly_bearish(data)
 
-    # 2. 中/長扣抵翻轉（3 日內任一日）
+    # 2. v83 補 Go G22: 扣抵翻轉(3日內) OR 中峰任一[0..2] OR 長峰任一[0..4]
     long_change = _turn_change_up(turn[34]) | _turn_change_up(turn[55])
-    rule_change = _last_n_any(long_change, 3)
+    medium_hl = data.candle_result.hl.medium_hl
+    long_hl = data.candle_result.hl.long_hl
+    rule_change = (_last_n_any(long_change, 3)
+                   | _last_n_any(medium_hl, 3)
+                   | _last_n_any(long_hl, 5))
 
     # 3. 量能未乾枯
     vol = data.volume
@@ -269,16 +307,24 @@ def pick_condition(data: "StockData") -> BoolArray:
     # 4. 非 tier-1 洪量斷頭
     rule_flood = ~data.volume_result.below_tier[1]
 
-    # 5. 非長均糾結連 2 日
-    long_knot = data.close_result.knot["long"].flag
-    prev_long_knot = _shift(long_knot, 1)
-    rule_knot = ~(long_knot & prev_long_knot)
-
-    # 6. 不在連續 3 日凹13
+    # 5. v82 Go G19: 排除「短均糾結連2 + 中均糾結任一 + 不在凹13」
     concave13 = data.candle_result.concave_n[13]
-    rule_concave = ~_last_n_all(concave13, 3)
+    short_knot = data.close_result.knot["short"].flag
+    medium_knot = data.close_result.knot["medium"].flag
+    short_knot_2 = short_knot & _shift(short_knot, 1)
+    medium_knot_any3 = medium_knot | _shift(medium_knot, 1) | _shift(medium_knot, 2)
+    rule_g19 = ~(short_knot_2 & medium_knot_any3 & ~concave13)
 
-    # 8. MACD short 底背離 — 死叉狀態但動能轉強 = 底部 likely
+    # v84 Go G10: 排除「量衰退 (sma5<sma13) AND 多重量縮比例任一」
+    vs = data.volume_result.sma
+    vh = data.volume_result.high
+    weakening = vs[5] < vs[13]
+    shrink_ratio = ((vh[13] < vh[21] * 0.55) |
+                    (vh[8] < vh[13] * 0.34) |
+                    (vh[5] < vh[8] * 0.21))
+    rule_g10 = ~(weakening & shrink_ratio)
+
+    # 7. MACD short 底背離 — 死叉狀態但動能轉強 = 底部 likely
     rule_macd = data.macd.short.macd_convergence_nte
 
     # OSC defense from Go PickCondition was tried in v20 and gutted PF
@@ -286,8 +332,8 @@ def pick_condition(data: "StockData") -> BoolArray:
     # already accelerating, which contradicts our "buy the lowest tick"
     # design. Reverted in v21.
 
-    return (rule_pos & rule_change & rule_vol & rule_flood & rule_knot
-            & rule_concave & rule_market & rule_macd)
+    return (rule_pos & rule_change & rule_vol & rule_flood & rule_g19
+            & rule_g10 & rule_market & rule_macd)
 
 
 def touch_condition(data: "StockData") -> BoolArray:
@@ -452,129 +498,82 @@ def sell_condition(data: "StockData") -> BoolArray:
 # ── BuyFleeSignal / SellFleeSignal (多翻空 / 空翻多) ────────────────────────
 
 
-def buy_flee_signal(data: "StockData") -> BoolArray:
-    """多翻空訊號 — short_entry candidate.
+def _buy_flee_main(data: "StockData") -> BoolArray:
+    """多翻空 main — 純 score-based (鏡像 sell_flee 的 P0.5 級閾值).
 
-    Structure: 前 N 日強勢 → 今日急轉直下.
-
-    Rules:
-      1. 前提強勢：最近 5 日有過 (close > prev Donchian-20-up OR SMA 多頭排列)
-         — Donchian Python 模組是 lazy compute，簡化為 close > bs.high[20] (5 日內)
-      2. 崩斷觸發：跳空跌破前日低 AND close < prev candle.cut.down_cut
-         OR 大黑K 跌破 SMA8
-      3. 量增下跌：vol > prev_vol AND close < prev close
-      4. 非長均糾結 2 日
-      7. v59 加個股 short scope MA 全空頭：sort_normal["short"].down
-         (SMA3 < SMA8 < SMA21) 確認短期 MA 已轉空
+    long_score 從中性/正分急降到負 = 多頭翻空頭：
+      fall1 = delta1 <= -75 & prev1 >= 0
+      fall3 = delta3 <= -115 & prev3 >= 0
     """
-    close = data.close
-    sma = data.close_result.ma.sma
-    bs_high = data.close_result.bs.high
+    long_score = _long_score_array(data)
+    prev1 = _shift(long_score, 1)
+    prev3 = _shift(long_score, 3)
+    delta1 = long_score - prev1
+    delta3 = long_score - prev3
 
-    # 1. 前提強勢（5 日內出現）
-    prev_close = _shift(close, 1)
-    bs21 = bs_high.get(21) if 21 in bs_high else bs_high[13]
-    prev_bs21 = _shift(bs21, 1)
-    breakout = close > prev_bs21
-    ma_bull = (sma[3] > sma[5]) & (sma[5] > sma[8]) & (sma[8] > sma[13])
-    prior_strong = _last_n_any(breakout | ma_bull, 5)
-
-    # 2. 崩斷觸發
-    open_ = data.open
-    low = data.low
-    prev_low = _shift(low, 1)
-    down_cut = data.candle_result.cut.down_cut
-    prev_down_cut = _shift(down_cut, 1)
-    gap_down = (open_ < prev_low) & (close < prev_down_cut)
-
-    black = data.candle_result.candle.black
-    big_black = data.candle_result.stick_length.black_medium | data.candle_result.stick_length.black_long
-    break_sma = close < sma[8]
-    breakdown = big_black & break_sma
-
-    rule_trigger = gap_down | breakdown
-
-    # 3. 量增下跌
-    vol = data.volume
-    prev_vol = _shift(vol, 1)
-    rule_vol = (vol > prev_vol) & (close < prev_close)
-
-    # 4. 非長均糾結 2 日
-    long_knot = data.close_result.knot["long"].flag
-    prev_long_knot = _shift(long_knot, 1)
-    rule_knot = ~(long_knot & prev_long_knot)
-
-    # 5. 大盤非強多 — 不在強多段做空
-    rule_market = ~_market_strongly_bullish(data)
-
-    # 6. MACD short 頂背離 — 鏡像 v12 touch+PTE 成功 pattern，給 reversal 短做空
-    rule_macd = data.macd.short.macd_convergence_pte
-
-    # 7. v59 個股 short scope MA 全空頭排列（SMA3<SMA8<SMA21）
-    rule_short_ma_bear = data.close_result.ma.sort_normal["short"].down
-
-    return (prior_strong & rule_trigger & rule_vol & rule_knot & rule_market
-            & rule_macd & rule_short_ma_bear)
+    fall1 = (delta1 <= -75) & (prev1 >= 0)
+    fall3 = (delta3 <= -115) & (prev3 >= 0)
+    return fall1 | fall3
 
 
-def sell_flee_signal(data: "StockData") -> BoolArray:
-    """空翻多訊號 — long_entry candidate; mirror of buy_flee_signal.
+def _sell_flee_main(data: "StockData") -> BoolArray:
+    """空翻多 main 子句 (v91 score-rise, 不含 bait_flip).
 
-    Rules:
-      1. 前提弱勢：最近 5 日有過 (close < prev Donchian-21-down OR SMA 空頭排列)
-      2. 翻轉觸發：跳空站上前日高 AND close > prev up_cut
-         OR 大紅K 站上 SMA8
-      3. 量增上漲
-      4. 非長均糾結 2 日
-
-    Plus Go subclause A (v36): yesterday's BuyFlee + today's gap_up
-    fires regardless of the other rules — captures "failed top reversal
-    bounces back" pattern (Go CalculateTrade2.go:8098-8100).
+    P0.5 級閾值: rise1 = delta1>=75 & prev1<=0, rise3 = delta3>=115 & prev3<=0.
     """
-    close = data.close
-    sma = data.close_result.ma.sma
-    bs_low = data.close_result.bs.low
+    long_score = _long_score_array(data)
+    prev1 = _shift(long_score, 1)
+    prev3 = _shift(long_score, 3)
+    delta1 = long_score - prev1
+    delta3 = long_score - prev3
 
-    prev_close = _shift(close, 1)
-    bs21 = bs_low.get(21) if 21 in bs_low else bs_low[13]
-    prev_bs21 = _shift(bs21, 1)
-    breakdown_prior = close < prev_bs21
-    ma_bear = (sma[3] < sma[5]) & (sma[5] < sma[8]) & (sma[8] < sma[13])
-    prior_weak = _last_n_any(breakdown_prior | ma_bear, 5)
+    rise1 = (delta1 >= 75) & (prev1 <= 0)
+    rise3 = (delta3 >= 115) & (prev3 <= 0)
+    return rise1 | rise3
 
+
+def _gap_up_today(data: "StockData") -> BoolArray:
+    """Today gap up: open > prev_high AND close > prev candle.cut.up_cut."""
     open_ = data.open
     high = data.high
+    close = data.close
     prev_high = _shift(high, 1)
     up_cut = data.candle_result.cut.up_cut
     prev_up_cut = _shift(up_cut, 1)
-    gap_up = (open_ > prev_high) & (close > prev_up_cut)
+    return (open_ > prev_high) & (close > prev_up_cut)
 
-    big_red = data.candle_result.stick_length.red_medium | data.candle_result.stick_length.red_long
-    breakup = big_red & (close > sma[8])
 
-    rule_trigger = gap_up | breakup
+def _gap_down_today(data: "StockData") -> BoolArray:
+    """Today gap down: open < prev_low AND close < prev candle.cut.down_cut."""
+    open_ = data.open
+    low = data.low
+    close = data.close
+    prev_low = _shift(low, 1)
+    down_cut = data.candle_result.cut.down_cut
+    prev_down_cut = _shift(down_cut, 1)
+    return (open_ < prev_low) & (close < prev_down_cut)
 
-    vol = data.volume
-    prev_vol = _shift(vol, 1)
-    rule_vol = (vol > prev_vol) & (close > prev_close)
 
-    long_knot = data.close_result.knot["long"].flag
-    prev_long_knot = _shift(long_knot, 1)
-    rule_knot = ~(long_knot & prev_long_knot)
+def buy_flee_signal(data: "StockData") -> BoolArray:
+    """多翻空訊號 — short_entry candidate.
 
-    # 大盤非強空 — 不在崩盤段做多
-    rule_market = ~_market_strongly_bearish(data)
+    純 score-based main (P0.5 閾值，鏡像 sell_flee).
+    """
+    return _buy_flee_main(data)
 
-    # MACD short 底背離 — 鏡像 v13 pick+NTE 成功 pattern，給 reversal 短做多
-    rule_macd = data.macd.short.macd_convergence_nte
 
-    main_clause = (
-        prior_weak & rule_trigger & rule_vol & rule_knot & rule_market & rule_macd
-    )
+def sell_flee_signal(data: "StockData") -> BoolArray:
+    """空翻多訊號 — long_entry candidate.
 
-    # Go 子句 A：昨日 BuyFlee 觸發後今日 gap_up → 假崩跌反彈再翻多
-    # gap_up 已包含 open>prev_high AND close>prev_up_cut，等同 Go 8098-8100
-    prev_buy_flee = _shift(buy_flee_signal(data), 1)
-    flip_after_bf = prev_buy_flee & gap_up
+    v93 = main (v91 score-rise) OR bait_flip_up (誘空翻多, 鏡像 buy_flee)
 
-    return main_clause | flip_after_bf
+    bait_flip_up: 昨日 buy_flee 觸發 (誘空訊號) + 今日 gap_up (翻多打臉)
+      → Go SellFlee subclause v36 的「假崩跌反彈再翻多」事件.
+    """
+    main = _sell_flee_main(data)
+
+    prev_buy_flee_main = _shift(_buy_flee_main(data), 1)
+    gap_up = _gap_up_today(data)
+    bait_flip_up = prev_buy_flee_main & gap_up
+
+    return main | bait_flip_up
