@@ -70,6 +70,8 @@ def save_signals(signals: list[dict], cur) -> int:
     for s in signals:
         evidence_json = json.dumps(s["evidence"], default=_json_serial,
                                    ensure_ascii=False)
+        # trigger_date is preserved on conflict so the first-seen date is not
+        # overwritten by daily re-scans of the same period.
         cur.execute("""
             INSERT INTO tw.signals
                 (signal_type, ticker, ticker_name, funds,
@@ -78,7 +80,6 @@ def save_signals(signals: list[dict], cur) -> int:
             ON CONFLICT (signal_type, ticker, trigger_period) DO UPDATE SET
                 ticker_name = EXCLUDED.ticker_name,
                 funds = EXCLUDED.funds,
-                trigger_date = EXCLUDED.trigger_date,
                 weight_change = EXCLUDED.weight_change,
                 evidence = EXCLUDED.evidence
         """, (s["signal_type"], s["ticker"], s["ticker_name"],

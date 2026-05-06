@@ -57,17 +57,6 @@ SCOPE_EXHAUST_PATHS: dict[str, tuple[tuple[int, float], ...]] = {
     "long":   ((5, 0.10), (8, 0.0)),
 }
 
-# Weakening signal: today's |Δ| must exceed
-# WEAKENING_THRESHOLD_RATIO × average |Δ| of past SCOPE_LOOKBACK[scope] days.
-WEAKENING_THRESHOLD_RATIO = 1.0
-
-SCOPE_LOOKBACK: dict[str, int] = {
-    "short":  3,
-    "medium": 3,
-    "long":   3,
-}
-
-
 def classify_trend_series(
     up_pcts: list[float],
     down_pcts: list[float],
@@ -120,49 +109,6 @@ def classify_trend_series(
             out.append(base)
     return out
 
-
-def classify_weakening_series(
-    up_pcts: list[float],
-    down_pcts: list[float],
-    trends: list[Trend],
-    scope: str = "long",
-) -> list[bool]:
-    """Detect weakening signal: exhausting trend + today's sharp convergence.
-
-    Requires the trend to already be exhausting (sustained spread convergence),
-    AND today's own change magnitude exceeds the recent average:
-      threshold = RATIO * mean(|Δ| of past LOOKBACK days)
-
-    Bull weakening: trend is bull_exhausting AND -Δup > threshold AND Δdn > threshold.
-    Bear weakening: mirrored.
-    """
-    n = len(up_pcts)
-    out: list[bool] = []
-    lb = SCOPE_LOOKBACK[scope]
-    ratio = WEAKENING_THRESHOLD_RATIO
-
-    for i in range(n):
-        if i < lb + 1:
-            out.append(False)
-            continue
-
-        trend = trends[i]
-        up, dn = up_pcts[i], down_pcts[i]
-        du = up - up_pcts[i - 1]
-        dd = dn - down_pcts[i - 1]
-
-        prev_du = [abs(up_pcts[i - k] - up_pcts[i - k - 1]) for k in range(1, lb + 1)]
-        prev_dd = [abs(down_pcts[i - k] - down_pcts[i - k - 1]) for k in range(1, lb + 1)]
-        th_up = ratio * (sum(prev_du) / lb)
-        th_dn = ratio * (sum(prev_dd) / lb)
-
-        is_weak = False
-        if trend == "bull_exhausting" and -du > th_up and dd > th_dn:
-            is_weak = True
-        elif trend == "bear_exhausting" and -dd > th_dn and du > th_up:
-            is_weak = True
-        out.append(is_weak)
-    return out
 
 import numpy as np
 from numpy.typing import NDArray
