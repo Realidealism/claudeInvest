@@ -26,7 +26,7 @@ interface PositionsData {
   exited_short?: Position[];
 }
 
-type Tab = "long" | "short" | "exited";
+type Tab = "long" | "short" | "exited_long" | "exited_short";
 type View = "daily" | "intraday";
 
 const TIER_LABEL: Record<string, string> = {
@@ -70,9 +70,7 @@ function fmtDate(d: string | null): string {
   return `${parseInt(parts[1], 10)}/${parseInt(parts[2], 10)}`;
 }
 
-// Augmented row used in the 今日結束 tab — same shape as Position but
-// carries which side it came from so the table can colour-code it.
-type ExitedRow = Position & { side: "long" | "short" };
+const isExitTab = (t: Tab): boolean => t === "exited_long" || t === "exited_short";
 
 export default function PositionsPage() {
   const [data, setData] = useState<PositionsData | null>(null);
@@ -88,24 +86,26 @@ export default function PositionsPage() {
       .catch(console.error);
   }, [view]);
 
-  // Daily view doesn't track exits — collapse tab back to long if the user
-  // had 今日結束 selected before switching.
+  // Daily view doesn't track exits — collapse exit tabs back to long
+  // if the user had one selected before switching.
   useEffect(() => {
-    if (view === "daily" && tab === "exited") setTab("long");
+    if (view === "daily" && isExitTab(tab)) setTab("long");
   }, [view, tab]);
 
-  const exitedRows: ExitedRow[] = data
-    ? [
-        ...(data.exited_long  ?? []).map((p) => ({ ...p, side: "long" as const })),
-        ...(data.exited_short ?? []).map((p) => ({ ...p, side: "short" as const })),
-      ].sort((a, b) => b.turnover - a.turnover)
-    : [];
+  const exitedLong  = data?.exited_long  ?? [];
+  const exitedShort = data?.exited_short ?? [];
 
-  const tabLabel: Record<Tab, string> = { long: "做多", short: "做空", exited: "今日結束" };
-  const rows: (Position | ExitedRow)[] = data && data.snapshot_date
-    ? tab === "long"   ? data.long
-    : tab === "short"  ? data.short
-                       : exitedRows
+  const tabLabel: Record<Tab, string> = {
+    long: "做多",
+    short: "做空",
+    exited_long:  "多單出場",
+    exited_short: "空單出場",
+  };
+  const rows: Position[] = data && data.snapshot_date
+    ? tab === "long"          ? data.long
+    : tab === "short"         ? data.short
+    : tab === "exited_long"   ? exitedLong
+                              : exitedShort
     : [];
   const intradayTimeLabel = view === "intraday" && data?.snapshot_time
     ? new Date(data.snapshot_time).toLocaleTimeString("zh-TW", {
@@ -176,22 +176,34 @@ export default function PositionsPage() {
           做空（{data.short.length}）
         </button>
         {view === "intraday" && (
-          <button
-            onClick={() => setTab("exited")}
-            className={`px-4 py-1.5 text-sm rounded ${
-              tab === "exited"
-                ? "bg-accent text-white"
-                : "bg-surface-alt text-text-secondary hover:text-text-primary"
-            }`}
-          >
-            今日結束（{exitedRows.length}）
-          </button>
+          <>
+            <button
+              onClick={() => setTab("exited_long")}
+              className={`px-4 py-1.5 text-sm rounded ${
+                tab === "exited_long"
+                  ? "bg-accent text-white"
+                  : "bg-surface-alt text-text-secondary hover:text-text-primary"
+              }`}
+            >
+              多單出場（{exitedLong.length}）
+            </button>
+            <button
+              onClick={() => setTab("exited_short")}
+              className={`px-4 py-1.5 text-sm rounded ${
+                tab === "exited_short"
+                  ? "bg-accent text-white"
+                  : "bg-surface-alt text-text-secondary hover:text-text-primary"
+              }`}
+            >
+              空單出場（{exitedShort.length}）
+            </button>
+          </>
         )}
       </div>
 
       {rows.length === 0 ? (
         <div className="text-xs text-text-secondary px-2 py-3 bg-surface-alt border border-border rounded">
-          {tab === "exited" ? "今日無結束部位" : `目前沒有${tabLabel[tab]}持倉`}
+          {isExitTab(tab) ? `今日無${tabLabel[tab]}部位` : `目前沒有${tabLabel[tab]}持倉`}
         </div>
       ) : (
         <div className="overflow-x-auto bg-surface-alt border border-border rounded">
@@ -199,16 +211,15 @@ export default function PositionsPage() {
             <thead>
               <tr className="border-b border-border text-text-secondary text-left">
                 <th className="px-2 py-2 w-10">#</th>
-                {tab === "exited" && <th className="px-2 py-2">方向</th>}
                 <th className="px-2 py-2">代號</th>
                 <th className="px-2 py-2">名稱</th>
                 <th className="px-2 py-2">類型</th>
                 <th className="px-2 py-2 text-center">進場日</th>
                 <th className="px-2 py-2 text-right hidden md:table-cell">天數</th>
                 <th className="px-2 py-2 text-right">進場</th>
-                <th className="px-2 py-2 text-right">{tab === "exited" ? "出場" : "現價"}</th>
+                <th className="px-2 py-2 text-right">{isExitTab(tab) ? "出場" : "現價"}</th>
                 <th className="px-2 py-2 text-right">損益%</th>
-                {tab === "exited" ? (
+                {isExitTab(tab) ? (
                   <th className="px-2 py-2 hidden lg:table-cell">出場理由</th>
                 ) : (
                   <>
@@ -222,17 +233,10 @@ export default function PositionsPage() {
             <tbody>
               {rows.map((p, i) => (
                 <tr
-                  key={`${p.ticker}-${(p as ExitedRow).side ?? tab}`}
+                  key={p.ticker}
                   className="border-b border-border/50 hover:bg-surface-hover transition-colors"
                 >
                   <td className="px-2 py-1.5">{i + 1}</td>
-                  {tab === "exited" && (
-                    <td className={`px-2 py-1.5 font-bold ${
-                      (p as ExitedRow).side === "long" ? "text-long-strong" : "text-short-strong"
-                    }`}>
-                      {(p as ExitedRow).side === "long" ? "多" : "空"}
-                    </td>
-                  )}
                   <td className="px-2 py-1.5 font-mono">
                     <a
                       href={tvUrl(p.ticker, p.market)}
@@ -263,7 +267,7 @@ export default function PositionsPage() {
                     {p.pnl_pct >= 0 ? "+" : ""}
                     {p.pnl_pct.toFixed(2)}
                   </td>
-                  {tab === "exited" ? (
+                  {isExitTab(tab) ? (
                     <td className="px-2 py-1.5 hidden lg:table-cell text-text-secondary">
                       {p.exit_reason ?? "—"}
                     </td>
