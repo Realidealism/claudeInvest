@@ -503,6 +503,8 @@ def buy_condition(data: "StockData") -> BoolArray:
       6. 大盤非強空 — 不在崩盤段做多
       7. OSC 長部位防禦觸發
       8. v106 long_pct gate：long_pct >= 35（v107 試 40 失敗，portfolio -0.014 退步，已 revert）
+      9. v131 鏡像 v130 sell：~macd_convergence_pte (不在頂背離)
+         （sell 用 ~nte 排除底背離；buy 對偶 ~pte 排除頂背離 = 動能轉弱的金叉狀態）
       (v63 移除原規則 6「不在連續 3 日凸21」: 對直線飆漲股會卡死所有進場)
     """
     close = data.close
@@ -531,8 +533,11 @@ def buy_condition(data: "StockData") -> BoolArray:
     # 8. v106 long_pct gate：個股做多評分 >=35（v107 試 40 退步，已 revert）
     rule_long_pct_gate = _long_pct_array(data) >= 35
 
+    # 9. v131 鏡像 v130 sell：~pte (不在頂背離 — 排除「金叉但動能轉弱」)
+    rule_not_pte = ~data.macd.short.macd_convergence_pte
+
     return (rule_ma & rule_turn & rule_break & rule_vol & rule_knot
-            & rule_market & rule_osc & rule_long_pct_gate)
+            & rule_market & rule_osc & rule_long_pct_gate & rule_not_pte)
 
 
 def sell_condition(data: "StockData") -> BoolArray:
@@ -552,6 +557,8 @@ def sell_condition(data: "StockData") -> BoolArray:
          （sort_normal["medium"].down 確認中期 MA 結構也已轉空）
       9. v106 short_pct gate：short_pct >= 35（鏡像 v105 buy 的 long_pct >= 35）
          （v102/v103 sweep 0/20/30 單調改善，鏡像 buy 的閾值往同方向推）
+      10. v130 port Go GS11：~macd_convergence_nte（不在底背離）
+          （Go SellCondition line 8014 設計核心；sell 完全沒 MACD 條件補上）
       (v63 移除原規則 6「不在連續 3 日凹21」: 對直線崩跌股會卡死所有進場)
       (v96 嘗試加 short_ma_bear 失敗，trades 只 -0.94%、PF 無變化，已 revert)
       (v97 嘗試加 turn[3]==0 共振失敗，0 trades 變化、PF 無變化，已 revert)
@@ -590,10 +597,13 @@ def sell_condition(data: "StockData") -> BoolArray:
     # 11. v106 short_pct gate：閾值 >=35（鏡像 v105 buy）
     rule_short_pct_gate = _short_pct_array(data) >= 35
 
+    # 12. v130 port Go GS11：~nte (不在底背離 — 排除「死叉但動能轉強」的反彈段)
+    rule_not_nte = ~data.macd.short.macd_convergence_nte
+
     return (rule_ma & rule_turn & rule_break & rule_vol & rule_knot
             & rule_market & rule_not_double_down_hot & rule_osc
             & rule_medium_ma_bear
-            & rule_short_pct_gate)
+            & rule_short_pct_gate & rule_not_nte)
 
 
 # ── BuyFleeSignal / SellFleeSignal (多翻空 / 空翻多) ────────────────────────
