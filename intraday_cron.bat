@@ -19,7 +19,7 @@ if errorlevel 1 (
     exit /b 1
 )
 
-git add frontend/public/data/scores_intraday.json frontend/public/data/operations_intraday.json >> logs\intraday_cron.log 2>&1
+git add frontend/public/data/scores_intraday.json frontend/public/data/operations_intraday.json frontend/public/data/positions_intraday.json >> logs\intraday_cron.log 2>&1
 
 REM `git diff --cached --quiet` returns 1 when there ARE staged changes, 0 when clean.
 git diff --cached --quiet

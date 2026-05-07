@@ -18,11 +18,13 @@ interface Position {
 
 interface PositionsData {
   snapshot_date: string | null;
+  snapshot_time?: string | null;
   long: Position[];
   short: Position[];
 }
 
 type Side = "long" | "short";
+type View = "daily" | "intraday";
 
 const TIER_LABEL: Record<string, string> = {
   pick: "抄底",
@@ -68,40 +70,68 @@ function fmtDate(d: string | null): string {
 export default function PositionsPage() {
   const [data, setData] = useState<PositionsData | null>(null);
   const [side, setSide] = useState<Side>("long");
+  const [view, setView] = useState<View>("daily");
 
   useEffect(() => {
-    fetch("/data/positions.json")
+    setData(null);
+    const url = view === "intraday" ? "/data/positions_intraday.json" : "/data/positions.json";
+    fetch(url)
       .then((r) => r.json())
       .then(setData)
       .catch(console.error);
-  }, []);
+  }, [view]);
 
-  if (!data) {
-    return <div className="text-text-secondary text-sm">載入中…</div>;
-  }
-  if (!data.snapshot_date) {
-    return (
-      <div className="text-text-secondary text-sm">
-        尚無持倉快照資料。請先跑 daily_update。
-      </div>
-    );
-  }
-
-  const rows = side === "long" ? data.long : data.short;
   const sideLabel = side === "long" ? "做多" : "做空";
+  const rows = data && data.snapshot_date
+    ? (side === "long" ? data.long : data.short)
+    : [];
+  const intradayTimeLabel = view === "intraday" && data?.snapshot_time
+    ? new Date(data.snapshot_time).toLocaleTimeString("zh-TW", {
+        hour: "2-digit", minute: "2-digit", hour12: false,
+      })
+    : null;
 
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-baseline justify-between gap-3">
         <h1 className="text-lg font-bold text-text-primary">策略持倉</h1>
-        <span className="text-xs text-text-secondary">
-          資料日：{data.snapshot_date}
-        </span>
+        {data?.snapshot_date && (
+          <span className="text-xs text-text-secondary">
+            資料日：{data.snapshot_date}
+            {intradayTimeLabel && <> {intradayTimeLabel}</>}
+          </span>
+        )}
       </div>
       <p className="text-xs text-text-secondary">
         統一策略目前未平倉部位，依當日成交金額排序；防守價為最後一次更新值（保底 / 規則觸發）。
       </p>
 
+      <div className="flex flex-wrap gap-2">
+        {(["daily", "intraday"] as View[]).map((v) => (
+          <button
+            key={v}
+            onClick={() => setView(v)}
+            className={`px-3 py-1 text-xs rounded ${
+              view === v
+                ? "bg-accent text-white"
+                : "bg-surface-alt text-text-secondary hover:text-text-primary"
+            }`}
+          >
+            {v === "daily" ? "收盤" : "即時"}
+          </button>
+        ))}
+      </div>
+
+      {!data ? (
+        <div className="text-text-secondary text-sm">載入中…</div>
+      ) : !data.snapshot_date ? (
+        <div className="text-text-secondary text-sm">
+          {view === "intraday"
+            ? "尚無盤中持倉資料。請先跑 intraday_snapshot。"
+            : "尚無持倉快照資料。請先跑 daily_update。"}
+        </div>
+      ) : (
+      <>
       <div className="flex gap-2">
         {(["long", "short"] as Side[]).map((s) => (
           <button
@@ -203,6 +233,8 @@ export default function PositionsPage() {
             </tbody>
           </table>
         </div>
+      )}
+      </>
       )}
     </div>
   );

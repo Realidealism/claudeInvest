@@ -1154,9 +1154,64 @@ def export_operations_intraday(cur, out: Path):
     }, out / "operations_intraday.json")
 
 
+def export_positions_intraday(cur, out: Path):
+    """Intraday (12:50) preview of unified-strategy open positions.
+
+    Mirrors export_positions but reads from tw.open_positions_intraday."""
+    cur.execute("""
+        SELECT snapshot_date, snapshot_time
+        FROM tw.open_positions_intraday
+        ORDER BY snapshot_date DESC, snapshot_time DESC
+        LIMIT 1
+    """)
+    row = cur.fetchone()
+    if row is None:
+        _write({"snapshot_date": None, "snapshot_time": None,
+                "long": [], "short": []},
+               out / "positions_intraday.json")
+        return
+    snap_date, snap_time = row["snapshot_date"], row["snapshot_time"]
+
+    sides = {"long": [], "short": []}
+    for side in ("long", "short"):
+        cur.execute("""
+            SELECT p.stock_id, st.name, st.market,
+                   p.entry_date, p.entry_price, p.entry_tier,
+                   p.current_close, p.pnl_pct, p.bars_held, p.turnover,
+                   p.defense_price, p.defense_reason, p.defense_date
+            FROM tw.open_positions_intraday p
+            JOIN tw.stocks st ON st.stock_id = p.stock_id
+            WHERE p.snapshot_date = %s AND p.snapshot_time = %s AND p.side = %s
+            ORDER BY p.turnover DESC NULLS LAST, p.stock_id
+        """, (snap_date, snap_time, side))
+        for r in cur.fetchall():
+            sides[side].append({
+                "ticker": r["stock_id"],
+                "name": r["name"],
+                "market": r["market"],
+                "entry_date": r["entry_date"],
+                "entry_price": float(r["entry_price"]),
+                "entry_tier": r["entry_tier"],
+                "current_close": float(r["current_close"]),
+                "pnl_pct": float(r["pnl_pct"]),
+                "bars_held": r["bars_held"],
+                "turnover": float(r["turnover"]) if r["turnover"] is not None else 0.0,
+                "defense_price": float(r["defense_price"]) if r["defense_price"] is not None else None,
+                "defense_reason": r["defense_reason"],
+                "defense_date": r["defense_date"],
+            })
+
+    _write({
+        "snapshot_date": snap_date,
+        "snapshot_time": snap_time.isoformat() if snap_time is not None else None,
+        "long": sides["long"],
+        "short": sides["short"],
+    }, out / "positions_intraday.json")
+
+
 def export_intraday(out_dir: str | None = None):
     """Standalone export entry called by intraday_snapshot.py — only
-    refreshes the two intraday JSONs without touching daily exports."""
+    refreshes the intraday JSONs without touching daily exports."""
     if out_dir is None:
         import sys
         if getattr(sys, 'frozen', False):
@@ -1172,6 +1227,7 @@ def export_intraday(out_dir: str | None = None):
     with get_cursor(commit=False) as cur:
         export_scores_intraday(cur, out)
         export_operations_intraday(cur, out)
+        export_positions_intraday(cur, out)
     print("Intraday export done.")
 
 
@@ -1251,6 +1307,7 @@ def export_all(out_dir: str | None = None):
         export_scores_intraday(cur, out)
         export_operations_intraday(cur, out)
         export_positions(cur, out)
+        export_positions_intraday(cur, out)
 
     print("Done.")
 

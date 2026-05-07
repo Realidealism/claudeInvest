@@ -92,7 +92,7 @@ export default function OperationsPage() {
                 : "bg-surface-alt text-text-secondary hover:text-text-primary"
             }`}
           >
-            {v === "daily" ? "收盤" : "12:50"}
+            {v === "daily" ? "收盤" : "即時"}
           </button>
         ))}
       </div>
