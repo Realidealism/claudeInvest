@@ -506,6 +506,9 @@ def buy_condition(data: "StockData") -> BoolArray:
       9. v131 鏡像 v130 sell：~macd_convergence_pte (不在頂背離)
          （sell 用 ~nte 排除底背離；buy 對偶 ~pte 排除頂背離 = 動能轉弱的金叉狀態）
       (v63 移除原規則 6「不在連續 3 日凸21」: 對直線飆漲股會卡死所有進場)
+      (v135 試 OBV signal_up 5 日窗口: buy PF 1.59→1.53, portfolio -0.080 大退步)
+      (v136 試「今日 signal_up OR (昨日且今日非 down)」: 更糟 portfolio -0.138)
+      → OBV signal_up 對 buy 三次驗證 destructive，不對稱於 sell+signal_down
     """
     close = data.close
     sma = data.close_result.ma.sma
@@ -559,6 +562,13 @@ def sell_condition(data: "StockData") -> BoolArray:
          （v102/v103 sweep 0/20/30 單調改善，鏡像 buy 的閾值往同方向推）
       10. v130 port Go GS11：~macd_convergence_nte（不在底背離）
           （Go SellCondition line 8014 設計核心；sell 完全沒 MACD 條件補上）
+      (v132 試 obv.short.trend == -1: portfolio +0.0059 但 sell PF 0.98→0.95 退步)
+      (v133 試 obv.medium.trend == -1: 全面更糟 sell PF 0.91 unified_short 0.976)
+      (v134 試 OBV signal_down 5日: portfolio +0.068 大躍進 1.4276 peak)
+      (v137 試加 ~today_signal_up: 僅砍 4 筆 dead filter，等同 v134)
+      (v138: OBV medium signal_down 5日 portfolio 1.4495)
+      (v139 試 medium + ~signal_up: 0 筆變化, dead filter, 完全等同 v138)
+      11. v140: short signal_down 3日 AND ~today signal_up (從 5日縮窗口至 3日)
       (v63 移除原規則 6「不在連續 3 日凹21」: 對直線崩跌股會卡死所有進場)
       (v96 嘗試加 short_ma_bear 失敗，trades 只 -0.94%、PF 無變化，已 revert)
       (v97 嘗試加 turn[3]==0 共振失敗，0 trades 變化、PF 無變化，已 revert)
@@ -600,10 +610,16 @@ def sell_condition(data: "StockData") -> BoolArray:
     # 12. v130 port Go GS11：~nte (不在底背離 — 排除「死叉但動能轉強」的反彈段)
     rule_not_nte = ~data.macd.short.macd_convergence_nte
 
+    # 13. v140: OBV short signal_down 3日任一 AND 今日不是 short signal_up
+    obv_short = data.obv.short
+    rule_obv_bearish = (_last_n_any(obv_short.signal_down, 3)
+                        & ~obv_short.signal_up)
+
     return (rule_ma & rule_turn & rule_break & rule_vol & rule_knot
             & rule_market & rule_not_double_down_hot & rule_osc
             & rule_medium_ma_bear
-            & rule_short_pct_gate & rule_not_nte)
+            & rule_short_pct_gate & rule_not_nte
+            & rule_obv_bearish)
 
 
 # ── BuyFleeSignal / SellFleeSignal (多翻空 / 空翻多) ────────────────────────
