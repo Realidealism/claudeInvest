@@ -1313,10 +1313,11 @@ def export_all(out_dir: str | None = None):
         export_revenue_screens(cur, out)
         export_scores(cur, out)
         export_operations(cur, out)
-        export_scores_intraday(cur, out)
-        export_operations_intraday(cur, out)
         export_positions(cur, out)
-        export_positions_intraday(cur, out)
+        # intraday JSONs (scores/operations/positions) are intentionally
+        # NOT refreshed here — they are owned by intraday_snapshot.exe
+        # which writes them at 12:50 with h(t)-projected bars. Daily
+        # close data has no business overwriting that view.
 
     print("Done.")
 
