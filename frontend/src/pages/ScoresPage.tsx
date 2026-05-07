@@ -23,12 +23,14 @@ interface HistoryItem {
 
 interface ScoresData {
   snapshot_date: string | null;
+  snapshot_time?: string | null;
   long: ScoreRow[];
   short: ScoreRow[];
   history: HistoryItem[];
 }
 
 type Side = "long" | "short";
+type View = "daily" | "intraday";
 
 function fmtTurnover(t: number): string {
   if (t >= 1e8) return `${(t / 1e8).toFixed(2)}億`;
@@ -61,40 +63,69 @@ function deltaClass(today: number | null, prev: number | null): string {
 export default function ScoresPage() {
   const [data, setData] = useState<ScoresData | null>(null);
   const [side, setSide] = useState<Side>("long");
+  const [view, setView] = useState<View>("daily");
 
   useEffect(() => {
-    fetch("/data/scores.json")
+    setData(null);
+    const url = view === "intraday" ? "/data/scores_intraday.json" : "/data/scores.json";
+    fetch(url)
       .then((r) => r.json())
       .then(setData)
       .catch(console.error);
-  }, []);
+  }, [view]);
 
-  if (!data) {
-    return <div className="text-text-secondary text-sm">載入中…</div>;
-  }
-  if (!data.snapshot_date) {
-    return (
-      <div className="text-text-secondary text-sm">
-        尚無評分快照資料。請先跑 daily_update。
-      </div>
-    );
-  }
-
-  const rows = side === "long" ? data.long : data.short;
   const sideLabel = side === "long" ? "做多" : "做空";
+  const rows = data && data.snapshot_date
+    ? (side === "long" ? data.long : data.short)
+    : [];
+  const intradayTimeLabel = view === "intraday" && data?.snapshot_time
+    ? new Date(data.snapshot_time).toLocaleTimeString("zh-TW", {
+        hour: "2-digit", minute: "2-digit", hour12: false,
+      })
+    : null;
 
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-baseline gap-3">
         <h1 className="text-lg font-bold text-text-primary">多空評比</h1>
-        <span className="text-xs text-text-secondary">
-          快照日：{data.snapshot_date}　·　Top {data.long.length}（多）/ {data.short.length}（空）
-        </span>
+        {data?.snapshot_date && (
+          <span className="text-xs text-text-secondary">
+            快照日：{data.snapshot_date}
+            {intradayTimeLabel && <> {intradayTimeLabel}</>}
+            　·　Top {data.long.length}（多）/ {data.short.length}（空）
+          </span>
+        )}
       </div>
       <p className="text-xs text-text-secondary">
         以 ScoreBoard 三時框合併之 total.{sideLabel} 百分比排序，成交金額為 tie-breaker。
       </p>
 
+      <div className="flex flex-wrap gap-2">
+        {(["daily", "intraday"] as View[]).map((v) => (
+          <button
+            key={v}
+            onClick={() => setView(v)}
+            className={`px-3 py-1 text-xs rounded ${
+              view === v
+                ? "bg-accent text-white"
+                : "bg-surface-alt text-text-secondary hover:text-text-primary"
+            }`}
+          >
+            {v === "daily" ? "收盤" : "12:50"}
+          </button>
+        ))}
+      </div>
+
+      {!data ? (
+        <div className="text-text-secondary text-sm">載入中…</div>
+      ) : !data.snapshot_date ? (
+        <div className="text-text-secondary text-sm">
+          {view === "intraday"
+            ? "尚無盤中快照資料。請先在 12:50 後跑 intraday_snapshot。"
+            : "尚無評分快照資料。請先跑 daily_update。"}
+        </div>
+      ) : (
+      <>
       <div className="flex gap-2">
         {(["long", "short"] as Side[]).map((s) => (
           <button
@@ -189,6 +220,8 @@ export default function ScoresPage() {
             </span>
           ))}
         </div>
+      )}
+      </>
       )}
     </div>
   );

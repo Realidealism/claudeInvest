@@ -1051,6 +1051,130 @@ def export_operations(cur, out: Path):
     }, out / "operations.json")
 
 
+def export_scores_intraday(cur, out: Path):
+    """Intraday (12:50) ScoreBoard preview — top-100 long + top-100 short.
+
+    Mirrors export_scores but reads from tw.score_snapshot_intraday and
+    picks the most recent (snapshot_date, snapshot_time) tuple."""
+    cur.execute("""
+        SELECT snapshot_date, snapshot_time
+        FROM tw.score_snapshot_intraday
+        ORDER BY snapshot_date DESC, snapshot_time DESC
+        LIMIT 1
+    """)
+    row = cur.fetchone()
+    if row is None:
+        _write({"snapshot_date": None, "snapshot_time": None,
+                "long": [], "short": [], "history": []},
+               out / "scores_intraday.json")
+        return
+    snap_date, snap_time = row["snapshot_date"], row["snapshot_time"]
+
+    sides = {"long": [], "short": []}
+    for side in ("long", "short"):
+        cur.execute("""
+            SELECT s.rank, s.stock_id, st.name, st.market,
+                   s.total_pct, s.turnover,
+                   s.is_new, s.prev_rank, s.rank_delta,
+                   s.pct_d1, s.pct_d2, s.pct_d3
+            FROM tw.score_snapshot_intraday s
+            JOIN tw.stocks st ON st.stock_id = s.stock_id
+            WHERE s.snapshot_date = %s AND s.snapshot_time = %s AND s.side = %s
+            ORDER BY s.rank
+        """, (snap_date, snap_time, side))
+        for r in cur.fetchall():
+            sides[side].append({
+                "rank": r["rank"],
+                "ticker": r["stock_id"],
+                "name": r["name"],
+                "market": r["market"],
+                "total_pct": float(r["total_pct"]),
+                "turnover": float(r["turnover"]) if r["turnover"] is not None else 0.0,
+                "is_new": r["is_new"],
+                "prev_rank": r["prev_rank"],
+                "rank_delta": r["rank_delta"],
+                "pct_d1": float(r["pct_d1"]) if r["pct_d1"] is not None else None,
+                "pct_d2": float(r["pct_d2"]) if r["pct_d2"] is not None else None,
+                "pct_d3": float(r["pct_d3"]) if r["pct_d3"] is not None else None,
+            })
+
+    _write({
+        "snapshot_date": snap_date,
+        "snapshot_time": snap_time.isoformat() if snap_time is not None else None,
+        "long": sides["long"],
+        "short": sides["short"],
+        "history": [],
+    }, out / "scores_intraday.json")
+
+
+def export_operations_intraday(cur, out: Path):
+    """Intraday (12:50) signal-factory preview — 6 signals × stocks fired.
+
+    Mirrors export_operations but reads from tw.signal_snapshot_intraday."""
+    SIGNAL_ORDER = ["pick", "touch", "buy", "sell", "buy_flee", "sell_flee"]
+
+    cur.execute("""
+        SELECT snapshot_date, snapshot_time
+        FROM tw.signal_snapshot_intraday
+        ORDER BY snapshot_date DESC, snapshot_time DESC
+        LIMIT 1
+    """)
+    row = cur.fetchone()
+    if row is None:
+        empty = {sig: [] for sig in SIGNAL_ORDER}
+        _write({"snapshot_date": None, "snapshot_time": None, "signals": empty},
+               out / "operations_intraday.json")
+        return
+    snap_date, snap_time = row["snapshot_date"], row["snapshot_time"]
+
+    cur.execute("""
+        SELECT s.signal, s.stock_id, st.name, st.market, s.turnover
+        FROM tw.signal_snapshot_intraday s
+        JOIN tw.stocks st ON st.stock_id = s.stock_id
+        WHERE s.snapshot_date = %s AND s.snapshot_time = %s
+        ORDER BY s.turnover DESC NULLS LAST, s.stock_id
+    """, (snap_date, snap_time))
+
+    grouped: dict[str, list] = {sig: [] for sig in SIGNAL_ORDER}
+    for r in cur.fetchall():
+        sig = r["signal"]
+        if sig not in grouped:
+            continue
+        grouped[sig].append({
+            "ticker": r["stock_id"],
+            "name": r["name"],
+            "market": r["market"],
+            "turnover": float(r["turnover"]) if r["turnover"] is not None else 0.0,
+        })
+
+    _write({
+        "snapshot_date": snap_date,
+        "snapshot_time": snap_time.isoformat() if snap_time is not None else None,
+        "signals": grouped,
+    }, out / "operations_intraday.json")
+
+
+def export_intraday(out_dir: str | None = None):
+    """Standalone export entry called by intraday_snapshot.py — only
+    refreshes the two intraday JSONs without touching daily exports."""
+    if out_dir is None:
+        import sys
+        if getattr(sys, 'frozen', False):
+            base = Path(sys.executable).parent.parent
+        else:
+            base = Path(__file__).parent.parent
+        out_dir = str(base / "frontend" / "public" / "data")
+
+    out = Path(out_dir)
+    out.mkdir(parents=True, exist_ok=True)
+
+    print(f"Exporting intraday JSON to {out}/")
+    with get_cursor(commit=False) as cur:
+        export_scores_intraday(cur, out)
+        export_operations_intraday(cur, out)
+    print("Intraday export done.")
+
+
 def export_positions(cur, out: Path):
     """Daily snapshot of unified-strategy open positions (long + short)."""
     cur.execute("SELECT MAX(snapshot_date) AS d FROM tw.open_positions")
@@ -1124,6 +1248,8 @@ def export_all(out_dir: str | None = None):
         export_revenue_screens(cur, out)
         export_scores(cur, out)
         export_operations(cur, out)
+        export_scores_intraday(cur, out)
+        export_operations_intraday(cur, out)
         export_positions(cur, out)
 
     print("Done.")

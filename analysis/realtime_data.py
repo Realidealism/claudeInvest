@@ -31,6 +31,12 @@ ref_price sourcing:
   trading day). If that pre-market run hasn't happened — e.g. the first time
   the pipeline is started, or weekends — we fall back to the previous trading
   day's close, which is the closest approximation available.
+
+Intraday snapshot variant:
+  load_stock_data_intraday() additionally scales today's forming bar
+  volume + turnover by a market-wide factor (1/h(t)) so that all
+  volume-sensitive indicators (OBV, 洪量, volume_status, money_level) see
+  a projected full-day bar instead of a half-formed one.
 """
 
 from __future__ import annotations
@@ -58,6 +64,42 @@ def load_stock_data_live(stock_id: str) -> StockData:
 
     intraday = _fetch_intraday_row(stock_id)
     rows = _merge_intraday_into_daily(rows, intraday)
+
+    dates = [r["trade_date"] for r in rows]
+    dividends = fetch_dividends(stock_id, dates)
+    return build_stock_data(stock_id, stock_name, rows, dividends)
+
+
+def load_stock_data_intraday(stock_id: str, volume_scale: float) -> StockData:
+    """
+    Like load_stock_data_live, but multiplies today's forming bar volume
+    and turnover by ``volume_scale`` (= 1 / h(t)) so indicators see a
+    projected full-day bar.
+
+    The caller is responsible for passing a stable scale (computed once
+    per snapshot run from the market-wide h-curve) — the per-stock
+    intraday turnover is implicitly scaled by the same market-wide factor.
+
+    No scaling is applied if today's intraday row was not merged in
+    (e.g. weekend, sweeper not running for this ticker).
+    """
+    stock_name = fetch_stock_name(stock_id)
+
+    rows = _fetch_all_daily_prices(stock_id)
+    if not rows:
+        raise ValueError(f"No daily_prices data for {stock_id}")
+
+    intraday = _fetch_intraday_row(stock_id)
+    rows = _merge_intraday_into_daily(rows, intraday)
+
+    # Scale only when a forming bar was actually appended on top of history.
+    if intraday is not None and rows and rows[-1]["trade_date"] == intraday.get("trade_date"):
+        last = dict(rows[-1])
+        if last.get("volume") is not None:
+            last["volume"] = float(last["volume"]) * volume_scale
+        if last.get("turnover") is not None:
+            last["turnover"] = float(last["turnover"]) * volume_scale
+        rows = [*rows[:-1], last]
 
     dates = [r["trade_date"] for r in rows]
     dividends = fetch_dividends(stock_id, dates)

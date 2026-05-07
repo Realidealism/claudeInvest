@@ -9,10 +9,12 @@ interface SignalRow {
 
 interface OperationsData {
   snapshot_date: string | null;
+  snapshot_time?: string | null;
   signals: Record<string, SignalRow[]>;
 }
 
 type SignalKey = "pick" | "touch" | "buy" | "sell" | "buy_flee" | "sell_flee";
+type View = "daily" | "intraday";
 
 const SIGNAL_ORDER: SignalKey[] = ["pick", "touch", "buy", "sell", "buy_flee", "sell_flee"];
 
@@ -46,39 +48,65 @@ function tvUrl(ticker: string, market: string): string {
 export default function OperationsPage() {
   const [data, setData] = useState<OperationsData | null>(null);
   const [filter, setFilter] = useState<SignalKey | "all">("all");
+  const [view, setView] = useState<View>("daily");
 
   useEffect(() => {
-    fetch("/data/operations.json")
+    setData(null);
+    const url = view === "intraday" ? "/data/operations_intraday.json" : "/data/operations.json";
+    fetch(url)
       .then((r) => r.json())
       .then(setData)
       .catch(console.error);
-  }, []);
-
-  if (!data) {
-    return <div className="text-text-secondary text-sm">載入中…</div>;
-  }
-  if (!data.snapshot_date) {
-    return (
-      <div className="text-text-secondary text-sm">
-        尚無訊號快照資料。請先跑 daily_update。
-      </div>
-    );
-  }
+  }, [view]);
 
   const visibleSignals = filter === "all" ? SIGNAL_ORDER : [filter];
+  const intradayTimeLabel = view === "intraday" && data?.snapshot_time
+    ? new Date(data.snapshot_time).toLocaleTimeString("zh-TW", {
+        hour: "2-digit", minute: "2-digit", hour12: false,
+      })
+    : null;
 
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-baseline justify-between gap-3">
         <h1 className="text-lg font-bold text-text-primary">操作訊號</h1>
-        <span className="text-xs text-text-secondary">
-          資料日：{data.snapshot_date}
-        </span>
+        {data?.snapshot_date && (
+          <span className="text-xs text-text-secondary">
+            資料日：{data.snapshot_date}
+            {intradayTimeLabel && <> {intradayTimeLabel}</>}
+          </span>
+        )}
       </div>
       <p className="text-xs text-text-secondary">
         每日從訊號工廠 6 個訊號掃出當日觸發的個股，依成交金額遞減排序。
       </p>
 
+      <div className="flex flex-wrap gap-2">
+        {(["daily", "intraday"] as View[]).map((v) => (
+          <button
+            key={v}
+            onClick={() => setView(v)}
+            className={`px-3 py-1 text-xs rounded ${
+              view === v
+                ? "bg-accent text-white"
+                : "bg-surface-alt text-text-secondary hover:text-text-primary"
+            }`}
+          >
+            {v === "daily" ? "收盤" : "12:50"}
+          </button>
+        ))}
+      </div>
+
+      {!data ? (
+        <div className="text-text-secondary text-sm">載入中…</div>
+      ) : !data.snapshot_date ? (
+        <div className="text-text-secondary text-sm">
+          {view === "intraday"
+            ? "尚無盤中訊號資料。請先在 12:50 後跑 intraday_snapshot。"
+            : "尚無訊號快照資料。請先跑 daily_update。"}
+        </div>
+      ) : (
+      <>
       <div className="flex flex-wrap gap-2">
         <button
           onClick={() => setFilter("all")}
@@ -176,6 +204,8 @@ export default function OperationsPage() {
           );
         })}
       </div>
+      </>
+      )}
     </div>
   );
 }
