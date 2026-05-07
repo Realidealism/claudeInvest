@@ -309,9 +309,15 @@ def pick_condition(data: "StockData") -> BoolArray:
       (v114 試 2日窗口: pick PF 0.95→1.19, trades 475→1878, portfolio 1.3101 雜訊持平)
       (v115 試 nte 2日 OR gold 2日: pick PF 1.18, portfolio 1.3092 雜訊輸 v110)
       (v116 試 nte 當天 OR gold 當天: macd_gold 是 nte 子集，trades +1 等同 v110)
-      v117: rule_macd = nte AND ~osc_status_up_weak1 (動能未衰退到 80%)
-            pick 自身 PF 0.95→0.84 但 portfolio +0.0004 (1.3111 peak)
-            (v118 ~weak2 / v119 ~weak3 都比 v117 差，v117 是 weak filter 甜蜜點)
+      (v117: short.nte AND ~weak1, pick trades 313, portfolio peak 1.3111)
+      (v120 加 medium.nte OR: trades 313→375, portfolio -0.0019, 已 revert)
+      (v121 試 nte 2日 AND ~weak1: pick trades 1759 PF 1.20, portfolio 1.3088)
+      v123: v121 + carryover exclude — 今日下降量 > 2*|昨日動能變化| 才排除
+            (osc_x < -2 * |prev_osc_x|，「強逆轉」exclude pattern)
+            pick trades 811 / PF 1.12 / 勝率 25.2 — pick 自身最佳設計
+            (v122 0.97x = status_down 砍光 v121 全部 / v124 3x 砍太少 / v125 1.5x 不
+             如 2x — ratio sweep 顯示 2x 是 pick 自身 sweet spot)
+            (Portfolio PF 1.3091，輸 v117 peak 1.3111 雜訊 -0.0020)
     """
     n = data.n
     close = data.close
@@ -360,10 +366,20 @@ def pick_condition(data: "StockData") -> BoolArray:
                     (vh[5] < vh[8] * 0.21))
     rule_g10 = ~(weakening & shrink_ratio)
 
-    # 7. v117: rule_macd = nte AND ~osc_status_up_weak1
-    # 動能未衰退到 80% (weak filter 甜蜜點，~weak2/~weak3 反而更差)
+    # 7. v123: nte 2 日窗口 AND ~weak1 AND ~(carryover-strong-reversal)
+    # carryover-strong-reversal: 昨日 nte + 今日無 nte + 今日下降量 > 2*|昨日動能變化|
+    # ratio sweep 顯示 2x 是 pick 自身 sweet spot (PF 1.12, 勝率 25.2)
     macd_short = data.macd.short
-    rule_macd = macd_short.macd_convergence_nte & ~macd_short.osc_status_up_weak1
+    nte = macd_short.macd_convergence_nte
+    prev_nte = _shift(nte, 1)
+    today_no_nte = ~nte
+    osc_x = macd_short.osc_x
+    prev_osc_x = _shift(osc_x, 1)
+    strong_drop = osc_x < -2 * np.abs(prev_osc_x)
+    exclude_strong_breakdown = prev_nte & today_no_nte & strong_drop
+    rule_macd = (_last_n_any(nte, 2)
+                 & ~macd_short.osc_status_up_weak1
+                 & ~exclude_strong_breakdown)
 
     # 8. v110 port Go (D) 嚴閾值版本：階梯 40/35/30（Go 原為 35.5/30.5/25.5）
     # Go (CalculateTrade2.go:7548-7553):
@@ -408,6 +424,9 @@ def touch_condition(data: "StockData") -> BoolArray:
       8. MACD short 頂背離 (convergence_pte)：金叉狀態但動能轉弱
          — Go ShortMACDConvergencePTE 用於 BuyCondition exclusion，touch 反向用為
            positive trigger。v11 用 ~death_gold (狀態確認) 失敗，改用 PTE 早期偵測。
+         v126 鏡像 pick v123: pte 2日窗口 AND ~osc_status_down_weak1 AND
+              ~(prev_pte AND today_no_pte AND strong_rise) carryover-strong-rise
+              排除「昨日頂背離今日無 pte 但今日強烈向上反彈」假頂部
     """
     n = data.n
     close = data.close
@@ -448,8 +467,18 @@ def touch_condition(data: "StockData") -> BoolArray:
     ms = data.market_state
     rule_not_double_down_hot = ~(ms.short_down_hot & ms.medium_down_hot)
 
-    # 8. MACD short 頂背離 — 早期偵測「金叉狀態但動能轉弱」= 頂部 likely
-    rule_macd = data.macd.short.macd_convergence_pte
+    # 8. v126: 鏡像 pick v123 — pte 2 日窗口 AND ~weak_down1 AND ~carryover_strong_rise
+    macd_short = data.macd.short
+    pte = macd_short.macd_convergence_pte
+    prev_pte = _shift(pte, 1)
+    today_no_pte = ~pte
+    osc_x = macd_short.osc_x
+    prev_osc_x = _shift(osc_x, 1)
+    strong_rise = osc_x > 2 * np.abs(prev_osc_x)
+    exclude_strong_breakup = prev_pte & today_no_pte & strong_rise
+    rule_macd = (_last_n_any(pte, 2)
+                 & ~macd_short.osc_status_down_weak1
+                 & ~exclude_strong_breakup)
 
     # OSC defense from Go TouchCondition reverted in v21 — same reason as
     # pick: Go's "trigger = OSCStatus false" finds momentum-fading entries,
