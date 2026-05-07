@@ -1155,9 +1155,13 @@ def export_operations_intraday(cur, out: Path):
 
 
 def export_positions_intraday(cur, out: Path):
-    """Intraday (12:50) preview of unified-strategy open positions.
+    """Intraday (12:50) preview of unified-strategy open positions, plus
+    positions that exited intraday at today's projected bar (is_exited=TRUE
+    rows in tw.open_positions_intraday).
 
-    Mirrors export_positions but reads from tw.open_positions_intraday."""
+    Output structure:
+      long / short          — currently open
+      exited_long / exited_short — closed today, surfaced as a quick-scan list"""
     cur.execute("""
         SELECT snapshot_date, snapshot_time
         FROM tw.open_positions_intraday
@@ -1167,46 +1171,51 @@ def export_positions_intraday(cur, out: Path):
     row = cur.fetchone()
     if row is None:
         _write({"snapshot_date": None, "snapshot_time": None,
-                "long": [], "short": []},
+                "long": [], "short": [],
+                "exited_long": [], "exited_short": []},
                out / "positions_intraday.json")
         return
     snap_date, snap_time = row["snapshot_date"], row["snapshot_time"]
 
-    sides = {"long": [], "short": []}
-    for side in ("long", "short"):
-        cur.execute("""
-            SELECT p.stock_id, st.name, st.market,
-                   p.entry_date, p.entry_price, p.entry_tier,
-                   p.current_close, p.pnl_pct, p.bars_held, p.turnover,
-                   p.defense_price, p.defense_reason, p.defense_date
-            FROM tw.open_positions_intraday p
-            JOIN tw.stocks st ON st.stock_id = p.stock_id
-            WHERE p.snapshot_date = %s AND p.snapshot_time = %s AND p.side = %s
-            ORDER BY p.turnover DESC NULLS LAST, p.stock_id
-        """, (snap_date, snap_time, side))
-        for r in cur.fetchall():
-            sides[side].append({
-                "ticker": r["stock_id"],
-                "name": r["name"],
-                "market": r["market"],
-                "entry_date": r["entry_date"],
-                "entry_price": float(r["entry_price"]),
-                "entry_tier": r["entry_tier"],
-                "current_close": float(r["current_close"]),
-                "pnl_pct": float(r["pnl_pct"]),
-                "bars_held": r["bars_held"],
-                "turnover": float(r["turnover"]) if r["turnover"] is not None else 0.0,
-                "defense_price": float(r["defense_price"]) if r["defense_price"] is not None else None,
-                "defense_reason": r["defense_reason"],
-                "defense_date": r["defense_date"],
-            })
-
-    _write({
+    out_data = {
         "snapshot_date": snap_date,
         "snapshot_time": snap_time.isoformat() if snap_time is not None else None,
-        "long": sides["long"],
-        "short": sides["short"],
-    }, out / "positions_intraday.json")
+        "long": [], "short": [],
+        "exited_long": [], "exited_short": [],
+    }
+    for side in ("long", "short"):
+        for is_exited, key in ((False, side), (True, f"exited_{side}")):
+            cur.execute("""
+                SELECT p.stock_id, st.name, st.market,
+                       p.entry_date, p.entry_price, p.entry_tier,
+                       p.current_close, p.pnl_pct, p.bars_held, p.turnover,
+                       p.defense_price, p.defense_reason, p.defense_date,
+                       p.exit_reason
+                FROM tw.open_positions_intraday p
+                JOIN tw.stocks st ON st.stock_id = p.stock_id
+                WHERE p.snapshot_date = %s AND p.snapshot_time = %s
+                  AND p.side = %s AND p.is_exited = %s
+                ORDER BY p.turnover DESC NULLS LAST, p.stock_id
+            """, (snap_date, snap_time, side, is_exited))
+            for r in cur.fetchall():
+                out_data[key].append({
+                    "ticker": r["stock_id"],
+                    "name": r["name"],
+                    "market": r["market"],
+                    "entry_date": r["entry_date"],
+                    "entry_price": float(r["entry_price"]),
+                    "entry_tier": r["entry_tier"],
+                    "current_close": float(r["current_close"]),
+                    "pnl_pct": float(r["pnl_pct"]),
+                    "bars_held": r["bars_held"],
+                    "turnover": float(r["turnover"]) if r["turnover"] is not None else 0.0,
+                    "defense_price": float(r["defense_price"]) if r["defense_price"] is not None else None,
+                    "defense_reason": r["defense_reason"],
+                    "defense_date": r["defense_date"],
+                    "exit_reason": r["exit_reason"],
+                })
+
+    _write(out_data, out / "positions_intraday.json")
 
 
 def export_intraday(out_dir: str | None = None):

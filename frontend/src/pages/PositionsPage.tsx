@@ -14,6 +14,7 @@ interface Position {
   defense_price: number | null;
   defense_reason: string | null;
   defense_date: string | null;
+  exit_reason?: string | null;
 }
 
 interface PositionsData {
@@ -21,9 +22,11 @@ interface PositionsData {
   snapshot_time?: string | null;
   long: Position[];
   short: Position[];
+  exited_long?: Position[];
+  exited_short?: Position[];
 }
 
-type Side = "long" | "short";
+type Tab = "long" | "short" | "exited";
 type View = "daily" | "intraday";
 
 const TIER_LABEL: Record<string, string> = {
@@ -67,9 +70,13 @@ function fmtDate(d: string | null): string {
   return `${parseInt(parts[1], 10)}/${parseInt(parts[2], 10)}`;
 }
 
+// Augmented row used in the 今日結束 tab — same shape as Position but
+// carries which side it came from so the table can colour-code it.
+type ExitedRow = Position & { side: "long" | "short" };
+
 export default function PositionsPage() {
   const [data, setData] = useState<PositionsData | null>(null);
-  const [side, setSide] = useState<Side>("long");
+  const [tab, setTab] = useState<Tab>("long");
   const [view, setView] = useState<View>("daily");
 
   useEffect(() => {
@@ -81,9 +88,24 @@ export default function PositionsPage() {
       .catch(console.error);
   }, [view]);
 
-  const sideLabel = side === "long" ? "做多" : "做空";
-  const rows = data && data.snapshot_date
-    ? (side === "long" ? data.long : data.short)
+  // Daily view doesn't track exits — collapse tab back to long if the user
+  // had 今日結束 selected before switching.
+  useEffect(() => {
+    if (view === "daily" && tab === "exited") setTab("long");
+  }, [view, tab]);
+
+  const exitedRows: ExitedRow[] = data
+    ? [
+        ...(data.exited_long  ?? []).map((p) => ({ ...p, side: "long" as const })),
+        ...(data.exited_short ?? []).map((p) => ({ ...p, side: "short" as const })),
+      ].sort((a, b) => b.turnover - a.turnover)
+    : [];
+
+  const tabLabel: Record<Tab, string> = { long: "做多", short: "做空", exited: "今日結束" };
+  const rows: (Position | ExitedRow)[] = data && data.snapshot_date
+    ? tab === "long"   ? data.long
+    : tab === "short"  ? data.short
+                       : exitedRows
     : [];
   const intradayTimeLabel = view === "intraday" && data?.snapshot_time
     ? new Date(data.snapshot_time).toLocaleTimeString("zh-TW", {
@@ -132,27 +154,44 @@ export default function PositionsPage() {
         </div>
       ) : (
       <>
-      <div className="flex gap-2">
-        {(["long", "short"] as Side[]).map((s) => (
+      <div className="flex flex-wrap gap-2">
+        <button
+          onClick={() => setTab("long")}
+          className={`px-4 py-1.5 text-sm rounded ${
+            tab === "long"
+              ? "bg-accent text-white"
+              : "bg-surface-alt text-text-secondary hover:text-text-primary"
+          }`}
+        >
+          做多（{data.long.length}）
+        </button>
+        <button
+          onClick={() => setTab("short")}
+          className={`px-4 py-1.5 text-sm rounded ${
+            tab === "short"
+              ? "bg-accent text-white"
+              : "bg-surface-alt text-text-secondary hover:text-text-primary"
+          }`}
+        >
+          做空（{data.short.length}）
+        </button>
+        {view === "intraday" && (
           <button
-            key={s}
-            onClick={() => setSide(s)}
+            onClick={() => setTab("exited")}
             className={`px-4 py-1.5 text-sm rounded ${
-              side === s
+              tab === "exited"
                 ? "bg-accent text-white"
                 : "bg-surface-alt text-text-secondary hover:text-text-primary"
             }`}
           >
-            {s === "long"
-              ? `做多（${data.long.length}）`
-              : `做空（${data.short.length}）`}
+            今日結束（{exitedRows.length}）
           </button>
-        ))}
+        )}
       </div>
 
       {rows.length === 0 ? (
         <div className="text-xs text-text-secondary px-2 py-3 bg-surface-alt border border-border rounded">
-          目前沒有{sideLabel}持倉
+          {tab === "exited" ? "今日無結束部位" : `目前沒有${tabLabel[tab]}持倉`}
         </div>
       ) : (
         <div className="overflow-x-auto bg-surface-alt border border-border rounded">
@@ -160,26 +199,40 @@ export default function PositionsPage() {
             <thead>
               <tr className="border-b border-border text-text-secondary text-left">
                 <th className="px-2 py-2 w-10">#</th>
+                {tab === "exited" && <th className="px-2 py-2">方向</th>}
                 <th className="px-2 py-2">代號</th>
                 <th className="px-2 py-2">名稱</th>
                 <th className="px-2 py-2">類型</th>
                 <th className="px-2 py-2 text-center">進場日</th>
                 <th className="px-2 py-2 text-right hidden md:table-cell">天數</th>
                 <th className="px-2 py-2 text-right">進場</th>
-                <th className="px-2 py-2 text-right">現價</th>
+                <th className="px-2 py-2 text-right">{tab === "exited" ? "出場" : "現價"}</th>
                 <th className="px-2 py-2 text-right">損益%</th>
-                <th className="px-2 py-2 text-right">防守</th>
-                <th className="px-2 py-2 hidden lg:table-cell">防守理由</th>
+                {tab === "exited" ? (
+                  <th className="px-2 py-2 hidden lg:table-cell">出場理由</th>
+                ) : (
+                  <>
+                    <th className="px-2 py-2 text-right">防守</th>
+                    <th className="px-2 py-2 hidden lg:table-cell">防守理由</th>
+                  </>
+                )}
                 <th className="px-2 py-2 text-right">成交金額</th>
               </tr>
             </thead>
             <tbody>
               {rows.map((p, i) => (
                 <tr
-                  key={p.ticker}
+                  key={`${p.ticker}-${(p as ExitedRow).side ?? tab}`}
                   className="border-b border-border/50 hover:bg-surface-hover transition-colors"
                 >
                   <td className="px-2 py-1.5">{i + 1}</td>
+                  {tab === "exited" && (
+                    <td className={`px-2 py-1.5 font-bold ${
+                      (p as ExitedRow).side === "long" ? "text-long-strong" : "text-short-strong"
+                    }`}>
+                      {(p as ExitedRow).side === "long" ? "多" : "空"}
+                    </td>
+                  )}
                   <td className="px-2 py-1.5 font-mono">
                     <a
                       href={tvUrl(p.ticker, p.market)}
@@ -210,21 +263,29 @@ export default function PositionsPage() {
                     {p.pnl_pct >= 0 ? "+" : ""}
                     {p.pnl_pct.toFixed(2)}
                   </td>
-                  <td className="px-2 py-1.5 text-right font-mono text-text-secondary">
-                    {p.defense_price !== null ? p.defense_price.toFixed(2) : "—"}
-                  </td>
-                  <td className="px-2 py-1.5 hidden lg:table-cell text-text-secondary">
-                    {p.defense_reason ? (
-                      <span>
-                        {p.defense_reason}
-                        {p.defense_date && (
-                          <span className="ml-1 text-[10px]">
-                            ({fmtDate(p.defense_date)})
+                  {tab === "exited" ? (
+                    <td className="px-2 py-1.5 hidden lg:table-cell text-text-secondary">
+                      {p.exit_reason ?? "—"}
+                    </td>
+                  ) : (
+                    <>
+                      <td className="px-2 py-1.5 text-right font-mono text-text-secondary">
+                        {p.defense_price !== null ? p.defense_price.toFixed(2) : "—"}
+                      </td>
+                      <td className="px-2 py-1.5 hidden lg:table-cell text-text-secondary">
+                        {p.defense_reason ? (
+                          <span>
+                            {p.defense_reason}
+                            {p.defense_date && (
+                              <span className="ml-1 text-[10px]">
+                                ({fmtDate(p.defense_date)})
+                              </span>
+                            )}
                           </span>
-                        )}
-                      </span>
-                    ) : "—"}
-                  </td>
+                        ) : "—"}
+                      </td>
+                    </>
+                  )}
                   <td className={`px-2 py-1.5 text-right font-mono ${turnoverClass(p.turnover)}`}>
                     {fmtTurnover(p.turnover)}
                   </td>
