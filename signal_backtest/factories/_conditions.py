@@ -568,7 +568,8 @@ def sell_condition(data: "StockData") -> BoolArray:
       (v137 試加 ~today_signal_up: 僅砍 4 筆 dead filter，等同 v134)
       (v138: OBV medium signal_down 5日 portfolio 1.4495)
       (v139 試 medium + ~signal_up: 0 筆變化, dead filter, 完全等同 v138)
-      11. v140: short signal_down 3日 AND ~today signal_up (從 5日縮窗口至 3日)
+      (v140: short signal_down 3日 AND ~today signal_up, portfolio 1.4526 peak)
+      11. v141: 縮至 2 日窗口 (今日 OR 昨日有 signal_down AND ~today signal_up)
       (v63 移除原規則 6「不在連續 3 日凹21」: 對直線崩跌股會卡死所有進場)
       (v96 嘗試加 short_ma_bear 失敗，trades 只 -0.94%、PF 無變化，已 revert)
       (v97 嘗試加 turn[3]==0 共振失敗，0 trades 變化、PF 無變化，已 revert)
@@ -610,9 +611,9 @@ def sell_condition(data: "StockData") -> BoolArray:
     # 12. v130 port Go GS11：~nte (不在底背離 — 排除「死叉但動能轉強」的反彈段)
     rule_not_nte = ~data.macd.short.macd_convergence_nte
 
-    # 13. v140: OBV short signal_down 3日任一 AND 今日不是 short signal_up
+    # 13. v141: OBV short signal_down 2日 AND 今日不是 signal_up
     obv_short = data.obv.short
-    rule_obv_bearish = (_last_n_any(obv_short.signal_down, 3)
+    rule_obv_bearish = (_last_n_any(obv_short.signal_down, 2)
                         & ~obv_short.signal_up)
 
     return (rule_ma & rule_turn & rule_break & rule_vol & rule_knot
