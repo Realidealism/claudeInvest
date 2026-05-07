@@ -667,23 +667,33 @@ def _gap_down_today(data: "StockData") -> BoolArray:
 def buy_flee_signal(data: "StockData") -> BoolArray:
     """多翻空訊號 — short_entry candidate.
 
-    純 score-based main (P0.5 閾值，鏡像 sell_flee).
+    v127: main + post_strength gate (short_pct >= 30 確認進場時空方分數已偏空)
+    main 內 rise1 已保證 short_pct >= 26.83 / rise3 >= 41.14 (with prev<=0)
+    但 prev<=0 允許負值，實際 short_pct 進場時可能 < 30
+    (v128 試 25 略輸 v127 +0.0008 雜訊內)
     """
-    return _buy_flee_main(data)
+    main = _buy_flee_main(data)
+    short_pct = _short_pct_array(data)
+    rule_post_strength = short_pct >= 30
+    return main & rule_post_strength
 
 
 def sell_flee_signal(data: "StockData") -> BoolArray:
     """空翻多訊號 — long_entry candidate.
 
-    v93 = main (v91 score-rise) OR bait_flip_up (誘空翻多, 鏡像 buy_flee)
+    v129 = (main AND long_pct >= 30) OR bait_flip_up
+    鏡像 v127 buy_flee 的 post_strength gate 僅套 main 部分
+    bait_flip_up 為 gap-up 事件，當天 long_pct 未必反映，gate 不套
 
     bait_flip_up: 昨日 buy_flee 觸發 (誘空訊號) + 今日 gap_up (翻多打臉)
       → Go SellFlee subclause v36 的「假崩跌反彈再翻多」事件.
     """
     main = _sell_flee_main(data)
+    long_pct = _long_pct_array(data)
+    main_with_gate = main & (long_pct >= 30)
 
     prev_buy_flee_main = _shift(_buy_flee_main(data), 1)
     gap_up = _gap_up_today(data)
     bait_flip_up = prev_buy_flee_main & gap_up
 
-    return main | bait_flip_up
+    return main_with_gate | bait_flip_up
