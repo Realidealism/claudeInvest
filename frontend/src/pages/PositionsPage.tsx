@@ -251,8 +251,15 @@ export default function PositionsPage() {
                   <td className="px-2 py-1.5 text-text-secondary">
                     {TIER_LABEL[p.entry_tier] ?? p.entry_tier}
                   </td>
-                  <td className="px-2 py-1.5 text-center font-mono text-text-secondary">
+                  <td className={`px-2 py-1.5 text-center font-mono ${
+                    p.entry_date === data.snapshot_date
+                      ? "text-yellow-300 font-bold"
+                      : "text-text-secondary"
+                  }`}>
                     {fmtDate(p.entry_date)}
+                    {p.entry_date === data.snapshot_date && (
+                      <span className="ml-1 text-[10px]">今日</span>
+                    )}
                   </td>
                   <td className="px-2 py-1.5 text-right font-mono text-text-secondary hidden md:table-cell">
                     {p.bars_held}
