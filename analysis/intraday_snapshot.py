@@ -1,4 +1,4 @@
-"""Intraday (12:50) snapshot — preview of ScoreBoard top-100 + 6 signal fires
+"""Intraday (12:50) snapshot — preview of ScoreBoard top-300 + 6 signal fires
 + open positions, using a market-wide h(t)-projected full-day bar.
 
 Mirrors analysis.daily_snapshot.py but:
@@ -48,7 +48,7 @@ _TIER_RE = re.compile(rf"^{re.escape(REASON_ENTRY_INIT)}\[(\w+)\]$")
 
 _TPE_TZ = timezone(timedelta(hours=8))
 
-TOP_N = 100
+TOP_N = 300
 DEFAULT_WORKERS = max(1, min(os.cpu_count() or 1, 8))
 N_WORKERS = int(os.environ.get("INTRADAY_SNAPSHOT_WORKERS", str(DEFAULT_WORKERS)))
 MIN_MONEY_LEVEL = int(os.environ.get("INTRADAY_SNAPSHOT_MIN_LEVEL", "4"))

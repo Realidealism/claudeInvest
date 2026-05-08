@@ -1,6 +1,6 @@
 """Combined daily snapshot — three outputs from a single per-stock pass:
 
-  1. Top-100 long/short ScoreBoard (tw.score_snapshot)
+  1. Top-300 long/short ScoreBoard (tw.score_snapshot)
   2. Signal-factory fires for the 6 conditions (tw.signal_snapshot)
   3. Currently-open unified-strategy positions (tw.open_positions)
 
@@ -51,7 +51,7 @@ from signal_backtest.trade import REASON_EXIT_END, REASON_ENTRY_INIT
 unified_long_factory = SIGNAL_FACTORIES["unified_long"]
 unified_short_factory = SIGNAL_FACTORIES["unified_short"]
 
-TOP_N = 100
+TOP_N = 300
 DEFAULT_WORKERS = max(1, min(cpu_count() or 1, 8))
 N_WORKERS = int(os.environ.get("DAILY_SNAPSHOT_WORKERS", str(DEFAULT_WORKERS)))
 

@@ -415,7 +415,7 @@ def update_date(trade_date: date):
         traceback.print_exc()
         results.append(("每日流動性", "failed"))
 
-    # Combined daily snapshot — score top-100 long/short + 6 signal-factory
+    # Combined daily snapshot — score top-300 long/short + 6 signal-factory
     # fires + unified-strategy open positions, all in one per-stock pass.
     # Skip if market_breadth failed: load_stock_data pulls market_state from
     # tw.market_breadth, and stale rows would silently degrade every output.

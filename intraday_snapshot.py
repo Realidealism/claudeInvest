@@ -9,7 +9,7 @@ Steps:
   3. Per-stock parallel evaluation: load history + today's forming bar
      (volume scaled to projected full-day), compute ScoreBoard pcts at
      4 bars, evaluate the 6 signal-factory conditions on the latest bar.
-  4. Persist top-100 long/short ranks + signal fires to the *_intraday
+  4. Persist top-300 long/short ranks + signal fires to the *_intraday
      tables, anchored to the most recent close for the 變動 column.
   5. Refresh frontend/public/data/scores_intraday.json and operations_intraday.json.
   6. Auto-commit and push the 3 intraday JSONs so Vercel redeploys.

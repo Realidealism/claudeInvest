@@ -950,7 +950,7 @@ def export_revenue_screens(cur, out: Path, n_months: int = 4):
 
 
 def export_scores(cur, out: Path):
-    """Daily ScoreBoard snapshot — top-100 long + top-100 short."""
+    """Daily ScoreBoard snapshot — top-300 long + top-300 short."""
     cur.execute("SELECT MAX(snapshot_date) AS d FROM tw.score_snapshot")
     latest = cur.fetchone()["d"]
     if latest is None:
@@ -1052,7 +1052,7 @@ def export_operations(cur, out: Path):
 
 
 def export_scores_intraday(cur, out: Path):
-    """Intraday (12:50) ScoreBoard preview — top-100 long + top-100 short.
+    """Intraday (12:50) ScoreBoard preview — top-300 long + top-300 short.
 
     Mirrors export_scores but reads from tw.score_snapshot_intraday and
     picks the most recent (snapshot_date, snapshot_time) tuple."""

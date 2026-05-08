@@ -137,7 +137,7 @@ export default function ScoresPage() {
                 : "bg-surface-alt text-text-secondary hover:text-text-primary"
             }`}
           >
-            {s === "long" ? "做多 100" : "做空 100"}
+            {s === "long" ? "做多 300" : "做空 300"}
           </button>
         ))}
       </div>
