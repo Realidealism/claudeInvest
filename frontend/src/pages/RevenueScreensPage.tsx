@@ -46,8 +46,9 @@ function formatCell(value: unknown, fmt: Format): string {
 function pctClass(value: unknown): string {
   if (value === null || value === undefined) return "text-text-secondary";
   const n = Number(value);
-  if (n > 0) return "text-green-300";
-  if (n < 0) return "text-red-300";
+  // TW convention: 增加紅、減少綠 (opposite of Western markets).
+  if (n > 0) return "text-red-300";
+  if (n < 0) return "text-green-300";
   return "";
 }
 
