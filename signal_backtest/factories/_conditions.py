@@ -318,6 +318,10 @@ def pick_condition(data: "StockData") -> BoolArray:
             (v122 0.97x = status_down 砍光 v121 全部 / v124 3x 砍太少 / v125 1.5x 不
              如 2x — ratio sweep 顯示 2x 是 pick 自身 sweet spot)
             (Portfolio PF 1.3091，輸 v117 peak 1.3111 雜訊 -0.0020)
+      (v145 試「反彈無量」排除 (5日內反彈日量<前日量): pick PF 1.14→0.82
+       砍 6129 那種 -17.9% extreme loss, max_loss -17.9→-12.5
+       但 pick 自身 destructive (-0.32 PF), 即使 unified_long +0.011 / portfolio +0.008
+       仍因 pick 訊號自身犧牲太大，已 revert)
     """
     n = data.n
     close = data.close
@@ -506,9 +510,13 @@ def buy_condition(data: "StockData") -> BoolArray:
       9. v131 鏡像 v130 sell：~macd_convergence_pte (不在頂背離)
          （sell 用 ~nte 排除底背離；buy 對偶 ~pte 排除頂背離 = 動能轉弱的金叉狀態）
       (v63 移除原規則 6「不在連續 3 日凸21」: 對直線飆漲股會卡死所有進場)
-      (v135 試 OBV signal_up 5 日窗口: buy PF 1.59→1.53, portfolio -0.080 大退步)
-      (v136 試「今日 signal_up OR (昨日且今日非 down)」: 更糟 portfolio -0.138)
-      → OBV signal_up 對 buy 三次驗證 destructive，不對稱於 sell+signal_down
+      OBV 系列對 buy 全部 destructive (5 次驗證, vs v141 base):
+        v135 signal_up 5日 → -0.080
+        v136 sig_up | (shift & ~down) → -0.138
+        v142 signal_up 2日+~down → -0.129
+        v143 trend short == 1 → -0.005 (最接近但仍負)
+        v144 trend medium == 1 → -0.013
+      → buy 不該加 OBV gate (不對稱於 sell 用 signal_down)
     """
     close = data.close
     sma = data.close_result.ma.sma
@@ -698,11 +706,16 @@ def buy_flee_signal(data: "StockData") -> BoolArray:
     main 內 rise1 已保證 short_pct >= 26.83 / rise3 >= 41.14 (with prev<=0)
     但 prev<=0 允許負值，實際 short_pct 進場時可能 < 30
     (v128 試 25 略輸 v127 +0.0008 雜訊內)
+    v146: 加 ~long_knot 排除糾結 (鏡像 buy/sell pattern) - 失敗 PF -0.02
+    v147: 改試 medium scope knot (SMA5/13/34) - 中時框糾結 持平
+    v148: long+medium 並集排除 (兩 scope 任一糾結都排除)
     """
     main = _buy_flee_main(data)
     short_pct = _short_pct_array(data)
     rule_post_strength = short_pct >= 30
-    return main & rule_post_strength
+    rule_knot = ~(data.close_result.knot["long"].flag
+                  | data.close_result.knot["medium"].flag)
+    return main & rule_post_strength & rule_knot
 
 
 def sell_flee_signal(data: "StockData") -> BoolArray:
@@ -714,6 +727,9 @@ def sell_flee_signal(data: "StockData") -> BoolArray:
 
     bait_flip_up: 昨日 buy_flee 觸發 (誘空訊號) + 今日 gap_up (翻多打臉)
       → Go SellFlee subclause v36 的「假崩跌反彈再翻多」事件.
+    v146: 加 ~long_knot 排除糾結 (鏡像 buy/sell pattern) - 失敗 PF -0.01
+    v147: 改試 medium scope knot - 持平
+    v148: long+medium 並集排除
     """
     main = _sell_flee_main(data)
     long_pct = _long_pct_array(data)
@@ -723,4 +739,6 @@ def sell_flee_signal(data: "StockData") -> BoolArray:
     gap_up = _gap_up_today(data)
     bait_flip_up = prev_buy_flee_main & gap_up
 
-    return main_with_gate | bait_flip_up
+    rule_knot = ~(data.close_result.knot["long"].flag
+                  | data.close_result.knot["medium"].flag)
+    return (main_with_gate | bait_flip_up) & rule_knot
