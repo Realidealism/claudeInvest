@@ -12820,452 +12820,6 @@
         }
       }
     ],
-    "consecutive_accumulation": [
-      {
-        "ticker": "2308",
-        "ticker_name": "台達電",
-        "funds": [
-          "統一奔騰",
-          "統一黑馬",
-          "統一中小",
-          "台新主流"
-        ],
-        "trigger_date": "2026-04-22",
-        "trigger_period": "202603M",
-        "weight_change": 0.87,
-        "evidence": {
-          "details": [
-            {
-              "fund": "unitec-gallop",
-              "curr_weight": 6.99,
-              "prev_weight": 6.12,
-              "est_curr_shares": 2273000,
-              "est_prev_shares": 1911000,
-              "fund_aum_change_pct": 0.5
-            },
-            {
-              "fund": "unitec-darkhorse",
-              "curr_weight": 5.02,
-              "prev_weight": 4.42,
-              "est_curr_shares": 993000,
-              "est_prev_shares": 843000,
-              "fund_aum_change_pct": 0.0
-            },
-            {
-              "fund": "unitec-smid",
-              "curr_weight": 5.47,
-              "prev_weight": 5.15,
-              "est_curr_shares": 125000,
-              "est_prev_shares": 105000,
-              "fund_aum_change_pct": 8.1
-            },
-            {
-              "fund": "taishin-mainstream",
-              "curr_weight": 6.12,
-              "prev_weight": 5.28,
-              "est_curr_shares": 76000,
-              "est_prev_shares": 62000,
-              "fund_aum_change_pct": 2.0
-            }
-          ],
-          "prev_period": "202602"
-        }
-      },
-      {
-        "ticker": "2313",
-        "ticker_name": "華通",
-        "funds": [
-          "統一黑馬",
-          "元大新主流"
-        ],
-        "trigger_date": "2026-04-22",
-        "trigger_period": "202603M",
-        "weight_change": 1.85,
-        "evidence": {
-          "details": [
-            {
-              "fund": "unitec-darkhorse",
-              "curr_weight": 5.49,
-              "prev_weight": 4.19,
-              "est_curr_shares": 6046000,
-              "est_prev_shares": 5590000,
-              "fund_aum_change_pct": 0.0
-            },
-            {
-              "fund": "yuanta-newmain",
-              "curr_weight": 6.64,
-              "prev_weight": 4.79,
-              "est_curr_shares": 3009000,
-              "est_prev_shares": 2035000,
-              "fund_aum_change_pct": 29.2
-            }
-          ],
-          "prev_period": "202602"
-        }
-      },
-      {
-        "ticker": "2345",
-        "ticker_name": "智邦",
-        "funds": [
-          "統一奔騰"
-        ],
-        "trigger_date": "2026-04-22",
-        "trigger_period": "202603M",
-        "weight_change": 0.74,
-        "evidence": {
-          "details": [
-            {
-              "fund": "unitec-gallop",
-              "curr_weight": 7.05,
-              "prev_weight": 6.31,
-              "est_curr_shares": 2095000,
-              "est_prev_shares": 2013000,
-              "fund_aum_change_pct": 0.5
-            }
-          ],
-          "prev_period": "202602"
-        }
-      },
-      {
-        "ticker": "2368",
-        "ticker_name": "金像電",
-        "funds": [
-          "統一奔騰",
-          "統一中小"
-        ],
-        "trigger_date": "2026-04-22",
-        "trigger_period": "202603M",
-        "weight_change": 1.56,
-        "evidence": {
-          "details": [
-            {
-              "fund": "unitec-gallop",
-              "curr_weight": 6.62,
-              "prev_weight": 5.06,
-              "est_curr_shares": 3452000,
-              "est_prev_shares": 2735000,
-              "fund_aum_change_pct": 0.5
-            },
-            {
-              "fund": "unitec-smid",
-              "curr_weight": 4.64,
-              "prev_weight": 4.53,
-              "est_curr_shares": 170000,
-              "est_prev_shares": 160000,
-              "fund_aum_change_pct": 8.1
-            }
-          ],
-          "prev_period": "202602"
-        }
-      },
-      {
-        "ticker": "2383",
-        "ticker_name": "台光電",
-        "funds": [
-          "統一奔騰",
-          "安聯台灣科技",
-          "元大新主流"
-        ],
-        "trigger_date": "2026-04-22",
-        "trigger_period": "202603M",
-        "weight_change": 1.31,
-        "evidence": {
-          "details": [
-            {
-              "fund": "unitec-gallop",
-              "curr_weight": 9.51,
-              "prev_weight": 8.2,
-              "est_curr_shares": 1641000,
-              "est_prev_shares": 1501000,
-              "fund_aum_change_pct": 0.5
-            },
-            {
-              "fund": "allianz-tech",
-              "curr_weight": 5.52,
-              "prev_weight": 5.23,
-              "est_curr_shares": 3000000,
-              "est_prev_shares": 2899000,
-              "fund_aum_change_pct": 4.5
-            },
-            {
-              "fund": "yuanta-newmain",
-              "curr_weight": 6.06,
-              "prev_weight": 5.75,
-              "est_curr_shares": 262000,
-              "est_prev_shares": 205000,
-              "fund_aum_change_pct": 29.2
-            }
-          ],
-          "prev_period": "202602"
-        }
-      },
-      {
-        "ticker": "3017",
-        "ticker_name": "奇鋐",
-        "funds": [
-          "統一全天候",
-          "統一黑馬",
-          "復華全方位"
-        ],
-        "trigger_date": "2026-04-22",
-        "trigger_period": "202603M",
-        "weight_change": 2.01,
-        "evidence": {
-          "details": [
-            {
-              "fund": "unitec-allweather",
-              "curr_weight": 8.12,
-              "prev_weight": 6.69,
-              "est_curr_shares": 520000,
-              "est_prev_shares": 480000,
-              "fund_aum_change_pct": 0.6
-            },
-            {
-              "fund": "unitec-darkhorse",
-              "curr_weight": 6.29,
-              "prev_weight": 4.28,
-              "est_curr_shares": 862000,
-              "est_prev_shares": 662000,
-              "fund_aum_change_pct": 0.0
-            },
-            {
-              "fund": "fhtrust-allround",
-              "curr_weight": 5.76,
-              "prev_weight": 4.23,
-              "est_curr_shares": 190000,
-              "est_prev_shares": 180000,
-              "fund_aum_change_pct": -12.6
-            }
-          ],
-          "prev_period": "202602"
-        }
-      },
-      {
-        "ticker": "3037",
-        "ticker_name": "欣興",
-        "funds": [
-          "統一全天候",
-          "安聯台灣大壩"
-        ],
-        "trigger_date": "2026-04-22",
-        "trigger_period": "202603M",
-        "weight_change": 0.41,
-        "evidence": {
-          "details": [
-            {
-              "fund": "unitec-allweather",
-              "curr_weight": 6.28,
-              "prev_weight": 6.08,
-              "est_curr_shares": 1800000,
-              "est_prev_shares": 1600000,
-              "fund_aum_change_pct": 0.6
-            },
-            {
-              "fund": "allianz-dam",
-              "curr_weight": 3.85,
-              "prev_weight": 3.44,
-              "est_curr_shares": 5020000,
-              "est_prev_shares": 4040000,
-              "fund_aum_change_pct": 2.5
-            }
-          ],
-          "prev_period": "202602"
-        }
-      },
-      {
-        "ticker": "3081",
-        "ticker_name": "聯亞",
-        "funds": [
-          "野村高科技"
-        ],
-        "trigger_date": "2026-04-22",
-        "trigger_period": "202603M",
-        "weight_change": 1.93,
-        "evidence": {
-          "details": [
-            {
-              "fund": "nomura-hightech",
-              "curr_weight": 6.41,
-              "prev_weight": 4.48,
-              "est_curr_shares": 804000,
-              "est_prev_shares": 740000,
-              "fund_aum_change_pct": -4.4
-            }
-          ],
-          "prev_period": "202602"
-        }
-      },
-      {
-        "ticker": "3653",
-        "ticker_name": "健策",
-        "funds": [
-          "統一奔騰"
-        ],
-        "trigger_date": "2026-04-22",
-        "trigger_period": "202603M",
-        "weight_change": 2.45,
-        "evidence": {
-          "details": [
-            {
-              "fund": "unitec-gallop",
-              "curr_weight": 8.0,
-              "prev_weight": 5.55,
-              "est_curr_shares": 946065,
-              "est_prev_shares": 794065,
-              "fund_aum_change_pct": 0.5
-            }
-          ],
-          "prev_period": "202602"
-        }
-      },
-      {
-        "ticker": "3665",
-        "ticker_name": "貿聯-KY",
-        "funds": [
-          "統一奔騰"
-        ],
-        "trigger_date": "2026-04-22",
-        "trigger_period": "202603M",
-        "weight_change": 2.16,
-        "evidence": {
-          "details": [
-            {
-              "fund": "unitec-gallop",
-              "curr_weight": 6.72,
-              "prev_weight": 4.56,
-              "est_curr_shares": 1733082,
-              "est_prev_shares": 1445082,
-              "fund_aum_change_pct": 0.5
-            }
-          ],
-          "prev_period": "202602"
-        }
-      },
-      {
-        "ticker": "5274",
-        "ticker_name": "信驊",
-        "funds": [
-          "安聯台灣大壩"
-        ],
-        "trigger_date": "2026-04-22",
-        "trigger_period": "202603M",
-        "weight_change": 0.89,
-        "evidence": {
-          "details": [
-            {
-              "fund": "allianz-dam",
-              "curr_weight": 5.29,
-              "prev_weight": 4.4,
-              "est_curr_shares": 287000,
-              "est_prev_shares": 256000,
-              "fund_aum_change_pct": 2.5
-            }
-          ],
-          "prev_period": "202602"
-        }
-      },
-      {
-        "ticker": "6223",
-        "ticker_name": "旺矽",
-        "funds": [
-          "統一奔騰",
-          "復華高成長"
-        ],
-        "trigger_date": "2026-04-22",
-        "trigger_period": "202603M",
-        "weight_change": 2.12,
-        "evidence": {
-          "details": [
-            {
-              "fund": "unitec-gallop",
-              "curr_weight": 8.3,
-              "prev_weight": 6.52,
-              "est_curr_shares": 1036000,
-              "est_prev_shares": 988000,
-              "fund_aum_change_pct": 0.5
-            },
-            {
-              "fund": "fhtrust-highgrowth",
-              "curr_weight": 7.82,
-              "prev_weight": 5.7,
-              "est_curr_shares": 225000,
-              "est_prev_shares": 220000,
-              "fund_aum_change_pct": -8.9
-            }
-          ],
-          "prev_period": "202602"
-        }
-      },
-      {
-        "ticker": "6515",
-        "ticker_name": "穎崴",
-        "funds": [
-          "安聯台灣科技"
-        ],
-        "trigger_date": "2026-04-22",
-        "trigger_period": "202603M",
-        "weight_change": 2.27,
-        "evidence": {
-          "details": [
-            {
-              "fund": "allianz-tech",
-              "curr_weight": 8.46,
-              "prev_weight": 6.19,
-              "est_curr_shares": 1672000,
-              "est_prev_shares": 1637000,
-              "fund_aum_change_pct": 4.5
-            }
-          ],
-          "prev_period": "202602"
-        }
-      },
-      {
-        "ticker": "8046",
-        "ticker_name": "南電",
-        "funds": [
-          "元大新主流"
-        ],
-        "trigger_date": "2026-04-22",
-        "trigger_period": "202603M",
-        "weight_change": 0.4,
-        "evidence": {
-          "details": [
-            {
-              "fund": "yuanta-newmain",
-              "curr_weight": 4.97,
-              "prev_weight": 4.57,
-              "est_curr_shares": 1069000,
-              "est_prev_shares": 716000,
-              "fund_aum_change_pct": 29.2
-            }
-          ],
-          "prev_period": "202602"
-        }
-      },
-      {
-        "ticker": "8299",
-        "ticker_name": "群聯",
-        "funds": [
-          "野村高科技"
-        ],
-        "trigger_date": "2026-04-22",
-        "trigger_period": "202603M",
-        "weight_change": 1.29,
-        "evidence": {
-          "details": [
-            {
-              "fund": "nomura-hightech",
-              "curr_weight": 6.21,
-              "prev_weight": 4.92,
-              "est_curr_shares": 818000,
-              "est_prev_shares": 538000,
-              "fund_aum_change_pct": -4.4
-            }
-          ],
-          "prev_period": "202602"
-        }
-      }
-    ],
     "multi_fund_consensus": [
       {
         "ticker": "2308",
@@ -14181,6 +13735,643 @@
         }
       }
     ],
+    "dual_track_accumulation": [
+      {
+        "ticker": "2308",
+        "ticker_name": "台達電",
+        "funds": [
+          "統一奔騰"
+        ],
+        "trigger_date": "2026-04-22",
+        "trigger_period": "202603M",
+        "weight_change": 0.87,
+        "evidence": {
+          "details": [
+            {
+              "etf": "00981A",
+              "fund": "unitec-gallop",
+              "curr_weight": 6.99,
+              "prev_weight": 6.12,
+              "fund_aum_change_pct": 0.5
+            }
+          ]
+        }
+      },
+      {
+        "ticker": "2345",
+        "ticker_name": "智邦",
+        "funds": [
+          "統一奔騰"
+        ],
+        "trigger_date": "2026-04-22",
+        "trigger_period": "202603M",
+        "weight_change": 0.74,
+        "evidence": {
+          "details": [
+            {
+              "etf": "00981A",
+              "fund": "unitec-gallop",
+              "curr_weight": 7.05,
+              "prev_weight": 6.31,
+              "fund_aum_change_pct": 0.5
+            }
+          ]
+        }
+      },
+      {
+        "ticker": "2368",
+        "ticker_name": "金像電",
+        "funds": [
+          "統一奔騰"
+        ],
+        "trigger_date": "2026-04-22",
+        "trigger_period": "202603M",
+        "weight_change": 1.56,
+        "evidence": {
+          "details": [
+            {
+              "etf": "00981A",
+              "fund": "unitec-gallop",
+              "curr_weight": 6.62,
+              "prev_weight": 5.06,
+              "fund_aum_change_pct": 0.5
+            }
+          ]
+        }
+      },
+      {
+        "ticker": "2383",
+        "ticker_name": "台光電",
+        "funds": [
+          "統一奔騰"
+        ],
+        "trigger_date": "2026-04-22",
+        "trigger_period": "202603M",
+        "weight_change": 1.31,
+        "evidence": {
+          "details": [
+            {
+              "etf": "00981A",
+              "fund": "unitec-gallop",
+              "curr_weight": 9.51,
+              "prev_weight": 8.2,
+              "fund_aum_change_pct": 0.5
+            }
+          ]
+        }
+      },
+      {
+        "ticker": "3017",
+        "ticker_name": "奇鋐",
+        "funds": [
+          "復華全方位"
+        ],
+        "trigger_date": "2026-05-04",
+        "trigger_period": "202603M",
+        "weight_change": 1.53,
+        "evidence": {
+          "details": [
+            {
+              "etf": "00991A",
+              "fund": "fhtrust-allround",
+              "curr_weight": 5.76,
+              "prev_weight": 4.23,
+              "fund_aum_change_pct": -12.6
+            }
+          ]
+        }
+      },
+      {
+        "ticker": "3037",
+        "ticker_name": "欣興",
+        "funds": [
+          "統一全天候"
+        ],
+        "trigger_date": "2026-05-04",
+        "trigger_period": "202603M",
+        "weight_change": 0.2,
+        "evidence": {
+          "details": [
+            {
+              "etf": "00988A",
+              "fund": "unitec-allweather",
+              "curr_weight": 6.28,
+              "prev_weight": 6.08,
+              "fund_aum_change_pct": 0.6
+            }
+          ]
+        }
+      },
+      {
+        "ticker": "3653",
+        "ticker_name": "健策",
+        "funds": [
+          "統一奔騰"
+        ],
+        "trigger_date": "2026-04-22",
+        "trigger_period": "202603M",
+        "weight_change": 2.45,
+        "evidence": {
+          "details": [
+            {
+              "etf": "00981A",
+              "fund": "unitec-gallop",
+              "curr_weight": 8.0,
+              "prev_weight": 5.55,
+              "fund_aum_change_pct": 0.5
+            }
+          ]
+        }
+      },
+      {
+        "ticker": "3665",
+        "ticker_name": "貿聯-KY",
+        "funds": [
+          "統一奔騰"
+        ],
+        "trigger_date": "2026-04-22",
+        "trigger_period": "202603M",
+        "weight_change": 2.16,
+        "evidence": {
+          "details": [
+            {
+              "etf": "00981A",
+              "fund": "unitec-gallop",
+              "curr_weight": 6.72,
+              "prev_weight": 4.56,
+              "fund_aum_change_pct": 0.5
+            }
+          ]
+        }
+      },
+      {
+        "ticker": "6223",
+        "ticker_name": "旺矽",
+        "funds": [
+          "統一奔騰"
+        ],
+        "trigger_date": "2026-04-22",
+        "trigger_period": "202603M",
+        "weight_change": 1.78,
+        "evidence": {
+          "details": [
+            {
+              "etf": "00981A",
+              "fund": "unitec-gallop",
+              "curr_weight": 8.3,
+              "prev_weight": 6.52,
+              "fund_aum_change_pct": 0.5
+            }
+          ]
+        }
+      }
+    ],
+    "consecutive_accumulation": [
+      {
+        "ticker": "2308",
+        "ticker_name": "台達電",
+        "funds": [
+          "統一奔騰",
+          "統一黑馬",
+          "統一中小",
+          "台新主流"
+        ],
+        "trigger_date": "2026-04-22",
+        "trigger_period": "202603M",
+        "weight_change": 0.87,
+        "evidence": {
+          "details": [
+            {
+              "fund": "unitec-gallop",
+              "curr_weight": 6.99,
+              "prev_weight": 6.12,
+              "est_curr_shares": 2273000,
+              "est_prev_shares": 1911000,
+              "fund_aum_change_pct": 0.5
+            },
+            {
+              "fund": "unitec-darkhorse",
+              "curr_weight": 5.02,
+              "prev_weight": 4.42,
+              "est_curr_shares": 993000,
+              "est_prev_shares": 843000,
+              "fund_aum_change_pct": 0.0
+            },
+            {
+              "fund": "unitec-smid",
+              "curr_weight": 5.47,
+              "prev_weight": 5.15,
+              "est_curr_shares": 125000,
+              "est_prev_shares": 105000,
+              "fund_aum_change_pct": 8.1
+            },
+            {
+              "fund": "taishin-mainstream",
+              "curr_weight": 6.12,
+              "prev_weight": 5.28,
+              "est_curr_shares": 76000,
+              "est_prev_shares": 62000,
+              "fund_aum_change_pct": 2.0
+            }
+          ],
+          "prev_period": "202602"
+        }
+      },
+      {
+        "ticker": "2313",
+        "ticker_name": "華通",
+        "funds": [
+          "統一黑馬",
+          "元大新主流"
+        ],
+        "trigger_date": "2026-04-22",
+        "trigger_period": "202603M",
+        "weight_change": 1.85,
+        "evidence": {
+          "details": [
+            {
+              "fund": "unitec-darkhorse",
+              "curr_weight": 5.49,
+              "prev_weight": 4.19,
+              "est_curr_shares": 6046000,
+              "est_prev_shares": 5590000,
+              "fund_aum_change_pct": 0.0
+            },
+            {
+              "fund": "yuanta-newmain",
+              "curr_weight": 6.64,
+              "prev_weight": 4.79,
+              "est_curr_shares": 3009000,
+              "est_prev_shares": 2035000,
+              "fund_aum_change_pct": 29.2
+            }
+          ],
+          "prev_period": "202602"
+        }
+      },
+      {
+        "ticker": "2345",
+        "ticker_name": "智邦",
+        "funds": [
+          "統一奔騰"
+        ],
+        "trigger_date": "2026-04-22",
+        "trigger_period": "202603M",
+        "weight_change": 0.74,
+        "evidence": {
+          "details": [
+            {
+              "fund": "unitec-gallop",
+              "curr_weight": 7.05,
+              "prev_weight": 6.31,
+              "est_curr_shares": 2095000,
+              "est_prev_shares": 2013000,
+              "fund_aum_change_pct": 0.5
+            }
+          ],
+          "prev_period": "202602"
+        }
+      },
+      {
+        "ticker": "2368",
+        "ticker_name": "金像電",
+        "funds": [
+          "統一奔騰",
+          "統一中小"
+        ],
+        "trigger_date": "2026-04-22",
+        "trigger_period": "202603M",
+        "weight_change": 1.56,
+        "evidence": {
+          "details": [
+            {
+              "fund": "unitec-gallop",
+              "curr_weight": 6.62,
+              "prev_weight": 5.06,
+              "est_curr_shares": 3452000,
+              "est_prev_shares": 2735000,
+              "fund_aum_change_pct": 0.5
+            },
+            {
+              "fund": "unitec-smid",
+              "curr_weight": 4.64,
+              "prev_weight": 4.53,
+              "est_curr_shares": 170000,
+              "est_prev_shares": 160000,
+              "fund_aum_change_pct": 8.1
+            }
+          ],
+          "prev_period": "202602"
+        }
+      },
+      {
+        "ticker": "2383",
+        "ticker_name": "台光電",
+        "funds": [
+          "統一奔騰",
+          "安聯台灣科技",
+          "元大新主流"
+        ],
+        "trigger_date": "2026-04-22",
+        "trigger_period": "202603M",
+        "weight_change": 1.31,
+        "evidence": {
+          "details": [
+            {
+              "fund": "unitec-gallop",
+              "curr_weight": 9.51,
+              "prev_weight": 8.2,
+              "est_curr_shares": 1641000,
+              "est_prev_shares": 1501000,
+              "fund_aum_change_pct": 0.5
+            },
+            {
+              "fund": "allianz-tech",
+              "curr_weight": 5.52,
+              "prev_weight": 5.23,
+              "est_curr_shares": 3000000,
+              "est_prev_shares": 2899000,
+              "fund_aum_change_pct": 4.5
+            },
+            {
+              "fund": "yuanta-newmain",
+              "curr_weight": 6.06,
+              "prev_weight": 5.75,
+              "est_curr_shares": 262000,
+              "est_prev_shares": 205000,
+              "fund_aum_change_pct": 29.2
+            }
+          ],
+          "prev_period": "202602"
+        }
+      },
+      {
+        "ticker": "3017",
+        "ticker_name": "奇鋐",
+        "funds": [
+          "統一全天候",
+          "統一黑馬",
+          "復華全方位"
+        ],
+        "trigger_date": "2026-04-22",
+        "trigger_period": "202603M",
+        "weight_change": 2.01,
+        "evidence": {
+          "details": [
+            {
+              "fund": "unitec-allweather",
+              "curr_weight": 8.12,
+              "prev_weight": 6.69,
+              "est_curr_shares": 520000,
+              "est_prev_shares": 480000,
+              "fund_aum_change_pct": 0.6
+            },
+            {
+              "fund": "unitec-darkhorse",
+              "curr_weight": 6.29,
+              "prev_weight": 4.28,
+              "est_curr_shares": 862000,
+              "est_prev_shares": 662000,
+              "fund_aum_change_pct": 0.0
+            },
+            {
+              "fund": "fhtrust-allround",
+              "curr_weight": 5.76,
+              "prev_weight": 4.23,
+              "est_curr_shares": 190000,
+              "est_prev_shares": 180000,
+              "fund_aum_change_pct": -12.6
+            }
+          ],
+          "prev_period": "202602"
+        }
+      },
+      {
+        "ticker": "3037",
+        "ticker_name": "欣興",
+        "funds": [
+          "統一全天候",
+          "安聯台灣大壩"
+        ],
+        "trigger_date": "2026-04-22",
+        "trigger_period": "202603M",
+        "weight_change": 0.41,
+        "evidence": {
+          "details": [
+            {
+              "fund": "unitec-allweather",
+              "curr_weight": 6.28,
+              "prev_weight": 6.08,
+              "est_curr_shares": 1800000,
+              "est_prev_shares": 1600000,
+              "fund_aum_change_pct": 0.6
+            },
+            {
+              "fund": "allianz-dam",
+              "curr_weight": 3.85,
+              "prev_weight": 3.44,
+              "est_curr_shares": 5020000,
+              "est_prev_shares": 4040000,
+              "fund_aum_change_pct": 2.5
+            }
+          ],
+          "prev_period": "202602"
+        }
+      },
+      {
+        "ticker": "3081",
+        "ticker_name": "聯亞",
+        "funds": [
+          "野村高科技"
+        ],
+        "trigger_date": "2026-04-22",
+        "trigger_period": "202603M",
+        "weight_change": 1.93,
+        "evidence": {
+          "details": [
+            {
+              "fund": "nomura-hightech",
+              "curr_weight": 6.41,
+              "prev_weight": 4.48,
+              "est_curr_shares": 804000,
+              "est_prev_shares": 740000,
+              "fund_aum_change_pct": -4.4
+            }
+          ],
+          "prev_period": "202602"
+        }
+      },
+      {
+        "ticker": "3653",
+        "ticker_name": "健策",
+        "funds": [
+          "統一奔騰"
+        ],
+        "trigger_date": "2026-04-22",
+        "trigger_period": "202603M",
+        "weight_change": 2.45,
+        "evidence": {
+          "details": [
+            {
+              "fund": "unitec-gallop",
+              "curr_weight": 8.0,
+              "prev_weight": 5.55,
+              "est_curr_shares": 946065,
+              "est_prev_shares": 794065,
+              "fund_aum_change_pct": 0.5
+            }
+          ],
+          "prev_period": "202602"
+        }
+      },
+      {
+        "ticker": "3665",
+        "ticker_name": "貿聯-KY",
+        "funds": [
+          "統一奔騰"
+        ],
+        "trigger_date": "2026-04-22",
+        "trigger_period": "202603M",
+        "weight_change": 2.16,
+        "evidence": {
+          "details": [
+            {
+              "fund": "unitec-gallop",
+              "curr_weight": 6.72,
+              "prev_weight": 4.56,
+              "est_curr_shares": 1733082,
+              "est_prev_shares": 1445082,
+              "fund_aum_change_pct": 0.5
+            }
+          ],
+          "prev_period": "202602"
+        }
+      },
+      {
+        "ticker": "5274",
+        "ticker_name": "信驊",
+        "funds": [
+          "安聯台灣大壩"
+        ],
+        "trigger_date": "2026-04-22",
+        "trigger_period": "202603M",
+        "weight_change": 0.89,
+        "evidence": {
+          "details": [
+            {
+              "fund": "allianz-dam",
+              "curr_weight": 5.29,
+              "prev_weight": 4.4,
+              "est_curr_shares": 287000,
+              "est_prev_shares": 256000,
+              "fund_aum_change_pct": 2.5
+            }
+          ],
+          "prev_period": "202602"
+        }
+      },
+      {
+        "ticker": "6223",
+        "ticker_name": "旺矽",
+        "funds": [
+          "統一奔騰",
+          "復華高成長"
+        ],
+        "trigger_date": "2026-04-22",
+        "trigger_period": "202603M",
+        "weight_change": 2.12,
+        "evidence": {
+          "details": [
+            {
+              "fund": "unitec-gallop",
+              "curr_weight": 8.3,
+              "prev_weight": 6.52,
+              "est_curr_shares": 1036000,
+              "est_prev_shares": 988000,
+              "fund_aum_change_pct": 0.5
+            },
+            {
+              "fund": "fhtrust-highgrowth",
+              "curr_weight": 7.82,
+              "prev_weight": 5.7,
+              "est_curr_shares": 225000,
+              "est_prev_shares": 220000,
+              "fund_aum_change_pct": -8.9
+            }
+          ],
+          "prev_period": "202602"
+        }
+      },
+      {
+        "ticker": "6515",
+        "ticker_name": "穎崴",
+        "funds": [
+          "安聯台灣科技"
+        ],
+        "trigger_date": "2026-04-22",
+        "trigger_period": "202603M",
+        "weight_change": 2.27,
+        "evidence": {
+          "details": [
+            {
+              "fund": "allianz-tech",
+              "curr_weight": 8.46,
+              "prev_weight": 6.19,
+              "est_curr_shares": 1672000,
+              "est_prev_shares": 1637000,
+              "fund_aum_change_pct": 4.5
+            }
+          ],
+          "prev_period": "202602"
+        }
+      },
+      {
+        "ticker": "8046",
+        "ticker_name": "南電",
+        "funds": [
+          "元大新主流"
+        ],
+        "trigger_date": "2026-04-22",
+        "trigger_period": "202603M",
+        "weight_change": 0.4,
+        "evidence": {
+          "details": [
+            {
+              "fund": "yuanta-newmain",
+              "curr_weight": 4.97,
+              "prev_weight": 4.57,
+              "est_curr_shares": 1069000,
+              "est_prev_shares": 716000,
+              "fund_aum_change_pct": 29.2
+            }
+          ],
+          "prev_period": "202602"
+        }
+      },
+      {
+        "ticker": "8299",
+        "ticker_name": "群聯",
+        "funds": [
+          "野村高科技"
+        ],
+        "trigger_date": "2026-04-22",
+        "trigger_period": "202603M",
+        "weight_change": 1.29,
+        "evidence": {
+          "details": [
+            {
+              "fund": "nomura-hightech",
+              "curr_weight": 6.21,
+              "prev_weight": 4.92,
+              "est_curr_shares": 818000,
+              "est_prev_shares": 538000,
+              "fund_aum_change_pct": -4.4
+            }
+          ],
+          "prev_period": "202602"
+        }
+      }
+    ],
     "quarterly_to_monthly_top10": [
       {
         "ticker": "2308",
@@ -14788,197 +14979,6 @@
             }
           ],
           "quarterly_period": "202512"
-        }
-      }
-    ],
-    "dual_track_accumulation": [
-      {
-        "ticker": "2308",
-        "ticker_name": "台達電",
-        "funds": [
-          "統一奔騰"
-        ],
-        "trigger_date": "2026-04-22",
-        "trigger_period": "202603M",
-        "weight_change": 0.87,
-        "evidence": {
-          "details": [
-            {
-              "etf": "00981A",
-              "fund": "unitec-gallop",
-              "curr_weight": 6.99,
-              "prev_weight": 6.12,
-              "fund_aum_change_pct": 0.5
-            }
-          ]
-        }
-      },
-      {
-        "ticker": "2345",
-        "ticker_name": "智邦",
-        "funds": [
-          "統一奔騰"
-        ],
-        "trigger_date": "2026-04-22",
-        "trigger_period": "202603M",
-        "weight_change": 0.74,
-        "evidence": {
-          "details": [
-            {
-              "etf": "00981A",
-              "fund": "unitec-gallop",
-              "curr_weight": 7.05,
-              "prev_weight": 6.31,
-              "fund_aum_change_pct": 0.5
-            }
-          ]
-        }
-      },
-      {
-        "ticker": "2368",
-        "ticker_name": "金像電",
-        "funds": [
-          "統一奔騰"
-        ],
-        "trigger_date": "2026-04-22",
-        "trigger_period": "202603M",
-        "weight_change": 1.56,
-        "evidence": {
-          "details": [
-            {
-              "etf": "00981A",
-              "fund": "unitec-gallop",
-              "curr_weight": 6.62,
-              "prev_weight": 5.06,
-              "fund_aum_change_pct": 0.5
-            }
-          ]
-        }
-      },
-      {
-        "ticker": "2383",
-        "ticker_name": "台光電",
-        "funds": [
-          "統一奔騰"
-        ],
-        "trigger_date": "2026-04-22",
-        "trigger_period": "202603M",
-        "weight_change": 1.31,
-        "evidence": {
-          "details": [
-            {
-              "etf": "00981A",
-              "fund": "unitec-gallop",
-              "curr_weight": 9.51,
-              "prev_weight": 8.2,
-              "fund_aum_change_pct": 0.5
-            }
-          ]
-        }
-      },
-      {
-        "ticker": "3017",
-        "ticker_name": "奇鋐",
-        "funds": [
-          "復華全方位"
-        ],
-        "trigger_date": "2026-05-04",
-        "trigger_period": "202603M",
-        "weight_change": 1.53,
-        "evidence": {
-          "details": [
-            {
-              "etf": "00991A",
-              "fund": "fhtrust-allround",
-              "curr_weight": 5.76,
-              "prev_weight": 4.23,
-              "fund_aum_change_pct": -12.6
-            }
-          ]
-        }
-      },
-      {
-        "ticker": "3037",
-        "ticker_name": "欣興",
-        "funds": [
-          "統一全天候"
-        ],
-        "trigger_date": "2026-05-04",
-        "trigger_period": "202603M",
-        "weight_change": 0.2,
-        "evidence": {
-          "details": [
-            {
-              "etf": "00988A",
-              "fund": "unitec-allweather",
-              "curr_weight": 6.28,
-              "prev_weight": 6.08,
-              "fund_aum_change_pct": 0.6
-            }
-          ]
-        }
-      },
-      {
-        "ticker": "3653",
-        "ticker_name": "健策",
-        "funds": [
-          "統一奔騰"
-        ],
-        "trigger_date": "2026-04-22",
-        "trigger_period": "202603M",
-        "weight_change": 2.45,
-        "evidence": {
-          "details": [
-            {
-              "etf": "00981A",
-              "fund": "unitec-gallop",
-              "curr_weight": 8.0,
-              "prev_weight": 5.55,
-              "fund_aum_change_pct": 0.5
-            }
-          ]
-        }
-      },
-      {
-        "ticker": "3665",
-        "ticker_name": "貿聯-KY",
-        "funds": [
-          "統一奔騰"
-        ],
-        "trigger_date": "2026-04-22",
-        "trigger_period": "202603M",
-        "weight_change": 2.16,
-        "evidence": {
-          "details": [
-            {
-              "etf": "00981A",
-              "fund": "unitec-gallop",
-              "curr_weight": 6.72,
-              "prev_weight": 4.56,
-              "fund_aum_change_pct": 0.5
-            }
-          ]
-        }
-      },
-      {
-        "ticker": "6223",
-        "ticker_name": "旺矽",
-        "funds": [
-          "統一奔騰"
-        ],
-        "trigger_date": "2026-04-22",
-        "trigger_period": "202603M",
-        "weight_change": 1.78,
-        "evidence": {
-          "details": [
-            {
-              "etf": "00981A",
-              "fund": "unitec-gallop",
-              "curr_weight": 8.3,
-              "prev_weight": 6.52,
-              "fund_aum_change_pct": 0.5
-            }
-          ]
         }
       }
     ],
