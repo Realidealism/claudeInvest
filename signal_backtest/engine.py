@@ -46,6 +46,68 @@ from signal_backtest.trade import (
 GAP_JUMP_THRESHOLD = 0.15
 from signal_backtest.signal import DefenseRule, TierConfig
 
+
+def _compute_last_boundary(close: NDArray[np.float32]) -> NDArray[np.int32]:
+    """For each bar i, the most recent index j<=i where close[j] gapped
+    > GAP_JUMP_THRESHOLD vs close[j-1]. -1 if no boundary yet seen.
+
+    Used by rolling_lowest/highest_safe to truncate lookback so windows
+    never straddle a corporate-action / regime-shift bar.
+    """
+    n = len(close)
+    last = np.full(n, -1, dtype=np.int32)
+    if n < 2:
+        return last
+    prev = close[:-1]
+    safe_prev = np.where(prev > 0, prev, 1.0)
+    bar_gap = np.abs(close[1:] / safe_prev - 1.0)
+    boundary = bar_gap > GAP_JUMP_THRESHOLD
+    cur = -1
+    for i in range(1, n):
+        if boundary[i - 1]:
+            cur = i
+        last[i] = cur
+    return last
+
+
+def rolling_lowest_safe(
+    arr: NDArray[np.float32],
+    period: int,
+    last_boundary: NDArray[np.int32],
+) -> NDArray[np.float32]:
+    """rolling_lowest but lookback start clamped at most-recent boundary.
+
+    Equivalent to rolling_lowest(arr, period) when no boundary exists in
+    the window. When a boundary at index b is within [i-period+1, i],
+    the window starts at b (the new regime's first bar) instead.
+    """
+    n = len(arr)
+    out = np.full(n, np.nan, dtype=arr.dtype)
+    for i in range(n):
+        start = max(0, i - period + 1)
+        b = int(last_boundary[i])
+        if b > start:
+            start = b
+        out[i] = arr[start:i + 1].min()
+    return out
+
+
+def rolling_highest_safe(
+    arr: NDArray[np.float32],
+    period: int,
+    last_boundary: NDArray[np.int32],
+) -> NDArray[np.float32]:
+    """Mirror of rolling_lowest_safe for short-side defense."""
+    n = len(arr)
+    out = np.full(n, np.nan, dtype=arr.dtype)
+    for i in range(n):
+        start = max(0, i - period + 1)
+        b = int(last_boundary[i])
+        if b > start:
+            start = b
+        out[i] = arr[start:i + 1].max()
+    return out
+
 if TYPE_CHECKING:
     from backtest.data import StockData
 
@@ -89,12 +151,15 @@ def run_side_backtest(
     # Pre-computed rolling extremes on intraday H/L:
     #   initial_arr — entry-day default defense (5-bar)
     #   floor_arr   — daily floor ratchet (floor_period bars, default 13)
+    # Use _safe variants so the lookback window never straddles a
+    # corporate-action / regime-shift bar (>15% close-to-close gap).
+    last_boundary = _compute_last_boundary(data.close)
     if is_long:
-        initial_arr = rolling_lowest(data.low, 5)
-        floor_arr = rolling_lowest(data.low, floor_period)
+        initial_arr = rolling_lowest_safe(data.low, 5, last_boundary)
+        floor_arr = rolling_lowest_safe(data.low, floor_period, last_boundary)
     else:
-        initial_arr = rolling_highest(data.high, 5)
-        floor_arr = rolling_highest(data.high, floor_period)
+        initial_arr = rolling_highest_safe(data.high, 5, last_boundary)
+        floor_arr = rolling_highest_safe(data.high, floor_period, last_boundary)
 
     trades: list[Trade] = []
 
@@ -294,12 +359,13 @@ def run_side_backtest_tiered(
     side_label = SIDE_LONG if side == "long" else SIDE_SHORT
     is_long = side == "long"
 
+    last_boundary = _compute_last_boundary(data.close)
     if is_long:
-        initial_arr = rolling_lowest(data.low, 5)
-        floor_arr = rolling_lowest(data.low, floor_period)
+        initial_arr = rolling_lowest_safe(data.low, 5, last_boundary)
+        floor_arr = rolling_lowest_safe(data.low, floor_period, last_boundary)
     else:
-        initial_arr = rolling_highest(data.high, 5)
-        floor_arr = rolling_highest(data.high, floor_period)
+        initial_arr = rolling_highest_safe(data.high, 5, last_boundary)
+        floor_arr = rolling_highest_safe(data.high, floor_period, last_boundary)
 
     trades: list[Trade] = []
 
