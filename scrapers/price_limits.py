@@ -1,10 +1,16 @@
 """
 Price limits scraper (漲跌停價 / 參考價).
 
-Both APIs return NEXT-DAY limits for a given query date, so to populate the
-limits that apply ON trade_date T, we query the previous trading day and
-save the result to T's row. The previous trading day is looked up from the
-TAIEX calendar in tw.index_prices, which historical_update populates first.
+Goal: ref_price[T] / limit_up[T] / limit_down[T] in tw.daily_prices represent
+the limits that apply on trade_date T's open.
+
+The two exchange APIs encode reference dates differently:
+  TWSE 開盤競價基準 = same-day open ref → query T to get T's reference.
+  TPEx 次日參考價   = next-trading-day ref → query T-1 to get T's reference.
+
+Previous code queried T-1 for both, leaving TWSE rows aligned to T-1 (=
+close[T-2]) instead of T. Backfill SQL shift was run on 2026-05-12 to
+re-align historical TWSE data; this scraper handles go-forward correctness.
 
 Sources:
   TWSE: rwd/zh/variation/TWT84U (GET, selectType=ALL)
@@ -255,19 +261,20 @@ def _get_prev_trading_day(trade_date: date) -> date | None:
 
 
 def scrape_date(trade_date: date) -> ScrapeResult:
-    """
-    Fetch price limits applicable ON trade_date T.
+    """Fetch price limits applicable ON trade_date T.
 
-    Both APIs publish NEXT-DAY limits, so we query the previous trading day
-    (which returns T's limits) and save them under trade_date=T.
+    TWSE field [3] is same-day open reference → query T directly.
+    TPEx field [16] is next-day reference → query T-1 to obtain T's reference.
+    Both saved under trade_date=T.
     """
     prev = _get_prev_trading_day(trade_date)
     if not prev:
         print(f"  [SKIP] No previous trading day in DB before {trade_date} — cannot fetch limits.")
         return ScrapeResult(records=0, api_rows=0, parse_errors=0)
 
-    print(f"  Querying {prev} to obtain limits for {trade_date}")
-    twse, twse_api, twse_err = fetch_twse_limits(prev)
+    print(f"  TWSE: querying {trade_date} (same-day open ref)")
+    twse, twse_api, twse_err = fetch_twse_limits(trade_date)
+    print(f"  TPEx: querying {prev} (next-day ref → {trade_date})")
     tpex, tpex_api, tpex_err = fetch_tpex_limits(prev)
     save_price_limits(twse, tpex, trade_date)
     return ScrapeResult(
