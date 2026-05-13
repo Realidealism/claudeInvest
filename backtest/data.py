@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import os
 import pickle
+import sys
 from dataclasses import dataclass
 from datetime import date
 from pathlib import Path
@@ -106,6 +107,8 @@ _INDEX_IDS = {"TAIEX", "TPEx"}
 
 CACHE_DIR = Path("data/stock_cache")
 _DB_MAX_DATE: date | None = None  # session-scoped, queried once per process
+_SCORE_FP: str | None = None  # session-scoped ScoreBoard fingerprint
+_CLEANUP_DONE = False  # ensure obsolete-cache cleanup runs once per process
 
 
 def _get_db_max_date() -> date:
@@ -119,9 +122,45 @@ def _get_db_max_date() -> date:
     return _DB_MAX_DATE
 
 
+def _get_score_fingerprint() -> str:
+    """Hash of ScoreBoard config — invalidates pct cache when cells/weights change."""
+    global _SCORE_FP
+    if _SCORE_FP is None:
+        from analysis.score import build_scoreboard, board_fingerprint
+        _SCORE_FP = board_fingerprint(build_scoreboard())
+    return _SCORE_FP
+
+
 def _cache_path(stock_id: str, db_date: date) -> Path:
-    """Cache file is keyed by stock_id + DB latest trade_date."""
-    return CACHE_DIR / f"{stock_id}_{db_date.isoformat()}.pkl"
+    """Cache file is keyed by stock_id + DB latest trade_date + ScoreBoard fingerprint.
+
+    Including the fingerprint means pct arrays cached on StockData (via
+    _eval_pct_arrays warmup below) auto-invalidate when board cells change.
+    """
+    return CACHE_DIR / f"{stock_id}_{db_date.isoformat()}_{_get_score_fingerprint()}.pkl"
+
+
+def _cleanup_obsolete_cache() -> None:
+    """Delete pickles whose fingerprint != current ScoreBoard's. Runs once
+    per process. Files with the current fingerprint but older DB dates are
+    kept (harmless; daily_update produces fresh filenames anyway)."""
+    global _CLEANUP_DONE
+    if _CLEANUP_DONE or not CACHE_DIR.exists():
+        _CLEANUP_DONE = True
+        return
+    _CLEANUP_DONE = True
+    current_suffix = f"_{_get_score_fingerprint()}.pkl"
+    removed = 0
+    for f in CACHE_DIR.glob("*.pkl"):
+        if not f.name.endswith(current_suffix):
+            try:
+                f.unlink()
+                removed += 1
+            except OSError:
+                pass
+    if removed:
+        print(f"[cache] cleaned {removed} obsolete cache files "
+              f"(fingerprint != {_get_score_fingerprint()})", file=sys.stderr)
 
 
 def _try_load_cache(path: Path) -> StockData | None:
@@ -171,6 +210,7 @@ def load_stock_data(
     cache_eligible = use_cache and start_date is None and end_date is None
     cache_file: Path | None = None
     if cache_eligible:
+        _cleanup_obsolete_cache()  # runs once per process
         cache_file = _cache_path(stock_id, _get_db_max_date())
         cached = _try_load_cache(cache_file)
         if cached is not None:
@@ -187,6 +227,11 @@ def load_stock_data(
     data = build_stock_data(stock_id, stock_name, rows, dividends)
 
     if cache_file is not None:
+        # Warm up ScoreBoard pct arrays so they get pickled with the cache.
+        # ScoreBoard is ~40-50% of per-stock cost (5M board.evaluate calls
+        # across the universe); caching here makes 2nd run ~30-40% faster.
+        from signal_backtest.factories._conditions import _eval_pct_arrays
+        _eval_pct_arrays(data)
         try:
             _write_cache(cache_file, data)
         except Exception:

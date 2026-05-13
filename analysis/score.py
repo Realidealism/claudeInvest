@@ -372,6 +372,34 @@ def build_turn_scoreboard() -> ScoreBoard:
     return board
 
 
+def board_fingerprint(board: ScoreBoard) -> str:
+    """12-char hash of board's cell config (name, points, category, continuous)
+    plus knot rescue config. Used as cache key so pct arrays auto-invalidate
+    when ScoreBoard cells/weights/knot config change.
+
+    Bump SCORE_CACHE_VERSION below to manually invalidate (e.g. when a cell's
+    evaluate lambda logic changes without its name/points/category changing)."""
+    import hashlib
+    parts: list = [SCORE_CACHE_VERSION]
+    for card_tag, card in (
+        ("s", board.short), ("m", board.medium), ("l", board.long),
+    ):
+        for side_tag, items in (("L", card.long_items), ("S", card.short_items)):
+            for it in items:
+                parts.append((card_tag, side_tag, it.name, float(it.points),
+                              it.category, it.continuous))
+    if board.knot_config is not None:
+        kc = board.knot_config
+        parts.append(("knot", repr(sorted(vars(kc).items()))))
+    return hashlib.md5(repr(parts).encode()).hexdigest()[:12]
+
+
+# Bump when a cell's evaluate lambda logic changes without its name/points
+# changing (e.g. tweaking thresholds inside the lambda body). Most config
+# changes are caught automatically by board_fingerprint().
+SCORE_CACHE_VERSION = "v1"
+
+
 def build_scoreboard() -> ScoreBoard:
     """
     Build a unified ScoreBoard with all technical scoring rules.
