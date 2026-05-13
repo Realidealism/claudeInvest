@@ -709,10 +709,13 @@ def buy_flee_signal(data: "StockData") -> BoolArray:
     v146: 加 ~long_knot 排除糾結 (鏡像 buy/sell pattern) - 失敗 PF -0.02
     v147: 改試 medium scope knot (SMA5/13/34) - 中時框糾結 持平
     v148: long+medium 並集排除 (兩 scope 任一糾結都排除)
+    v152: gate 30 -> 35 (after ScoreBoard ~dead tuning, short_pct dist shifted lower)
+          v151 (gate 25) / v153 (no gate) / v154 (dynamic) sweep:
+          portfolio PF 1.488 / 1.498 / 1.459 / 1.469 → v152 win
     """
     main = _buy_flee_main(data)
     short_pct = _short_pct_array(data)
-    rule_post_strength = short_pct >= 30
+    rule_post_strength = short_pct >= 35  # v152: 30 -> 35 after ScoreBoard ~dead tuning shifted short_pct distribution
     rule_knot = ~(data.close_result.knot["long"].flag
                   | data.close_result.knot["medium"].flag)
     return main & rule_post_strength & rule_knot
