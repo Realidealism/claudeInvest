@@ -409,8 +409,9 @@ def build_scoreboard() -> ScoreBoard:
 def _add_turn_rules(board: ScoreBoard) -> None:
     """Add turn-point scoring rules to medium / long timeframes.
 
-    Short timeframe was removed after cross-sectional ablation showed
-    扣抵_short dragging cross-sectional spread at H=20/60.
+    扣抵_short removed 2026-04-28 (full universe). 2026-05-13 re-tested
+    under ~dead: H=60 full -0.058pp / bull -0.087pp drag, bear +0.039pp
+    hedge — gain/loss 0.67 insufficient. Permanently rejected.
     """
     w_med = _w("扣抵", "medium")
     w_lng = _w("扣抵", "long")
@@ -419,9 +420,12 @@ def _add_turn_rules(board: ScoreBoard) -> None:
     _add_fuzzy(board.medium, MEDIUM_PERIODS,
                [(13, 2.5 * w_med), (89, 2.5 * w_med)], "扣抵")
 
+    # 扣抵_long upgraded ±5 → ±15 (2026-05-13 adopted under ~dead universe).
+    # See project_score_ablation_findings.md — combo with 洪量 ±10 yields
+    # H=60 full +0.319pp, bear +0.041pp (no regime hurt).
     for p in LONG_PERIODS:
-        _add_turn_pair(board.long, p, 5 * w_lng, "扣抵")
-    _add_fuzzy(board.long, LONG_PERIODS, [(89, 5 * w_lng)], "扣抵")
+        _add_turn_pair(board.long, p, 15 * w_lng, "扣抵")
+    _add_fuzzy(board.long, LONG_PERIODS, [(89, 15 * w_lng)], "扣抵")
 
 
 SORT_LABELS = ("medium", "long")
@@ -565,11 +569,16 @@ FLOOD_TIER_MAP = (
 
 
 def _add_flood_rules(board: ScoreBoard) -> None:
-    """Add flood-reference scoring: ±15 × multiplier per timeframe based on above/below tier k."""
+    """Add flood-reference scoring: ±10 × multiplier per timeframe based on above/below tier k.
+
+    Weight reduced ±15 → ±10 on 2026-05-13 after ~dead-universe ablation
+    showed 洪量 family was the heaviest drag (H=60 full -0.30pp) — halving
+    weight preserves H=60 bear hedge while cutting bull/full drag.
+    """
     cards = {"short": board.short, "medium": board.medium, "long": board.long}
     for scope, tier in FLOOD_TIER_MAP:
         card = cards[scope]
-        pts = 15 * _w("洪量", scope)
+        pts = 10 * _w("洪量", scope)
         # 站上 k 階洪: long +pts, short -pts
         card.add_long(bool_score(
             f"站上{tier}階洪", pts,
@@ -970,7 +979,11 @@ _WAVE_SCOPE_SIGNALS = {
 
 
 def _add_wave_event_rules(board: ScoreBoard) -> None:
-    cards = {"short": board.short, "medium": board.medium, "long": board.long}
+    # 波浪_medium dropped 2026-05-13 under ~dead universe: standalone Δ
+    # neutral at H=60 full (+0.001), removing yields H=60 bull +0.017 /
+    # H=60 bear +0.007 (near pure win on regimes). short keeps bull alpha,
+    # long keeps bear hedge.
+    cards = {"short": board.short, "long": board.long}
     for scope, card in cards.items():
         gold_attr, death_attr, label_prefix = _WAVE_SCOPE_SIGNALS[scope]
         _add_wave_event_scope(card, scope, gold_attr, death_attr, label_prefix)
@@ -1092,7 +1105,8 @@ _DISTANCE_Z_SCALE = 3.0     # z × 3 → cap at ±3σ ≈ ±9 (close to ±10 cap
 _DISTANCE_CAP = 10.0
 
 
-def _zscore_close_vs_sma(d: "StockData", i: int, sma_period: int) -> float:
+def _zscore_close_vs_sma(d: "StockData", i: int, sma_period: int,
+                         cap: float = _DISTANCE_CAP) -> float:
     """Compute z-score of (close - SMA(N)) using 1-year rolling std."""
     if i < sma_period + _DISTANCE_STD_WINDOW:
         return 0.0
@@ -1105,7 +1119,7 @@ def _zscore_close_vs_sma(d: "StockData", i: int, sma_period: int) -> float:
     if std <= 0:
         return 0.0
     z = dev_now / std
-    return float(np.clip(z * _DISTANCE_Z_SCALE, -_DISTANCE_CAP, _DISTANCE_CAP))
+    return float(np.clip(z * _DISTANCE_Z_SCALE, -cap, cap))
 
 
 def _add_distance_rules(board: ScoreBoard) -> None:
@@ -1121,27 +1135,30 @@ def _add_distance_rules(board: ScoreBoard) -> None:
     空頭 +0.290pp). Adding p377 trades +0.02pp 全期 for -0.018pp 空頭
     (net neutral); skipped to keep 空頭 contribution.
     """
-    for sma_p in (55, 89, 144, 233):
+    # p377 added 2026-05-13 under ~dead universe (+0.034pp full, +0.013pp bear);
+    # was rejected 2026-05-04 in full universe due to bear -0.039 (dead-fish noise)
+    for sma_p in (55, 89, 144, 233, 377):
         category = f"距離_p{sma_p}"
         _add_distance_scope(board.long, sma_period=sma_p, category=category)
 
 
-def _add_distance_scope(card: ScoreCard, sma_period: int, category: str) -> None:
+def _add_distance_scope(card: ScoreCard, sma_period: int, category: str,
+                        cap: float = _DISTANCE_CAP) -> None:
     """Add z-score(close, SMA(N)) continuous cell to one ScoreCard."""
     name = f"距SMA{sma_period}"
 
-    def long_eval(d, i, p=sma_period):
-        return _zscore_close_vs_sma(d, i, p)
+    def long_eval(d, i, p=sma_period, c=cap):
+        return _zscore_close_vs_sma(d, i, p, cap=c)
 
-    def short_eval(d, i, p=sma_period):
-        return -_zscore_close_vs_sma(d, i, p)
+    def short_eval(d, i, p=sma_period, c=cap):
+        return -_zscore_close_vs_sma(d, i, p, cap=c)
 
     card.add_long(ScoreItem(
-        name=name, points=_DISTANCE_CAP,
+        name=name, points=cap,
         evaluate=long_eval, category=category, continuous=True,
     ))
     card.add_short(ScoreItem(
-        name=name, points=_DISTANCE_CAP,
+        name=name, points=cap,
         evaluate=short_eval, category=category, continuous=True,
     ))
 

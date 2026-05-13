@@ -37,22 +37,29 @@ SHADOW_EMA_LEN1 = 1
 SHADOW_EMA_LEN2 = 2
 SHADOW_DEMA_LEN = 13
 SLOW_LEN = 55
-SLOPE_LEN = 3
+SLOPE_LEN = 3  # default for direct calculate_obv() calls; per-scope overrides live in PERIOD_PARAMS
 
 # Tiered Fibonacci speeds across all three scopes:
 #   shadow EMA pair + DEMA: short(3,5,8) / medium(8,13,21) / long(21,34,55)
 #   slow_len for close baseline scaled to stay > DEMA so macd doesn't collapse:
 #     short=21 / medium=55 / long=144
+#   slope_len ascending: short=1 / medium=2 / long=3 — short scope wants fast
+#   linreg projection on already-noisy macd; long scope tolerates more
+#   smoothing. ASC tested 2026-05-12 against BASE(3/3/3) and DESC(3/2/1):
+#   short PF 1.161→1.172, medium PF 1.393→1.402, long unchanged.
+# obv_ma_len/window_len kept uniform at 13/26 — Fibonacci-aligned variant
+# (short 8/21, long 21/55) tested 2026-05-12 and degraded short scope PF
+# (1.161→1.115); baseline obv_ma is best left as a stable normalizer.
 PERIOD_PARAMS = {
     "short":  {"obv_ma_len": 13, "window_len": 26, "slow_len": 21,
                "shadow_ema_len1": 3, "shadow_ema_len2": 5,
-               "shadow_dema_len": 8},
+               "shadow_dema_len": 8, "slope_len": 1},
     "medium": {"obv_ma_len": 13, "window_len": 26, "slow_len": 55,
                "shadow_ema_len1": 8, "shadow_ema_len2": 13,
-               "shadow_dema_len": 21},
+               "shadow_dema_len": 21, "slope_len": 2},
     "long":   {"obv_ma_len": 13, "window_len": 26, "slow_len": 144,
                "shadow_ema_len1": 21, "shadow_ema_len2": 34,
-               "shadow_dema_len": 55},
+               "shadow_dema_len": 55, "slope_len": 3},
 }
 
 
@@ -95,6 +102,7 @@ def calculate_obv(
     shadow_ema_len1: int = SHADOW_EMA_LEN1,
     shadow_ema_len2: int = SHADOW_EMA_LEN2,
     shadow_dema_len: int = SHADOW_DEMA_LEN,
+    slope_len: int = SLOPE_LEN,
 ) -> OBVResult:
     """
     Main entry point — equivalent to Go GetCalculateOBV.
@@ -144,7 +152,7 @@ def calculate_obv(
     macd = (shadow_dema - close_slow_ema).astype(F32)
 
     # 5. Linear regression projection
-    _, tt1 = linear_regression(macd, SLOPE_LEN)
+    _, tt1 = linear_regression(macd, slope_len)
 
     # 6. Staircase line with signals
     step_line, signal_up, signal_down = _calc_staircase(tt1, n)

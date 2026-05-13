@@ -164,6 +164,9 @@ def _register_factories() -> None:
     from signal_backtest.factories.macd import (
         macd_short_signal, macd_medium_signal, macd_long_signal,
     )
+    from signal_backtest.factories.obv import (
+        obv_short_signal, obv_medium_signal, obv_long_signal,
+    )
     from signal_backtest.factories.unified import (
         unified_long_factory, unified_short_factory,
     )
@@ -183,6 +186,10 @@ def _register_factories() -> None:
         "macd_short":  macd_short_signal,
         "macd_medium": macd_medium_signal,
         "macd_long":   macd_long_signal,
+        # OBV pure-cross diagnostic, also not in production rotation
+        "obv_short":  obv_short_signal,
+        "obv_medium": obv_medium_signal,
+        "obv_long":   obv_long_signal,
     })
 
 
