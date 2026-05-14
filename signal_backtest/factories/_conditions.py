@@ -541,8 +541,10 @@ def buy_condition(data: "StockData") -> BoolArray:
     # 7. OSC 防禦觸發（Go BuyCondition line 7866-7877，trigger_main 部分）
     rule_osc = _osc_long_trigger(data)
 
-    # 8. v106 long_pct gate：個股做多評分 >=35（v107 試 40 退步，已 revert）
-    rule_long_pct_gate = _long_pct_array(data) >= 35
+    # 8. v176: long_pct gate 35→40 (ScoreBoard tuning 後重 sweep，鏡像 sell v175 +0.0111).
+    # v177 試 45: PF +0.0167 但賺賠比 -0.047 結構略脆，已 revert.
+    # 注意：v107 試 40 退步是 ScoreBoard 改前的事，改後分佈右移可能需要收緊。
+    rule_long_pct_gate = _long_pct_array(data) >= 40
 
     # 9. v131 鏡像 v130 sell：~pte (不在頂背離 — 排除「金叉但動能轉弱」)
     rule_not_pte = ~data.macd.short.macd_convergence_pte
@@ -589,7 +591,17 @@ def sell_condition(data: "StockData") -> BoolArray:
     turn = data.close_result.turn
 
     rule_ma = (close < sma[8]) & (sma[8] < sma[21])
-    rule_market = _market_any_bear(data)
+    # v171: sell 允許進場的市場狀態 = 任一時框 trend ∈ {0 中性, -1 空, -2 強空}.
+    # 排除多頭 (+1/+2)、多頭衰竭 (+3)、空頭衰竭 (-3, 將反轉)。
+    # (v172 試拿掉 medium scope 實測 portfolio PF 持平 1.5513，保留 medium 多元性)
+    ms_init = data.market_state
+    def _in_sell_zone(t):
+        return (t == 0) | (t == -1) | (t == -2)
+    rule_market = (
+        _in_sell_zone(ms_init.short_trend)
+        | _in_sell_zone(ms_init.medium_trend)
+        | _in_sell_zone(ms_init.long_trend)
+    )
 
     rule_turn = (turn[5] == 0)
 
@@ -613,8 +625,8 @@ def sell_condition(data: "StockData") -> BoolArray:
     # 10. v58 個股 medium scope MA 全空頭排列（SMA5<SMA13<SMA34）
     rule_medium_ma_bear = data.close_result.ma.sort_normal["medium"].down
 
-    # 11. v106 short_pct gate：閾值 >=35（鏡像 v105 buy）
-    rule_short_pct_gate = _short_pct_array(data) >= 35
+    # 11. v175: short_pct gate 試 40 (v174 試 25 退步 -0.015, 反向收緊)
+    rule_short_pct_gate = _short_pct_array(data) >= 40
 
     # 12. v130 port Go GS11：~nte (不在底背離 — 排除「死叉但動能轉強」的反彈段)
     rule_not_nte = ~data.macd.short.macd_convergence_nte
@@ -637,7 +649,9 @@ def sell_condition(data: "StockData") -> BoolArray:
 # Pct equivalents of original raw-score thresholds (v98 unit change).
 # Raw score range is ±279.52 (stock-invariant), so pct = score / 2.7952.
 # Original thresholds: ±75 → ±26.83; ±115 → ±41.14.
-_PCT_DELTA1_THRESHOLD = 75.0 / 2.7952   # ≈ 26.83 (~P0.5 of 1-day delta)
+# v167: delta1 20 → 15. v166 (d=20) bait_flip cascade 新增 114 trades 平均
+# +10.4% 淨報酬 (Portfolio PF +0.0114). 繼續推下限看是否還沒到頂.
+_PCT_DELTA1_THRESHOLD = 15.0            # was 20 (v166) / 25 (v165) / 26.83 (v163)
 _PCT_DELTA3_THRESHOLD = 115.0 / 2.7952  # ≈ 41.14 (~P0.5 of 3-day delta)
 
 
@@ -661,9 +675,14 @@ def _buy_flee_main(data: "StockData") -> BoolArray:
 def _sell_flee_main(data: "StockData") -> BoolArray:
     """空翻多 main 子句 (v91 score-rise, 不含 bait_flip).
 
-    多方訊號用 long_pct, P0.5 級閾值:
-      rise1 = delta1>=26.83 & prev1<=0
-      rise3 = delta3>=41.14 & prev3<=0
+    多方訊號用 long_pct:
+      rise1 = delta1>=26.83 & prev1<=0  (P0.5 級 1 日急升)
+      rise3 = delta3>=80   & prev3<=0   (v163: 41.14→80 after sweep)
+
+    v163: rise3 delta3 41.14→80. dry-run sweep 顯示與 buy_flee 反向：
+      sell_flee rise3 越極端 PF 越高 (d3≥80 PF 1.88 vs d3≥41 PF 1.38)，
+      物理上是「3 日多方分數爆發性累積 = 真正多頭起點」，跟 buy_flee
+      rise3 (越極端越像下跌透支) 完全相反。
     """
     long_pct = _long_pct_array(data)
     prev1 = _shift(long_pct, 1)
@@ -672,7 +691,7 @@ def _sell_flee_main(data: "StockData") -> BoolArray:
     delta3 = long_pct - prev3
 
     rise1 = (delta1 >= _PCT_DELTA1_THRESHOLD) & (prev1 <= 0)
-    rise3 = (delta3 >= _PCT_DELTA3_THRESHOLD) & (prev3 <= 0)
+    rise3 = (delta3 >= 80.0) & (prev3 <= 0)  # v163: was _PCT_DELTA3_THRESHOLD (41.14)
     return rise1 | rise3
 
 
@@ -739,7 +758,14 @@ def sell_flee_signal(data: "StockData") -> BoolArray:
     """
     main = _sell_flee_main(data)
     long_pct = _long_pct_array(data)
-    main_with_gate = main & (long_pct >= 30)
+    prev1 = _shift(long_pct, 1)
+    delta1 = long_pct - prev1
+    rule_post_strength = (
+        (long_pct >= 35)
+        | ((delta1 >= 40) & (long_pct >= 30))
+        | ((delta1 >= 50) & (long_pct >= 25))
+    )
+    main_with_gate = main & rule_post_strength
 
     prev_buy_flee_main = _shift(_buy_flee_main(data), 1)
     gap_up = _gap_up_today(data)
