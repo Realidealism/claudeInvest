@@ -642,21 +642,20 @@ _PCT_DELTA3_THRESHOLD = 115.0 / 2.7952  # ≈ 41.14 (~P0.5 of 3-day delta)
 
 
 def _buy_flee_main(data: "StockData") -> BoolArray:
-    """多翻空 main — 純 pct-based (空方訊號用 short_pct, P0.5 級閾值).
+    """多翻空 main — 純 1 日急升 (rise1).
 
-    short_pct 從中性/負分急升到正 = 空方分數突然走強 = 多頭翻空頭：
+    short_pct 從中性/負分 1 日急升到正 = 空方分數突然走強 = 多頭翻空頭：
       rise1 = delta1 >= 26.83 & prev1 <= 0
-      rise3 = delta3 >= 41.14 & prev3 <= 0
+
+    v159: 拿掉 rise3 (delta3 >= 41.14 & prev3 <= 0). dry-run 拆解顯示
+      rise3_only PF 0.85 / 勝率 35.3% — 「3 日累積但無單日 jump」是趨勢
+      尾段慢速減速而非翻轉訊號. delta3 sweep 至 ≥50 仍 PF 0.96 < 1，
+      無任何閾值組合能救. rise1_only PF 3.05 / 勝率 52.1% 才是真 edge.
     """
     short_pct = _short_pct_array(data)
     prev1 = _shift(short_pct, 1)
-    prev3 = _shift(short_pct, 3)
     delta1 = short_pct - prev1
-    delta3 = short_pct - prev3
-
-    rise1 = (delta1 >= _PCT_DELTA1_THRESHOLD) & (prev1 <= 0)
-    rise3 = (delta3 >= _PCT_DELTA3_THRESHOLD) & (prev3 <= 0)
-    return rise1 | rise3
+    return (delta1 >= _PCT_DELTA1_THRESHOLD) & (prev1 <= 0)
 
 
 def _sell_flee_main(data: "StockData") -> BoolArray:
@@ -712,10 +711,14 @@ def buy_flee_signal(data: "StockData") -> BoolArray:
     v152: gate 30 -> 35 (after ScoreBoard ~dead tuning, short_pct dist shifted lower)
           v151 (gate 25) / v153 (no gate) / v154 (dynamic) sweep:
           portfolio PF 1.488 / 1.498 / 1.459 / 1.469 → v152 win
+    v155: stairstep gate — gate≥35 永遠過 OR (delta1≥25 & gate≥30) 也過。
+          v152 的 gate=35 把 short_pct ∈ [30,35) 區間 main 真的優質事件砍掉了
+          (dry-run d25_g30 差集 PF 1.86 / 勝率 50% / 94 trades). 階梯設計把
+          有強翻轉動量的 [30,35) 段救回來，弱翻轉維持嚴 gate.
     """
     main = _buy_flee_main(data)
     short_pct = _short_pct_array(data)
-    rule_post_strength = short_pct >= 35  # v152: 30 -> 35 after ScoreBoard ~dead tuning shifted short_pct distribution
+    rule_post_strength = short_pct >= 30  # v160: gate 35→30 after v159 dropped rise3 (3D sweep PF 1.55 vs gate35 PF 1.44)
     rule_knot = ~(data.close_result.knot["long"].flag
                   | data.close_result.knot["medium"].flag)
     return main & rule_post_strength & rule_knot
