@@ -109,13 +109,20 @@ def _safe_num(x: float) -> float | None:
 
 
 def _extract_open_position(result, side: str, last_trade_date) -> dict | None:
-    """Inspect a SideResult; return open-position summary if the engine's
-    end-of-history force-close emitted a Trade with REASON_EXIT_END on the
-    latest bar, else None."""
+    """Inspect a SideResult; return position summary if the engine's last
+    trade closed on the snapshot bar.
+
+    Two cases by ``last.exit_reason``:
+      1. exit_reason == REASON_EXIT_END → still open (force-closed at
+         end-of-history); is_exited = False.
+      2. exit_reason != REASON_EXIT_END → exited on the snapshot bar
+         (real exit signal); is_exited = True, exit_reason carried over.
+
+    Earlier bars are ignored — daily snapshot only surfaces today's state."""
     if not result.trades:
         return None
     last = result.trades[-1]
-    if last.exit_reason != REASON_EXIT_END or last.exit_date != last_trade_date:
+    if last.exit_date != last_trade_date:
         return None
     if not last.defense_events:
         return None
@@ -125,6 +132,7 @@ def _extract_open_position(result, side: str, last_trade_date) -> dict | None:
         return None
     entry_tier = m.group(1)
 
+    is_exited = last.exit_reason != REASON_EXIT_END
     cur_def = last.defense_events[-1]
     return {
         "side": side,
@@ -138,6 +146,8 @@ def _extract_open_position(result, side: str, last_trade_date) -> dict | None:
         "defense_price": _safe_num(float(cur_def.price)),
         "defense_reason": cur_def.reason,
         "defense_date": cur_def.date,
+        "is_exited": is_exited,
+        "exit_reason": last.exit_reason if is_exited else None,
     }
 
 
@@ -343,11 +353,12 @@ def _save_signal_fires(snapshot_date: date, results: list[dict]) -> dict[str, in
 
 
 def _save_open_positions(snapshot_date: date, results: list[dict]) -> dict[str, int]:
-    counts = {"long": 0, "short": 0}
+    counts = {"long": 0, "short": 0, "exited_long": 0, "exited_short": 0}
     rows = []
     for r in results:
         for p in r["open_positions"]:
-            counts[p["side"]] += 1
+            bucket = ("exited_" if p["is_exited"] else "") + p["side"]
+            counts[bucket] += 1
             rows.append((
                 snapshot_date,
                 r["sid"],
@@ -362,14 +373,16 @@ def _save_open_positions(snapshot_date: date, results: list[dict]) -> dict[str, 
                 round(p["defense_price"], 2) if p["defense_price"] is not None else None,
                 p["defense_reason"],
                 p["defense_date"],
+                p["is_exited"],
+                p["exit_reason"],
             ))
 
     sql = """
         INSERT INTO tw.open_positions
         (snapshot_date, stock_id, side, entry_date, entry_price, entry_tier,
          current_close, pnl_pct, bars_held, turnover,
-         defense_price, defense_reason, defense_date)
-        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+         defense_price, defense_reason, defense_date, is_exited, exit_reason)
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
     """
     conn = get_connection()
     try:
@@ -439,6 +452,7 @@ def run(snapshot_date: date) -> dict:
 
     pos_counts = _save_open_positions(snapshot_date, results)
     print(f"  Open positions long: {pos_counts['long']} / short: {pos_counts['short']}")
+    print(f"  Exited today    long: {pos_counts['exited_long']} / short: {pos_counts['exited_short']}")
 
     print(f"  Total wall time: {time.time() - t0:.1f}s")
     return {

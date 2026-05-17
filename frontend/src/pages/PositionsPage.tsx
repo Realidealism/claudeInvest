@@ -86,12 +86,6 @@ export default function PositionsPage() {
       .catch(console.error);
   }, [view]);
 
-  // Daily view doesn't track exits — collapse exit tabs back to long
-  // if the user had one selected before switching.
-  useEffect(() => {
-    if (view === "daily" && isExitTab(tab)) setTab("long");
-  }, [view, tab]);
-
   const exitedLong  = data?.exited_long  ?? [];
   const exitedShort = data?.exited_short ?? [];
 
@@ -175,30 +169,26 @@ export default function PositionsPage() {
         >
           做空（{data.short.length}）
         </button>
-        {view === "intraday" && (
-          <>
-            <button
-              onClick={() => setTab("exited_long")}
-              className={`px-4 py-1.5 text-sm rounded ${
-                tab === "exited_long"
-                  ? "bg-accent text-white"
-                  : "bg-surface-alt text-text-secondary hover:text-text-primary"
-              }`}
-            >
-              多單出場（{exitedLong.length}）
-            </button>
-            <button
-              onClick={() => setTab("exited_short")}
-              className={`px-4 py-1.5 text-sm rounded ${
-                tab === "exited_short"
-                  ? "bg-accent text-white"
-                  : "bg-surface-alt text-text-secondary hover:text-text-primary"
-              }`}
-            >
-              空單出場（{exitedShort.length}）
-            </button>
-          </>
-        )}
+        <button
+          onClick={() => setTab("exited_long")}
+          className={`px-4 py-1.5 text-sm rounded ${
+            tab === "exited_long"
+              ? "bg-accent text-white"
+              : "bg-surface-alt text-text-secondary hover:text-text-primary"
+          }`}
+        >
+          多單出場（{exitedLong.length}）
+        </button>
+        <button
+          onClick={() => setTab("exited_short")}
+          className={`px-4 py-1.5 text-sm rounded ${
+            tab === "exited_short"
+              ? "bg-accent text-white"
+              : "bg-surface-alt text-text-secondary hover:text-text-primary"
+          }`}
+        >
+          空單出場（{exitedShort.length}）
+        </button>
       </div>
 
       {rows.length === 0 ? (
