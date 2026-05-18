@@ -127,13 +127,18 @@ def _ret_z_short(d: "StockData", i: int) -> float:
 def build_overheat_board() -> OverheatBoard:
     """Build OverheatBoard — short-period reversal-friendly score channel.
 
-    Cells (~±24 raw points per side, 17 cells per side):
+    v8 — LOO ablation 2026-05-18 顯示 OBV 是最大 noise (拿掉 fwd5 +0.071 最大改善).
+    v7 minimal (砍 MACD/OBV/Wave 全部) 結果 portfolio PF -0.148 失敗 (LOO 互動效應失效).
+    v8 折衷：只砍 OBV，保留 MACD/Wave 維持 cell 多樣性。
+
+    Cells (~±25 raw points per side, 15 cells per side):
       - 5MA 漲扣 / 跌扣 ±3
       - 8MA 漲扣 / 跌扣 ±3
       - 1日 return / 8日 ATR (continuous) ±5
       - MACD short 金叉_新/續 死叉_新/續 ±3/±2
-      - OBV  short 升_新/續 降_新/續 ±3/±2
       - 浪D4 (short scope wave 2/4 MA cross) 金叉_新/續 死叉_新/續 ±3/±2
+      - 短洪量 站上/跌破 1階洪 ±3
+      (v7 dropped: OBV short events ±3/±2)
 
     Cells deliberately exclude trend-confirmation extensions tested and
     rejected 2026-05-16:
@@ -181,16 +186,43 @@ def build_overheat_board() -> OverheatBoard:
         evaluate=_ret_z_short, category="衝擊", continuous=True,
     ))
 
-    # ── MACD short event-window cells (mirror SB short scope but in OH context) ──
+    # ── MACD short event-window cells ──
     _add_macd_short_cells(board)
-
-    # ── OBV short event-window cells ──
-    _add_obv_short_cells(board)
 
     # ── Wave d4 (short scope) event-window cells ──
     _add_wave_d4_cells(board)
 
+    # ── Flood (short scope, tier 1) cells (v6) ──
+    _add_flood_short_cells(board)
+
+    # v8 dropped: OBV short events (LOO showed -OBV fwd5 +0.071 — biggest noise).
+    # _add_obv_short_cells kept as dormant helper for future re-introduction.
+
     return board
+
+
+def _add_flood_short_cells(board: OverheatBoard) -> None:
+    """Short-scope flood reference (tier 1): 站上/跌破 最近一次洪量參考價.
+    Brings volume-based reversal confirmation into OH. ±3 same scale as 扣抵.
+    """
+    pts = 3.0
+    tier = 1
+    board.add_long(bool_score(
+        "站上1階洪", pts,
+        lambda d, i: bool(d.volume_result.above_tier[tier][i]), "洪量",
+    ))
+    board.add_short(bool_score(
+        "站上1階洪", -pts,
+        lambda d, i: bool(d.volume_result.above_tier[tier][i]), "洪量",
+    ))
+    board.add_long(bool_score(
+        "跌破1階洪", -pts,
+        lambda d, i: bool(d.volume_result.below_tier[tier][i]), "洪量",
+    ))
+    board.add_short(bool_score(
+        "跌破1階洪", pts,
+        lambda d, i: bool(d.volume_result.below_tier[tier][i]), "洪量",
+    ))
 
 
 def _add_macd_short_cells(board: OverheatBoard) -> None:
@@ -288,7 +320,7 @@ def _add_wave_d4_cells(board: OverheatBoard) -> None:
 # ── Fingerprint for cache invalidation ─────────────────────────────────────
 
 
-OVERHEAT_CACHE_VERSION = "v5"  # v5: 17c reversal-friendly sweet spot (5/8MA + MACD/OBV/wave shorts)
+OVERHEAT_CACHE_VERSION = "v8"  # v8: drop OBV only (LOO biggest noise), keep MACD/Wave (15c)
 
 
 def overheat_fingerprint(board: OverheatBoard) -> str:

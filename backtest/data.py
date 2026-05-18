@@ -232,14 +232,16 @@ def load_stock_data(
     data = build_stock_data(stock_id, stock_name, rows, dividends)
 
     if cache_file is not None:
-        # Warm up ScoreBoard + OverheatBoard pct arrays so they get pickled
-        # with the cache. ScoreBoard is ~40-50% of per-stock cost; OverheatBoard
-        # is much cheaper (~5 cells vs ~150) but also paid once per stock.
+        # Warm up ScoreBoard + OverheatBoard + pre ScoreBoard pct arrays so they
+        # get pickled with the cache. pre ScoreBoard runs a 2nd full evaluate per
+        # stock with PreData wrapper (close-dependent cells replaced by
+        # tomorrow's-prediction versions); roughly doubles cold-cache time.
         from signal_backtest.factories._conditions import (
-            _eval_pct_arrays, _eval_overheat_pct_arrays,
+            _eval_pct_arrays, _eval_overheat_pct_arrays, _eval_pre_pct_arrays,
         )
         _eval_pct_arrays(data)
         _eval_overheat_pct_arrays(data)
+        _eval_pre_pct_arrays(data)
         try:
             _write_cache(cache_file, data)
         except Exception:

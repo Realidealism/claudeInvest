@@ -189,6 +189,137 @@ def _overheat_short_pct_array(data: "StockData") -> NDArray[np.float32]:
     return _eval_overheat_pct_arrays(data)[1]
 
 
+# ── Tomorrow-prediction pre ScoreBoard (v191) ──────────────────────────────
+# Re-evaluate ScoreBoard assuming close[i+1] = close[i]. Only close-dependent
+# cells (turn, sort_normal, distance via SMA) change; events/breadth/volume
+# stay frozen. Caller decides whether to gate entries on pre_long/short_pct.
+
+def _compute_pre_sma(data: "StockData") -> dict:
+    from analysis.constants import SMA_PERIODS
+    close = data.close
+    sma = data.close_result.ma.sma
+    return {p: sma[p] + (close - _shift(close, p - 1)) / float(p)
+            for p in SMA_PERIODS}
+
+
+def _compute_pre_turn(data: "StockData", n: int) -> dict:
+    from analysis.constants import TURN_CONFIGS
+    close = data.close
+    bs_high = data.close_result.bs.high
+    bs_low = data.close_result.bs.low
+    pre = {}
+    for ma_period, offset, bs_period in TURN_CONFIGS:
+        out = np.ones(n, dtype=np.uint8)
+        new_offset = offset - 1
+        if bs_period is None:
+            shifted = _shift(close, new_offset)
+            valid = np.arange(n) >= new_offset
+            out[valid & (close > shifted)] = 2
+            out[valid & (close < shifted)] = 0
+        else:
+            shifted_hi = _shift(bs_high[bs_period], new_offset)
+            shifted_lo = _shift(bs_low[bs_period], new_offset)
+            valid = np.arange(n) >= (new_offset + 1)
+            out[valid & (close > shifted_hi)] = 2
+            out[valid & (close < shifted_lo)] = 0
+        pre[ma_period] = out
+    return pre
+
+
+def _compute_pre_sort_normal(pre_sma) -> dict:
+    from analysis.close import SortResult
+    from analysis.constants import SORT_NORMAL
+    out = {}
+    for label, (p1, p2, p3) in SORT_NORMAL.items():
+        m1, m2, m3 = pre_sma[p1], pre_sma[p2], pre_sma[p3]
+        out[label] = SortResult(
+            up=(m1 > m2) & (m2 > m3),
+            down=(m1 < m2) & (m2 < m3),
+        )
+    return out
+
+
+class _PreMAResult:
+    __slots__ = ("sma", "pre_sma", "close_on_ma", "bias", "sort_normal",
+                 "sort_predicted", "sort_lp")
+    def __init__(self, orig_ma, pre_sma, pre_sort_normal):
+        self.sma = pre_sma
+        self.pre_sma = orig_ma.pre_sma
+        self.close_on_ma = orig_ma.close_on_ma
+        self.bias = orig_ma.bias
+        self.sort_normal = pre_sort_normal
+        self.sort_predicted = orig_ma.sort_predicted
+        self.sort_lp = orig_ma.sort_lp
+
+
+class _PreCloseResult:
+    __slots__ = ("ma", "boll", "bs", "turn", "ema", "knot",
+                 "knot_level", "value_level")
+    def __init__(self, orig_cr, pre_ma, pre_turn):
+        self.ma = pre_ma
+        self.boll = orig_cr.boll
+        self.bs = orig_cr.bs
+        self.turn = pre_turn
+        self.ema = orig_cr.ema
+        self.knot = orig_cr.knot
+        self.knot_level = orig_cr.knot_level
+        self.value_level = orig_cr.value_level
+
+
+class _PreData:
+    """Wraps a StockData for tomorrow-prediction ScoreBoard evaluation."""
+    def __init__(self, orig, pre_close_result):
+        self._orig = orig
+        self.close_result = pre_close_result
+
+    def __getattr__(self, name):
+        return getattr(self._orig, name)
+
+
+def _eval_pre_pct_arrays(
+    data: "StockData",
+) -> tuple[NDArray[np.float32], NDArray[np.float32]]:
+    """Compute (pre_long_pct, pre_short_pct) — ScoreBoard re-evaluated under
+    tomorrow's close = today's close assumption. Cached on data instance.
+    """
+    long_cache = getattr(data, "_pre_long_pct_cache", None)
+    short_cache = getattr(data, "_pre_short_pct_cache", None)
+    if long_cache is not None and short_cache is not None:
+        return long_cache, short_cache
+    from analysis.score import build_scoreboard
+    n = data.n
+    pre_sma = _compute_pre_sma(data)
+    pre_turn = _compute_pre_turn(data, n)
+    pre_sort = _compute_pre_sort_normal(pre_sma)
+    pre_ma = _PreMAResult(data.close_result.ma, pre_sma, pre_sort)
+    pre_cr = _PreCloseResult(data.close_result, pre_ma, pre_turn)
+    pre_data = _PreData(data, pre_cr)
+
+    board = build_scoreboard()
+    long_out = np.zeros(n, dtype=np.float32)
+    short_out = np.zeros(n, dtype=np.float32)
+    for i in range(60, n):
+        try:
+            r = board.evaluate(pre_data, i)
+            long_out[i] = r.total.long.pct
+            short_out[i] = r.total.short.pct
+        except Exception:
+            pass
+    data._pre_long_pct_cache = long_out
+    data._pre_short_pct_cache = short_out
+    return long_out, short_out
+
+
+def _pre_long_pct_array(data: "StockData") -> NDArray[np.float32]:
+    """Tomorrow-prediction long.pct (-100~+100)."""
+    return _eval_pre_pct_arrays(data)[0]
+
+
+def _pre_short_pct_array(data: "StockData") -> NDArray[np.float32]:
+    """Tomorrow-prediction short.pct (-100~+100)."""
+    return _eval_pre_pct_arrays(data)[1]
+
+
 def _stock_trend_code(data: "StockData", scope: str) -> NDArray[np.int8]:
     """Map sort_normal up/down to Go's ShortTrend 0/1/2 encoding.
 
@@ -590,12 +721,10 @@ def buy_condition(data: "StockData") -> BoolArray:
     # 7. OSC 防禦觸發（Go BuyCondition line 7866-7877，trigger_main 部分）
     rule_osc = _osc_long_trigger(data)
 
-    # 8. v176: long_pct gate 35→40 (ScoreBoard tuning 後重 sweep，鏡像 sell v175 +0.0111).
-    # v177 試 45: PF +0.0167 但賺賠比 -0.047 結構略脆，已 revert.
-    # 注意：v107 試 40 退步是 ScoreBoard 改前的事，改後分佈右移可能需要收緊。
+    # 8. v176: long_pct gate 35→40
     rule_long_pct_gate = _long_pct_array(data) >= 40
 
-    # 9. v131 鏡像 v130 sell：~pte (不在頂背離 — 排除「金叉但動能轉弱」)
+    # 9. v131: ~pte (不在頂背離)
     rule_not_pte = ~data.macd.short.macd_convergence_pte
 
     return (rule_ma & rule_turn & rule_break & rule_vol & rule_knot
@@ -822,7 +951,10 @@ def sell_flee_signal(data: "StockData") -> BoolArray:
         | ((delta1 >= 40) & (long_pct >= 30))
         | ((delta1 >= 50) & (long_pct >= 25))
     )
-    main_with_gate = main & rule_post_strength
+    # v195b: SB stairstep gate AND above_prev (站上前次洪量 high) — 強化既有 path
+    # v195 OR 路徑 +4689 trades / -0.092 PF 失敗，改用 AND 收緊
+    above_prev = data.volume_result.above_prev
+    main_with_gate = main & rule_post_strength & above_prev
 
     prev_buy_flee_main = _shift(_buy_flee_main(data), 1)
     gap_up = _gap_up_today(data)

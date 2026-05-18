@@ -630,6 +630,9 @@ def _add_flood_rules(board: ScoreBoard) -> None:
             "洪量",
         ))
 
+    # v194/v194b reverted (pts=10/pts=5 both net negative). prev_flood_high/low
+    # arrays kept in volume_result for direct condition use (e.g. sell_flee v195).
+
 
 # ── Breadth vs Stock Sort ─────────────────────────────────────────────────
 

@@ -102,6 +102,12 @@ class VolumeResult:
     above_tier: dict[int, BoolArray]       # {1..5} close >= flood_high_tier[k]
     below_tier: dict[int, BoolArray]       # {1..5} close <  flood_low_tier[k]
 
+    # v194: Second-most-recent flood reference (not max-aggregated)
+    prev_flood_high: F32Array              # recent[1].high (previous flood, not current)
+    prev_flood_low: F32Array               # recent[1].low
+    above_prev: BoolArray                  # close >= prev_flood_high
+    below_prev: BoolArray                  # close <  prev_flood_low
+
     # Scoring signals for future scoring system — each independently ±15
     flood_short_score: NDArray[np.int8]    # tier 1: +15 above, -15 below, 0 neutral
     flood_medium_score: NDArray[np.int8]   # tier 2: +15 above, -15 below, 0 neutral
@@ -187,7 +193,8 @@ def calculate_volume(
     # Flood reference signals (tiered: last 1..5 flood events)
     MAX_TIER = 5
     if open_ is not None and close is not None and high is not None and low is not None:
-        flood_high_tier, flood_low_tier, above_tier, below_tier = _calc_flood_ref(
+        (flood_high_tier, flood_low_tier, above_tier, below_tier,
+         prev_flood_high, prev_flood_low, above_prev, below_prev) = _calc_flood_ref(
             open_.astype(F32), close.astype(F32), high.astype(F32), low.astype(F32),
             flood_flag, n, max_tier=MAX_TIER,
         )
@@ -196,6 +203,10 @@ def calculate_volume(
         flood_low_tier = {k: np.zeros(n, dtype=F32) for k in range(1, MAX_TIER + 1)}
         above_tier = {k: np.zeros(n, dtype=np.bool_) for k in range(1, MAX_TIER + 1)}
         below_tier = {k: np.zeros(n, dtype=np.bool_) for k in range(1, MAX_TIER + 1)}
+        prev_flood_high = np.zeros(n, dtype=F32)
+        prev_flood_low = np.zeros(n, dtype=F32)
+        above_prev = np.zeros(n, dtype=np.bool_)
+        below_prev = np.zeros(n, dtype=np.bool_)
 
     # Per-tier ±15 scores for scoring system
     def _score(above, below):
@@ -232,6 +243,10 @@ def calculate_volume(
         flood_low_tier=flood_low_tier,
         above_tier=above_tier,
         below_tier=below_tier,
+        prev_flood_high=prev_flood_high,
+        prev_flood_low=prev_flood_low,
+        above_prev=above_prev,
+        below_prev=below_prev,
         flood_short_score=flood_short_score,
         flood_medium_score=flood_medium_score,
         flood_long_score=flood_long_score,
@@ -568,6 +583,9 @@ def _calc_flood_ref(
 
     flood_high_tier = {k: np.zeros(n, dtype=F32) for k in range(1, max_tier + 1)}
     flood_low_tier = {k: np.zeros(n, dtype=F32) for k in range(1, max_tier + 1)}
+    # v194: prev (second-most-recent) flood reference — independent of max-aggregation
+    prev_flood_high = np.zeros(n, dtype=F32)
+    prev_flood_low = np.zeros(n, dtype=F32)
 
     # Deque of (high_value, low_value) for last max_tier floods, newest first
     recent: list[tuple[float, float]] = []
@@ -598,12 +616,19 @@ def _calc_flood_ref(
                 avail = min(k, len(recent))
                 flood_high_tier[k][i] = max(r[0] for r in recent[:avail])
                 flood_low_tier[k][i] = min(r[1] for r in recent[:avail])
+            # v194: prev = second-most-recent flood (recent[1]) high/low
+            if len(recent) >= 2:
+                prev_flood_high[i] = recent[1][0]
+                prev_flood_low[i] = recent[1][1]
 
     above_tier = {k: np.zeros(n, dtype=np.bool_) for k in range(1, max_tier + 1)}
     below_tier = {k: np.zeros(n, dtype=np.bool_) for k in range(1, max_tier + 1)}
+    above_prev = np.zeros(n, dtype=np.bool_)
+    below_prev = np.zeros(n, dtype=np.bool_)
 
     if flood_count == 0:
-        return flood_high_tier, flood_low_tier, above_tier, below_tier
+        return (flood_high_tier, flood_low_tier, above_tier, below_tier,
+                prev_flood_high, prev_flood_low, above_prev, below_prev)
 
     not_flood_day = ~flood_flag
     for k in range(1, max_tier + 1):
@@ -626,4 +651,11 @@ def _calc_flood_ref(
             above_tier[k] = above_tier[k] | (active_flood & (close >= prev_high_ref))
             below_tier[k] = below_tier[k] | (active_flood & (close < prev_low_ref))
 
-    return flood_high_tier, flood_low_tier, above_tier, below_tier
+    # v194: above/below prev (second-most-recent flood) — fires whenever
+    # prev_flood_high > 0 (i.e., at least 2 floods seen including today if flood)
+    has_prev = prev_flood_high > 0
+    above_prev = has_prev & (close >= prev_flood_high)
+    below_prev = has_prev & (close < prev_flood_low)
+
+    return (flood_high_tier, flood_low_tier, above_tier, below_tier,
+            prev_flood_high, prev_flood_low, above_prev, below_prev)
