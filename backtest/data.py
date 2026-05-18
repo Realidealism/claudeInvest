@@ -123,11 +123,16 @@ def _get_db_max_date() -> date:
 
 
 def _get_score_fingerprint() -> str:
-    """Hash of ScoreBoard config — invalidates pct cache when cells/weights change."""
+    """Combined hash of ScoreBoard + OverheatBoard config — invalidates
+    pct caches when either board's cells/weights change."""
     global _SCORE_FP
     if _SCORE_FP is None:
+        import hashlib
         from analysis.score import build_scoreboard, board_fingerprint
-        _SCORE_FP = board_fingerprint(build_scoreboard())
+        from analysis.overheat_board import build_overheat_board, overheat_fingerprint
+        sb_fp = board_fingerprint(build_scoreboard())
+        oh_fp = overheat_fingerprint(build_overheat_board())
+        _SCORE_FP = hashlib.md5(f"{sb_fp}_{oh_fp}".encode()).hexdigest()[:12]
     return _SCORE_FP
 
 
@@ -227,11 +232,14 @@ def load_stock_data(
     data = build_stock_data(stock_id, stock_name, rows, dividends)
 
     if cache_file is not None:
-        # Warm up ScoreBoard pct arrays so they get pickled with the cache.
-        # ScoreBoard is ~40-50% of per-stock cost (5M board.evaluate calls
-        # across the universe); caching here makes 2nd run ~30-40% faster.
-        from signal_backtest.factories._conditions import _eval_pct_arrays
+        # Warm up ScoreBoard + OverheatBoard pct arrays so they get pickled
+        # with the cache. ScoreBoard is ~40-50% of per-stock cost; OverheatBoard
+        # is much cheaper (~5 cells vs ~150) but also paid once per stock.
+        from signal_backtest.factories._conditions import (
+            _eval_pct_arrays, _eval_overheat_pct_arrays,
+        )
         _eval_pct_arrays(data)
+        _eval_overheat_pct_arrays(data)
         try:
             _write_cache(cache_file, data)
         except Exception:

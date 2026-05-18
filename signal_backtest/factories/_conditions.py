@@ -149,6 +149,46 @@ def _short_pct_array(data: "StockData") -> NDArray[np.float32]:
     return _eval_pct_arrays(data)[1]
 
 
+def _eval_overheat_pct_arrays(
+    data: "StockData",
+) -> tuple[NDArray[np.float32], NDArray[np.float32]]:
+    """Compute (long_pct, short_pct) overheat arrays in one cycle, cached.
+
+    Mirror of _eval_pct_arrays but for OverheatBoard — short-period reversal
+    detection channel independent of ScoreBoard. Used by flee post_strength
+    gates (and optionally pick/touch) for short-term overheat semantics.
+    """
+    long_cache = getattr(data, "_overheat_long_pct_cache", None)
+    short_cache = getattr(data, "_overheat_short_pct_cache", None)
+    if long_cache is not None and short_cache is not None:
+        return long_cache, short_cache
+    from analysis.overheat_board import build_overheat_board
+    board = build_overheat_board()
+    n = data.n
+    long_out = np.zeros(n, dtype=np.float32)
+    short_out = np.zeros(n, dtype=np.float32)
+    for i in range(60, n):
+        try:
+            r = board.evaluate(data, i)
+            long_out[i] = r.long.pct
+            short_out[i] = r.short.pct
+        except Exception:
+            pass
+    data._overheat_long_pct_cache = long_out
+    data._overheat_short_pct_cache = short_out
+    return long_out, short_out
+
+
+def _overheat_long_pct_array(data: "StockData") -> NDArray[np.float32]:
+    """overheat long.pct (-100~+100) per bar. Use for 多方訊號 short-term overheat."""
+    return _eval_overheat_pct_arrays(data)[0]
+
+
+def _overheat_short_pct_array(data: "StockData") -> NDArray[np.float32]:
+    """overheat short.pct (-100~+100) per bar. Use for 空方訊號 short-term overheat."""
+    return _eval_overheat_pct_arrays(data)[1]
+
+
 def _stock_trend_code(data: "StockData", scope: str) -> NDArray[np.int8]:
     """Map sort_normal up/down to Go's ShortTrend 0/1/2 encoding.
 
@@ -465,6 +505,7 @@ def touch_condition(data: "StockData") -> BoolArray:
     rule_convex = ~_last_n_all(convex13, 3)
 
     # v31 鏡像 sell v24：從「~strongly_bullish」改「any_bear」，要求市場已有空方順風
+    # (v178 試 zone-based 鏡像 sell v171，Portfolio PF -0.0068 稀釋失敗已 revert)
     rule_market = _market_any_bear(data)
 
     # v32 鏡像 sell v25：加短+中尺度 down_hot 排除，避免在底部過熱時摸頭做空
@@ -522,7 +563,15 @@ def buy_condition(data: "StockData") -> BoolArray:
     sma = data.close_result.ma.sma
     turn = data.close_result.turn
 
-    rule_ma = (close > sma[8]) & (sma[8] > sma[21])
+    # v188: rule_ma 加 pre 模式 — 量配合時用「明日 sma 預測」提前通過 8>21 排列
+    # pre_sma_n[i] = sma_n[i] + (close[i] - close[i-(n-1)]) / n
+    volume_status = data.volume_result.volume_status
+    vol_strong = volume_status <= 2  # flood / big / high
+    pre_sma8 = sma[8] + (close - _shift(close, 7)) / 8.0
+    pre_sma21 = sma[21] + (close - _shift(close, 20)) / 21.0
+    ma_strict = (close > sma[8]) & (sma[8] > sma[21])
+    ma_pre = (close > sma[8]) & vol_strong & (pre_sma8 > pre_sma21)
+    rule_ma = ma_strict | ma_pre
     rule_market = ~_market_strongly_bearish(data)
 
     rule_turn = (turn[5] == 2)
@@ -590,7 +639,15 @@ def sell_condition(data: "StockData") -> BoolArray:
     sma = data.close_result.ma.sma
     turn = data.close_result.turn
 
-    rule_ma = (close < sma[8]) & (sma[8] < sma[21])
+    # v189: rule_ma 加 pre 模式 (鏡像 v188 buy) — 量配合時用「明日 sma 預測」
+    # 提前通過 8<21 排列。飆跌股初期 sma8 還沒跌破 sma21，但若 status<=2 + 預測明日翻轉 → 准予進場做空
+    volume_status_s = data.volume_result.volume_status
+    vol_strong_s = volume_status_s <= 2
+    pre_sma8_s = sma[8] + (close - _shift(close, 7)) / 8.0
+    pre_sma21_s = sma[21] + (close - _shift(close, 20)) / 21.0
+    ma_strict_short = (close < sma[8]) & (sma[8] < sma[21])
+    ma_pre_short = (close < sma[8]) & vol_strong_s & (pre_sma8_s < pre_sma21_s)
+    rule_ma = ma_strict_short | ma_pre_short
     # v171: sell 允許進場的市場狀態 = 任一時框 trend ∈ {0 中性, -1 空, -2 強空}.
     # 排除多頭 (+1/+2)、多頭衰竭 (+3)、空頭衰竭 (-3, 將反轉)。
     # (v172 試拿掉 medium scope 實測 portfolio PF 持平 1.5513，保留 medium 多元性)
