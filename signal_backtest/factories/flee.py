@@ -15,6 +15,8 @@ import numpy as np
 from analysis.indicators import rolling_highest, rolling_lowest
 from signal_backtest.signal import DefenseRule, SignalSet, SignalSpec
 from signal_backtest.factories._conditions import (
+    _long_pct_array,
+    _shift,
     buy_flee_signal,
     sell_flee_signal,
 )
@@ -74,9 +76,18 @@ def sell_flee_factory(data: "StockData") -> SignalSpec:
     at_13d_high = data.close >= close_hi13
     any_high_in_13d = rolling_highest(at_13d_high.astype(np.float32), 13) > 0.5
     stagnant_long = ~any_high_in_13d
+    # v201m: long_pct 單日升 >15 + 量強(vol_status<=2, flood/big/high) → LL8
+    # （後段持倉若分數爆升 + 量配合 = 短期高點風險，拉緊保護）
+    # sweep d1∈{15,20,30,35} × vol≤{0,1,2,3} × source∈{LL3,LL5,LL8} → 此組合為峰值
+    long_pct = _long_pct_array(data)
+    lp_d1 = long_pct - _shift(long_pct, 1)
+    vol_strong = data.volume_result.volume_status <= 2  # flood(0)/big(1)/high(2)
+    score_surge_with_vol = (lp_d1 > 15.0) & vol_strong
     long_defense = [
         DefenseRule(name="停滯13日無新高→8日低",
                     trigger=stagnant_long, source=rolling_lowest(data.low, 8)),
+        DefenseRule(name="分數升>15+量強→8日低",
+                    trigger=score_surge_with_vol, source=rolling_lowest(data.low, 8)),
     ]
 
     return SignalSpec(
