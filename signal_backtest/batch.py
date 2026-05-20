@@ -104,19 +104,21 @@ def _process_one_stock(
             skipped_by_sig[name].append((sid, f"signal: {e}"))
             continue
 
-        for side, entry, exit_, defense_rules, floor_period, tiers in (
+        for side, entry, exit_, defense_rules, floor_period, tiers, init_period in (
             ("long",
              spec.signals.long_entry,
              spec.signals.long_exit,
              spec.long_defense,
              spec.long_floor_period,
-             spec.long_tiers),
+             spec.long_tiers,
+             spec.long_initial_period),
             ("short",
              spec.signals.short_entry,
              spec.signals.short_exit,
              spec.short_defense,
              spec.short_floor_period,
-             spec.short_tiers),
+             spec.short_tiers,
+             spec.short_initial_period),
         ):
             try:
                 if tiers is not None:
@@ -125,12 +127,14 @@ def _process_one_stock(
                         exit_=exit_,
                         start_index=start_index,
                         floor_period=floor_period,
+                        initial_period=init_period,
                     )
                 else:
                     result = run_side_backtest(
                         data, side, entry, exit_, defense_rules,
                         start_index=start_index,
                         floor_period=floor_period,
+                        initial_period=init_period,
                     )
             except InsufficientDataError as e:
                 skipped_by_sig[name].append((sid, str(e)))
@@ -328,19 +332,21 @@ def run_batch(
             skipped.append((sid, f"signal: {e}"))
             continue
 
-        for side, entry, exit_, defense_rules, floor_period, tiers in (
+        for side, entry, exit_, defense_rules, floor_period, tiers, init_period in (
             ("long",
              spec.signals.long_entry,
              spec.signals.long_exit,
              spec.long_defense,
              spec.long_floor_period,
-             spec.long_tiers),
+             spec.long_tiers,
+             spec.long_initial_period),
             ("short",
              spec.signals.short_entry,
              spec.signals.short_exit,
              spec.short_defense,
              spec.short_floor_period,
-             spec.short_tiers),
+             spec.short_tiers,
+             spec.short_initial_period),
         ):
             try:
                 if tiers is not None:
@@ -349,12 +355,14 @@ def run_batch(
                         exit_=exit_,
                         start_index=start_index,
                         floor_period=floor_period,
+                        initial_period=init_period,
                     )
                 else:
                     result = run_side_backtest(
                         data, side, entry, exit_, defense_rules,
                         start_index=start_index,
                         floor_period=floor_period,
+                        initial_period=init_period,
                     )
             except InsufficientDataError as e:
                 skipped.append((sid, str(e)))

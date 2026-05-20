@@ -90,6 +90,10 @@ class SignalSpec:
     # cut winners. Default 13 matches engine's historical behavior.
     long_floor_period: int = 13
     short_floor_period: int = 13
+    # Entry-day initial defense lookback (rolling extreme over N bars).
+    # Smaller = tighter init stop. Default 5 matches engine historical.
+    long_initial_period: int = 5
+    short_initial_period: int = 5
     # Optional tiered mode: if set, engine uses run_side_backtest_tiered
     # with these tier configs. Tiers are priority-ordered (first tier in
     # the list has highest entry priority).

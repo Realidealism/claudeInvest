@@ -131,6 +131,7 @@ def run_side_backtest(
     defense_rules: list[DefenseRule] | None = None,
     start_index: int = DEFAULT_START_INDEX,
     floor_period: int = 13,
+    initial_period: int = 5,
 ) -> SideResult:
     """Run one side of a signal backtest on a single stock."""
     if side not in ("long", "short"):
@@ -155,10 +156,10 @@ def run_side_backtest(
     # corporate-action / regime-shift bar (>15% close-to-close gap).
     last_boundary = _compute_last_boundary(data.close)
     if is_long:
-        initial_arr = rolling_lowest_safe(data.low, 5, last_boundary)
+        initial_arr = rolling_lowest_safe(data.low, initial_period, last_boundary)
         floor_arr = rolling_lowest_safe(data.low, floor_period, last_boundary)
     else:
-        initial_arr = rolling_highest_safe(data.high, 5, last_boundary)
+        initial_arr = rolling_highest_safe(data.high, initial_period, last_boundary)
         floor_arr = rolling_highest_safe(data.high, floor_period, last_boundary)
 
     trades: list[Trade] = []
@@ -330,6 +331,7 @@ def run_side_backtest_tiered(
     start_index: int = DEFAULT_START_INDEX,
     floor_period: int = 13,
     temp_strict_days: int = 5,
+    initial_period: int = 5,
 ) -> SideResult:
     """Dynamic-tier backtest with strict→loose ordering.
 
@@ -361,10 +363,10 @@ def run_side_backtest_tiered(
 
     last_boundary = _compute_last_boundary(data.close)
     if is_long:
-        initial_arr = rolling_lowest_safe(data.low, 5, last_boundary)
+        initial_arr = rolling_lowest_safe(data.low, initial_period, last_boundary)
         floor_arr = rolling_lowest_safe(data.low, floor_period, last_boundary)
     else:
-        initial_arr = rolling_highest_safe(data.high, 5, last_boundary)
+        initial_arr = rolling_highest_safe(data.high, initial_period, last_boundary)
         floor_arr = rolling_highest_safe(data.high, floor_period, last_boundary)
 
     trades: list[Trade] = []

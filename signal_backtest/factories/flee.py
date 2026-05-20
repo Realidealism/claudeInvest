@@ -53,6 +53,8 @@ def buy_flee_factory(data: "StockData") -> SignalSpec:
         short_defense=short_defense,
         # v38: 做空訊號 floor ratchet 從 13d 拉緊到 8d，左尾風險改善
         short_floor_period=8,
+        # v198: init 5→3 (sweep peak; 2 退步、5 為原始 default)
+        short_initial_period=3,
     )
 
 
@@ -84,4 +86,6 @@ def sell_flee_factory(data: "StockData") -> SignalSpec:
             short_exit=zero,
         ),
         long_defense=long_defense,
+        # v198: init 5→3 (sweep peak)
+        long_initial_period=3,
     )

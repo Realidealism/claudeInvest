@@ -844,13 +844,11 @@ _PCT_DELTA3_THRESHOLD = 115.0 / 2.7952  # ≈ 41.14 (~P0.5 of 3-day delta)
 def _buy_flee_main(data: "StockData") -> BoolArray:
     """多翻空 main — 純 1 日急升 (rise1).
 
-    short_pct 從中性/負分 1 日急升到正 = 空方分數突然走強 = 多頭翻空頭：
-      rise1 = delta1 >= 26.83 & prev1 <= 0
-
-    v159: 拿掉 rise3 (delta3 >= 41.14 & prev3 <= 0). dry-run 拆解顯示
-      rise3_only PF 0.85 / 勝率 35.3% — 「3 日累積但無單日 jump」是趨勢
-      尾段慢速減速而非翻轉訊號. delta3 sweep 至 ≥50 仍 PF 0.96 < 1，
-      無任何閾值組合能救. rise1_only PF 3.05 / 勝率 52.1% 才是真 edge.
+    v159: rise3 拿掉 (PF 0.85 累積形態趨勢尾段). rise1_only PF 3.05.
+    v199a-g: rise_continuous mirror v197 全失敗（-0.0076 ~ -0.046）.
+      不論長/短窗、ratio/threshold/搭配 stairstep gate/搭配 below_prev 皆 destructive.
+      buy_flee 結構性對累積形態免疫 — 市場下跌是 event-style，慢累積 short_pct
+      只是 lagging 反映過去跌幅，等到事件 rise1 才是 entry.
     """
     short_pct = _short_pct_array(data)
     prev1 = _shift(short_pct, 1)
