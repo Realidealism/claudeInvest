@@ -864,6 +864,9 @@ def _sell_flee_main(data: "StockData") -> BoolArray:
     多方訊號用 long_pct:
       rise1 = delta1>=26.83 & prev1<=0  (P0.5 級 1 日急升)
       rise3 = delta3>=80   & prev3<=0   (v163: 41.14→80 after sweep)
+      v197: rise_continuous = 5天內3+天d1>0 + F加速(last2≥0.7×delta)
+            + delta_from_min4>=55 + min_prev4<=10
+            (補 rise1/rise3 漏抓的中速 V 形反轉，sweep peak +0.0052 vs v195)
 
     v163: rise3 delta3 41.14→80. dry-run sweep 顯示與 buy_flee 反向：
       sell_flee rise3 越極端 PF 越高 (d3≥80 PF 1.88 vs d3≥41 PF 1.38)，
@@ -878,7 +881,28 @@ def _sell_flee_main(data: "StockData") -> BoolArray:
 
     rise1 = (delta1 >= _PCT_DELTA1_THRESHOLD) & (prev1 <= 0)
     rise3 = (delta3 >= 80.0) & (prev3 <= 0)  # v163: was _PCT_DELTA3_THRESHOLD (41.14)
-    return rise1 | rise3
+    # v197: rise_continuous — 中速 V 形反轉補捉路徑
+    d1_y1 = _shift(delta1, 1)
+    d1_y2 = _shift(delta1, 2)
+    d1_y3 = _shift(delta1, 3)
+    d1_y4 = _shift(delta1, 4)
+    pos_count = ((delta1 > 0).astype(np.int8) + (d1_y1 > 0).astype(np.int8)
+                 + (d1_y2 > 0).astype(np.int8) + (d1_y3 > 0).astype(np.int8)
+                 + (d1_y4 > 0).astype(np.int8))
+    cond_3of5 = pos_count >= 3
+    prev1_lp = _shift(long_pct, 1)
+    prev2_lp = _shift(long_pct, 2)
+    prev3_lp = _shift(long_pct, 3)
+    prev4_lp = _shift(long_pct, 4)
+    min_prev4 = np.minimum(np.minimum(prev1_lp, prev2_lp),
+                            np.minimum(prev3_lp, prev4_lp))
+    delta_from_min4 = long_pct - min_prev4
+    # F-accel: 後段集中度 ≥ 0.7（最近 2 天 d1 加總佔整段累積漲幅 ≥ 70%）
+    last2_sum = delta1 + d1_y1
+    cond_accel_F = last2_sum >= 0.7 * delta_from_min4
+    rise_continuous = (cond_3of5 & cond_accel_F
+                       & (delta_from_min4 >= 55.0) & (min_prev4 <= 10))
+    return rise1 | rise3 | rise_continuous
 
 
 def _gap_up_today(data: "StockData") -> BoolArray:
@@ -944,12 +968,15 @@ def sell_flee_signal(data: "StockData") -> BoolArray:
     """
     main = _sell_flee_main(data)
     long_pct = _long_pct_array(data)
-    prev1 = _shift(long_pct, 1)
-    delta1 = long_pct - prev1
+    # v197: post_strength gate 用 delta_from_min2（單日急升 → 2 日 V 形累積）
+    prev1_lp = _shift(long_pct, 1)
+    prev2_lp = _shift(long_pct, 2)
+    min_prev2 = np.minimum(prev1_lp, prev2_lp)
+    delta_from_min2 = long_pct - min_prev2
     rule_post_strength = (
         (long_pct >= 35)
-        | ((delta1 >= 40) & (long_pct >= 30))
-        | ((delta1 >= 50) & (long_pct >= 25))
+        | ((delta_from_min2 >= 40) & (long_pct >= 30))
+        | ((delta_from_min2 >= 50) & (long_pct >= 25))
     )
     # v195b: SB stairstep gate AND above_prev (站上前次洪量 high) — 強化既有 path
     # v195 OR 路徑 +4689 trades / -0.092 PF 失敗，改用 AND 收緊
