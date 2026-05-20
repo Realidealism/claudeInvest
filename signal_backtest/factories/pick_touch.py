@@ -19,6 +19,9 @@ import numpy as np
 from analysis.indicators import rolling_highest, rolling_lowest
 from signal_backtest.signal import DefenseRule, SignalSet, SignalSpec
 from signal_backtest.factories._conditions import (
+    _long_pct_array,
+    _short_pct_array,
+    _shift,
     pick_condition,
     touch_condition,
     buy_flee_signal,
@@ -44,11 +47,18 @@ def pick_signal(data: "StockData") -> SignalSpec:
     at_13d_high = data.close >= close_hi13
     any_high_in_13d = rolling_highest(at_13d_high.astype(np.float32), 13) > 0.5
     stagnant_long = ~any_high_in_13d
+    # v202b: 鏡像 v200 sell_flee score-surge defense
+    long_pct = _long_pct_array(data)
+    lp_d1 = long_pct - _shift(long_pct, 1)
+    vol_strong = data.volume_result.volume_status <= 2  # flood/big/high
+    score_surge_with_vol = (lp_d1 > 15.0) & vol_strong
     long_defense = [
         DefenseRule(name="洪量後5日內8日低",
                     trigger=flood_recent5, source=rolling_lowest(data.low, 8)),
         DefenseRule(name="停滯13日無新高→8日低",
                     trigger=stagnant_long, source=rolling_lowest(data.low, 8)),
+        DefenseRule(name="分數升>15+量強→8日低",
+                    trigger=score_surge_with_vol, source=rolling_lowest(data.low, 8)),
     ]
 
     return SignalSpec(
@@ -77,11 +87,19 @@ def touch_signal(data: "StockData") -> SignalSpec:
     at_13d_low = data.close <= close_lo13
     any_low_in_8d = rolling_highest(at_13d_low.astype(np.float32), 8) > 0.5
     stagnant_short = ~any_low_in_8d
+    # v202c: 鏡像 v200 sell_flee score-surge defense（short side）
+    # short_pct 升 = 市場急跌（對 short 部位有利），鎖利
+    short_pct = _short_pct_array(data)
+    sp_d1 = short_pct - _shift(short_pct, 1)
+    vol_strong = data.volume_result.volume_status <= 2  # flood/big/high
+    score_surge_short = (sp_d1 > 15.0) & vol_strong
     short_defense = [
         DefenseRule(name="洪量當日3日高",
                     trigger=flood, source=rolling_highest(data.high, 3)),
         DefenseRule(name="停滯8日無新低→8日高",
                     trigger=stagnant_short, source=rolling_highest(data.high, 8)),
+        DefenseRule(name="分數升>15+量強→3日高",
+                    trigger=score_surge_short, source=rolling_highest(data.high, 3)),
     ]
 
     return SignalSpec(
