@@ -132,6 +132,7 @@ def run_side_backtest(
     start_index: int = DEFAULT_START_INDEX,
     floor_period: int = 13,
     initial_period: int = 5,
+    flood_tight_init: bool = False,
 ) -> SideResult:
     """Run one side of a signal backtest on a single stock."""
     if side not in ("long", "short"):
@@ -288,7 +289,13 @@ def run_side_backtest(
             pos_entry_date = data.dates[i]
             pos_entry_price = price
             pos_entry_index = i
-            initial_def = float(initial_arr[i])
+            # v201: if flood_tight_init and entry day is flood, use today's
+            # low/high as initial defense (much tighter than rolling extreme)
+            # v201: 進場日 flood → init 防守用今日 L/H（極端強動能 → 緊停損）
+            if flood_tight_init and bool(data.volume_result.flood[i]):
+                initial_def = float(data.low[i] if is_long else data.high[i])
+            else:
+                initial_def = float(initial_arr[i])
             pos_defense_price = initial_def
             pos_defense_events = [DefenseEvent(
                 date=data.dates[i],
@@ -332,6 +339,7 @@ def run_side_backtest_tiered(
     floor_period: int = 13,
     temp_strict_days: int = 5,
     initial_period: int = 5,
+    flood_tight_init: bool = False,
 ) -> SideResult:
     """Dynamic-tier backtest with strict→loose ordering.
 
@@ -515,7 +523,10 @@ def run_side_backtest_tiered(
                     pos_entry_index = i
                     current_tier_idx = idx
                     temp_strict_idx = -1
-                    initial_def = float(initial_arr[i])
+                    if flood_tight_init and bool(data.volume_result.flood[i]):
+                        initial_def = float(data.low[i] if is_long else data.high[i])
+                    else:
+                        initial_def = float(initial_arr[i])
                     pos_defense_price = initial_def
                     pos_defense_events = [DefenseEvent(
                         date=data.dates[i],

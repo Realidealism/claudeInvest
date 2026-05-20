@@ -94,6 +94,11 @@ class SignalSpec:
     # Smaller = tighter init stop. Default 5 matches engine historical.
     long_initial_period: int = 5
     short_initial_period: int = 5
+    # v201: if entry day is flood, use today's low/high as initial defense
+    # (much tighter than rolling extreme). Used by flee signals to capitalize
+    # on high-conviction flood-day entries.
+    long_flood_tight_init: bool = False
+    short_flood_tight_init: bool = False
     # Optional tiered mode: if set, engine uses run_side_backtest_tiered
     # with these tier configs. Tiers are priority-ordered (first tier in
     # the list has highest entry priority).

@@ -55,6 +55,8 @@ def buy_flee_factory(data: "StockData") -> SignalSpec:
         short_floor_period=8,
         # v198: init 5→3 (sweep peak; 2 退步、5 為原始 default)
         short_initial_period=3,
+        # v201a: 進場日洪量 → init 防守用今日 H（強動能 → 緊停損）
+        short_flood_tight_init=True,
     )
 
 
@@ -88,4 +90,6 @@ def sell_flee_factory(data: "StockData") -> SignalSpec:
         long_defense=long_defense,
         # v198: init 5→3 (sweep peak)
         long_initial_period=3,
+        # v201a/b: long_flood_tight_init 對 sell_flee 退步（-0.0079）
+        # 少數 catastrophic save (e.g. 4726 -26→-10) 不敵多數小回檔被誤殺
     )
