@@ -549,6 +549,15 @@ def _calc_volume_status(
     is_low = all_small & ~sleep_flag & ~is_shrink
     out[is_low] = 4
 
+    # Post-flood sustain: if yesterday was flood and today's volume >= 90% of
+    # yesterday, promote today to big (1). Patches the SMA3-self-pollution
+    # blindspot where consecutive heavy days fail short.big after the first.
+    prev_flood = _shift1(flood_flag.astype(F32)).astype(np.bool_)
+    prev_vol = _shift1(vol)
+    post_flood_sustain = prev_flood & (vol >= prev_vol * 0.9)
+    promote_to_big = post_flood_sustain & ~sleep_flag & ~flood_flag & (out > 1)
+    out[promote_to_big] = 1
+
     return out
 
 
