@@ -45,11 +45,17 @@ def buy_flee_factory(data: "StockData") -> SignalSpec:
     vol_strong = data.volume_result.volume_status <= 2
     long_upper_shadow = data.candle_result.shadow.upper
     exhaustion_short = near_low & vol_strong & long_upper_shadow
+    # v203k 鏡像: any over_lower (3|5|8) + vol_strong → HH8
+    ob = data.over_breakout
+    any_over_low = ob.over_lower_3 | ob.over_lower_5 | ob.over_lower_8
+    extreme_exhaustion_short = any_over_low & vol_strong
     short_defense = [
         DefenseRule(name="停滯8日無新低→8日高",
                     trigger=stagnant_short, source=rolling_highest(data.high, 8)),
         DefenseRule(name="近期低+大量+長上影→5日高",
                     trigger=exhaustion_short, source=rolling_highest(data.high, 5)),
+        DefenseRule(name="人/走/召跌+量強→2日高",
+                    trigger=extreme_exhaustion_short, source=rolling_highest(data.high, 2)),
     ]
 
     return SignalSpec(

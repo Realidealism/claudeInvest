@@ -96,11 +96,15 @@ def sell_signal(data: "StockData") -> SignalSpec:
     sp_d1 = short_pct - _shift(short_pct, 1)
     vol_strong = data.volume_result.volume_status <= 2  # flood/big/high
     score_surge_short = (sp_d1 > 15.0) & vol_strong
-    # v202j: K 棒 exhaustion (短側) — 近期低 + 大量 + 長上影 → HH5
+    # v202j: K 棒 exhaustion (短側) — 近期低 + 大量 + 長上影 → HH3
     ll8 = rolling_lowest(data.low, 8)
     near_low = data.low <= ll8
     long_upper_shadow = data.candle_result.shadow.upper
     exhaustion_short = near_low & vol_strong & long_upper_shadow
+    # v203k 鏡像: any over_lower (3|5|8) + vol_strong → HH8
+    ob = data.over_breakout
+    any_over_low = ob.over_lower_3 | ob.over_lower_5 | ob.over_lower_8
+    extreme_exhaustion_short = any_over_low & vol_strong
     short_defense = [
         DefenseRule(name="洪量當日3日高",
                     trigger=flood, source=rolling_highest(data.high, 3)),
@@ -110,6 +114,8 @@ def sell_signal(data: "StockData") -> SignalSpec:
                     trigger=score_surge_short, source=rolling_highest(data.high, 3)),
         DefenseRule(name="近期低+大量+長上影→3日高",
                     trigger=exhaustion_short, source=rolling_highest(data.high, 3)),
+        DefenseRule(name="人/走/召跌+量強→2日高",
+                    trigger=extreme_exhaustion_short, source=rolling_highest(data.high, 2)),
     ]
 
     return SignalSpec(
