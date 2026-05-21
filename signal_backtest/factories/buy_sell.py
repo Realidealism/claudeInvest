@@ -50,6 +50,10 @@ def buy_signal(data: "StockData") -> SignalSpec:
     near_high = data.high >= hh8
     long_lower_shadow = data.candle_result.shadow.lower
     exhaustion = near_high & vol_strong & long_lower_shadow
+    # v203k (D+LL8): any over_upper (3|5|8) + vol_strong → LL8
+    ob = data.over_breakout
+    any_over_up = ob.over_upper_3 | ob.over_upper_5 | ob.over_upper_8
+    extreme_exhaustion = any_over_up & vol_strong
     long_defense = [
         DefenseRule(name="停滯13日無新高→8日低",
                     trigger=stagnant_long, source=rolling_lowest(data.low, 8)),
@@ -57,6 +61,8 @@ def buy_signal(data: "StockData") -> SignalSpec:
                     trigger=score_surge_with_vol, source=rolling_lowest(data.low, 8)),
         DefenseRule(name="近期高+大量+長下影→5日低",
                     trigger=exhaustion, source=rolling_lowest(data.low, 5)),
+        DefenseRule(name="人/走/召漲+量強→8日低",
+                    trigger=extreme_exhaustion, source=rolling_lowest(data.low, 8)),
     ]
 
     return SignalSpec(
