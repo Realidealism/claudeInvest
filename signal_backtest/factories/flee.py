@@ -39,9 +39,17 @@ def buy_flee_factory(data: "StockData") -> SignalSpec:
     at_13d_low = data.close <= close_lo13
     any_low_in_8d = rolling_highest(at_13d_low.astype(np.float32), 8) > 0.5
     stagnant_short = ~any_low_in_8d
+    # v202j: K 棒 exhaustion (短側) — 近期低 + 大量 + 長上影 → HH5
+    ll8 = rolling_lowest(data.low, 8)
+    near_low = data.low <= ll8
+    vol_strong = data.volume_result.volume_status <= 2
+    long_upper_shadow = data.candle_result.shadow.upper
+    exhaustion_short = near_low & vol_strong & long_upper_shadow
     short_defense = [
         DefenseRule(name="停滯8日無新低→8日高",
                     trigger=stagnant_short, source=rolling_highest(data.high, 8)),
+        DefenseRule(name="近期低+大量+長上影→5日高",
+                    trigger=exhaustion_short, source=rolling_highest(data.high, 5)),
     ]
 
     return SignalSpec(
@@ -83,11 +91,18 @@ def sell_flee_factory(data: "StockData") -> SignalSpec:
     lp_d1 = long_pct - _shift(long_pct, 1)
     vol_strong = data.volume_result.volume_status <= 2  # flood(0)/big(1)/high(2)
     score_surge_with_vol = (lp_d1 > 15.0) & vol_strong
+    # v202h: K 棒特徵 exhaustion defense
+    hh8 = rolling_highest(data.high, 8)
+    near_high = data.high >= hh8
+    long_lower_shadow = data.candle_result.shadow.lower
+    exhaustion = near_high & vol_strong & long_lower_shadow
     long_defense = [
         DefenseRule(name="停滯13日無新高→8日低",
                     trigger=stagnant_long, source=rolling_lowest(data.low, 8)),
         DefenseRule(name="分數升>15+量強→8日低",
                     trigger=score_surge_with_vol, source=rolling_lowest(data.low, 8)),
+        DefenseRule(name="近期高+大量+長下影→5日低",
+                    trigger=exhaustion, source=rolling_lowest(data.low, 5)),
     ]
 
     return SignalSpec(

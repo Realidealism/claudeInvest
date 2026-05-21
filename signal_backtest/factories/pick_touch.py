@@ -52,6 +52,7 @@ def pick_signal(data: "StockData") -> SignalSpec:
     lp_d1 = long_pct - _shift(long_pct, 1)
     vol_strong = data.volume_result.volume_status <= 2  # flood/big/high
     score_surge_with_vol = (lp_d1 > 15.0) & vol_strong
+    # v202h: K 棒 exhaustion defense 加到 pick 退步 -0.022（pick 低 PF 誤殺成本高）, 不採用
     long_defense = [
         DefenseRule(name="洪量後5日內8日低",
                     trigger=flood_recent5, source=rolling_lowest(data.low, 8)),
@@ -93,6 +94,11 @@ def touch_signal(data: "StockData") -> SignalSpec:
     sp_d1 = short_pct - _shift(short_pct, 1)
     vol_strong = data.volume_result.volume_status <= 2  # flood/big/high
     score_surge_short = (sp_d1 > 15.0) & vol_strong
+    # v202j: K 棒 exhaustion (短側) — 近期低 + 大量 + 長上影 → HH5
+    ll8 = rolling_lowest(data.low, 8)
+    near_low = data.low <= ll8
+    long_upper_shadow = data.candle_result.shadow.upper
+    exhaustion_short = near_low & vol_strong & long_upper_shadow
     short_defense = [
         DefenseRule(name="洪量當日3日高",
                     trigger=flood, source=rolling_highest(data.high, 3)),
@@ -100,6 +106,8 @@ def touch_signal(data: "StockData") -> SignalSpec:
                     trigger=stagnant_short, source=rolling_highest(data.high, 8)),
         DefenseRule(name="分數升>15+量強→3日高",
                     trigger=score_surge_short, source=rolling_highest(data.high, 3)),
+        DefenseRule(name="近期低+大量+長上影→3日高",
+                    trigger=exhaustion_short, source=rolling_highest(data.high, 3)),
     ]
 
     return SignalSpec(
