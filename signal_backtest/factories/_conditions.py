@@ -786,17 +786,6 @@ def sell_condition(data: "StockData") -> BoolArray:
     ma_strict_short = (close < sma[8]) & (sma[8] < sma[21])
     ma_pre_short = (close < sma[8]) & vol_strong_s & (pre_sma8_s < pre_sma21_s)
     rule_ma = ma_strict_short | ma_pre_short
-    # v171: sell 允許進場的市場狀態 = 任一時框 trend ∈ {0 中性, -1 空, -2 強空}.
-    # 排除多頭 (+1/+2)、多頭衰竭 (+3)、空頭衰竭 (-3, 將反轉)。
-    # (v172 試拿掉 medium scope 實測 portfolio PF 持平 1.5513，保留 medium 多元性)
-    ms_init = data.market_state
-    def _in_sell_zone(t):
-        return (t == 0) | (t == -1) | (t == -2)
-    rule_market = (
-        _in_sell_zone(ms_init.short_trend)
-        | _in_sell_zone(ms_init.medium_trend)
-        | _in_sell_zone(ms_init.long_trend)
-    )
 
     rule_turn = (turn[5] == 0)
 
@@ -820,8 +809,18 @@ def sell_condition(data: "StockData") -> BoolArray:
     # 10. v58 個股 medium scope MA 全空頭排列（SMA5<SMA13<SMA34）
     rule_medium_ma_bear = data.close_result.ma.sort_normal["medium"].down
 
-    # 11. v175: short_pct gate 試 40 (v174 試 25 退步 -0.015, 反向收緊)
-    rule_short_pct_gate = _short_pct_array(data) >= 40
+    # v238: 3-tier short_pct gate (強多 50 加嚴)
+    #   強多 (any trend >= +2): short_pct >= 50 (極嚴 — 強多時做空風險高)
+    #   偏多 (any +1, 沒到 +2): short_pct >= 40
+    #   default (no bull): short_pct >= 35
+    short_pct = _short_pct_array(data)
+    strongly_bull = _market_strongly_bullish(data)
+    any_bull = (ms.short_trend >= 1) | (ms.medium_trend >= 1) | (ms.long_trend >= 1)
+    moderate_bull_only = any_bull & ~strongly_bull
+    rule_short_pct_gate = np.where(
+        strongly_bull, short_pct >= 50,
+        np.where(moderate_bull_only, short_pct >= 40, short_pct >= 35),
+    )
 
     # 12. v130 port Go GS11：~nte (不在底背離 — 排除「死叉但動能轉強」的反彈段)
     rule_not_nte = ~data.macd.short.macd_convergence_nte
@@ -832,7 +831,7 @@ def sell_condition(data: "StockData") -> BoolArray:
                         & ~obv_short.signal_up)
 
     return (rule_ma & rule_turn & rule_break & rule_vol & rule_knot
-            & rule_market & rule_not_double_down_hot & rule_osc
+            & rule_not_double_down_hot & rule_osc
             & rule_medium_ma_bear
             & rule_short_pct_gate & rule_not_nte
             & rule_obv_bearish)
