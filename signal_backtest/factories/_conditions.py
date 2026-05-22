@@ -703,7 +703,6 @@ def buy_condition(data: "StockData") -> BoolArray:
     ma_strict = (close > sma[8]) & (sma[8] > sma[21])
     ma_pre = (close > sma[8]) & vol_strong & (pre_sma8 > pre_sma21)
     rule_ma = ma_strict | ma_pre
-    rule_market = ~_market_strongly_bearish(data)
 
     rule_turn = (turn[5] == 2)
 
@@ -721,14 +720,24 @@ def buy_condition(data: "StockData") -> BoolArray:
     # 7. OSC 防禦觸發（Go BuyCondition line 7866-7877，trigger_main 部分）
     rule_osc = _osc_long_trigger(data)
 
-    # 8. v176: long_pct gate 35→40
-    rule_long_pct_gate = _long_pct_array(data) >= 40
+    # 8 + 6 combined: 3-tier gate by market state (v234)
+    #   強空 (any <= -2): long_pct >= 45 (最嚴)
+    #   偏空 (any -1, 沒到 -2): long_pct >= 40 (中等)
+    #   default (no bear): long_pct >= 35 (最寬鬆)
+    # rule_market 取代為 tier gate（取代 v229 之前的 ~strongly_bearish + v230 override）
+    long_pct = _long_pct_array(data)
+    strongly_bear = _market_strongly_bearish(data)
+    moderate_bear_only = _market_any_bear(data) & ~strongly_bear
+    rule_long_pct_gate = np.where(
+        strongly_bear, long_pct >= 45,
+        np.where(moderate_bear_only, long_pct >= 40, long_pct >= 35),
+    )
 
     # 9. v131: ~pte (不在頂背離)
     rule_not_pte = ~data.macd.short.macd_convergence_pte
 
     return (rule_ma & rule_turn & rule_break & rule_vol & rule_knot
-            & rule_market & rule_osc & rule_long_pct_gate & rule_not_pte)
+            & rule_osc & rule_long_pct_gate & rule_not_pte)
 
 
 def sell_condition(data: "StockData") -> BoolArray:
