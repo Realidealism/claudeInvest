@@ -28,6 +28,7 @@ from analysis.over_breakout import calculate_over_breakout, OverBreakoutResult
 from analysis.market_state import calculate_market_state, MarketState
 from analysis.macd import calculate_macd, MACDResult
 from analysis.donchian import calculate_donchian, DonchianResult
+from analysis.chandelier import calculate_chandelier, ChandelierResult
 
 
 @dataclass
@@ -84,6 +85,7 @@ class StockData:
     market_state: MarketState
     macd: MACDResult
     donchian: DonchianMulti
+    chandelier: ChandelierResult
 
     # Forming sort alignment (depends on close + volume)
     sort_forming: dict[str, SortResult]
@@ -332,6 +334,7 @@ def build_stock_data(
         medium=calculate_donchian(high, low, close, entry_length=55, exit_length=21),
         long=calculate_donchian(high, low, close, entry_length=233, exit_length=144),
     )
+    chandelier = calculate_chandelier(high, low, close, length=21, mult=3.0, use_close=True)
     sort_forming = calc_sort_forming(close_result, volume_result.volume_status)
 
     return StockData(
@@ -355,6 +358,7 @@ def build_stock_data(
         market_state=market_state,
         macd=macd,
         donchian=donchian,
+        chandelier=chandelier,
         sort_forming=sort_forming,
         dividends=dividends,
     )

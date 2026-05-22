@@ -54,6 +54,7 @@ def buy_signal(data: "StockData") -> SignalSpec:
     ob = data.over_breakout
     any_over_up = ob.over_upper_3 | ob.over_upper_5 | ob.over_upper_8
     extreme_exhaustion = any_over_up & vol_strong
+    # v207 sweep: Chandelier 對長側退步 (HHcl-ATR×3 過緊殺右尾), 不加長側
     long_defense = [
         DefenseRule(name="停滯13日無新高→8日低",
                     trigger=stagnant_long, source=rolling_lowest(data.low, 8)),
@@ -105,6 +106,9 @@ def sell_signal(data: "StockData") -> SignalSpec:
     ob = data.over_breakout
     any_over_low = ob.over_lower_3 | ob.over_lower_5 | ob.over_lower_8
     extreme_exhaustion_short = any_over_low & vol_strong
+    # v207: Chandelier(21, 3.0) short_stop = LLcl(21) + ATR(21)×3
+    chand_short = data.chandelier.short_stop.astype(np.float32)
+    chand_trigger_short = ~np.isnan(chand_short)
     short_defense = [
         DefenseRule(name="洪量當日3日高",
                     trigger=flood, source=rolling_highest(data.high, 3)),
@@ -116,6 +120,8 @@ def sell_signal(data: "StockData") -> SignalSpec:
                     trigger=exhaustion_short, source=rolling_highest(data.high, 3)),
         DefenseRule(name="人/走/召跌+量強→2日高",
                     trigger=extreme_exhaustion_short, source=rolling_highest(data.high, 2)),
+        DefenseRule(name="Chandelier21x3",
+                    trigger=chand_trigger_short, source=chand_short),
     ]
 
     return SignalSpec(

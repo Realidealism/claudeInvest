@@ -397,7 +397,7 @@ def board_fingerprint(board: ScoreBoard) -> str:
 # Bump when a cell's evaluate lambda logic changes without its name/points
 # changing (e.g. tweaking thresholds inside the lambda body). Most config
 # changes are caught automatically by board_fingerprint().
-SCORE_CACHE_VERSION = "v2"
+SCORE_CACHE_VERSION = "v3"
 
 
 def build_scoreboard() -> ScoreBoard:
