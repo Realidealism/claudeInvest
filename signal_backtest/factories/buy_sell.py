@@ -10,6 +10,7 @@ from typing import TYPE_CHECKING
 
 import numpy as np
 
+from analysis.chandelier import calculate_chandelier
 from analysis.indicators import rolling_highest, rolling_lowest
 from signal_backtest.signal import DefenseRule, SignalSet, SignalSpec
 from signal_backtest.factories._conditions import (
@@ -54,7 +55,7 @@ def buy_signal(data: "StockData") -> SignalSpec:
     ob = data.over_breakout
     any_over_up = ob.over_upper_3 | ob.over_upper_5 | ob.over_upper_8
     extreme_exhaustion = any_over_up & vol_strong
-    # v207 sweep: Chandelier 對長側退步 (HHcl-ATR×3 過緊殺右尾), 不加長側
+    # v213-v226 sweep: Chandelier 對 buy 長側全部負或噪音 (-0.099~+0.0008 across mult 3-12), 不加
     long_defense = [
         DefenseRule(name="停滯13日無新高→8日低",
                     trigger=stagnant_long, source=rolling_lowest(data.low, 8)),

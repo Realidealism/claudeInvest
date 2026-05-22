@@ -16,6 +16,7 @@ from typing import TYPE_CHECKING
 
 import numpy as np
 
+from analysis.chandelier import calculate_chandelier
 from analysis.indicators import rolling_highest, rolling_lowest
 from signal_backtest.signal import DefenseRule, SignalSet, SignalSpec
 from signal_backtest.factories._conditions import (
@@ -52,8 +53,14 @@ def pick_signal(data: "StockData") -> SignalSpec:
     lp_d1 = long_pct - _shift(long_pct, 1)
     vol_strong = data.volume_result.volume_status <= 2  # flood/big/high
     score_surge_with_vol = (lp_d1 > 15.0) & vol_strong
+    # v227: Chandelier(21, 6.0) on pick — sweep 4-12 結論：mult=6 為 +0.011 峰值
+    chand = calculate_chandelier(
+        data.high.astype(np.float64), data.low.astype(np.float64),
+        data.close.astype(np.float64), length=21, mult=6.0, use_close=True,
+    )
+    chand_long = chand.long_stop.astype(np.float32)
+    chand_trigger = ~np.isnan(chand_long)
     # v202h: K 棒 exhaustion defense 加到 pick 退步 -0.022（pick 低 PF 誤殺成本高）, 不採用
-    # v207 sweep: Chandelier 對長側退步 (HHcl-ATR×3 過緊殺右尾), 不加長側
     long_defense = [
         DefenseRule(name="洪量後5日內8日低",
                     trigger=flood_recent5, source=rolling_lowest(data.low, 8)),
@@ -61,6 +68,8 @@ def pick_signal(data: "StockData") -> SignalSpec:
                     trigger=stagnant_long, source=rolling_lowest(data.low, 8)),
         DefenseRule(name="分數升>15+量強→8日低",
                     trigger=score_surge_with_vol, source=rolling_lowest(data.low, 8)),
+        DefenseRule(name="Chandelier21x6",
+                    trigger=chand_trigger, source=chand_long),
     ]
 
     return SignalSpec(

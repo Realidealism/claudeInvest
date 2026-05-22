@@ -12,6 +12,7 @@ from typing import TYPE_CHECKING
 
 import numpy as np
 
+from analysis.chandelier import calculate_chandelier
 from analysis.indicators import rolling_highest, rolling_lowest
 from signal_backtest.signal import DefenseRule, SignalSet, SignalSpec
 from signal_backtest.factories._conditions import (
@@ -111,7 +112,13 @@ def sell_flee_factory(data: "StockData") -> SignalSpec:
     ob = data.over_breakout
     any_over_up = ob.over_upper_3 | ob.over_upper_5 | ob.over_upper_8
     extreme_exhaustion = any_over_up & vol_strong
-    # v207 sweep: Chandelier 對長側退步 (HHcl-ATR×3 過緊殺 sell_flee 右尾 -0.41), 不加長側
+    # v217: Chandelier(21, 6.0) on sell_flee
+    chand = calculate_chandelier(
+        data.high.astype(np.float64), data.low.astype(np.float64),
+        data.close.astype(np.float64), length=21, mult=6.0, use_close=True,
+    )
+    chand_long = chand.long_stop.astype(np.float32)
+    chand_trigger = ~np.isnan(chand_long)
     long_defense = [
         DefenseRule(name="停滯13日無新高→8日低",
                     trigger=stagnant_long, source=rolling_lowest(data.low, 8)),
@@ -121,6 +128,8 @@ def sell_flee_factory(data: "StockData") -> SignalSpec:
                     trigger=exhaustion, source=rolling_lowest(data.low, 5)),
         DefenseRule(name="人/走/召漲+量強→8日低",
                     trigger=extreme_exhaustion, source=rolling_lowest(data.low, 8)),
+        DefenseRule(name="Chandelier21x6",
+                    trigger=chand_trigger, source=chand_long),
     ]
 
     return SignalSpec(
