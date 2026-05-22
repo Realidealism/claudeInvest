@@ -151,14 +151,16 @@ def _extract_open_position(result, side: str, last_trade_date) -> dict | None:
     }
 
 
-def _eval_stock(args: tuple[str, date]) -> dict | None:
+def _eval_stock(args: tuple[str, date, date]) -> dict | None:
     """Worker-process entry. One load_stock_data per stock (windowed by
-    start_date); produces score pcts at 4 bars, signal-factory fires on
-    the latest bar, and unified-strategy open-position info. Returns flat
-    dict so result pickles cheaply, or None when the stock is unusable."""
-    sid, start_date = args
+    start_date and end_date so signals evaluate as-of snapshot_date even on
+    backfill); produces score pcts at 4 bars, signal-factory fires on the
+    last bar within the window, and unified-strategy open-position info.
+    Returns flat dict so result pickles cheaply, or None when the stock is
+    unusable."""
+    sid, start_date, end_date = args
     try:
-        data = load_stock_data(sid, start_date=start_date)
+        data = load_stock_data(sid, start_date=start_date, end_date=end_date)
     except Exception:
         return None
     if data.n < 60:
@@ -428,7 +430,7 @@ def run(snapshot_date: date) -> dict:
     print(f"  Loaded {len(stock_ids)} active stocks (after dead-fish filter)", file=sys.stderr)
 
     start_date = snapshot_date - timedelta(days=HISTORY_DAYS)
-    work_items = [(sid, start_date) for sid in stock_ids]
+    work_items = [(sid, start_date, snapshot_date) for sid in stock_ids]
 
     results: list[dict] = []
     with Pool(N_WORKERS, initializer=_init_worker) as pool:

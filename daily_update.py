@@ -457,14 +457,14 @@ def update_date(trade_date: date):
     print(f"{'='*60}")
     print(f"  成功：{len(ok_list)}　失敗：{len(failed_list)}　跳過：{len(skip_list)}")
     if failed_list:
-        print(f"  ✘ 失敗項目：{', '.join(r[0] for r in failed_list)}")
+        print(f"  [X] 失敗項目：{', '.join(r[0] for r in failed_list)}")
     if etf_signal_count:
-        print(f"  ▸ ETF 信號：{etf_signal_count} 筆")
+        print(f"  - ETF 信號：{etf_signal_count} 筆")
     if breadth_days:
-        print(f"  ▸ 市場廣度：更新 {breadth_days} 天")
+        print(f"  - 市場廣度：更新 {breadth_days} 天")
     if skip_list:
         print(f"  - 跳過（非執行區間）：{', '.join(r[0] for r in skip_list)}")
-    status = "全部成功 ✔" if not failed_list else "有失敗項目 ✘"
+    status = "全部成功" if not failed_list else "有失敗項目"
     print(f"\n  最終狀態：{status}")
     print(f"{'='*60}")
 
