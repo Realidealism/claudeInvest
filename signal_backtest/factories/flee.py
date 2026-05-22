@@ -50,8 +50,12 @@ def buy_flee_factory(data: "StockData") -> SignalSpec:
     ob = data.over_breakout
     any_over_low = ob.over_lower_3 | ob.over_lower_5 | ob.over_lower_8
     extreme_exhaustion_short = any_over_low & vol_strong
-    # v207: Chandelier(21, 3.0) short_stop = LLcl(21) + ATR(21)×3
-    chand_short = data.chandelier.short_stop.astype(np.float32)
+    # v228: Chandelier(21, 1.0) on buy_flee — sweep 結論 buy_flee 甜蜜點 mult=1.0 +0.165 (n=211 小樣本)
+    _chand_bf = calculate_chandelier(
+        data.high.astype(np.float64), data.low.astype(np.float64),
+        data.close.astype(np.float64), length=21, mult=1.0, use_close=True,
+    )
+    chand_short = _chand_bf.short_stop.astype(np.float32)
     chand_trigger_short = ~np.isnan(chand_short)
     short_defense = [
         DefenseRule(name="停滯8日無新低→8日高",
@@ -60,7 +64,7 @@ def buy_flee_factory(data: "StockData") -> SignalSpec:
                     trigger=exhaustion_short, source=rolling_highest(data.high, 5)),
         DefenseRule(name="人/走/召跌+量強→2日高",
                     trigger=extreme_exhaustion_short, source=rolling_highest(data.high, 2)),
-        DefenseRule(name="Chandelier21x3",
+        DefenseRule(name="Chandelier21x1",
                     trigger=chand_trigger_short, source=chand_short),
     ]
 

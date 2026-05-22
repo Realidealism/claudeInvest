@@ -107,8 +107,12 @@ def sell_signal(data: "StockData") -> SignalSpec:
     ob = data.over_breakout
     any_over_low = ob.over_lower_3 | ob.over_lower_5 | ob.over_lower_8
     extreme_exhaustion_short = any_over_low & vol_strong
-    # v207: Chandelier(21, 3.0) short_stop = LLcl(21) + ATR(21)×3
-    chand_short = data.chandelier.short_stop.astype(np.float32)
+    # v228: Chandelier(21, 1.5) on sell — sweep 結論 sell 甜蜜點 mult=1.5 +0.021
+    _chand_sell = calculate_chandelier(
+        data.high.astype(np.float64), data.low.astype(np.float64),
+        data.close.astype(np.float64), length=21, mult=1.5, use_close=True,
+    )
+    chand_short = _chand_sell.short_stop.astype(np.float32)
     chand_trigger_short = ~np.isnan(chand_short)
     short_defense = [
         DefenseRule(name="洪量當日3日高",
@@ -121,7 +125,7 @@ def sell_signal(data: "StockData") -> SignalSpec:
                     trigger=exhaustion_short, source=rolling_highest(data.high, 3)),
         DefenseRule(name="人/走/召跌+量強→2日高",
                     trigger=extreme_exhaustion_short, source=rolling_highest(data.high, 2)),
-        DefenseRule(name="Chandelier21x3",
+        DefenseRule(name="Chandelier21x1.5",
                     trigger=chand_trigger_short, source=chand_short),
     ]
 
