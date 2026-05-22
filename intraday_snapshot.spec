@@ -20,6 +20,7 @@ a = Analysis(
         'analysis.market_state',
         'analysis.macd',
         'analysis.donchian',
+        'analysis.chandelier',
         'backtest.data',
         'export.generate',
         'intraday.estimate',
