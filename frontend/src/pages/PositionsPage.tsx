@@ -59,7 +59,7 @@ function pnlClass(p: number): string {
 
 function tvUrl(ticker: string, market: string): string {
   const prefix = market === "TPEx" ? "TPEX" : "TWSE";
-  return `https://www.tradingview.com/chart/?symbol=${prefix}:${ticker}`;
+  return `https://tw.tradingview.com/chart/?symbol=${prefix}:${ticker}`;
 }
 
 function fmtDate(d: string | null): string {

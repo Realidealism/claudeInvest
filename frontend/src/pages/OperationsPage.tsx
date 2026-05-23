@@ -5,6 +5,7 @@ interface SignalRow {
   name: string;
   market: string;
   turnover: number;
+  streak?: number;
 }
 
 interface OperationsData {
@@ -42,7 +43,7 @@ function turnoverClass(t: number): string {
 
 function tvUrl(ticker: string, market: string): string {
   const prefix = market === "TPEx" ? "TPEX" : "TWSE";
-  return `https://www.tradingview.com/chart/?symbol=${prefix}:${ticker}`;
+  return `https://tw.tradingview.com/chart/?symbol=${prefix}:${ticker}`;
 }
 
 export default function OperationsPage() {
@@ -168,11 +169,15 @@ export default function OperationsPage() {
                         <th className="px-2 py-2 w-10">#</th>
                         <th className="px-2 py-2">代號</th>
                         <th className="px-2 py-2">名稱</th>
+                        <th className="px-2 py-2 w-16">連續</th>
                         <th className="px-2 py-2 text-right">成交金額</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {rows.map((p, i) => (
+                      {rows.map((p, i) => {
+                        const s = p.streak ?? 1;
+                        const isNew = s <= 1;
+                        return (
                         <tr
                           key={p.ticker}
                           className="border-b border-border/50 hover:bg-surface-hover transition-colors"
@@ -189,13 +194,23 @@ export default function OperationsPage() {
                             </a>
                           </td>
                           <td className="px-2 py-1.5">{p.name}</td>
+                          <td className="px-2 py-1.5">
+                            {isNew ? (
+                              <span className="inline-block px-1.5 py-0.5 rounded text-[10px] font-bold bg-accent/20 text-accent">
+                                NEW
+                              </span>
+                            ) : (
+                              <span className="text-text-secondary font-mono">{s}d</span>
+                            )}
+                          </td>
                           <td
                             className={`px-2 py-1.5 text-right font-mono ${turnoverClass(p.turnover)}`}
                           >
                             {fmtTurnover(p.turnover)}
                           </td>
                         </tr>
-                      ))}
+                        );
+                      })}
                     </tbody>
                   </table>
                 </div>

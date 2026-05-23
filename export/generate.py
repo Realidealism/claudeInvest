@@ -1025,6 +1025,32 @@ def export_operations(cur, out: Path):
         _write({"snapshot_date": None, "signals": empty}, out / "operations.json")
         return
 
+    # Strict-consecutive streak per (signal, stock_id) anchored at latest date.
+    # Trading days come from daily_prices (real market calendar), so a snapshot
+    # gap breaks the streak rather than silently skipping the missing day.
+    cur.execute("""
+        WITH td AS (
+            SELECT trade_date AS snapshot_date,
+                   ROW_NUMBER() OVER (ORDER BY trade_date DESC) - 1 AS day_idx
+            FROM (
+                SELECT DISTINCT trade_date FROM tw.daily_prices
+                WHERE trade_date <= %s::date
+                ORDER BY trade_date DESC LIMIT 120
+            ) d
+        ),
+        sd AS (
+            SELECT s.signal, s.stock_id, td.day_idx,
+                   ROW_NUMBER() OVER (PARTITION BY s.signal, s.stock_id
+                                      ORDER BY td.day_idx ASC) - 1 AS pos
+            FROM tw.signal_snapshot s
+            JOIN td ON td.snapshot_date = s.snapshot_date
+        )
+        SELECT signal, stock_id, COUNT(*) AS streak
+        FROM sd WHERE day_idx = pos
+        GROUP BY signal, stock_id
+    """, (latest,))
+    streak_map = {(r["signal"], r["stock_id"]): int(r["streak"]) for r in cur.fetchall()}
+
     cur.execute("""
         SELECT s.signal, s.stock_id, st.name, st.market, s.turnover
         FROM tw.signal_snapshot s
@@ -1043,6 +1069,7 @@ def export_operations(cur, out: Path):
             "name": r["name"],
             "market": r["market"],
             "turnover": float(r["turnover"]) if r["turnover"] is not None else 0.0,
+            "streak": streak_map.get((sig, r["stock_id"]), 1),
         })
 
     _write({
@@ -1127,6 +1154,43 @@ def export_operations_intraday(cur, out: Path):
         return
     snap_date, snap_time = row["snapshot_date"], row["snapshot_time"]
 
+    # Strict-consecutive streak: today (intraday) = day 0; historical trading
+    # days come from daily_prices < today so a snapshot gap breaks the streak.
+    cur.execute("""
+        WITH td AS (
+            SELECT trade_date AS snapshot_date,
+                   ROW_NUMBER() OVER (ORDER BY trade_date DESC) AS day_idx
+            FROM (
+                SELECT DISTINCT trade_date FROM tw.daily_prices
+                WHERE trade_date < %s::date
+                ORDER BY trade_date DESC LIMIT 120
+            ) d
+        ),
+        today_sigs AS (
+            SELECT signal, stock_id
+            FROM tw.signal_snapshot_intraday
+            WHERE snapshot_date = %s AND snapshot_time = %s
+        ),
+        combined AS (
+            SELECT signal, stock_id, 0 AS day_idx FROM today_sigs
+            UNION ALL
+            SELECT s.signal, s.stock_id, td.day_idx
+            FROM tw.signal_snapshot s
+            JOIN td ON td.snapshot_date = s.snapshot_date
+            JOIN today_sigs t ON t.signal = s.signal AND t.stock_id = s.stock_id
+        ),
+        ranked AS (
+            SELECT signal, stock_id, day_idx,
+                   ROW_NUMBER() OVER (PARTITION BY signal, stock_id
+                                      ORDER BY day_idx ASC) - 1 AS pos
+            FROM combined
+        )
+        SELECT signal, stock_id, COUNT(*) AS streak
+        FROM ranked WHERE day_idx = pos
+        GROUP BY signal, stock_id
+    """, (snap_date, snap_date, snap_time))
+    streak_map = {(r["signal"], r["stock_id"]): int(r["streak"]) for r in cur.fetchall()}
+
     cur.execute("""
         SELECT s.signal, s.stock_id, st.name, st.market, s.turnover
         FROM tw.signal_snapshot_intraday s
@@ -1145,6 +1209,7 @@ def export_operations_intraday(cur, out: Path):
             "name": r["name"],
             "market": r["market"],
             "turnover": float(r["turnover"]) if r["turnover"] is not None else 0.0,
+            "streak": streak_map.get((sig, r["stock_id"]), 1),
         })
 
     _write({

@@ -41,7 +41,7 @@ function fmtTurnover(t: number): string {
 // TradingView uses 'TWSE:' for TWSE and 'TPEX:' (all caps) for TPEx.
 function tvUrl(ticker: string, market: string): string {
   const prefix = market === "TPEx" ? "TPEX" : "TWSE";
-  return `https://www.tradingview.com/chart/?symbol=${prefix}:${ticker}`;
+  return `https://tw.tradingview.com/chart/?symbol=${prefix}:${ticker}`;
 }
 
 // Turnover heat tiers (TWD): cold → hot.
