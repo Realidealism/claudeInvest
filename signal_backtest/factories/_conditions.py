@@ -724,14 +724,25 @@ def buy_condition(data: "StockData") -> BoolArray:
     #   強空 (any <= -2): long_pct >= 45 (最嚴)
     #   偏空 (any -1, 沒到 -2): long_pct >= 40 (中等)
     #   default (no bear): long_pct >= 35 (最寬鬆)
-    # rule_market 取代為 tier gate（取代 v229 之前的 ~strongly_bearish + v230 override）
     long_pct = _long_pct_array(data)
     strongly_bear = _market_strongly_bearish(data)
     moderate_bear_only = _market_any_bear(data) & ~strongly_bear
-    rule_long_pct_gate = np.where(
+    rule_long_pct_tier = np.where(
         strongly_bear, long_pct >= 45,
         np.where(moderate_bear_only, long_pct >= 40, long_pct >= 35),
     )
+    # v243: 強反轉 override = 5 日升幅>=20 AND lp>=15 AND 連 5 天上升
+    #   2327 4/13: delta_5=+23.57, lp=15.02, d1 連 5 升 (4/7+9.42/4/8+11.49/4/9+7.51/4/10+8.39/4/13+7.67) ✓
+    #   v244-v247 sweep 驗證 Path B (連3升+delta3>20 任何變體) 均淨負，不採用
+    lp_delta_5 = long_pct - _shift(long_pct, 5)
+    lp_d1 = long_pct - _shift(long_pct, 1)
+    consec_up_5 = ((lp_d1 > 0)
+                   & (_shift(lp_d1, 1) > 0)
+                   & (_shift(lp_d1, 2) > 0)
+                   & (_shift(lp_d1, 3) > 0)
+                   & (_shift(lp_d1, 4) > 0))
+    strong_reversal = (lp_delta_5 >= 20.0) & (long_pct >= 15.0) & consec_up_5
+    rule_long_pct_gate = rule_long_pct_tier | strong_reversal
 
     # 9. v131: ~pte (不在頂背離)
     rule_not_pte = ~data.macd.short.macd_convergence_pte
