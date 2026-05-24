@@ -1013,6 +1013,96 @@ def export_scores(cur, out: Path):
     }, out / "scores.json")
 
 
+_STREAK_SIGNAL_FNS: dict | None = None
+_STREAK_HISTORY_DAYS = 400  # ~280 trading days, covers any realistic streak
+
+
+def _get_streak_signal_fns() -> dict:
+    """Lazy-load the 6 condition functions. Deferred import keeps the
+    signal_backtest dependency out of generate.py's top-level for the
+    common case where no export touches operations."""
+    global _STREAK_SIGNAL_FNS
+    if _STREAK_SIGNAL_FNS is None:
+        from signal_backtest.factories._conditions import (
+            pick_condition, touch_condition,
+            buy_condition, sell_condition,
+            buy_flee_signal, sell_flee_signal,
+        )
+        _STREAK_SIGNAL_FNS = {
+            "pick": pick_condition,
+            "touch": touch_condition,
+            "buy": buy_condition,
+            "sell": sell_condition,
+            "buy_flee": buy_flee_signal,
+            "sell_flee": sell_flee_signal,
+        }
+    return _STREAK_SIGNAL_FNS
+
+
+def _compute_signal_streaks(
+    snapshot_date,
+    stock_signals: dict,
+    today_via_intraday: bool = False,
+) -> dict:
+    """For each (signal, stock_id), recompute the strict-consecutive streak
+    from snapshot_date backwards by re-running the signal factories on the
+    stock's historical bars. Independent of tw.signal_snapshot data gaps.
+
+    Args:
+      snapshot_date: anchor date.
+      stock_signals: {stock_id: [signal_name, ...]} firing on snapshot_date.
+      today_via_intraday: True when snapshot_date's bar is not yet in
+        daily_prices (intraday view). In that case streak gets +1 for today
+        if (and only if) the historical streak extends through the bar
+        immediately before snapshot_date.
+
+    Returns: {(signal_name, stock_id): streak_int}
+    """
+    from datetime import timedelta
+    from backtest.data import load_stock_data
+
+    fns = _get_streak_signal_fns()
+    start = snapshot_date - timedelta(days=_STREAK_HISTORY_DAYS)
+    out: dict = {}
+
+    for sid, signals_today in stock_signals.items():
+        try:
+            data = load_stock_data(sid, start_date=start, end_date=snapshot_date)
+        except Exception:
+            for sig in signals_today:
+                out[(sig, sid)] = 1
+            continue
+        if data.n < 60:
+            for sig in signals_today:
+                out[(sig, sid)] = 1
+            continue
+
+        last_bar_is_today = (data.dates[-1] == snapshot_date)
+
+        for sig in signals_today:
+            fn = fns.get(sig)
+            if fn is None:
+                out[(sig, sid)] = 1
+                continue
+            try:
+                arr = fn(data)
+            except Exception:
+                out[(sig, sid)] = 1
+                continue
+            # Today's contribution: +1 if intraday says it fires now
+            # but daily_prices doesn't yet have snapshot_date's bar.
+            streak = 1 if (today_via_intraday and not last_bar_is_today) else 0
+            # Count consecutive Trues backward from the last bar in data.
+            for i in range(data.n - 1, -1, -1):
+                if bool(arr[i]):
+                    streak += 1
+                else:
+                    break
+            out[(sig, sid)] = max(streak, 1)
+
+    return out
+
+
 def export_operations(cur, out: Path):
     """Daily signal-factory snapshot — 6 signals × stocks fired."""
     # Display order, matches analysis/signal_snapshot.py SIGNALS list.
@@ -1025,32 +1115,6 @@ def export_operations(cur, out: Path):
         _write({"snapshot_date": None, "signals": empty}, out / "operations.json")
         return
 
-    # Strict-consecutive streak per (signal, stock_id) anchored at latest date.
-    # Trading days come from daily_prices (real market calendar), so a snapshot
-    # gap breaks the streak rather than silently skipping the missing day.
-    cur.execute("""
-        WITH td AS (
-            SELECT trade_date AS snapshot_date,
-                   ROW_NUMBER() OVER (ORDER BY trade_date DESC) - 1 AS day_idx
-            FROM (
-                SELECT DISTINCT trade_date FROM tw.daily_prices
-                WHERE trade_date <= %s::date
-                ORDER BY trade_date DESC LIMIT 120
-            ) d
-        ),
-        sd AS (
-            SELECT s.signal, s.stock_id, td.day_idx,
-                   ROW_NUMBER() OVER (PARTITION BY s.signal, s.stock_id
-                                      ORDER BY td.day_idx ASC) - 1 AS pos
-            FROM tw.signal_snapshot s
-            JOIN td ON td.snapshot_date = s.snapshot_date
-        )
-        SELECT signal, stock_id, COUNT(*) AS streak
-        FROM sd WHERE day_idx = pos
-        GROUP BY signal, stock_id
-    """, (latest,))
-    streak_map = {(r["signal"], r["stock_id"]): int(r["streak"]) for r in cur.fetchall()}
-
     cur.execute("""
         SELECT s.signal, s.stock_id, st.name, st.market, s.turnover
         FROM tw.signal_snapshot s
@@ -1058,9 +1122,17 @@ def export_operations(cur, out: Path):
         WHERE s.snapshot_date = %s
         ORDER BY s.turnover DESC NULLS LAST, s.stock_id
     """, (latest,))
+    rows = cur.fetchall()
+
+    # Recompute streak per (signal, stock_id) on-demand from raw price data,
+    # independent of tw.signal_snapshot history (which has gaps).
+    stock_signals: dict[str, list[str]] = {}
+    for r in rows:
+        stock_signals.setdefault(r["stock_id"], []).append(r["signal"])
+    streak_map = _compute_signal_streaks(latest, stock_signals, today_via_intraday=False)
 
     grouped: dict[str, list] = {sig: [] for sig in SIGNAL_ORDER}
-    for r in cur.fetchall():
+    for r in rows:
         sig = r["signal"]
         if sig not in grouped:
             continue  # safety; CHECK constraint should prevent this
@@ -1154,43 +1226,6 @@ def export_operations_intraday(cur, out: Path):
         return
     snap_date, snap_time = row["snapshot_date"], row["snapshot_time"]
 
-    # Strict-consecutive streak: today (intraday) = day 0; historical trading
-    # days come from daily_prices < today so a snapshot gap breaks the streak.
-    cur.execute("""
-        WITH td AS (
-            SELECT trade_date AS snapshot_date,
-                   ROW_NUMBER() OVER (ORDER BY trade_date DESC) AS day_idx
-            FROM (
-                SELECT DISTINCT trade_date FROM tw.daily_prices
-                WHERE trade_date < %s::date
-                ORDER BY trade_date DESC LIMIT 120
-            ) d
-        ),
-        today_sigs AS (
-            SELECT signal, stock_id
-            FROM tw.signal_snapshot_intraday
-            WHERE snapshot_date = %s AND snapshot_time = %s
-        ),
-        combined AS (
-            SELECT signal, stock_id, 0 AS day_idx FROM today_sigs
-            UNION ALL
-            SELECT s.signal, s.stock_id, td.day_idx
-            FROM tw.signal_snapshot s
-            JOIN td ON td.snapshot_date = s.snapshot_date
-            JOIN today_sigs t ON t.signal = s.signal AND t.stock_id = s.stock_id
-        ),
-        ranked AS (
-            SELECT signal, stock_id, day_idx,
-                   ROW_NUMBER() OVER (PARTITION BY signal, stock_id
-                                      ORDER BY day_idx ASC) - 1 AS pos
-            FROM combined
-        )
-        SELECT signal, stock_id, COUNT(*) AS streak
-        FROM ranked WHERE day_idx = pos
-        GROUP BY signal, stock_id
-    """, (snap_date, snap_date, snap_time))
-    streak_map = {(r["signal"], r["stock_id"]): int(r["streak"]) for r in cur.fetchall()}
-
     cur.execute("""
         SELECT s.signal, s.stock_id, st.name, st.market, s.turnover
         FROM tw.signal_snapshot_intraday s
@@ -1198,9 +1233,18 @@ def export_operations_intraday(cur, out: Path):
         WHERE s.snapshot_date = %s AND s.snapshot_time = %s
         ORDER BY s.turnover DESC NULLS LAST, s.stock_id
     """, (snap_date, snap_time))
+    rows = cur.fetchall()
+
+    # Recompute streak on-demand. today_via_intraday=True so that when
+    # daily_prices doesn't yet contain snap_date's bar (pre-EOD case), today
+    # is counted as +1 against the historical streak through yesterday.
+    stock_signals: dict[str, list[str]] = {}
+    for r in rows:
+        stock_signals.setdefault(r["stock_id"], []).append(r["signal"])
+    streak_map = _compute_signal_streaks(snap_date, stock_signals, today_via_intraday=True)
 
     grouped: dict[str, list] = {sig: [] for sig in SIGNAL_ORDER}
-    for r in cur.fetchall():
+    for r in rows:
         sig = r["signal"]
         if sig not in grouped:
             continue
