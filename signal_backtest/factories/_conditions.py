@@ -604,13 +604,15 @@ def pick_condition(data: "StockData") -> BoolArray:
     # Go (CalculateTrade2.go:7548-7553):
     #   ~(SellAlone[t]>0.355 & SellAlone[t-1]>0.305 & SellAlone[t-2]>0.255
     #     & (close[t]<LD55S[t-1] | close[t-1]<LD55S[t-2] | close[t-2]<LD55S[t-3]))
+    # v273: LD55S 是 Go's LowestFloat32(Low, 55) — 日內 low rolling,
+    #       不是 rolling lowest close. 修正 port bug (之前用 bs.close_s[55] 太嚴)
     short_pct = _short_pct_array(data)
     sp_t = short_pct
     sp_t1 = _shift(short_pct, 1)
     sp_t2 = _shift(short_pct, 2)
     ratchet = (sp_t >= 40) & (sp_t1 >= 35) & (sp_t2 >= 30)
 
-    ld55 = data.close_result.bs.close_s[55]
+    ld55 = rolling_lowest(data.low, 55)  # Go LD55S = LowestFloat32(Low, 55)
     close_t = data.close
     close_t1 = _shift(data.close, 1)
     close_t2 = _shift(data.close, 2)
