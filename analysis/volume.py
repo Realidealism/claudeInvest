@@ -92,6 +92,11 @@ class VolumeResult:
     flood: BoolArray
     mess_up: BoolArray
 
+    # Simple multiplier flag: vol >= 3 × SMA(5). Stricter than `flood`
+    # (which uses multi-window relative peaks). Useful for blow-off /
+    # exhaustion detection where you want raw absolute volume surge.
+    surge_3x_vd5: BoolArray
+
     # Overall status: 0=flood, 1=big, 2=high, 3=normal, 4=low, 5=shrink, 6=sleep
     volume_status: U8Array
 
@@ -181,6 +186,7 @@ def calculate_volume(
     sleep_flag = _calc_sleep(vol, low_d, prev_high, prev_low, prev_vr, prev_ext, extremes, burst)
     flood_flag = _calc_flood(vol, prev_high, prev_vr, prev_ext, extremes, burst)
     mess_up = _calc_mess_up(vol, high_d)
+    surge_3x_vd5 = (sma_d[5] > 0) & (vol >= sma_d[5] * F32(3.0))
 
     # Volume status
     prev_vol = _shift1(vol)
@@ -238,6 +244,7 @@ def calculate_volume(
         sleep=sleep_flag,
         flood=flood_flag,
         mess_up=mess_up,
+        surge_3x_vd5=surge_3x_vd5,
         volume_status=volume_status,
         flood_high_tier=flood_high_tier,
         flood_low_tier=flood_low_tier,

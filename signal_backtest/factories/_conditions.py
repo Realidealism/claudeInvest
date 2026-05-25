@@ -626,16 +626,15 @@ def pick_condition(data: "StockData") -> BoolArray:
                  & rule_g10 & rule_long_pct_tier & rule_macd & rule_not_strong_bear)
 
     # v265: mirror touch v259 — blow-off-bottom confirm 兩日確認進場路徑
-    #   T-1: 量 ≥ 3×vd5 + 新 8 日低 + 錘子線 (恐慌出量探底，下影 ≥ 50% HL + 實體 ≤ 30% HL)
+    #   T-1: volume_status <= 1 (flood/big) + 新 8 日低 + 錘子線 (下影 ≥ 50% HL + 實體 ≤ 30% HL)
     #   T:   close > T-1 close (隔日反彈確認)
     #   lp ≥ 0 且 lp 上升 (分數脫離弱勢)
     prev_low = _shift(data.low, 1)
     prev_close = _shift(data.close, 1)
-    prev_vol = _shift(data.volume, 1)
-    prev_vd5 = _shift(data.volume_result.sma[5], 1)
+    prev_vol_status = _shift(data.volume_result.volume_status, 1)
     prev_bs_low_8 = _shift(data.close_result.bs.low[8], 1)
     prev_hammer_low = _shift(_hammer_lower_shadow(data), 1)
-    blow_off_vol_pick = prev_vol >= 3.0 * prev_vd5
+    blow_off_vol_pick = prev_vol_status <= 1  # flood (0) or big (1)
     new_8d_low = prev_low <= prev_bs_low_8
     today_bullish = data.close > prev_close
     lp_today = long_pct
@@ -740,11 +739,10 @@ def touch_condition(data: "StockData") -> BoolArray:
     #   E: 加 short_pct >= 0 確保評分系統不在強多 (避免偏多市場誤觸)
     prev_high = _shift(data.high, 1)
     prev_close = _shift(data.close, 1)
-    prev_vol = _shift(data.volume, 1)
-    prev_vd5 = _shift(data.volume_result.sma[5], 1)
+    prev_surge_t = _shift(data.volume_result.surge_3x_vd5, 1)
     prev_bs_high_8 = _shift(data.close_result.bs.high[8], 1)
     prev_hammer_high = _shift(_hammer_upper_shadow(data), 1)
-    blow_off_vol = prev_vol >= 3.0 * prev_vd5
+    blow_off_vol = prev_surge_t  # vol >= 3 × vd5 (新 flag, 取代手刻)
     new_8d_high = prev_high >= prev_bs_high_8
     today_bearish = data.close < prev_close
     sp_today = _short_pct_array(data)
