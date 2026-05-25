@@ -660,8 +660,30 @@ def touch_condition(data: "StockData") -> BoolArray:
     # pick: Go's "trigger = OSCStatus false" finds momentum-fading entries,
     # not topping-tail entries which is what our touch is hunting.
 
-    return (rule_pos & rule_change & rule_vol & rule_flood & rule_knot
-            & rule_convex & rule_market & rule_not_double_down_hot & rule_macd)
+    main_path = (rule_pos & rule_change & rule_vol & rule_flood & rule_knot
+                 & rule_convex & rule_market & rule_not_double_down_hot & rule_macd)
+
+    # v257: blow-off confirm + short_pct >= 0 過濾
+    #   E: 加 short_pct >= 0 確保評分系統不在強多 (避免偏多市場誤觸)
+    prev_high = _shift(data.high, 1)
+    prev_low = _shift(data.low, 1)
+    prev_close = _shift(data.close, 1)
+    prev_vol = _shift(data.volume, 1)
+    prev_vd5 = _shift(data.volume_result.sma[5], 1)
+    prev_bs_high_8 = _shift(data.close_result.bs.high[8], 1)
+    blow_off_vol = prev_vol >= 3.0 * prev_vd5
+    new_8d_high = prev_high >= prev_bs_high_8
+    prev_range = np.maximum(prev_high - prev_low, 0.01)
+    long_upper_shadow = ((prev_high - prev_close) / prev_range) >= 0.6
+    today_bearish = data.close < prev_close
+    sp_today = _short_pct_array(data)
+    sp_neutral = sp_today >= 0
+    sp_rising = sp_today > _shift(sp_today, 1)
+    blow_off_confirm = (blow_off_vol & new_8d_high
+                        & long_upper_shadow & today_bearish
+                        & sp_neutral & sp_rising)
+
+    return main_path | blow_off_confirm
 
 
 # ── BuyCondition / SellCondition (波段多 / 波段空) ──────────────────────────

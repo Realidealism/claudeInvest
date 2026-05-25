@@ -120,6 +120,19 @@ def touch_signal(data: "StockData") -> SignalSpec:
     )
     chand_short = _chand_touch.short_stop.astype(np.float32)
     chand_trigger_short = ~np.isnan(chand_short)
+    # v253: 進場後第 3 天，若 day1/2/3 low 都沒低於進場日 low → HH3
+    entry_low_hyp_d3 = _shift(data.low, 3)
+    no_break_d1_d3 = _shift(data.low, 2) >= entry_low_hyp_d3
+    no_break_d2_d3 = _shift(data.low, 1) >= entry_low_hyp_d3
+    no_break_d3_d3 = data.low >= entry_low_hyp_d3
+    day3_no_break = no_break_d1_d3 & no_break_d2_d3 & no_break_d3_d3
+    # v254: 進場後第 2 天 — low 都未破 entry low AND 今日 H > 昨日 H → HH3
+    #   抓「兩日內反轉動能 + 沒推進空頭」失敗形態
+    entry_low_hyp_d2 = _shift(data.low, 2)
+    no_break_d1_d2 = _shift(data.low, 1) >= entry_low_hyp_d2
+    no_break_d2_d2 = data.low >= entry_low_hyp_d2
+    h_up = data.high > _shift(data.high, 1)
+    day2_no_break_h_up = no_break_d1_d2 & no_break_d2_d2 & h_up
     short_defense = [
         DefenseRule(name="洪量當日3日高",
                     trigger=flood, source=rolling_highest(data.high, 3)),
@@ -133,6 +146,12 @@ def touch_signal(data: "StockData") -> SignalSpec:
                     trigger=extreme_exhaustion_short, source=rolling_highest(data.high, 2)),
         DefenseRule(name="Chandelier21x2",
                     trigger=chand_trigger_short, source=chand_short),
+        DefenseRule(name="進場後3日皆未破進場日low→3日高",
+                    trigger=day3_no_break, source=rolling_highest(data.high, 3),
+                    min_days_after_entry=3, max_days_after_entry=3),
+        DefenseRule(name="進場後2日未破進場low+H>H[1]→3日高",
+                    trigger=day2_no_break_h_up, source=rolling_highest(data.high, 3),
+                    min_days_after_entry=2, max_days_after_entry=2),
     ]
 
     return SignalSpec(

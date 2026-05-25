@@ -49,10 +49,22 @@ class DefenseRule:
     On bars where trigger[i] is True, source[i] becomes a candidate
     defense price; the engine only commits the update if it is in the
     favorable direction (long: higher; short: lower).
+
+    If ``max_days_after_entry`` is set, the rule only fires when the
+    bar offset since entry (i - entry_index) is ≤ max_days_after_entry.
+    Offset 1 = first day post-entry; defense block doesn't run on the
+    entry bar itself, so ``max_days_after_entry=3`` means "fire on
+    days 1, 2, 3 post-entry only".
+
+    If ``min_days_after_entry`` is set, the rule only fires when the
+    bar offset is ≥ min_days_after_entry. Combine with max to pin a
+    specific day, e.g. min=3 + max=3 → "only day 3 post-entry".
     """
     name: str           # human-readable, used as DefenseEvent reason
     trigger: BoolArray
     source: F32Array
+    max_days_after_entry: int | None = None
+    min_days_after_entry: int | None = None
 
 
 @dataclass

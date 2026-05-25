@@ -274,6 +274,13 @@ def run_side_backtest(
                 for rule in rules:
                     if not bool(rule.trigger[i]):
                         continue
+                    offset = i - pos_entry_index
+                    if rule.max_days_after_entry is not None:
+                        if offset > rule.max_days_after_entry:
+                            continue
+                    if rule.min_days_after_entry is not None:
+                        if offset < rule.min_days_after_entry:
+                            continue
                     new_def, ev = _try_update_defense(
                         i,
                         float(rule.source[i]),
@@ -504,6 +511,13 @@ def run_side_backtest_tiered(
                     for rule in active_tier.defense_rules:
                         if not bool(rule.trigger[i]):
                             continue
+                        offset = i - pos_entry_index
+                        if rule.max_days_after_entry is not None:
+                            if offset > rule.max_days_after_entry:
+                                continue
+                        if rule.min_days_after_entry is not None:
+                            if offset < rule.min_days_after_entry:
+                                continue
                         new_def, ev = _try_update_defense(
                             i,
                             float(rule.source[i]),
