@@ -46,7 +46,8 @@ def buy_flee_factory(data: "StockData") -> SignalSpec:
     vol_strong = data.volume_result.volume_status <= 2
     long_upper_shadow = data.candle_result.shadow.upper
     exhaustion_short = near_low & vol_strong & long_upper_shadow
-    # v203k 鏡像: any over_lower (3|5|8) + vol_strong → HH8
+    # v203k 鏡像: any over_lower (3|5|8) + vol_strong → HH2
+    # (v204 sweep: HH8 mirror 完全 no-op 因短側 floor 已 8d, HH2 才能比 HH3 rules 更緊)
     ob = data.over_breakout
     any_over_low = ob.over_lower_3 | ob.over_lower_5 | ob.over_lower_8
     extreme_exhaustion_short = any_over_low & vol_strong

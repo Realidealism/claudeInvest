@@ -90,8 +90,17 @@ class BollBand:
 
 @dataclass
 class BSResult:
-    high: dict[int, F32Array]
-    low: dict[int, F32Array]
+    """Rolling extremes of CLOSE (not intraday high/low).
+
+    close_b[N] = rolling_highest(close, N)   (B = 高 / 買, Go: CDxB)
+    close_s[N] = rolling_lowest(close, N)    (S = 低 / 賣, Go: CDxS)
+
+    Named so callers cannot accidentally compare intraday high/low to
+    these close-based rolling extremes. Matches Go naming convention
+    (CalculateTrade2.go: CD2B / CD2S etc).
+    """
+    close_b: dict[int, F32Array]
+    close_s: dict[int, F32Array]
 
 
 @dataclass
@@ -151,7 +160,7 @@ def calculate_close(close: F32Array) -> CloseResult:
         bs=bs,
         ema=_calc_ema(close),
         value_level=_calc_value_level(ma.sma[8], n),
-        turn=_calc_turn(close, bs.high, bs.low, n),
+        turn=_calc_turn(close, bs.close_b, bs.close_s, n),
         knot=knot,
         knot_level=knot_level,
     )
@@ -298,7 +307,7 @@ def _calc_bs(close: F32Array, n: int) -> BSResult:
     for p in BS_PERIODS:
         high_d[p] = rolling_highest(close, p)
         low_d[p] = rolling_lowest(close, p)
-    return BSResult(high=high_d, low=low_d)
+    return BSResult(close_b=high_d, close_s=low_d)
 
 
 # ── Turn Points (漲跌扣抵) ──────────────────────────────────────────────────

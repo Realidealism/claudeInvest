@@ -391,8 +391,8 @@ def calculate_wave(
     trig_h3 = candle.trigger_high3
     trig_l1 = candle.trigger_low1
     trig_l3 = candle.trigger_low3
-    cd2b = close_bs.high[2]
-    cd2s = close_bs.low[2]
+    cd2b = close_bs.close_b[2]
+    cd2s = close_bs.close_s[2]
 
     # ── Initialize first wave pair ──────────────────────────────────────
     # tip0 = newest wave (wc-1), tip1 = previous wave (wc-2). Matches the

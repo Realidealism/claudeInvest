@@ -26,6 +26,8 @@ from typing import TYPE_CHECKING
 import numpy as np
 from numpy.typing import NDArray
 
+from analysis.indicators import rolling_highest, rolling_lowest
+
 if TYPE_CHECKING:
     from backtest.data import StockData
 
@@ -238,8 +240,8 @@ def _compute_pre_sma(data: "StockData") -> dict:
 def _compute_pre_turn(data: "StockData", n: int) -> dict:
     from analysis.constants import TURN_CONFIGS
     close = data.close
-    bs_high = data.close_result.bs.high
-    bs_low = data.close_result.bs.low
+    close_b = data.close_result.bs.close_b
+    close_s = data.close_result.bs.close_s
     pre = {}
     for ma_period, offset, bs_period in TURN_CONFIGS:
         out = np.ones(n, dtype=np.uint8)
@@ -250,8 +252,8 @@ def _compute_pre_turn(data: "StockData", n: int) -> dict:
             out[valid & (close > shifted)] = 2
             out[valid & (close < shifted)] = 0
         else:
-            shifted_hi = _shift(bs_high[bs_period], new_offset)
-            shifted_lo = _shift(bs_low[bs_period], new_offset)
+            shifted_hi = _shift(close_b[bs_period], new_offset)
+            shifted_lo = _shift(close_s[bs_period], new_offset)
             valid = np.arange(n) >= (new_offset + 1)
             out[valid & (close > shifted_hi)] = 2
             out[valid & (close < shifted_lo)] = 0
@@ -482,7 +484,7 @@ def pick_condition(data: "StockData") -> BoolArray:
     """抄底訊號 — long_entry candidate.
 
     Rules:
-      1. 觸 / 跌破 5 或 8 日低 (close <= bs.low[5/8])
+      1. 觸 / 跌破 5 或 8 日收盤低 (close <= bs.close_s[5/8])
          AND v81: 最近 3 日內 OverLower3 (Go 原版 #21 雙重位置確認)
          — v4 嘗試過用 OverLower3/5/8 複合 pattern 取代 bs_low，PF 反而下降；
            v81 改用「保留 bs_low + AND 上 OL3 雙重確認」鏡像 Go #20+#21
@@ -529,11 +531,11 @@ def pick_condition(data: "StockData") -> BoolArray:
     """
     n = data.n
     close = data.close
-    bs_low = data.close_result.bs.low
+    close_s = data.close_result.bs.close_s
     turn = data.close_result.turn
 
     # 1. 觸或跌破 5/8 日低 AND v81: 最近 3 日內 OverLower3 雙重確認
-    bs58 = (close <= bs_low[5]) | (close <= bs_low[8])
+    bs58 = (close <= close_s[5]) | (close <= close_s[8])
     ol3 = data.over_breakout.over_lower_3
     rule_pos = bs58 & _last_n_any(ol3, 3)
 
@@ -608,7 +610,7 @@ def pick_condition(data: "StockData") -> BoolArray:
     sp_t2 = _shift(short_pct, 2)
     ratchet = (sp_t >= 40) & (sp_t1 >= 35) & (sp_t2 >= 30)
 
-    ld55 = data.close_result.bs.low[55]
+    ld55 = data.close_result.bs.close_s[55]
     close_t = data.close
     close_t1 = _shift(data.close, 1)
     close_t2 = _shift(data.close, 2)
@@ -629,13 +631,15 @@ def pick_condition(data: "StockData") -> BoolArray:
     #   T-1: volume_status <= 1 (flood/big) + 新 8 日低 + 錘子線 (下影 ≥ 50% HL + 實體 ≤ 30% HL)
     #   T:   close > T-1 close (隔日反彈確認)
     #   lp ≥ 0 且 lp 上升 (分數脫離弱勢)
+    # v271: 「新 8 日低」用 rolling_lowest(low, 8) 日內 low → 日內 low (apples-to-apples)
+    #       取代原本 prev_low ≤ bs.close_s[8] (日內 low vs 8 日最低收盤，metric mismatch)
     prev_low = _shift(data.low, 1)
     prev_close = _shift(data.close, 1)
     prev_vol_status = _shift(data.volume_result.volume_status, 1)
-    prev_bs_low_8 = _shift(data.close_result.bs.low[8], 1)
+    prev_ll8 = _shift(rolling_lowest(data.low, 8), 1)
     prev_hammer_low = _shift(_hammer_lower_shadow(data), 1)
     blow_off_vol_pick = prev_vol_status <= 1  # flood (0) or big (1)
-    new_8d_low = prev_low <= prev_bs_low_8
+    new_8d_low = prev_low <= prev_ll8
     today_bullish = data.close > prev_close
     lp_today = long_pct
     lp_neutral = lp_today >= 0
@@ -737,13 +741,14 @@ def touch_condition(data: "StockData") -> BoolArray:
 
     # v257: blow-off confirm + short_pct >= 0 過濾
     #   E: 加 short_pct >= 0 確保評分系統不在強多 (避免偏多市場誤觸)
+    # v271: 「新 8 日高」用 rolling_highest(high, 8) 日內 high → 日內 high (apples-to-apples)
     prev_high = _shift(data.high, 1)
     prev_close = _shift(data.close, 1)
     prev_surge_t = _shift(data.volume_result.surge_3x_vd5, 1)
-    prev_bs_high_8 = _shift(data.close_result.bs.high[8], 1)
+    prev_hh8 = _shift(rolling_highest(data.high, 8), 1)
     prev_hammer_high = _shift(_hammer_upper_shadow(data), 1)
     blow_off_vol = prev_surge_t  # vol >= 3 × vd5 (新 flag, 取代手刻)
-    new_8d_high = prev_high >= prev_bs_high_8
+    new_8d_high = prev_high >= prev_hh8
     today_bearish = data.close < prev_close
     sp_today = _short_pct_array(data)
     sp_neutral = sp_today >= 0
@@ -764,7 +769,7 @@ def buy_condition(data: "StockData") -> BoolArray:
     Rules:
       1. MA 排列：close > SMA8 AND SMA8 > SMA21
       2. 上扣 5 (turn[5] == 2) AND not 下扣 5 (turn[5] != 0)
-      3. 突破或新高：close > prev close.bs.high[8]
+      3. 突破或新高：close > prev close.bs.close_b[8]
       4. 量能配合：今日量 >= VD5 * 1.0 (站上 5 日均量)
       5. 非長均糾結
       6. 大盤非強空 — 不在崩盤段做多
@@ -797,8 +802,8 @@ def buy_condition(data: "StockData") -> BoolArray:
 
     rule_turn = (turn[5] == 2)
 
-    bs_high = data.close_result.bs.high
-    prev_h8 = _shift(bs_high[8], 1)
+    close_b = data.close_result.bs.close_b
+    prev_h8 = _shift(close_b[8], 1)
     rule_break = close > prev_h8
 
     vol = data.volume
@@ -852,7 +857,7 @@ def sell_condition(data: "StockData") -> BoolArray:
     Rules:
       1. MA 排列：close < SMA8 AND SMA8 < SMA21
       2. 下扣 5 (turn[5] == 0)
-      3. 跌破：close < prev close.bs.low[8]
+      3. 跌破：close < prev close.bs.close_s[8]
       4. 量能配合：今日量 >= VD5
       5. 非長均糾結
       6. 大盤要求至少一尺度 bear (trend <= -1)：強化過濾，排除中性市場下的隨機跌破
@@ -895,8 +900,8 @@ def sell_condition(data: "StockData") -> BoolArray:
 
     rule_turn = (turn[5] == 0)
 
-    bs_low = data.close_result.bs.low
-    prev_l8 = _shift(bs_low[8], 1)
+    close_s = data.close_result.bs.close_s
+    prev_l8 = _shift(close_s[8], 1)
     rule_break = close < prev_l8
 
     vol = data.volume
