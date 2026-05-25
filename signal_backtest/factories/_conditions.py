@@ -75,6 +75,39 @@ def _turn_change_down(turn: NDArray[np.uint8]) -> BoolArray:
     return (turn <= 1) & (prev == 2)
 
 
+def _hammer_lower_shadow(
+    data: "StockData",
+    wick_ratio: float = 0.5,
+    body_max_ratio: float = 0.3,
+) -> BoolArray:
+    """Hammer-like bar: lower wick >= wick_ratio × HL AND body <= body_max_ratio × HL.
+
+    Captures "panic-bottom + absorption" candles (錘子線). Distinct from
+    data.candle_result.shadow.lower (which uses absolute length vs rolling
+    HL — ignores body proportion).
+    """
+    hl = np.maximum(data.high - data.low, np.float32(1e-6))
+    bottom = np.minimum(data.open, data.close)
+    top = np.maximum(data.open, data.close)
+    lower_wick = bottom - data.low
+    body = top - bottom
+    return (lower_wick / hl >= wick_ratio) & (body / hl <= body_max_ratio)
+
+
+def _hammer_upper_shadow(
+    data: "StockData",
+    wick_ratio: float = 0.5,
+    body_max_ratio: float = 0.3,
+) -> BoolArray:
+    """Mirror of _hammer_lower_shadow — long upper wick + small body (吐血線)."""
+    hl = np.maximum(data.high - data.low, np.float32(1e-6))
+    bottom = np.minimum(data.open, data.close)
+    top = np.maximum(data.open, data.close)
+    upper_wick = data.high - top
+    body = top - bottom
+    return (upper_wick / hl >= wick_ratio) & (body / hl <= body_max_ratio)
+
+
 def _market_strongly_bullish(data: "StockData") -> BoolArray:
     """Strong bull at any scope (trend code >= 2). Filter for short entries."""
     ms = data.market_state
@@ -589,8 +622,30 @@ def pick_condition(data: "StockData") -> BoolArray:
     # already accelerating, which contradicts our "buy the lowest tick"
     # design. Reverted in v21.
 
-    return (rule_pos & rule_change & rule_vol & rule_flood & rule_g19
-            & rule_g10 & rule_long_pct_tier & rule_macd & rule_not_strong_bear)
+    main_path = (rule_pos & rule_change & rule_vol & rule_flood & rule_g19
+                 & rule_g10 & rule_long_pct_tier & rule_macd & rule_not_strong_bear)
+
+    # v265: mirror touch v259 — blow-off-bottom confirm 兩日確認進場路徑
+    #   T-1: 量 ≥ 3×vd5 + 新 8 日低 + 錘子線 (恐慌出量探底，下影 ≥ 50% HL + 實體 ≤ 30% HL)
+    #   T:   close > T-1 close (隔日反彈確認)
+    #   lp ≥ 0 且 lp 上升 (分數脫離弱勢)
+    prev_low = _shift(data.low, 1)
+    prev_close = _shift(data.close, 1)
+    prev_vol = _shift(data.volume, 1)
+    prev_vd5 = _shift(data.volume_result.sma[5], 1)
+    prev_bs_low_8 = _shift(data.close_result.bs.low[8], 1)
+    prev_hammer_low = _shift(_hammer_lower_shadow(data), 1)
+    blow_off_vol_pick = prev_vol >= 3.0 * prev_vd5
+    new_8d_low = prev_low <= prev_bs_low_8
+    today_bullish = data.close > prev_close
+    lp_today = long_pct
+    lp_neutral = lp_today >= 0
+    lp_rising = lp_today > _shift(lp_today, 1)
+    blow_off_confirm_pick = (blow_off_vol_pick & new_8d_low
+                             & prev_hammer_low & today_bullish
+                             & lp_neutral & lp_rising)
+
+    return main_path | blow_off_confirm_pick
 
 
 def touch_condition(data: "StockData") -> BoolArray:
@@ -684,21 +739,19 @@ def touch_condition(data: "StockData") -> BoolArray:
     # v257: blow-off confirm + short_pct >= 0 過濾
     #   E: 加 short_pct >= 0 確保評分系統不在強多 (避免偏多市場誤觸)
     prev_high = _shift(data.high, 1)
-    prev_low = _shift(data.low, 1)
     prev_close = _shift(data.close, 1)
     prev_vol = _shift(data.volume, 1)
     prev_vd5 = _shift(data.volume_result.sma[5], 1)
     prev_bs_high_8 = _shift(data.close_result.bs.high[8], 1)
+    prev_hammer_high = _shift(_hammer_upper_shadow(data), 1)
     blow_off_vol = prev_vol >= 3.0 * prev_vd5
     new_8d_high = prev_high >= prev_bs_high_8
-    prev_range = np.maximum(prev_high - prev_low, 0.01)
-    long_upper_shadow = ((prev_high - prev_close) / prev_range) >= 0.6
     today_bearish = data.close < prev_close
     sp_today = _short_pct_array(data)
     sp_neutral = sp_today >= 0
     sp_rising = sp_today > _shift(sp_today, 1)
     blow_off_confirm = (blow_off_vol & new_8d_high
-                        & long_upper_shadow & today_bearish
+                        & prev_hammer_high & today_bearish
                         & sp_neutral & sp_rising)
 
     return main_path | blow_off_confirm
