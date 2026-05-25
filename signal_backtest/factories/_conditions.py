@@ -504,8 +504,17 @@ def pick_condition(data: "StockData") -> BoolArray:
     ol3 = data.over_breakout.over_lower_3
     rule_pos = bs58 & _last_n_any(ol3, 3)
 
-    # 6. 大盤過濾
-    rule_market = ~_market_strongly_bearish(data)
+    # 6 + 8: v263 mirror v234 buy_condition — 3-tier lp gate by market state
+    #   強空 (any <= -2): long_pct >= 0 (最嚴，取代原本 ~strongly_bear 硬過濾)
+    #   偏空 (any -1, 沒到 -2): long_pct >= -5
+    #   default (no bear): long_pct >= -10 (sweep peak PF 1.413, +0.27 vs no gate)
+    long_pct = _long_pct_array(data)
+    strongly_bear = _market_strongly_bearish(data)
+    moderate_bear_only = _market_any_bear(data) & ~strongly_bear
+    rule_long_pct_tier = np.where(
+        strongly_bear, long_pct >= 0,
+        np.where(moderate_bear_only, long_pct >= -5, long_pct >= -10),
+    )
 
     # 2. v83 補 Go G22: 扣抵翻轉(3日內) OR 中峰任一[0..2] OR 長峰任一[0..4]
     long_change = _turn_change_up(turn[34]) | _turn_change_up(turn[55])
@@ -581,7 +590,7 @@ def pick_condition(data: "StockData") -> BoolArray:
     # design. Reverted in v21.
 
     return (rule_pos & rule_change & rule_vol & rule_flood & rule_g19
-            & rule_g10 & rule_market & rule_macd & rule_not_strong_bear)
+            & rule_g10 & rule_long_pct_tier & rule_macd & rule_not_strong_bear)
 
 
 def touch_condition(data: "StockData") -> BoolArray:

@@ -61,6 +61,18 @@ def pick_signal(data: "StockData") -> SignalSpec:
     chand_long = chand.long_stop.astype(np.float32)
     chand_trigger = ~np.isnan(chand_long)
     # v202h: K 棒 exhaustion defense 加到 pick 退步 -0.022（pick 低 PF 誤殺成本高）, 不採用
+    # v261: 鏡像 v253 — 進場後第 3 天，若 day1/2/3 high 都沒高於進場日 high → LL3
+    entry_high_hyp_d3 = _shift(data.high, 3)
+    no_high_d1_d3 = _shift(data.high, 2) <= entry_high_hyp_d3
+    no_high_d2_d3 = _shift(data.high, 1) <= entry_high_hyp_d3
+    no_high_d3_d3 = data.high <= entry_high_hyp_d3
+    day3_no_high = no_high_d1_d3 & no_high_d2_d3 & no_high_d3_d3
+    # v262: 鏡像 v254 — 進場後第 2 天，high 都未破 entry high AND 今日 L < 昨日 L → LL3
+    entry_high_hyp_d2 = _shift(data.high, 2)
+    no_high_d1_d2 = _shift(data.high, 1) <= entry_high_hyp_d2
+    no_high_d2_d2 = data.high <= entry_high_hyp_d2
+    l_down = data.low < _shift(data.low, 1)
+    day2_no_high_l_down = no_high_d1_d2 & no_high_d2_d2 & l_down
     long_defense = [
         DefenseRule(name="洪量後5日內8日低",
                     trigger=flood_recent5, source=rolling_lowest(data.low, 8)),
@@ -70,6 +82,12 @@ def pick_signal(data: "StockData") -> SignalSpec:
                     trigger=score_surge_with_vol, source=rolling_lowest(data.low, 8)),
         DefenseRule(name="Chandelier21x6",
                     trigger=chand_trigger, source=chand_long),
+        DefenseRule(name="進場後3日皆未破進場日high→3日低",
+                    trigger=day3_no_high, source=rolling_lowest(data.low, 3),
+                    min_days_after_entry=3, max_days_after_entry=3),
+        DefenseRule(name="進場後2日未破進場high+L<L[1]→3日低",
+                    trigger=day2_no_high_l_down, source=rolling_lowest(data.low, 3),
+                    min_days_after_entry=2, max_days_after_entry=2),
     ]
 
     return SignalSpec(
