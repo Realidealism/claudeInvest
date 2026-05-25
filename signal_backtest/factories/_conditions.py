@@ -644,13 +644,22 @@ def touch_condition(data: "StockData") -> BoolArray:
     convex13 = data.candle_result.convex_n[13]
     rule_convex = ~_last_n_all(convex13, 3)
 
-    # v31 鏡像 sell v24：從「~strongly_bullish」改「any_bear」，要求市場已有空方順風
-    # (v178 試 zone-based 鏡像 sell v171，Portfolio PF -0.0068 稀釋失敗已 revert)
-    rule_market = _market_any_bear(data)
-
     # v32 鏡像 sell v25：加短+中尺度 down_hot 排除，避免在底部過熱時摸頭做空
     ms = data.market_state
     rule_not_double_down_hot = ~(ms.short_down_hot & ms.medium_down_hot)
+
+    # v264: mirror v263 pick — 3-tier sp gate by market state
+    #   強多 (any trend >= +2): short_pct >= 0 (最嚴，取代原本 any_bear 硬過濾)
+    #   偏多 (any +1, 沒到 +2): short_pct >= -5
+    #   default (no bull): short_pct >= -10 (sweep peak PF 1.47-1.54)
+    short_pct = _short_pct_array(data)
+    strongly_bull = _market_strongly_bullish(data)
+    any_bull = (ms.short_trend >= 1) | (ms.medium_trend >= 1) | (ms.long_trend >= 1)
+    moderate_bull_only = any_bull & ~strongly_bull
+    rule_short_pct_tier = np.where(
+        strongly_bull, short_pct >= 0,
+        np.where(moderate_bull_only, short_pct >= -5, short_pct >= -10),
+    )
 
     # 8. v126: 鏡像 pick v123 — pte 2 日窗口 AND ~weak_down1 AND ~carryover_strong_rise
     macd_short = data.macd.short
@@ -670,7 +679,7 @@ def touch_condition(data: "StockData") -> BoolArray:
     # not topping-tail entries which is what our touch is hunting.
 
     main_path = (rule_pos & rule_change & rule_vol & rule_flood & rule_knot
-                 & rule_convex & rule_market & rule_not_double_down_hot & rule_macd)
+                 & rule_convex & rule_short_pct_tier & rule_not_double_down_hot & rule_macd)
 
     # v257: blow-off confirm + short_pct >= 0 過濾
     #   E: 加 short_pct >= 0 確保評分系統不在強多 (避免偏多市場誤觸)
