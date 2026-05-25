@@ -712,7 +712,11 @@ def buy_condition(data: "StockData") -> BoolArray:
 
     vol = data.volume
     vd5 = data.volume_result.sma[5]
-    rule_vol = vol >= vd5
+    # v249: 漲停 (close >= ref × 1.095) override rule_vol
+    #   漲停無量 = 買盤鎖死 = momentum 終極確認，量被結構壓死，rule_vol 該讓步
+    ref = data.ref_price
+    at_limit_up = (ref > 0) & (close >= ref * 1.095)
+    rule_vol = (vol >= vd5) | at_limit_up
 
     long_knot = data.close_result.knot["long"].flag
     rule_knot = ~long_knot
@@ -824,6 +828,7 @@ def sell_condition(data: "StockData") -> BoolArray:
     #   強多 (any trend >= +2): short_pct >= 50 (極嚴 — 強多時做空風險高)
     #   偏多 (any +1, 沒到 +2): short_pct >= 40
     #   default (no bull): short_pct >= 35
+    # v248 mirror reversal override 驗證淨負 (sell PF -0.043, portfolio -0.004), 不採用
     short_pct = _short_pct_array(data)
     strongly_bull = _market_strongly_bullish(data)
     any_bull = (ms.short_trend >= 1) | (ms.medium_trend >= 1) | (ms.long_trend >= 1)
