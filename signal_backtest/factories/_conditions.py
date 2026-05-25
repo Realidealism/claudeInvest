@@ -810,7 +810,11 @@ def sell_condition(data: "StockData") -> BoolArray:
 
     vol = data.volume
     vd5 = data.volume_result.sma[5]
-    rule_vol = vol >= vd5
+    # v250 mirror v249: 跌停 (close <= ref × 0.905) override rule_vol
+    #   跌停無量 = 賣壓鎖死供給 = 動能終極確認，量讓步
+    ref = data.ref_price
+    at_limit_down = (ref > 0) & (close <= ref * 0.905)
+    rule_vol = (vol >= vd5) | at_limit_down
 
     long_knot = data.close_result.knot["long"].flag
     rule_knot = ~long_knot
