@@ -644,7 +644,7 @@ def pick_condition(data: "StockData") -> BoolArray:
     new_8d_low = prev_low <= prev_ll8
     today_bullish = data.close > prev_close
     lp_today = long_pct
-    lp_neutral = lp_today >= 0
+    lp_neutral = lp_today >= 5
     lp_rising = lp_today > _shift(lp_today, 1)
     blow_off_confirm_pick = (blow_off_vol_pick & new_8d_low
                              & prev_hammer_low & today_bullish
