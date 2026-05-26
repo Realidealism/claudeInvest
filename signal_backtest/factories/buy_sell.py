@@ -62,6 +62,21 @@ def buy_signal(data: "StockData") -> SignalSpec:
     )
     chand_long = chand.long_stop.astype(np.float32)
     chand_trigger = ~np.isnan(chand_long)
+    # v280: 昨日跳空+下影+量(且為近5日最大量 90%+), 今日 close 跌破昨日 low → LL3
+    #   物理：T-1 跳空向上 + 下影 + 量強 + 量為近 5 日峰值 90%+
+    #         = 強開高 + 賣壓測試低點 + 量是真實 climax (climax/exhaustion top)
+    #         T 收破昨日 low = 承接無效真崩
+    #   max_days=5 限制：避免砍長持後期健康回測
+    prev_shadow_lo = _shift(data.candle_result.shadow.lower, 1)
+    prev_vol_strong = _shift(vol_strong, 1)
+    prev_vol = _shift(data.volume, 1)
+    prev_vol_high5 = _shift(data.volume_result.high[5], 1)
+    prev_vol_near_peak = prev_vol >= prev_vol_high5 * 0.9
+    prev_low = _shift(data.low, 1)
+    prev_jump = _shift(data.candle_result.jump, 1)
+    fake_support = (prev_jump & prev_shadow_lo & prev_vol_strong
+                    & prev_vol_near_peak
+                    & (data.close < prev_low))
     long_defense = [
         DefenseRule(name="停滯13日無新高→8日低",
                     trigger=stagnant_long, source=rolling_lowest(data.low, 8)),
@@ -73,7 +88,17 @@ def buy_signal(data: "StockData") -> SignalSpec:
                     trigger=extreme_exhaustion, source=rolling_lowest(data.low, 8)),
         DefenseRule(name="Chandelier21x6",
                     trigger=chand_trigger, source=chand_long),
+        DefenseRule(name="昨日跳空+下影+量今日跌破→3日低(進場3天內)",
+                    trigger=fake_support, source=rolling_lowest(data.low, 3),
+                    max_days_after_entry=3),
     ]
+    # v279 試驗封存（4 變體全 destructive，2026-05-26）：
+    #   v1: surge_3x_vd5 + _hammer_lower_shadow → LL2 — 砍長尾贏家 (合一 846→230)
+    #   v2: 同上 + 黑K — 中性無害但救不到 Top 10
+    #   v3: OverHigh + vol_strong + _hammer + 黑K → LL2 — destructive，砍中型贏家
+    #   v4: OverHigh + vol_strong + shadow.lower + 黑K → LL2 — 救 5521 +16.67ppts 但
+    #       砍長尾 -1551 ppts (4128 中天 533→27 等)，淨 PF -0.035
+    #   結論：buy 對「進場後快崩」型 (5521) 沒有安全的 K 棒/量能-based defense
 
     return SignalSpec(
         name="buy",
