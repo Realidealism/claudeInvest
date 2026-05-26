@@ -73,6 +73,17 @@ def pick_signal(data: "StockData") -> SignalSpec:
     no_high_d2_d2 = data.high <= entry_high_hyp_d2
     l_down = data.low < _shift(data.low, 1)
     day2_no_high_l_down = no_high_d1_d2 & no_high_d2_d2 & l_down
+    # v281: 鏡像 v280 buy defense — 昨日跳空+下影+量(peak90%) 今日跌破 → LL3 (進場3天內)
+    prev_shadow_lo = _shift(data.candle_result.shadow.lower, 1)
+    prev_vol_strong = _shift(vol_strong, 1)
+    prev_vol = _shift(data.volume, 1)
+    prev_vol_high5 = _shift(data.volume_result.high[5], 1)
+    prev_vol_near_peak = prev_vol >= prev_vol_high5 * 0.9
+    prev_low = _shift(data.low, 1)
+    prev_jump = _shift(data.candle_result.jump, 1)
+    fake_support = (prev_jump & prev_shadow_lo & prev_vol_strong
+                    & prev_vol_near_peak
+                    & (data.close < prev_low))
     long_defense = [
         DefenseRule(name="洪量後5日內8日低",
                     trigger=flood_recent5, source=rolling_lowest(data.low, 8)),
@@ -88,6 +99,9 @@ def pick_signal(data: "StockData") -> SignalSpec:
         DefenseRule(name="進場後2日未破進場high+L<L[1]→3日低",
                     trigger=day2_no_high_l_down, source=rolling_lowest(data.low, 3),
                     min_days_after_entry=2, max_days_after_entry=2),
+        DefenseRule(name="昨日跳空+下影+量今日跌破→3日低(進場3天內)",
+                    trigger=fake_support, source=rolling_lowest(data.low, 3),
+                    max_days_after_entry=3),
     ]
 
     return SignalSpec(
