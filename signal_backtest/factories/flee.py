@@ -136,6 +136,13 @@ def sell_flee_factory(data: "StockData") -> SignalSpec:
         DefenseRule(name="Chandelier21x6",
                     trigger=chand_trigger, source=chand_long),
     ]
+    # v282 試驗封存（destructive，2026-05-27）：
+    #   鏡像 v280 buy / v281 pick fake-support defense 到 sell_flee
+    #   結果：sell_flee PF 2.489 → 2.406 (-0.083), mxG 533→442, portfolio PF -0.0046
+    #   主因：sell_flee 是 trend-following 長尾右尾訊號 (平均 +6%, mxG 533)，
+    #   進場早期「跳空+下影+量+跌破」多為健康回測（如 4128 中天 covid 段被砍 -525 ppts），
+    #   非真崩。13:1 受害/受益不對稱。
+    #   結論：fake-support pattern 不適用於 sell_flee 長尾形態
 
     return SignalSpec(
         name="sell_flee",

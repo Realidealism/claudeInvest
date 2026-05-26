@@ -162,6 +162,11 @@ def sell_signal(data: "StockData") -> SignalSpec:
         DefenseRule(name="Chandelier21x1.5",
                     trigger=chand_trigger_short, source=chand_short),
     ]
+    # v283 試驗封存（dead rule, 2026-05-27）：
+    #   鏡像 v280 buy fake-support 到 sell 短側 — squat + shadow.upper + vol_peak + close>prev_high → HH3
+    #   結果：0 trade 變動 (含/不含進場 3 天窗口都一樣)
+    #   原因：5 條件 AND 後 base rate 0.14%（48k bars 中 68 次），落在短持倉 sell trades 內近 0
+    #   結構鏡像對稱但 base rate 不對稱 — 「跳空下 V 反 textbook」極罕見
 
     return SignalSpec(
         name="sell",
