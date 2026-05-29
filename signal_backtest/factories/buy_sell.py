@@ -92,6 +92,50 @@ def buy_signal(data: "StockData") -> SignalSpec:
                     trigger=fake_support, source=rolling_lowest(data.low, 3),
                     max_days_after_entry=3),
     ]
+    # v288 試驗封存 (destructive, 2026-05-27):
+    #   trigger: vs≤1 & high≥HH8 在 5 日內 → LL5
+    #   Portfolio PF -0.0854 嚴重退步, 5314 世紀* +459→-16 (-475 ppts) 等災難
+    #   失敗原因: 「flood/big @ HH8」其實是「健康突破」base rate，跟「distribution」同形態
+    #   真正 distribution 需事後確認 (峰值出量 + 後續失敗創高), 非當下單純 K 棒可識別
+
+    # v287/v288 試驗封存（紅瀑+UP波量 defense 全 destructive, 2026-05-27）：
+    #   v287/v288 變體：新紅瀑首日 + UP波量 2x/3x + 紅瀑 length > 12波均 × 1.5 → tip1
+    #   Portfolio PF 1.6840 → 1.6828 (-0.0012)，buy 僅 +28 trades trigger 太稀疏
+    #   9 個 user 指定關鍵案例 (3026/6933/1519/5284/2457 等) 只動到 5284 且 -57.3 ppts
+    #   結論：紅瀑/UP波量 distribution 形態無法 ex-ante 跟「健康放量」區分
+    #   重要 case (5284 jpp-KY, 2457 飛宏) 紅瀑帶量是真實大幅 distribution 後反彈
+    #   any tip1 source 拉高都會把後續反彈贏單早殺，與 long_defense 天花板一致
+
+    # v289-v293 試驗封存（extreme_waterfall defense 全 destructive, 2026-05-27）：
+    #   Primitive 新加 analysis/wave.py: extreme_waterfall = waterfall AND wl > wld12ma × 3.0
+    #   Family 對照 (vs v281 baseline 1.6840):
+    #     v289 (tip1, no gate)         : PF 1.6835, 賺賠 3.011, 太鬆基本無感
+    #     v290 (up0, no gate)          : PF 1.6313, 賺賠 2.823, 太緊砍長尾
+    #     v291 (up0 + UP波量2x)         : PF 1.6509, 賺賠 2.913, 過濾 TSMC 但仍砍 3026/5314
+    #     v292 (up0 + 今日 flood/big)   : PF 1.6523, 賺賠 2.885, 砍更多
+    #     v293 (mid0 + 今日 flood/big)  : PF 1.6675, 賺賠 2.952, family 最佳但仍 < baseline
+    #   結論：buy trend-following 訊號的右尾贏家 (4128/5314/3026/3105/3701 級別 +200~+800%)
+    #   來自於「不被中段切」，extreme_wf 本身是 trend momentum 訊號而非 distribution top；
+    #   任何鎖利 source (tip1/mid0/up0) 在受害分類 type A (中段切) + type B (尾段切) 之間
+    #   是不可調和的：鬆了 5314 不鎖到任何利、緊了 3026 又被早砍。
+    #   primitive red_extreme_waterfall0 保留在 wave.py 供未來其他訊號 (buy_flee/touch) 用
+
+    # v285/v286 試驗封存（波浪 defense 全 destructive, 2026-05-27）：
+    #   v285 wave_d4_death → tip1：Portfolio PF -0.1339（歷史最大單版退步！）
+    #     trigger 太頻繁 (短波死叉在 trend-up 健康回測常見), buy +5250 trades (+27%)
+    #     切碎長尾大贏家 (5314 世紀* 459→25 -434 ppts), 救 6933 +10.92 ppts 不對稱
+    #   v286 close_break_red_wf_down → red_wf_down_price：Portfolio PF -0.0363
+    #     概念上稀，但新紅瀑形成 + 微觀跌破會誤觸發 (3026 禾伸堂 397→-5)
+    #     buy +2727 trades, 切碎 350+% 級長尾贏家
+    #   結論：波浪事件 + 緊 source 對 buy trend-following 結構性失敗
+    #   buy 靠長持抓右尾大贏家，任何「波結構轉空」事件在大波段中頻發 = 切碎長尾
+
+    # v284 試驗封存（2 變體全 destructive, 2026-05-27）：
+    #   v1: 連續 3 日 vol_status≤2 → LL5 — 砍長尾 -475 ppts, 6933 沒救
+    #   v2: 近 5 日 ≥3 日 vol_status≤2 → LL8 — 同樣 destructive -0.0048 PF
+    #   原因：buy trend-up 段健康放量本就有「連續/頻繁大量」，rule fire 在 trend
+    #   continuation 砍長尾贏家；6933 型急殺反而在進場後 vol 乾枯，LL ratchet 無效
+
     # v279 試驗封存（4 變體全 destructive，2026-05-26）：
     #   v1: surge_3x_vd5 + _hammer_lower_shadow → LL2 — 砍長尾贏家 (合一 846→230)
     #   v2: 同上 + 黑K — 中性無害但救不到 Top 10

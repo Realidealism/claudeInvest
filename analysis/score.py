@@ -473,6 +473,12 @@ def _add_sort_rules(board: ScoreBoard) -> None:
         # sort_forming: ±5 × multiplier
         _add_forming_pair(card, label, 5 * w, "排列")
 
+    # v298/v299 試驗封存 (2026-05-28, ScoreBoard asymmetric short_sort_normal空排)：
+    #   v298 (+10 pts to short side only): Portfolio PF -0.0019 ≈ 噪音, 8069 0 fire
+    #   v299 (+30 pts, 3x 加重): Portfolio PF -0.0056, buy_flee PF -0.43 / sell_flee -0.19 大退
+    #   8069 仍 0 fire (touch/buy_flee) — 真正擋 sell 的是 OBV gate, 擋 buy_flee 是 prev1<=0
+    #   結論：ScoreBoard 強度不是 8069 的瓶頸，sp 加敏感反而破壞 buy_flee/sell_flee gate 校準
+
 
 def _add_turn_pair(card: ScoreCard, period: int, pts: float, cat: str):
     """Add bullish/bearish turn conditions for one MA period to both sides."""

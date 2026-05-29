@@ -48,6 +48,7 @@ class WaveList:
     mid_price: List[float] = field(default_factory=list)
     down_price: List[float] = field(default_factory=list)
     waterfall: List[bool] = field(default_factory=list)
+    extreme_waterfall: List[bool] = field(default_factory=list)
     water_ditch: List[bool] = field(default_factory=list)
     avg_volume: List[float] = field(default_factory=list)
     _count: int = 0
@@ -90,6 +91,7 @@ class WaveList:
             self.down_price.append(lo)
 
         self.waterfall.append(False)
+        self.extreme_waterfall.append(False)
         self.water_ditch.append(False)
         self.avg_volume.append(0.0)
 
@@ -152,6 +154,10 @@ class WaveList:
             and wl > wld10b * 0.2
             and (wl > wld12s * 3 or (wl > wld12s * 2 and wl == wld4b))
         )
+
+        # Extreme waterfall: pure-structural top ~14% of UP waterfalls
+        # gate = waterfall AND wl > wld12ma × 3.0
+        self.extreme_waterfall[idx] = self.waterfall[idx] and wl > wld12ma * 3.0
 
         # Ditch
         self.water_ditch[idx] = (
@@ -228,6 +234,8 @@ class WaveResult:
     black_waterfall0: BoolArray
     red_waterfall1: BoolArray
     black_waterfall1: BoolArray
+    red_extreme_waterfall0: BoolArray
+    black_extreme_waterfall0: BoolArray
 
     red_sizable_wave1: BoolArray
     black_sizable_wave1: BoolArray
@@ -321,6 +329,8 @@ def calculate_wave(
     black_wf0 = np.zeros(n, dtype=np.bool_)
     red_wf1 = np.zeros(n, dtype=np.bool_)
     black_wf1 = np.zeros(n, dtype=np.bool_)
+    red_ewf0 = np.zeros(n, dtype=np.bool_)
+    black_ewf0 = np.zeros(n, dtype=np.bool_)
     red_wd1 = np.zeros(n, dtype=np.bool_)
     black_wd1 = np.zeros(n, dtype=np.bool_)
 
@@ -361,6 +371,7 @@ def calculate_wave(
             close_cross_d2ma=close_cross_d2ma,
             red_wf0=red_wf0, black_wf0=black_wf0,
             red_wf1=red_wf1, black_wf1=black_wf1,
+            red_ewf0=red_ewf0, black_ewf0=black_ewf0,
             red_wd1=red_wd1, black_wd1=black_wd1,
             bwf_top=bwf_top, bwf_bot=bwf_bot,
             rwf_top=rwf_top, rwf_bot=rwf_bot,
@@ -626,6 +637,8 @@ def calculate_wave(
                           and W.wave[wc - 2])
             black_wf1[i] = (W.waterfall[wc - 2] and W.day[wc - 2] == 0
                             and not W.wave[wc - 2])
+            red_ewf0[i] = W.extreme_waterfall[wc - 1] and W.wave[wc - 1]
+            black_ewf0[i] = W.extreme_waterfall[wc - 1] and not W.wave[wc - 1]
             red_wd1[i] = (not W.water_ditch[wc - 2] and W.day[wc - 2] == 0
                           and W.wave[wc - 2])
             black_wd1[i] = (not W.water_ditch[wc - 2] and W.day[wc - 2] == 0
@@ -702,6 +715,7 @@ def calculate_wave(
         wave_d8_gold=wave_d8_gold,
         red_wf0=red_wf0, black_wf0=black_wf0,
         red_wf1=red_wf1, black_wf1=black_wf1,
+        red_ewf0=red_ewf0, black_ewf0=black_ewf0,
         red_wd1=red_wd1, black_wd1=black_wd1,
         bwf_top=bwf_top, bwf_bot=bwf_bot,
         rwf_top=rwf_top, rwf_bot=rwf_bot,
@@ -907,6 +921,7 @@ def _build_result(
     wave_d6_death=None, wave_d6_gold=None,
     wave_d8_death=None, wave_d8_gold=None,
     red_wf0=None, black_wf0=None, red_wf1=None, black_wf1=None,
+    red_ewf0=None, black_ewf0=None,
     red_wd1=None, black_wd1=None,
     bwf_top=None, bwf_bot=None, rwf_top=None, rwf_bot=None,
     bwf_up=None, rwf_down=None,
@@ -958,6 +973,10 @@ def _build_result(
         wave_d8_gold=wave_d8_gold,
         red_waterfall0=red_wf0, black_waterfall0=black_wf0,
         red_waterfall1=red_wf1, black_waterfall1=black_wf1,
+        red_extreme_waterfall0=(red_ewf0 if red_ewf0 is not None
+                                else np.zeros(n, dtype=np.bool_)),
+        black_extreme_waterfall0=(black_ewf0 if black_ewf0 is not None
+                                  else np.zeros(n, dtype=np.bool_)),
         red_sizable_wave1=red_wd1, black_sizable_wave1=black_wd1,
         black_wf_top_tip=bwf_top, black_wf_bottom_tip=bwf_bot,
         red_wf_top_tip=rwf_top, red_wf_bottom_tip=rwf_bot,

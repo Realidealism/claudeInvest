@@ -687,6 +687,12 @@ def touch_condition(data: "StockData") -> BoolArray:
     )
     rule_pos = walked_or_called & (ou3 | _shift(ou3, 1))
 
+    # v294/v295/v296 試驗封存（touch rule_change sweep 全 destructive, 2026-05-28）：
+    #   v294 鏡像 pick v83 (加 medium_hl + long_hl 共 3 OR): PF -0.038 / touch +248% trades
+    #   v295 完全移除 rule_change (∀=1): PF -0.152 / touch +943% trades / 連續回撤 +723%
+    #   v296 窗口 3→5 日 (保留 1 條): PF -0.0044 / touch +18.7% / 摸頭 mxL -2.5
+    #   結論：3d 1 條 (only long_change) 是經 sweep 驗證的 sweet spot，三方向動都退步
+    #   touch 跟 pick 在 rule_change 上不對稱性確認 (見 project_ma_confluence_asymmetry)
     long_change = _turn_change_down(turn[34]) | _turn_change_down(turn[55])
     rule_change = _last_n_any(long_change, 3)
 
@@ -730,6 +736,10 @@ def touch_condition(data: "StockData") -> BoolArray:
     prev_osc_x = _shift(osc_x, 1)
     strong_rise = osc_x > 2 * np.abs(prev_osc_x)
     exclude_strong_breakup = prev_pte & today_no_pte & strong_rise
+    # v297 試驗封存 (2026-05-28)：pte 窗口 2→3 日
+    #   Portfolio PF 1.6840 → 1.6803 (-0.0037), 摸頭 PF 1.39→1.35
+    #   8069 12/31 case fire @198 但 2 天後 (01/02 @201) 防守觸發 -1.49% 出場
+    #   暴露雙重問題：entry 拉鬆能多抓 case 但短倉防守對小反彈敏感切碎
     rule_macd = (_last_n_any(pte, 2)
                  & ~macd_short.osc_status_down_weak1
                  & ~exclude_strong_breakup)
@@ -926,23 +936,39 @@ def sell_condition(data: "StockData") -> BoolArray:
     # 10. v58 個股 medium scope MA 全空頭排列（SMA5<SMA13<SMA34）
     rule_medium_ma_bear = data.close_result.ma.sort_normal["medium"].down
 
-    # v238: 3-tier short_pct gate (強多 50 加嚴)
-    #   強多 (any trend >= +2): short_pct >= 50 (極嚴 — 強多時做空風險高)
-    #   偏多 (any +1, 沒到 +2): short_pct >= 40
-    #   default (no bull): short_pct >= 35
-    # v248 mirror reversal override 驗證淨負 (sell PF -0.043, portfolio -0.004), 不採用
+    # v303 (adopted): 5-tier short_pct gate (補 bear tier — 順勢做空放寬)
+    #   強多 (any +2): sp >= 50  (極嚴 — 強多時做空風險高)
+    #   偏多 (any +1): sp >= 40  (嚴)
+    #   中性:        sp >= 35  (default)
+    #   偏空 (any -1): sp >= 30  (放寬 — 順勢做空)
+    #   強空 (any -2): sp >= 25  (放寬更多)
+    #   結果：Portfolio PF 1.6840 → 1.6720 (-0.0120), 但 sell PF +0.005、mean +0.03、mxG +31.7
+    #   8069 10/14 case 救到 +17.52% (慢死空頭股首次抓到 9-12 段反彈前進場機會)
+    #   連續回撤 +725 ppts 是隱憂 (強空市場 sp>=25 放寬把較弱訊號帶入)
+    #   採用理由：sell 結構本質改善 (mxG/mean/PF 三項皆正)，補對稱 5-tier 設計缺口
     short_pct = _short_pct_array(data)
     strongly_bull = _market_strongly_bullish(data)
     any_bull = (ms.short_trend >= 1) | (ms.medium_trend >= 1) | (ms.long_trend >= 1)
     moderate_bull_only = any_bull & ~strongly_bull
+    strongly_bear = _market_strongly_bearish(data)
+    moderate_bear_only = _market_any_bear(data) & ~strongly_bear
     rule_short_pct_gate = np.where(
         strongly_bull, short_pct >= 50,
-        np.where(moderate_bull_only, short_pct >= 40, short_pct >= 35),
+        np.where(moderate_bull_only, short_pct >= 40,
+                 np.where(strongly_bear, short_pct >= 25,
+                          np.where(moderate_bear_only, short_pct >= 30,
+                                   short_pct >= 35))),
     )
 
     # 12. v130 port Go GS11：~nte (不在底背離 — 排除「死叉但動能轉強」的反彈段)
     rule_not_nte = ~data.macd.short.macd_convergence_nte
 
+    # v300/v301/v302 試驗封存 (2026-05-28, sell OBV gate sweep)：
+    #   v300 2d OR trend==-1: PF -0.0695, sell trades +304%, 災難
+    #   v301 窗口 2→3 日: PF -0.0094, sell trades +28%
+    #   v302 窗口 2→5 日: PF -0.0252, sell trades +84%
+    #   結論：2d 在 v281 era 仍是 sweep sweet spot (單調退步 3d/5d/OR)
+    #   8069 9-12 段救不到的真正原因：sell rule_break/vol/medium_ma_bear/sp_g 多 gate 同時失靈
     # 13. v141: OBV short signal_down 2日 AND 今日不是 signal_up
     obv_short = data.obv.short
     rule_obv_bearish = (_last_n_any(obv_short.signal_down, 2)
