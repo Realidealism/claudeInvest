@@ -802,13 +802,17 @@ def buy_condition(data: "StockData") -> BoolArray:
     sma = data.close_result.ma.sma
     turn = data.close_result.turn
 
-    # v188: rule_ma 加 pre 模式 — 量配合時用「明日 sma 預測」提前通過 8>21 排列
-    # pre_sma_n[i] = sma_n[i] + (close[i] - close[i-(n-1)]) / n
+    # v307 (adopted): ma_strict 排列 sma[8]>sma[21] → sma[3]>sma[13] (兩邊都縮短)
+    #   sweep family: v305 sma3>sma21 -0.0059 / v306 sma5>sma21 +0.0002 / v307 sma3>sma13 +0.0129
+    #   結果：Portfolio PF 1.6720 → 1.6849 (+0.0129, 跨越 v281 原始 baseline 1.6840)
+    #   勝率 +0.06、賺賠比 +0.015、波段多 PF +0.01、抄底/空翻多/波段多 三訊號 PF 正向
+    #   物理：「短均 vs 中短均」對齊比「中均 vs 中均」對 trend 早期確認更敏感
+    # v188: rule_ma 加 pre 模式 — 量配合時用「明日 sma 預測」提前通過排列
     volume_status = data.volume_result.volume_status
     vol_strong = volume_status <= 2  # flood / big / high
     pre_sma8 = sma[8] + (close - _shift(close, 7)) / 8.0
     pre_sma21 = sma[21] + (close - _shift(close, 20)) / 21.0
-    ma_strict = (close > sma[8]) & (sma[8] > sma[21])
+    ma_strict = (close > sma[8]) & (sma[3] > sma[13])
     ma_pre = (close > sma[8]) & vol_strong & (pre_sma8 > pre_sma21)
     rule_ma = ma_strict | ma_pre
 
@@ -832,6 +836,10 @@ def buy_condition(data: "StockData") -> BoolArray:
     # 7. OSC 防禦觸發（Go BuyCondition line 7866-7877，trigger_main 部分）
     rule_osc = _osc_long_trigger(data)
 
+    # v304 試驗封存 (2026-05-29): 3-tier 全 tier -5 (45/40/35 → 40/35/30)
+    #   Portfolio PF 1.6720 → 1.6462 (-0.0258), buy trades +2914 (+15%)
+    #   買方 PF 1.67→1.63, mxG +76 但 mxL -2.6 / 連續回撤 +722
+    #   結論：防守優化救得了「進場後反轉」case，救不了「entry 本身太弱」case
     # 8 + 6 combined: 3-tier gate by market state (v234)
     #   強空 (any <= -2): long_pct >= 45 (最嚴)
     #   偏空 (any -1, 沒到 -2): long_pct >= 40 (中等)
