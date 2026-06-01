@@ -862,6 +862,17 @@ def buy_condition(data: "StockData") -> BoolArray:
                    & (_shift(lp_d1, 3) > 0)
                    & (_shift(lp_d1, 4) > 0))
     strong_reversal = (lp_delta_5 >= 20.0) & (long_pct >= 15.0) & consec_up_5
+    # v338-v342 試驗封存 (2026-06-01): single_day_explosion override 5 變體全失敗
+    #   lp_d1>=30 AND lp>=30 AND (vol_burst | OBV.short.signal_up | turn_all_up
+    #     | OBV.short.trend==1 | OBV.long.trend==1) 任一變體
+    #   實測 vs v336b RERUN 6/1 cache baseline 1.6848:
+    #     v338 vol_burst:        cache mismatch (5/29 base) -0.0035 估計
+    #     v340 signal_up_5d:     cache mismatch -0.0032 估計
+    #     v341 OBV.short.trend:  6/1 cache -0.0036
+    #     v342 OBV.long.trend:   6/1 cache -0.0025 (best, but kills 廣達 5/29)
+    #   memory project_momentum_override_failed 第 3 次驗證：進場日事件無法區分
+    #   V 形真假，差別在 follow-through；廣達 5/29 +9.88% 是 outlier 被 portfolio
+    #   dilution 抵消。任何 single-day-explosion override mechanism 結構性失敗
     rule_long_pct_gate = rule_long_pct_tier | strong_reversal
 
     # 9. v131: ~pte (不在頂背離)
@@ -1111,6 +1122,11 @@ def buy_flee_signal(data: "StockData") -> BoolArray:
           (dry-run d25_g30 差集 PF 1.86 / 勝率 50% / 94 trades). 階梯設計把
           有強翻轉動量的 [30,35) 段救回來，弱翻轉維持嚴 gate.
     """
+    # v337 試驗封存 (2026-06-01): slow_lambda_path mirror of sell_flee v336b 全失敗
+    #   memory project_flee_main_decompose_asymmetry 預警「下跌事件式 not 慢累積」成立
+    #   結果：buy_flee +4 trades, PF 1.91→1.88 (-0.03), unified_short PF -0.0007
+    #   慢累積 Λ 形在 buy_flee universe 太稀 (4 筆 trigger)、品質低於 baseline，
+    #   證實 short side 反轉是 event-driven 非 slow accumulation，mirror 概念不適用
     main = _buy_flee_main(data)
     short_pct = _short_pct_array(data)
     rule_post_strength = short_pct >= 30  # v160: gate 35→30 after v159 dropped rise3 (3D sweep PF 1.55 vs gate35 PF 1.44)
