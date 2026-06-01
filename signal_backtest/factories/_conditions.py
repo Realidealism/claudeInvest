@@ -908,13 +908,17 @@ def sell_condition(data: "StockData") -> BoolArray:
     sma = data.close_result.ma.sma
     turn = data.close_result.turn
 
-    # v189: rule_ma 加 pre 模式 (鏡像 v188 buy) — 量配合時用「明日 sma 預測」
-    # 提前通過 8<21 排列。飆跌股初期 sma8 還沒跌破 sma21，但若 status<=2 + 預測明日翻轉 → 准予進場做空
+    # v308 (adopted): ma_strict 排列 sma[8]<sma[21] → sma[3]<sma[13] (鏡像 v307 buy)
+    #   物理對偶: 「短均跌破中短均」比「中均跌破中均」對 trend 早期確認更敏感
+    #   結果：Portfolio PF 1.6849 → 1.6858 (+0.0009, 噪音邊界)
+    #   sell PF +0.01 / mean +0.04 / 賺賠 +0.003，但 mxG -29.1 (右尾換中端品質)
+    #   採用理由：保持 buy/sell 對稱設計，sell 三主指標皆正
+    # v189: rule_ma 加 pre 模式 (鏡像 v188 buy)
     volume_status_s = data.volume_result.volume_status
     vol_strong_s = volume_status_s <= 2
     pre_sma8_s = sma[8] + (close - _shift(close, 7)) / 8.0
     pre_sma21_s = sma[21] + (close - _shift(close, 20)) / 21.0
-    ma_strict_short = (close < sma[8]) & (sma[8] < sma[21])
+    ma_strict_short = (close < sma[8]) & (sma[3] < sma[13])
     ma_pre_short = (close < sma[8]) & vol_strong_s & (pre_sma8_s < pre_sma21_s)
     rule_ma = ma_strict_short | ma_pre_short
 
@@ -941,6 +945,10 @@ def sell_condition(data: "StockData") -> BoolArray:
     # 9. OSC 防禦觸發（Go SellCondition line 8003-8012）
     rule_osc = _osc_short_trigger(data)
 
+    # v309 試驗封存 (2026-05-30): medium_ma_bear scope medium→short
+    #   Portfolio PF 1.6858 → 1.6836 (-0.0022), 波段空 PF -0.04 / trades -124
+    #   反直覺：short scope (SMA3/8/21) 反而比 medium scope (SMA5/13/34) 觸發更少
+    #   因短均易翻轉，「3-stack 全空排」對齊難維持 stable，medium scope SMA34 慢但 stick
     # 10. v58 個股 medium scope MA 全空頭排列（SMA5<SMA13<SMA34）
     rule_medium_ma_bear = data.close_result.ma.sort_normal["medium"].down
 
@@ -1145,6 +1153,34 @@ def sell_flee_signal(data: "StockData") -> BoolArray:
     gap_up = _gap_up_today(data)
     bait_flip_up = prev_buy_flee_main & gap_up
 
+    # v321: slow_v_path — 慢累積 V 形補捉
+    #   元太 (8069) 5/7 案例：lp[5/7]=-22.4, d1=+15.3, 連3日 d1>0 (+15.3/+15.9/+0.5),
+    #     delta_from_min4=+31.6 (升自 -54)，但 post_strength gate 三條全擋
+    #     (lp<25 / Δ<40 / Δ<50 都不過)。slow_v_path 補抓「深底+多日穩升」型。
+    #   不要求 lp 過 25/30/35 gate，也不要求 above_prev (5/7 above_prev=False)
+    #   仍受 rule_knot AND 約束
+    delta1 = long_pct - prev1_lp
+    d1_y1 = _shift(delta1, 1)
+    d1_y2 = _shift(delta1, 2)
+    consec_up3 = (delta1 > 0) & (d1_y1 > 0) & (d1_y2 > 0)
+    prev3_lp = _shift(long_pct, 3)
+    prev4_lp = _shift(long_pct, 4)
+    min_prev4 = np.minimum(np.minimum(prev1_lp, prev2_lp),
+                            np.minimum(prev3_lp, prev4_lp))
+    delta_from_min4 = long_pct - min_prev4
+    strong_vol = data.volume_result.volume_status <= 1  # flood or big
+    sustained_strong_vol = strong_vol & _shift(strong_vol, 1)
+    # v332: 多週期 turn confirmation — 短/中均線當前皆向上
+    turn = data.close_result.turn
+    turn_all_up = (turn[3] == 2) & (turn[5] == 2) & (turn[8] == 2)
+    # v334: OBV.long trend == 1 — 長 OBV 累積已翻多 state confirmation
+    obv_long_trend_up = data.obv.long.trend == 1
+    # v336b: + wave close_break_black_wf_up (突破前波黑瀑上沿 trend reversal)
+    wave_break_black = data.wave_result.close_break_black_wf_up
+    slow_v_path = (main & consec_up3 & (delta_from_min4 >= 30.0)
+                   & (min_prev4 <= -40.0) & sustained_strong_vol
+                   & turn_all_up & obv_long_trend_up & wave_break_black)
+
     rule_knot = ~(data.close_result.knot["long"].flag
                   | data.close_result.knot["medium"].flag)
-    return (main_with_gate | bait_flip_up) & rule_knot
+    return (main_with_gate | bait_flip_up | slow_v_path) & rule_knot
