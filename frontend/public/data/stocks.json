@@ -609,13 +609,13 @@
       ],
       "etf_holdings": [
         {
-          "etf_id": "00991A",
-          "weight": 0.002,
+          "etf_id": "00982A",
+          "weight": 0.001,
           "trade_date": "2026-06-03"
         },
         {
-          "etf_id": "00982A",
-          "weight": 0.001,
+          "etf_id": "00991A",
+          "weight": 0.002,
           "trade_date": "2026-06-03"
         },
         {
@@ -1454,9 +1454,27 @@
       ],
       "signals": [
         {
+          "signal_type": "etf_multi_exit",
+          "trigger_period": "2026W23",
+          "funds": [
+            "群益台灣科技創新主動",
+            "群益台灣精選強棒"
+          ],
+          "weight_change": null
+        },
+        {
           "signal_type": "etf_consecutive_accumulation",
           "trigger_period": "2026W23",
           "funds": [
+            "復華台灣未來50"
+          ],
+          "weight_change": null
+        },
+        {
+          "signal_type": "etf_multi_consensus",
+          "trigger_period": "2026W23",
+          "funds": [
+            "野村臺灣智慧優選",
             "復華台灣未來50"
           ],
           "weight_change": null
@@ -1472,24 +1490,6 @@
         },
         {
           "signal_type": "etf_multi_exit",
-          "trigger_period": "2026W23",
-          "funds": [
-            "群益台灣科技創新主動",
-            "群益台灣精選強棒"
-          ],
-          "weight_change": null
-        },
-        {
-          "signal_type": "etf_multi_consensus",
-          "trigger_period": "2026W23",
-          "funds": [
-            "野村臺灣智慧優選",
-            "復華台灣未來50"
-          ],
-          "weight_change": null
-        },
-        {
-          "signal_type": "etf_multi_exit",
           "trigger_period": "2026W22",
           "funds": [
             "群益台灣精選強棒",
@@ -1498,7 +1498,7 @@
           "weight_change": null
         },
         {
-          "signal_type": "etf_multi_exit",
+          "signal_type": "etf_multi_consensus",
           "trigger_period": "2026W20",
           "funds": [
             "群益台灣科技創新主動",
@@ -1507,7 +1507,7 @@
           "weight_change": null
         },
         {
-          "signal_type": "etf_multi_consensus",
+          "signal_type": "etf_multi_exit",
           "trigger_period": "2026W20",
           "funds": [
             "群益台灣科技創新主動",
@@ -1643,14 +1643,6 @@
       ],
       "signals": [
         {
-          "signal_type": "etf_consecutive_accumulation",
-          "trigger_period": "2026W23",
-          "funds": [
-            "統一台股增長"
-          ],
-          "weight_change": null
-        },
-        {
           "signal_type": "etf_multi_consensus",
           "trigger_period": "2026W23",
           "funds": [
@@ -1669,6 +1661,14 @@
           "weight_change": null
         },
         {
+          "signal_type": "etf_consecutive_accumulation",
+          "trigger_period": "2026W23",
+          "funds": [
+            "統一台股增長"
+          ],
+          "weight_change": null
+        },
+        {
           "signal_type": "etf_consecutive_reduction",
           "trigger_period": "2026W23",
           "funds": [
@@ -1677,15 +1677,6 @@
           "weight_change": null
         },
         {
-          "signal_type": "etf_multi_consensus",
-          "trigger_period": "2026W22",
-          "funds": [
-            "統一升級50",
-            "統一台股增長"
-          ],
-          "weight_change": null
-        },
-        {
           "signal_type": "etf_consecutive_accumulation",
           "trigger_period": "2026W22",
           "funds": [
@@ -1696,11 +1687,10 @@
         },
         {
           "signal_type": "etf_multi_consensus",
-          "trigger_period": "2026W21",
+          "trigger_period": "2026W22",
           "funds": [
-            "統一台股增長",
             "統一升級50",
-            "群益台灣精選強棒"
+            "統一台股增長"
           ],
           "weight_change": null
         },
@@ -1723,11 +1713,12 @@
           "weight_change": null
         },
         {
-          "signal_type": "etf_consecutive_accumulation",
-          "trigger_period": "2026W20",
+          "signal_type": "etf_multi_consensus",
+          "trigger_period": "2026W21",
           "funds": [
-            "群益台灣精選強棒",
-            "統一台股增長"
+            "統一台股增長",
+            "統一升級50",
+            "群益台灣精選強棒"
           ],
           "weight_change": null
         },
@@ -1740,14 +1731,6 @@
           "weight_change": null
         },
         {
-          "signal_type": "etf_abnormal_position",
-          "trigger_period": "2026W20",
-          "funds": [
-            "統一升級50"
-          ],
-          "weight_change": null
-        },
-        {
           "signal_type": "etf_multi_consensus",
           "trigger_period": "2026W20",
           "funds": [
@@ -1758,6 +1741,31 @@
           "weight_change": null
         },
         {
+          "signal_type": "etf_consecutive_accumulation",
+          "trigger_period": "2026W20",
+          "funds": [
+            "群益台灣精選強棒",
+            "統一台股增長"
+          ],
+          "weight_change": null
+        },
+        {
+          "signal_type": "etf_abnormal_position",
+          "trigger_period": "2026W20",
+          "funds": [
+            "統一升級50"
+          ],
+          "weight_change": null
+        },
+        {
+          "signal_type": "etf_abnormal_position",
+          "trigger_period": "2026W19",
+          "funds": [
+            "群益台灣精選強棒"
+          ],
+          "weight_change": null
+        },
+        {
           "signal_type": "etf_abnormal_exit",
           "trigger_period": "2026W19",
           "funds": [
@@ -1783,10 +1791,11 @@
           "weight_change": null
         },
         {
-          "signal_type": "etf_abnormal_position",
-          "trigger_period": "2026W19",
+          "signal_type": "etf_multi_consensus",
+          "trigger_period": "2026W18",
           "funds": [
-            "群益台灣精選強棒"
+            "群益台灣精選強棒",
+            "統一台股增長"
           ],
           "weight_change": null
         },
@@ -1800,14 +1809,6 @@
           "weight_change": null
         },
         {
-          "signal_type": "etf_abnormal_exit",
-          "trigger_period": "2026W18",
-          "funds": [
-            "安聯台灣主動式"
-          ],
-          "weight_change": null
-        },
-        {
           "signal_type": "etf_consecutive_accumulation",
           "trigger_period": "2026W18",
           "funds": [
@@ -1817,10 +1818,17 @@
           "weight_change": null
         },
         {
-          "signal_type": "etf_multi_consensus",
+          "signal_type": "etf_abnormal_exit",
           "trigger_period": "2026W18",
           "funds": [
-            "群益台灣精選強棒",
+            "安聯台灣主動式"
+          ],
+          "weight_change": null
+        },
+        {
+          "signal_type": "etf_consecutive_accumulation",
+          "trigger_period": "2026W17",
+          "funds": [
             "統一台股增長"
           ],
           "weight_change": null
@@ -1840,14 +1848,6 @@
             "統一台股增長",
             "安聯台灣主動式",
             "群益台灣精選強棒"
-          ],
-          "weight_change": null
-        },
-        {
-          "signal_type": "etf_consecutive_accumulation",
-          "trigger_period": "2026W17",
-          "funds": [
-            "統一台股增長"
           ],
           "weight_change": null
         },
@@ -2343,23 +2343,23 @@
       ],
       "etf_holdings": [
         {
-          "etf_id": "00992A",
-          "weight": 1.702,
-          "trade_date": "2026-06-03"
-        },
-        {
           "etf_id": "00993A",
           "weight": 0.45,
           "trade_date": "2026-06-03"
         },
         {
-          "etf_id": "00991A",
-          "weight": 3.771,
+          "etf_id": "00988A",
+          "weight": 1.39,
           "trade_date": "2026-06-03"
         },
         {
-          "etf_id": "00988A",
-          "weight": 1.39,
+          "etf_id": "00992A",
+          "weight": 1.702,
+          "trade_date": "2026-06-03"
+        },
+        {
+          "etf_id": "00991A",
+          "weight": 3.771,
           "trade_date": "2026-06-03"
         },
         {
@@ -2380,20 +2380,20 @@
       ],
       "signals": [
         {
-          "signal_type": "etf_multi_exit",
-          "trigger_period": "2026W23",
-          "funds": [
-            "群益台灣科技創新主動",
-            "安聯台灣主動式"
-          ],
-          "weight_change": null
-        },
-        {
           "signal_type": "etf_multi_consensus",
           "trigger_period": "2026W23",
           "funds": [
             "統一升級50",
             "復華台灣未來50"
+          ],
+          "weight_change": null
+        },
+        {
+          "signal_type": "etf_multi_exit",
+          "trigger_period": "2026W23",
+          "funds": [
+            "群益台灣科技創新主動",
+            "安聯台灣主動式"
           ],
           "weight_change": null
         },
@@ -2406,39 +2406,21 @@
           "weight_change": null
         },
         {
+          "signal_type": "etf_multi_exit",
+          "trigger_period": "2026W22",
+          "funds": [
+            "復華台灣未來50",
+            "群益台灣精選強棒"
+          ],
+          "weight_change": null
+        },
+        {
           "signal_type": "etf_multi_consensus",
           "trigger_period": "2026W22",
           "funds": [
             "統一升級50",
             "復華台灣未來50",
             "野村臺灣智慧優選"
-          ],
-          "weight_change": null
-        },
-        {
-          "signal_type": "etf_multi_exit",
-          "trigger_period": "2026W22",
-          "funds": [
-            "復華台灣未來50",
-            "群益台灣精選強棒"
-          ],
-          "weight_change": null
-        },
-        {
-          "signal_type": "etf_multi_consensus",
-          "trigger_period": "2026W21",
-          "funds": [
-            "統一升級50",
-            "群益台灣精選強棒"
-          ],
-          "weight_change": null
-        },
-        {
-          "signal_type": "etf_multi_exit",
-          "trigger_period": "2026W21",
-          "funds": [
-            "復華台灣未來50",
-            "群益台灣精選強棒"
           ],
           "weight_change": null
         },
@@ -2455,6 +2437,43 @@
           "trigger_period": "2026W21",
           "funds": [
             "群益台灣精選強棒"
+          ],
+          "weight_change": null
+        },
+        {
+          "signal_type": "etf_multi_consensus",
+          "trigger_period": "2026W21",
+          "funds": [
+            "統一升級50",
+            "群益台灣精選強棒"
+          ],
+          "weight_change": null
+        },
+        {
+          "signal_type": "etf_multi_exit",
+          "trigger_period": "2026W21",
+          "funds": [
+            "復華台灣未來50",
+            "群益台灣精選強棒"
+          ],
+          "weight_change": null
+        },
+        {
+          "signal_type": "etf_multi_consensus",
+          "trigger_period": "2026W20",
+          "funds": [
+            "統一升級50",
+            "統一台股增長",
+            "群益台灣精選強棒",
+            "統一全球創新"
+          ],
+          "weight_change": null
+        },
+        {
+          "signal_type": "etf_abnormal_position",
+          "trigger_period": "2026W20",
+          "funds": [
+            "統一升級50"
           ],
           "weight_change": null
         },
@@ -2479,37 +2498,10 @@
           "weight_change": null
         },
         {
-          "signal_type": "etf_abnormal_position",
-          "trigger_period": "2026W20",
-          "funds": [
-            "統一升級50"
-          ],
-          "weight_change": null
-        },
-        {
           "signal_type": "etf_consecutive_accumulation",
           "trigger_period": "2026W20",
           "funds": [
             "統一全球創新"
-          ],
-          "weight_change": null
-        },
-        {
-          "signal_type": "etf_multi_consensus",
-          "trigger_period": "2026W20",
-          "funds": [
-            "統一升級50",
-            "統一台股增長",
-            "群益台灣精選強棒",
-            "統一全球創新"
-          ],
-          "weight_change": null
-        },
-        {
-          "signal_type": "etf_abnormal_exit",
-          "trigger_period": "2026W19",
-          "funds": [
-            "安聯台灣主動式"
           ],
           "weight_change": null
         },
@@ -2542,6 +2534,14 @@
           "weight_change": null
         },
         {
+          "signal_type": "etf_abnormal_exit",
+          "trigger_period": "2026W19",
+          "funds": [
+            "安聯台灣主動式"
+          ],
+          "weight_change": null
+        },
+        {
           "signal_type": "etf_multi_consensus",
           "trigger_period": "2026W18",
           "funds": [
@@ -2552,11 +2552,10 @@
           "weight_change": null
         },
         {
-          "signal_type": "etf_abnormal_exit",
+          "signal_type": "etf_consecutive_accumulation",
           "trigger_period": "2026W18",
           "funds": [
-            "安聯台灣主動式",
-            "群益台灣精選強棒"
+            "統一台股增長"
           ],
           "weight_change": null
         },
@@ -2572,10 +2571,11 @@
           "weight_change": null
         },
         {
-          "signal_type": "etf_consecutive_accumulation",
+          "signal_type": "etf_abnormal_exit",
           "trigger_period": "2026W18",
           "funds": [
-            "統一台股增長"
+            "安聯台灣主動式",
+            "群益台灣精選強棒"
           ],
           "weight_change": null
         },
@@ -2588,6 +2588,14 @@
           "weight_change": null
         },
         {
+          "signal_type": "etf_abnormal_exit",
+          "trigger_period": "2026W17",
+          "funds": [
+            "復華台灣未來50"
+          ],
+          "weight_change": null
+        },
+        {
           "signal_type": "etf_abnormal_position",
           "trigger_period": "2026W17",
           "funds": [
@@ -2615,14 +2623,6 @@
           "weight_change": null
         },
         {
-          "signal_type": "etf_abnormal_exit",
-          "trigger_period": "2026W17",
-          "funds": [
-            "復華台灣未來50"
-          ],
-          "weight_change": null
-        },
-        {
           "signal_type": "etf_multi_consensus",
           "trigger_period": "2026W16",
           "funds": [
@@ -2630,6 +2630,32 @@
             "群益台灣科技創新主動"
           ],
           "weight_change": null
+        },
+        {
+          "signal_type": "quarterly_to_monthly_top10",
+          "trigger_period": "202604M",
+          "funds": [
+            "統一黑馬",
+            "復華全方位",
+            "復華高成長",
+            "統一中小",
+            "安聯台灣大壩",
+            "統一全天候",
+            "統一奔騰",
+            "安聯台灣科技",
+            "台新主流"
+          ],
+          "weight_change": 3.99
+        },
+        {
+          "signal_type": "consecutive_accumulation",
+          "trigger_period": "202604M",
+          "funds": [
+            "統一黑馬",
+            "統一中小",
+            "台新主流"
+          ],
+          "weight_change": 1.08
         },
         {
           "signal_type": "multi_fund_consensus",
@@ -2649,32 +2675,6 @@
           "weight_change": null
         },
         {
-          "signal_type": "consecutive_accumulation",
-          "trigger_period": "202604M",
-          "funds": [
-            "統一黑馬",
-            "統一中小",
-            "台新主流"
-          ],
-          "weight_change": 1.08
-        },
-        {
-          "signal_type": "quarterly_to_monthly_top10",
-          "trigger_period": "202604M",
-          "funds": [
-            "統一黑馬",
-            "復華全方位",
-            "復華高成長",
-            "統一中小",
-            "安聯台灣大壩",
-            "統一全天候",
-            "統一奔騰",
-            "安聯台灣科技",
-            "台新主流"
-          ],
-          "weight_change": 3.99
-        },
-        {
           "signal_type": "quarterly_dormant_etf_active",
           "trigger_period": "202603Q",
           "funds": [
@@ -2682,25 +2682,6 @@
             "統一奔騰"
           ],
           "weight_change": null
-        },
-        {
-          "signal_type": "dual_track_accumulation",
-          "trigger_period": "202603M",
-          "funds": [
-            "統一奔騰"
-          ],
-          "weight_change": 0.87
-        },
-        {
-          "signal_type": "consecutive_accumulation",
-          "trigger_period": "202603M",
-          "funds": [
-            "統一奔騰",
-            "統一黑馬",
-            "統一中小",
-            "台新主流"
-          ],
-          "weight_change": 0.87
         },
         {
           "signal_type": "quarterly_to_monthly_top10",
@@ -2716,6 +2697,17 @@
             "台新主流"
           ],
           "weight_change": 2.91
+        },
+        {
+          "signal_type": "consecutive_accumulation",
+          "trigger_period": "202603M",
+          "funds": [
+            "統一奔騰",
+            "統一黑馬",
+            "統一中小",
+            "台新主流"
+          ],
+          "weight_change": 0.87
         },
         {
           "signal_type": "heavy_position_reduction",
@@ -2742,6 +2734,14 @@
             "安聯台灣科技"
           ],
           "weight_change": null
+        },
+        {
+          "signal_type": "dual_track_accumulation",
+          "trigger_period": "202603M",
+          "funds": [
+            "統一奔騰"
+          ],
+          "weight_change": 0.87
         }
       ]
     },
@@ -2859,6 +2859,24 @@
           "weight_change": null
         },
         {
+          "signal_type": "etf_multi_consensus",
+          "trigger_period": "2026W20",
+          "funds": [
+            "統一台股增長",
+            "群益台灣精選強棒",
+            "統一升級50"
+          ],
+          "weight_change": null
+        },
+        {
+          "signal_type": "etf_consecutive_reduction",
+          "trigger_period": "2026W20",
+          "funds": [
+            "安聯台灣主動式"
+          ],
+          "weight_change": null
+        },
+        {
           "signal_type": "etf_consecutive_accumulation",
           "trigger_period": "2026W20",
           "funds": [
@@ -2875,24 +2893,6 @@
             "統一升級50",
             "安聯台灣主動式",
             "統一台股增長"
-          ],
-          "weight_change": null
-        },
-        {
-          "signal_type": "etf_multi_consensus",
-          "trigger_period": "2026W20",
-          "funds": [
-            "統一台股增長",
-            "群益台灣精選強棒",
-            "統一升級50"
-          ],
-          "weight_change": null
-        },
-        {
-          "signal_type": "etf_consecutive_reduction",
-          "trigger_period": "2026W20",
-          "funds": [
-            "安聯台灣主動式"
           ],
           "weight_change": null
         },
@@ -3321,15 +3321,6 @@
           "weight_change": null
         },
         {
-          "signal_type": "etf_consecutive_accumulation",
-          "trigger_period": "2026W20",
-          "funds": [
-            "統一台股增長",
-            "復華台灣未來50"
-          ],
-          "weight_change": null
-        },
-        {
           "signal_type": "etf_abnormal_position",
           "trigger_period": "2026W20",
           "funds": [
@@ -3338,8 +3329,8 @@
           "weight_change": null
         },
         {
-          "signal_type": "etf_multi_consensus",
-          "trigger_period": "2026W19",
+          "signal_type": "etf_consecutive_accumulation",
+          "trigger_period": "2026W20",
           "funds": [
             "統一台股增長",
             "復華台灣未來50"
@@ -3352,6 +3343,15 @@
           "funds": [
             "復華台灣未來50",
             "統一台股增長"
+          ],
+          "weight_change": null
+        },
+        {
+          "signal_type": "etf_multi_consensus",
+          "trigger_period": "2026W19",
+          "funds": [
+            "統一台股增長",
+            "復華台灣未來50"
           ],
           "weight_change": null
         },
@@ -4012,13 +4012,13 @@
           "trade_date": "2026-06-03"
         },
         {
-          "etf_id": "00993A",
-          "weight": 2.73,
+          "etf_id": "00988A",
+          "weight": 1.83,
           "trade_date": "2026-06-03"
         },
         {
-          "etf_id": "00988A",
-          "weight": 1.83,
+          "etf_id": "00993A",
+          "weight": 2.73,
           "trade_date": "2026-06-03"
         },
         {
@@ -4063,15 +4063,6 @@
           "weight_change": null
         },
         {
-          "signal_type": "etf_multi_consensus",
-          "trigger_period": "2026W22",
-          "funds": [
-            "統一升級50",
-            "統一台股增長"
-          ],
-          "weight_change": null
-        },
-        {
           "signal_type": "etf_consecutive_accumulation",
           "trigger_period": "2026W22",
           "funds": [
@@ -4081,12 +4072,19 @@
         },
         {
           "signal_type": "etf_multi_consensus",
+          "trigger_period": "2026W22",
+          "funds": [
+            "統一升級50",
+            "統一台股增長"
+          ],
+          "weight_change": null
+        },
+        {
+          "signal_type": "etf_abnormal_position",
           "trigger_period": "2026W21",
           "funds": [
-            "群益台灣精選強棒",
-            "野村臺灣智慧優選",
             "統一升級50",
-            "統一全球創新"
+            "野村臺灣智慧優選"
           ],
           "weight_change": null
         },
@@ -4101,27 +4099,13 @@
           "weight_change": null
         },
         {
-          "signal_type": "etf_abnormal_position",
+          "signal_type": "etf_multi_consensus",
           "trigger_period": "2026W21",
           "funds": [
+            "群益台灣精選強棒",
+            "野村臺灣智慧優選",
             "統一升級50",
-            "野村臺灣智慧優選"
-          ],
-          "weight_change": null
-        },
-        {
-          "signal_type": "etf_consecutive_reduction",
-          "trigger_period": "2026W20",
-          "funds": [
-            "安聯台灣主動式"
-          ],
-          "weight_change": null
-        },
-        {
-          "signal_type": "etf_abnormal_position",
-          "trigger_period": "2026W20",
-          "funds": [
-            "統一升級50"
+            "統一全球創新"
           ],
           "weight_change": null
         },
@@ -4153,6 +4137,22 @@
             "群益台灣精選強棒",
             "統一台股增長",
             "統一全球創新"
+          ],
+          "weight_change": null
+        },
+        {
+          "signal_type": "etf_abnormal_position",
+          "trigger_period": "2026W20",
+          "funds": [
+            "統一升級50"
+          ],
+          "weight_change": null
+        },
+        {
+          "signal_type": "etf_consecutive_reduction",
+          "trigger_period": "2026W20",
+          "funds": [
+            "安聯台灣主動式"
           ],
           "weight_change": null
         },
@@ -4179,10 +4179,14 @@
           "weight_change": null
         },
         {
-          "signal_type": "etf_abnormal_position",
+          "signal_type": "etf_multi_consensus",
           "trigger_period": "2026W18",
           "funds": [
-            "復華台灣未來50"
+            "統一台股增長",
+            "群益台灣精選強棒",
+            "群益台灣科技創新主動",
+            "復華台灣未來50",
+            "統一全球創新"
           ],
           "weight_change": null
         },
@@ -4197,14 +4201,6 @@
           "weight_change": null
         },
         {
-          "signal_type": "etf_abnormal_exit",
-          "trigger_period": "2026W18",
-          "funds": [
-            "安聯台灣主動式"
-          ],
-          "weight_change": null
-        },
-        {
           "signal_type": "etf_multi_exit",
           "trigger_period": "2026W18",
           "funds": [
@@ -4214,34 +4210,18 @@
           "weight_change": null
         },
         {
-          "signal_type": "etf_multi_consensus",
+          "signal_type": "etf_abnormal_exit",
           "trigger_period": "2026W18",
           "funds": [
-            "統一台股增長",
-            "群益台灣精選強棒",
-            "群益台灣科技創新主動",
-            "復華台灣未來50",
-            "統一全球創新"
-          ],
-          "weight_change": null
-        },
-        {
-          "signal_type": "etf_multi_consensus",
-          "trigger_period": "2026W17",
-          "funds": [
-            "統一台股增長",
-            "群益台灣精選強棒",
-            "群益台灣科技創新主動",
             "安聯台灣主動式"
           ],
           "weight_change": null
         },
         {
-          "signal_type": "etf_consecutive_accumulation",
-          "trigger_period": "2026W17",
+          "signal_type": "etf_abnormal_position",
+          "trigger_period": "2026W18",
           "funds": [
-            "群益台灣科技創新主動",
-            "統一台股增長"
+            "復華台灣未來50"
           ],
           "weight_change": null
         },
@@ -4258,6 +4238,26 @@
           "trigger_period": "2026W17",
           "funds": [
             "復華台灣未來50"
+          ],
+          "weight_change": null
+        },
+        {
+          "signal_type": "etf_multi_consensus",
+          "trigger_period": "2026W17",
+          "funds": [
+            "統一台股增長",
+            "群益台灣精選強棒",
+            "群益台灣科技創新主動",
+            "安聯台灣主動式"
+          ],
+          "weight_change": null
+        },
+        {
+          "signal_type": "etf_consecutive_accumulation",
+          "trigger_period": "2026W17",
+          "funds": [
+            "群益台灣科技創新主動",
+            "統一台股增長"
           ],
           "weight_change": null
         },
@@ -4297,6 +4297,14 @@
           "weight_change": null
         },
         {
+          "signal_type": "consecutive_accumulation",
+          "trigger_period": "202604M",
+          "funds": [
+            "元大新主流"
+          ],
+          "weight_change": 2.18
+        },
+        {
           "signal_type": "quarterly_to_monthly_top10",
           "trigger_period": "202604M",
           "funds": [
@@ -4304,14 +4312,6 @@
             "復華高成長"
           ],
           "weight_change": 0.51
-        },
-        {
-          "signal_type": "consecutive_accumulation",
-          "trigger_period": "202604M",
-          "funds": [
-            "元大新主流"
-          ],
-          "weight_change": 2.18
         },
         {
           "signal_type": "quarterly_dormant_etf_active",
@@ -4358,13 +4358,13 @@
       "fund_holdings": [],
       "etf_holdings": [
         {
-          "etf_id": "00992A",
-          "weight": 0.4681,
+          "etf_id": "00991A",
+          "weight": 0.002,
           "trade_date": "2026-06-03"
         },
         {
-          "etf_id": "00991A",
-          "weight": 0.002,
+          "etf_id": "00992A",
+          "weight": 0.4681,
           "trade_date": "2026-06-03"
         },
         {
@@ -4698,6 +4698,14 @@
           "weight_change": null
         },
         {
+          "signal_type": "etf_consecutive_accumulation",
+          "trigger_period": "2026W22",
+          "funds": [
+            "統一升級50"
+          ],
+          "weight_change": null
+        },
+        {
           "signal_type": "etf_multi_consensus",
           "trigger_period": "2026W22",
           "funds": [
@@ -4707,9 +4715,10 @@
           "weight_change": null
         },
         {
-          "signal_type": "etf_consecutive_accumulation",
-          "trigger_period": "2026W22",
+          "signal_type": "etf_multi_consensus",
+          "trigger_period": "2026W21",
           "funds": [
+            "野村臺灣智慧優選",
             "統一升級50"
           ],
           "weight_change": null
@@ -4733,7 +4742,7 @@
         },
         {
           "signal_type": "etf_multi_consensus",
-          "trigger_period": "2026W21",
+          "trigger_period": "2026W20",
           "funds": [
             "野村臺灣智慧優選",
             "統一升級50"
@@ -4744,15 +4753,6 @@
           "signal_type": "etf_abnormal_position",
           "trigger_period": "2026W20",
           "funds": [
-            "統一升級50"
-          ],
-          "weight_change": null
-        },
-        {
-          "signal_type": "etf_multi_consensus",
-          "trigger_period": "2026W20",
-          "funds": [
-            "野村臺灣智慧優選",
             "統一升級50"
           ],
           "weight_change": null
@@ -4999,13 +4999,13 @@
       ],
       "etf_holdings": [
         {
-          "etf_id": "00992A",
-          "weight": 5.0898,
+          "etf_id": "00993A",
+          "weight": 0.51,
           "trade_date": "2026-06-03"
         },
         {
-          "etf_id": "00993A",
-          "weight": 0.51,
+          "etf_id": "00992A",
+          "weight": 5.0898,
           "trade_date": "2026-06-03"
         },
         {
@@ -5036,19 +5036,19 @@
       ],
       "signals": [
         {
+          "signal_type": "etf_consecutive_reduction",
+          "trigger_period": "2026W23",
+          "funds": [
+            "群益台灣精選強棒"
+          ],
+          "weight_change": null
+        },
+        {
           "signal_type": "etf_consecutive_accumulation",
           "trigger_period": "2026W23",
           "funds": [
             "復華台灣未來50",
             "統一升級50"
-          ],
-          "weight_change": null
-        },
-        {
-          "signal_type": "etf_consecutive_reduction",
-          "trigger_period": "2026W23",
-          "funds": [
-            "群益台灣精選強棒"
           ],
           "weight_change": null
         },
@@ -5073,10 +5073,11 @@
           "weight_change": null
         },
         {
-          "signal_type": "etf_consecutive_accumulation",
+          "signal_type": "etf_multi_consensus",
           "trigger_period": "2026W22",
           "funds": [
-            "統一升級50"
+            "統一升級50",
+            "復華台灣未來50"
           ],
           "weight_change": null
         },
@@ -5089,11 +5090,10 @@
           "weight_change": null
         },
         {
-          "signal_type": "etf_multi_consensus",
+          "signal_type": "etf_consecutive_accumulation",
           "trigger_period": "2026W22",
           "funds": [
-            "統一升級50",
-            "復華台灣未來50"
+            "統一升級50"
           ],
           "weight_change": null
         },
@@ -5117,6 +5117,18 @@
           "weight_change": null
         },
         {
+          "signal_type": "etf_multi_consensus",
+          "trigger_period": "2026W20",
+          "funds": [
+            "統一升級50",
+            "復華台灣未來50",
+            "群益台灣精選強棒",
+            "安聯台灣主動式",
+            "群益台灣科技創新主動"
+          ],
+          "weight_change": null
+        },
+        {
           "signal_type": "etf_consecutive_accumulation",
           "trigger_period": "2026W20",
           "funds": [
@@ -5126,14 +5138,11 @@
           "weight_change": null
         },
         {
-          "signal_type": "etf_multi_consensus",
-          "trigger_period": "2026W20",
+          "signal_type": "etf_consecutive_accumulation",
+          "trigger_period": "2026W19",
           "funds": [
-            "統一升級50",
-            "復華台灣未來50",
-            "群益台灣精選強棒",
-            "安聯台灣主動式",
-            "群益台灣科技創新主動"
+            "統一台股增長",
+            "復華台灣未來50"
           ],
           "weight_change": null
         },
@@ -5158,10 +5167,10 @@
         },
         {
           "signal_type": "etf_consecutive_accumulation",
-          "trigger_period": "2026W19",
+          "trigger_period": "2026W18",
           "funds": [
-            "統一台股增長",
-            "復華台灣未來50"
+            "群益台灣科技創新主動",
+            "統一台股增長"
           ],
           "weight_change": null
         },
@@ -5176,11 +5185,19 @@
           "weight_change": null
         },
         {
-          "signal_type": "etf_consecutive_accumulation",
-          "trigger_period": "2026W18",
+          "signal_type": "etf_abnormal_position",
+          "trigger_period": "2026W17",
           "funds": [
-            "群益台灣科技創新主動",
             "統一台股增長"
+          ],
+          "weight_change": null
+        },
+        {
+          "signal_type": "etf_consecutive_accumulation",
+          "trigger_period": "2026W17",
+          "funds": [
+            "統一台股增長",
+            "群益台灣科技創新主動"
           ],
           "weight_change": null
         },
@@ -5190,23 +5207,6 @@
           "funds": [
             "統一台股增長",
             "群益台灣科技創新主動"
-          ],
-          "weight_change": null
-        },
-        {
-          "signal_type": "etf_consecutive_accumulation",
-          "trigger_period": "2026W17",
-          "funds": [
-            "統一台股增長",
-            "群益台灣科技創新主動"
-          ],
-          "weight_change": null
-        },
-        {
-          "signal_type": "etf_abnormal_position",
-          "trigger_period": "2026W17",
-          "funds": [
-            "統一台股增長"
           ],
           "weight_change": null
         },
@@ -5551,13 +5551,13 @@
       "fund_holdings": [],
       "etf_holdings": [
         {
-          "etf_id": "00993A",
-          "weight": 3.24,
+          "etf_id": "00981A",
+          "weight": 0.0,
           "trade_date": "2026-06-03"
         },
         {
-          "etf_id": "00981A",
-          "weight": 0.0,
+          "etf_id": "00993A",
+          "weight": 3.24,
           "trade_date": "2026-06-03"
         },
         {
@@ -5783,13 +5783,13 @@
       ],
       "etf_holdings": [
         {
-          "etf_id": "00992A",
-          "weight": 1.0258,
+          "etf_id": "00988A",
+          "weight": 0.51,
           "trade_date": "2026-06-03"
         },
         {
-          "etf_id": "00993A",
-          "weight": 1.63,
+          "etf_id": "00992A",
+          "weight": 1.0258,
           "trade_date": "2026-06-03"
         },
         {
@@ -5798,8 +5798,8 @@
           "trade_date": "2026-06-03"
         },
         {
-          "etf_id": "00988A",
-          "weight": 0.51,
+          "etf_id": "00993A",
+          "weight": 1.63,
           "trade_date": "2026-06-03"
         },
         {
@@ -5820,18 +5820,18 @@
       ],
       "signals": [
         {
-          "signal_type": "etf_consecutive_reduction",
-          "trigger_period": "2026W23",
-          "funds": [
-            "群益台灣精選強棒"
-          ],
-          "weight_change": null
-        },
-        {
           "signal_type": "etf_abnormal_exit",
           "trigger_period": "2026W23",
           "funds": [
             "野村臺灣智慧優選"
+          ],
+          "weight_change": null
+        },
+        {
+          "signal_type": "etf_consecutive_reduction",
+          "trigger_period": "2026W23",
+          "funds": [
+            "群益台灣精選強棒"
           ],
           "weight_change": null
         },
@@ -5874,14 +5874,6 @@
           "weight_change": null
         },
         {
-          "signal_type": "etf_consecutive_accumulation",
-          "trigger_period": "2026W20",
-          "funds": [
-            "群益台灣精選強棒"
-          ],
-          "weight_change": null
-        },
-        {
           "signal_type": "etf_multi_consensus",
           "trigger_period": "2026W20",
           "funds": [
@@ -5889,6 +5881,14 @@
             "統一全球創新",
             "群益台灣精選強棒",
             "安聯台灣主動式"
+          ],
+          "weight_change": null
+        },
+        {
+          "signal_type": "etf_consecutive_accumulation",
+          "trigger_period": "2026W20",
+          "funds": [
+            "群益台灣精選強棒"
           ],
           "weight_change": null
         },
@@ -5937,20 +5937,21 @@
           "weight_change": null
         },
         {
-          "signal_type": "etf_abnormal_exit",
-          "trigger_period": "2026W18",
-          "funds": [
-            "群益台灣科技創新主動"
-          ],
-          "weight_change": null
-        },
-        {
-          "signal_type": "etf_multi_consensus",
+          "signal_type": "etf_multi_exit",
           "trigger_period": "2026W18",
           "funds": [
             "群益台灣精選強棒",
             "群益台灣科技創新主動",
-            "安聯台灣主動式"
+            "復華台灣未來50",
+            "統一全球創新"
+          ],
+          "weight_change": null
+        },
+        {
+          "signal_type": "etf_abnormal_exit",
+          "trigger_period": "2026W18",
+          "funds": [
+            "群益台灣科技創新主動"
           ],
           "weight_change": null
         },
@@ -5963,13 +5964,12 @@
           "weight_change": null
         },
         {
-          "signal_type": "etf_multi_exit",
+          "signal_type": "etf_multi_consensus",
           "trigger_period": "2026W18",
           "funds": [
             "群益台灣精選強棒",
             "群益台灣科技創新主動",
-            "復華台灣未來50",
-            "統一全球創新"
+            "安聯台灣主動式"
           ],
           "weight_change": null
         },
@@ -5990,15 +5990,6 @@
           "weight_change": null
         },
         {
-          "signal_type": "quarterly_to_monthly_top10",
-          "trigger_period": "202604M",
-          "funds": [
-            "統一全天候",
-            "統一大中華中小"
-          ],
-          "weight_change": 2.21
-        },
-        {
           "signal_type": "multi_fund_consensus",
           "trigger_period": "202604M",
           "funds": [
@@ -6009,6 +6000,15 @@
             "野村高科技"
           ],
           "weight_change": null
+        },
+        {
+          "signal_type": "quarterly_to_monthly_top10",
+          "trigger_period": "202604M",
+          "funds": [
+            "統一全天候",
+            "統一大中華中小"
+          ],
+          "weight_change": 2.21
         },
         {
           "signal_type": "consecutive_accumulation",
@@ -6424,13 +6424,13 @@
       ],
       "etf_holdings": [
         {
-          "etf_id": "00992A",
-          "weight": 1.8003,
+          "etf_id": "00993A",
+          "weight": 0.34,
           "trade_date": "2026-06-03"
         },
         {
-          "etf_id": "00993A",
-          "weight": 0.34,
+          "etf_id": "00992A",
+          "weight": 1.8003,
           "trade_date": "2026-06-03"
         },
         {
@@ -6461,15 +6461,6 @@
       ],
       "signals": [
         {
-          "signal_type": "etf_multi_consensus",
-          "trigger_period": "2026W23",
-          "funds": [
-            "統一台股增長",
-            "統一升級50"
-          ],
-          "weight_change": null
-        },
-        {
           "signal_type": "etf_multi_exit",
           "trigger_period": "2026W23",
           "funds": [
@@ -6490,11 +6481,29 @@
           "weight_change": null
         },
         {
+          "signal_type": "etf_multi_consensus",
+          "trigger_period": "2026W23",
+          "funds": [
+            "統一台股增長",
+            "統一升級50"
+          ],
+          "weight_change": null
+        },
+        {
           "signal_type": "etf_multi_exit",
           "trigger_period": "2026W22",
           "funds": [
             "群益台灣精選強棒",
             "復華台灣未來50"
+          ],
+          "weight_change": null
+        },
+        {
+          "signal_type": "etf_multi_consensus",
+          "trigger_period": "2026W22",
+          "funds": [
+            "統一升級50",
+            "統一台股增長"
           ],
           "weight_change": null
         },
@@ -6507,11 +6516,11 @@
           "weight_change": null
         },
         {
-          "signal_type": "etf_multi_consensus",
-          "trigger_period": "2026W22",
+          "signal_type": "etf_abnormal_position",
+          "trigger_period": "2026W21",
           "funds": [
-            "統一升級50",
-            "統一台股增長"
+            "野村臺灣智慧優選",
+            "統一升級50"
           ],
           "weight_change": null
         },
@@ -6535,29 +6544,12 @@
           "weight_change": null
         },
         {
-          "signal_type": "etf_abnormal_position",
-          "trigger_period": "2026W21",
-          "funds": [
-            "野村臺灣智慧優選",
-            "統一升級50"
-          ],
-          "weight_change": null
-        },
-        {
           "signal_type": "etf_multi_exit",
           "trigger_period": "2026W20",
           "funds": [
             "統一台股增長",
             "安聯台灣主動式",
             "群益台灣科技創新主動"
-          ],
-          "weight_change": null
-        },
-        {
-          "signal_type": "etf_abnormal_position",
-          "trigger_period": "2026W20",
-          "funds": [
-            "統一升級50"
           ],
           "weight_change": null
         },
@@ -6580,12 +6572,10 @@
           "weight_change": null
         },
         {
-          "signal_type": "etf_multi_consensus",
-          "trigger_period": "2026W19",
+          "signal_type": "etf_abnormal_position",
+          "trigger_period": "2026W20",
           "funds": [
-            "統一台股增長",
-            "安聯台灣主動式",
-            "群益台灣精選強棒"
+            "統一升級50"
           ],
           "weight_change": null
         },
@@ -6606,10 +6596,12 @@
           "weight_change": null
         },
         {
-          "signal_type": "etf_consecutive_accumulation",
-          "trigger_period": "2026W18",
+          "signal_type": "etf_multi_consensus",
+          "trigger_period": "2026W19",
           "funds": [
-            "統一台股增長"
+            "統一台股增長",
+            "安聯台灣主動式",
+            "群益台灣精選強棒"
           ],
           "weight_change": null
         },
@@ -6624,6 +6616,14 @@
           "weight_change": null
         },
         {
+          "signal_type": "etf_consecutive_accumulation",
+          "trigger_period": "2026W18",
+          "funds": [
+            "統一台股增長"
+          ],
+          "weight_change": null
+        },
+        {
           "signal_type": "etf_multi_consensus",
           "trigger_period": "2026W18",
           "funds": [
@@ -6634,7 +6634,7 @@
           "weight_change": null
         },
         {
-          "signal_type": "etf_consecutive_accumulation",
+          "signal_type": "etf_multi_consensus",
           "trigger_period": "2026W17",
           "funds": [
             "統一台股增長",
@@ -6643,7 +6643,7 @@
           "weight_change": null
         },
         {
-          "signal_type": "etf_multi_consensus",
+          "signal_type": "etf_consecutive_accumulation",
           "trigger_period": "2026W17",
           "funds": [
             "統一台股增長",
@@ -6659,15 +6659,6 @@
             "群益台灣科技創新主動"
           ],
           "weight_change": null
-        },
-        {
-          "signal_type": "consecutive_accumulation",
-          "trigger_period": "202604M",
-          "funds": [
-            "統一中小",
-            "元大新主流"
-          ],
-          "weight_change": 1.49
         },
         {
           "signal_type": "multi_fund_consensus",
@@ -6694,6 +6685,15 @@
           "weight_change": 1.67
         },
         {
+          "signal_type": "consecutive_accumulation",
+          "trigger_period": "202604M",
+          "funds": [
+            "統一中小",
+            "元大新主流"
+          ],
+          "weight_change": 1.49
+        },
+        {
           "signal_type": "quarterly_dormant_etf_active",
           "trigger_period": "202603Q",
           "funds": [
@@ -6702,6 +6702,14 @@
             "復華高成長"
           ],
           "weight_change": null
+        },
+        {
+          "signal_type": "dual_track_accumulation",
+          "trigger_period": "202603M",
+          "funds": [
+            "統一奔騰"
+          ],
+          "weight_change": 1.56
         },
         {
           "signal_type": "multi_fund_consensus",
@@ -6714,14 +6722,6 @@
             "統一大中華中小"
           ],
           "weight_change": null
-        },
-        {
-          "signal_type": "dual_track_accumulation",
-          "trigger_period": "202603M",
-          "funds": [
-            "統一奔騰"
-          ],
-          "weight_change": 1.56
         },
         {
           "signal_type": "consecutive_accumulation",
@@ -6810,19 +6810,19 @@
           "weight_change": null
         },
         {
-          "signal_type": "etf_consecutive_accumulation",
-          "trigger_period": "2026W21",
-          "funds": [
-            "野村臺灣智慧優選"
-          ],
-          "weight_change": null
-        },
-        {
           "signal_type": "etf_multi_consensus",
           "trigger_period": "2026W21",
           "funds": [
             "野村臺灣智慧優選",
             "群益台灣精選強棒"
+          ],
+          "weight_change": null
+        },
+        {
+          "signal_type": "etf_consecutive_accumulation",
+          "trigger_period": "2026W21",
+          "funds": [
+            "野村臺灣智慧優選"
           ],
           "weight_change": null
         },
@@ -7047,6 +7047,15 @@
       ],
       "signals": [
         {
+          "signal_type": "etf_multi_consensus",
+          "trigger_period": "2026W23",
+          "funds": [
+            "統一台股增長",
+            "安聯台灣主動式"
+          ],
+          "weight_change": null
+        },
+        {
           "signal_type": "etf_abnormal_exit",
           "trigger_period": "2026W23",
           "funds": [
@@ -7059,15 +7068,6 @@
           "trigger_period": "2026W23",
           "funds": [
             "統一台股增長"
-          ],
-          "weight_change": null
-        },
-        {
-          "signal_type": "etf_multi_consensus",
-          "trigger_period": "2026W23",
-          "funds": [
-            "統一台股增長",
-            "安聯台灣主動式"
           ],
           "weight_change": null
         },
@@ -7098,18 +7098,18 @@
           "weight_change": null
         },
         {
-          "signal_type": "etf_abnormal_exit",
-          "trigger_period": "2026W18",
-          "funds": [
-            "安聯台灣主動式"
-          ],
-          "weight_change": null
-        },
-        {
           "signal_type": "etf_abnormal_position",
           "trigger_period": "2026W18",
           "funds": [
             "野村臺灣智慧優選"
+          ],
+          "weight_change": null
+        },
+        {
+          "signal_type": "etf_abnormal_exit",
+          "trigger_period": "2026W18",
+          "funds": [
+            "安聯台灣主動式"
           ],
           "weight_change": null
         }
@@ -7651,13 +7651,13 @@
           "trade_date": "2026-06-03"
         },
         {
-          "etf_id": "00993A",
-          "weight": 1.58,
+          "etf_id": "00988A",
+          "weight": 2.69,
           "trade_date": "2026-06-03"
         },
         {
-          "etf_id": "00988A",
-          "weight": 2.69,
+          "etf_id": "00993A",
+          "weight": 1.58,
           "trade_date": "2026-06-03"
         },
         {
@@ -7683,10 +7683,12 @@
       ],
       "signals": [
         {
-          "signal_type": "etf_consecutive_reduction",
+          "signal_type": "etf_multi_consensus",
           "trigger_period": "2026W23",
           "funds": [
-            "群益台灣精選強棒"
+            "安聯台灣主動式",
+            "群益台灣科技創新主動",
+            "統一全球創新"
           ],
           "weight_change": null
         },
@@ -7702,12 +7704,10 @@
           "weight_change": null
         },
         {
-          "signal_type": "etf_multi_consensus",
+          "signal_type": "etf_consecutive_reduction",
           "trigger_period": "2026W23",
           "funds": [
-            "安聯台灣主動式",
-            "群益台灣科技創新主動",
-            "統一全球創新"
+            "群益台灣精選強棒"
           ],
           "weight_change": null
         },
@@ -7717,6 +7717,14 @@
           "funds": [
             "統一升級50",
             "統一全球創新"
+          ],
+          "weight_change": null
+        },
+        {
+          "signal_type": "etf_consecutive_reduction",
+          "trigger_period": "2026W22",
+          "funds": [
+            "群益台灣精選強棒"
           ],
           "weight_change": null
         },
@@ -7730,22 +7738,6 @@
           "weight_change": null
         },
         {
-          "signal_type": "etf_consecutive_reduction",
-          "trigger_period": "2026W22",
-          "funds": [
-            "群益台灣精選強棒"
-          ],
-          "weight_change": null
-        },
-        {
-          "signal_type": "etf_abnormal_position",
-          "trigger_period": "2026W21",
-          "funds": [
-            "統一升級50"
-          ],
-          "weight_change": null
-        },
-        {
           "signal_type": "etf_multi_consensus",
           "trigger_period": "2026W21",
           "funds": [
@@ -7774,7 +7766,7 @@
         },
         {
           "signal_type": "etf_abnormal_position",
-          "trigger_period": "2026W20",
+          "trigger_period": "2026W21",
           "funds": [
             "統一升級50"
           ],
@@ -7811,12 +7803,10 @@
           "weight_change": null
         },
         {
-          "signal_type": "etf_multi_consensus",
-          "trigger_period": "2026W19",
+          "signal_type": "etf_abnormal_position",
+          "trigger_period": "2026W20",
           "funds": [
-            "統一全球創新",
-            "統一台股增長",
-            "群益台灣精選強棒"
+            "統一升級50"
           ],
           "weight_change": null
         },
@@ -7825,6 +7815,16 @@
           "trigger_period": "2026W19",
           "funds": [
             "統一台股增長"
+          ],
+          "weight_change": null
+        },
+        {
+          "signal_type": "etf_multi_consensus",
+          "trigger_period": "2026W19",
+          "funds": [
+            "統一全球創新",
+            "統一台股增長",
+            "群益台灣精選強棒"
           ],
           "weight_change": null
         },
@@ -7876,11 +7876,11 @@
           "weight_change": null
         },
         {
-          "signal_type": "etf_consecutive_accumulation",
+          "signal_type": "etf_multi_exit",
           "trigger_period": "2026W17",
           "funds": [
-            "群益台灣科技創新主動",
-            "統一台股增長"
+            "復華台灣未來50",
+            "群益台灣科技創新主動"
           ],
           "weight_change": null
         },
@@ -7901,15 +7901,6 @@
           "weight_change": null
         },
         {
-          "signal_type": "etf_multi_exit",
-          "trigger_period": "2026W17",
-          "funds": [
-            "復華台灣未來50",
-            "群益台灣科技創新主動"
-          ],
-          "weight_change": null
-        },
-        {
           "signal_type": "etf_multi_consensus",
           "trigger_period": "2026W17",
           "funds": [
@@ -7920,10 +7911,11 @@
           "weight_change": null
         },
         {
-          "signal_type": "etf_abnormal_position",
-          "trigger_period": "2026W16",
+          "signal_type": "etf_consecutive_accumulation",
+          "trigger_period": "2026W17",
           "funds": [
-            "群益台灣科技創新主動"
+            "群益台灣科技創新主動",
+            "統一台股增長"
           ],
           "weight_change": null
         },
@@ -7937,39 +7929,10 @@
           "weight_change": null
         },
         {
-          "signal_type": "heavy_position_reduction",
-          "trigger_period": "202604M",
+          "signal_type": "etf_abnormal_position",
+          "trigger_period": "2026W16",
           "funds": [
-            "統一黑馬"
-          ],
-          "weight_change": -1.21
-        },
-        {
-          "signal_type": "consecutive_accumulation",
-          "trigger_period": "202604M",
-          "funds": [
-            "統一中小",
-            "台新主流",
-            "元大新主流"
-          ],
-          "weight_change": 1.6
-        },
-        {
-          "signal_type": "multi_fund_consensus",
-          "trigger_period": "202604M",
-          "funds": [
-            "復華全方位",
-            "復華高成長",
-            "統一奔騰",
-            "統一全天候",
-            "野村優質",
-            "台新主流",
-            "統一中小",
-            "統一大中華中小",
-            "統一黑馬",
-            "元大新主流",
-            "安聯台灣科技",
-            "安聯台灣大壩"
+            "群益台灣科技創新主動"
           ],
           "weight_change": null
         },
@@ -7991,48 +7954,48 @@
           "weight_change": 6.29
         },
         {
-          "signal_type": "quarterly_dormant_etf_active",
-          "trigger_period": "202603Q",
-          "funds": [
-            "統一全天候",
-            "統一奔騰"
-          ],
-          "weight_change": null
-        },
-        {
           "signal_type": "consecutive_accumulation",
-          "trigger_period": "202603M",
+          "trigger_period": "202604M",
           "funds": [
-            "統一奔騰",
-            "安聯台灣科技",
+            "統一中小",
+            "台新主流",
             "元大新主流"
           ],
-          "weight_change": 1.31
+          "weight_change": 1.6
         },
         {
-          "signal_type": "dual_track_accumulation",
-          "trigger_period": "202603M",
+          "signal_type": "heavy_position_reduction",
+          "trigger_period": "202604M",
           "funds": [
-            "統一奔騰"
+            "統一黑馬"
           ],
-          "weight_change": 1.31
+          "weight_change": -1.21
         },
         {
           "signal_type": "multi_fund_consensus",
-          "trigger_period": "202603M",
+          "trigger_period": "202604M",
           "funds": [
             "復華全方位",
             "復華高成長",
             "統一奔騰",
-            "統一黑馬",
             "統一全天候",
             "野村優質",
             "台新主流",
             "統一中小",
             "統一大中華中小",
+            "統一黑馬",
             "元大新主流",
             "安聯台灣科技",
             "安聯台灣大壩"
+          ],
+          "weight_change": null
+        },
+        {
+          "signal_type": "quarterly_dormant_etf_active",
+          "trigger_period": "202603Q",
+          "funds": [
+            "統一全天候",
+            "統一奔騰"
           ],
           "weight_change": null
         },
@@ -8059,6 +8022,43 @@
             "台新主流"
           ],
           "weight_change": 4.24
+        },
+        {
+          "signal_type": "dual_track_accumulation",
+          "trigger_period": "202603M",
+          "funds": [
+            "統一奔騰"
+          ],
+          "weight_change": 1.31
+        },
+        {
+          "signal_type": "consecutive_accumulation",
+          "trigger_period": "202603M",
+          "funds": [
+            "統一奔騰",
+            "安聯台灣科技",
+            "元大新主流"
+          ],
+          "weight_change": 1.31
+        },
+        {
+          "signal_type": "multi_fund_consensus",
+          "trigger_period": "202603M",
+          "funds": [
+            "復華全方位",
+            "復華高成長",
+            "統一奔騰",
+            "統一黑馬",
+            "統一全天候",
+            "野村優質",
+            "台新主流",
+            "統一中小",
+            "統一大中華中小",
+            "元大新主流",
+            "安聯台灣科技",
+            "安聯台灣大壩"
+          ],
+          "weight_change": null
         }
       ]
     },
@@ -8126,13 +8126,13 @@
       "fund_holdings": [],
       "etf_holdings": [
         {
-          "etf_id": "00993A",
-          "weight": 1.09,
+          "etf_id": "00991A",
+          "weight": 0.002,
           "trade_date": "2026-06-03"
         },
         {
-          "etf_id": "00991A",
-          "weight": 0.002,
+          "etf_id": "00993A",
+          "weight": 1.09,
           "trade_date": "2026-06-03"
         },
         {
@@ -8208,10 +8208,10 @@
           "weight_change": null
         },
         {
-          "signal_type": "etf_abnormal_exit",
+          "signal_type": "etf_consecutive_accumulation",
           "trigger_period": "2026W18",
           "funds": [
-            "群益台灣精選強棒"
+            "統一台股增長"
           ],
           "weight_change": null
         },
@@ -8220,14 +8220,6 @@
           "trigger_period": "2026W18",
           "funds": [
             "安聯台灣主動式"
-          ],
-          "weight_change": null
-        },
-        {
-          "signal_type": "etf_consecutive_accumulation",
-          "trigger_period": "2026W18",
-          "funds": [
-            "統一台股增長"
           ],
           "weight_change": null
         },
@@ -8242,6 +8234,22 @@
           "weight_change": null
         },
         {
+          "signal_type": "etf_abnormal_exit",
+          "trigger_period": "2026W18",
+          "funds": [
+            "群益台灣精選強棒"
+          ],
+          "weight_change": null
+        },
+        {
+          "signal_type": "etf_abnormal_position",
+          "trigger_period": "2026W17",
+          "funds": [
+            "復華台灣未來50"
+          ],
+          "weight_change": null
+        },
+        {
           "signal_type": "etf_multi_consensus",
           "trigger_period": "2026W17",
           "funds": [
@@ -8255,14 +8263,6 @@
           "trigger_period": "2026W17",
           "funds": [
             "統一台股增長"
-          ],
-          "weight_change": null
-        },
-        {
-          "signal_type": "etf_abnormal_position",
-          "trigger_period": "2026W17",
-          "funds": [
-            "復華台灣未來50"
           ],
           "weight_change": null
         }
@@ -8451,18 +8451,18 @@
       ],
       "signals": [
         {
-          "signal_type": "etf_abnormal_exit",
-          "trigger_period": "2026W23",
-          "funds": [
-            "野村臺灣智慧優選"
-          ],
-          "weight_change": null
-        },
-        {
           "signal_type": "etf_consecutive_accumulation",
           "trigger_period": "2026W23",
           "funds": [
             "復華台灣未來50"
+          ],
+          "weight_change": null
+        },
+        {
+          "signal_type": "etf_abnormal_exit",
+          "trigger_period": "2026W23",
+          "funds": [
+            "野村臺灣智慧優選"
           ],
           "weight_change": null
         },
@@ -8542,13 +8542,13 @@
       "fund_holdings": [],
       "etf_holdings": [
         {
-          "etf_id": "00993A",
-          "weight": 2.02,
+          "etf_id": "00991A",
+          "weight": 0.0,
           "trade_date": "2026-06-03"
         },
         {
-          "etf_id": "00991A",
-          "weight": 0.0,
+          "etf_id": "00993A",
+          "weight": 2.02,
           "trade_date": "2026-06-03"
         },
         {
@@ -9068,6 +9068,15 @@
       ],
       "signals": [
         {
+          "signal_type": "etf_consecutive_accumulation",
+          "trigger_period": "2026W23",
+          "funds": [
+            "統一升級50",
+            "復華台灣未來50"
+          ],
+          "weight_change": null
+        },
+        {
           "signal_type": "etf_consecutive_reduction",
           "trigger_period": "2026W23",
           "funds": [
@@ -9081,15 +9090,6 @@
           "funds": [
             "群益台灣精選強棒",
             "群益台灣科技創新主動"
-          ],
-          "weight_change": null
-        },
-        {
-          "signal_type": "etf_consecutive_accumulation",
-          "trigger_period": "2026W23",
-          "funds": [
-            "統一升級50",
-            "復華台灣未來50"
           ],
           "weight_change": null
         },
@@ -9164,15 +9164,6 @@
           "weight_change": null
         },
         {
-          "signal_type": "etf_multi_consensus",
-          "trigger_period": "2026W19",
-          "funds": [
-            "統一全球創新",
-            "統一台股增長"
-          ],
-          "weight_change": null
-        },
-        {
           "signal_type": "etf_consecutive_accumulation",
           "trigger_period": "2026W19",
           "funds": [
@@ -9182,14 +9173,18 @@
         },
         {
           "signal_type": "etf_multi_consensus",
+          "trigger_period": "2026W19",
+          "funds": [
+            "統一全球創新",
+            "統一台股增長"
+          ],
+          "weight_change": null
+        },
+        {
+          "signal_type": "etf_abnormal_position",
           "trigger_period": "2026W18",
           "funds": [
-            "安聯台灣主動式",
-            "統一台股增長",
-            "群益台灣精選強棒",
-            "統一全球創新",
-            "復華台灣未來50",
-            "群益台灣科技創新主動"
+            "安聯台灣主動式"
           ],
           "weight_change": null
         },
@@ -9206,10 +9201,15 @@
           "weight_change": null
         },
         {
-          "signal_type": "etf_abnormal_position",
+          "signal_type": "etf_multi_consensus",
           "trigger_period": "2026W18",
           "funds": [
-            "安聯台灣主動式"
+            "安聯台灣主動式",
+            "統一台股增長",
+            "群益台灣精選強棒",
+            "統一全球創新",
+            "復華台灣未來50",
+            "群益台灣科技創新主動"
           ],
           "weight_change": null
         },
@@ -9245,6 +9245,15 @@
           "weight_change": null
         },
         {
+          "signal_type": "etf_multi_consensus",
+          "trigger_period": "2026W16",
+          "funds": [
+            "統一全球創新",
+            "統一台股增長"
+          ],
+          "weight_change": null
+        },
+        {
           "signal_type": "etf_abnormal_position",
           "trigger_period": "2026W16",
           "funds": [
@@ -9254,13 +9263,12 @@
           "weight_change": null
         },
         {
-          "signal_type": "etf_multi_consensus",
-          "trigger_period": "2026W16",
+          "signal_type": "quarterly_to_monthly_top10",
+          "trigger_period": "202604M",
           "funds": [
-            "統一全球創新",
-            "統一台股增長"
+            "元大新主流"
           ],
-          "weight_change": null
+          "weight_change": 2.15
         },
         {
           "signal_type": "multi_fund_consensus",
@@ -9272,14 +9280,6 @@
             "野村高科技"
           ],
           "weight_change": null
-        },
-        {
-          "signal_type": "quarterly_to_monthly_top10",
-          "trigger_period": "202604M",
-          "funds": [
-            "元大新主流"
-          ],
-          "weight_change": 2.15
         },
         {
           "signal_type": "consensus_formation",
@@ -9299,13 +9299,13 @@
       "fund_holdings": [],
       "etf_holdings": [
         {
-          "etf_id": "00992A",
-          "weight": 2.2969,
+          "etf_id": "00993A",
+          "weight": 0.47,
           "trade_date": "2026-06-03"
         },
         {
-          "etf_id": "00993A",
-          "weight": 0.47,
+          "etf_id": "00992A",
+          "weight": 2.2969,
           "trade_date": "2026-06-03"
         },
         {
@@ -9344,19 +9344,19 @@
           "weight_change": null
         },
         {
+          "signal_type": "etf_consecutive_accumulation",
+          "trigger_period": "2026W22",
+          "funds": [
+            "統一升級50"
+          ],
+          "weight_change": null
+        },
+        {
           "signal_type": "etf_multi_consensus",
           "trigger_period": "2026W22",
           "funds": [
             "統一升級50",
             "群益台灣科技創新主動"
-          ],
-          "weight_change": null
-        },
-        {
-          "signal_type": "etf_consecutive_accumulation",
-          "trigger_period": "2026W22",
-          "funds": [
-            "統一升級50"
           ],
           "weight_change": null
         },
@@ -9370,18 +9370,18 @@
           "weight_change": null
         },
         {
-          "signal_type": "etf_multi_consensus",
+          "signal_type": "etf_consecutive_accumulation",
           "trigger_period": "2026W20",
           "funds": [
-            "統一升級50",
             "群益台灣科技創新主動"
           ],
           "weight_change": null
         },
         {
-          "signal_type": "etf_consecutive_accumulation",
+          "signal_type": "etf_multi_consensus",
           "trigger_period": "2026W20",
           "funds": [
+            "統一升級50",
             "群益台灣科技創新主動"
           ],
           "weight_change": null
@@ -9541,6 +9541,14 @@
           "weight_change": null
         },
         {
+          "signal_type": "etf_consecutive_accumulation",
+          "trigger_period": "2026W21",
+          "funds": [
+            "群益台灣精選強棒"
+          ],
+          "weight_change": null
+        },
+        {
           "signal_type": "etf_multi_exit",
           "trigger_period": "2026W21",
           "funds": [
@@ -9551,7 +9559,7 @@
         },
         {
           "signal_type": "etf_consecutive_accumulation",
-          "trigger_period": "2026W21",
+          "trigger_period": "2026W20",
           "funds": [
             "群益台灣精選強棒"
           ],
@@ -9566,25 +9574,8 @@
           "weight_change": null
         },
         {
-          "signal_type": "etf_consecutive_accumulation",
-          "trigger_period": "2026W20",
-          "funds": [
-            "群益台灣精選強棒"
-          ],
-          "weight_change": null
-        },
-        {
           "signal_type": "etf_multi_consensus",
           "trigger_period": "2026W20",
-          "funds": [
-            "群益台灣精選強棒",
-            "安聯台灣主動式"
-          ],
-          "weight_change": null
-        },
-        {
-          "signal_type": "etf_multi_consensus",
-          "trigger_period": "2026W18",
           "funds": [
             "群益台灣精選強棒",
             "安聯台灣主動式"
@@ -9596,6 +9587,15 @@
           "trigger_period": "2026W18",
           "funds": [
             "群益台灣精選強棒"
+          ],
+          "weight_change": null
+        },
+        {
+          "signal_type": "etf_multi_consensus",
+          "trigger_period": "2026W18",
+          "funds": [
+            "群益台灣精選強棒",
+            "安聯台灣主動式"
           ],
           "weight_change": null
         }
@@ -9740,13 +9740,13 @@
       "fund_holdings": [],
       "etf_holdings": [
         {
-          "etf_id": "00403A",
-          "weight": 0.09,
+          "etf_id": "00981A",
+          "weight": 0.0,
           "trade_date": "2026-06-03"
         },
         {
-          "etf_id": "00981A",
-          "weight": 0.0,
+          "etf_id": "00403A",
+          "weight": 0.09,
           "trade_date": "2026-06-03"
         },
         {
@@ -10025,13 +10025,13 @@
       "fund_holdings": [],
       "etf_holdings": [
         {
-          "etf_id": "00993A",
-          "weight": 2.76,
+          "etf_id": "00991A",
+          "weight": 0.004,
           "trade_date": "2026-06-03"
         },
         {
-          "etf_id": "00991A",
-          "weight": 0.004,
+          "etf_id": "00993A",
+          "weight": 2.76,
           "trade_date": "2026-06-03"
         },
         {
@@ -10516,8 +10516,8 @@
       "fund_holdings": [],
       "etf_holdings": [
         {
-          "etf_id": "00993A",
-          "weight": 2.36,
+          "etf_id": "00982A",
+          "weight": 0.0,
           "trade_date": "2026-06-03"
         },
         {
@@ -10526,8 +10526,8 @@
           "trade_date": "2026-06-03"
         },
         {
-          "etf_id": "00982A",
-          "weight": 0.0,
+          "etf_id": "00993A",
+          "weight": 2.36,
           "trade_date": "2026-06-03"
         },
         {
@@ -10575,13 +10575,13 @@
       "fund_holdings": [],
       "etf_holdings": [
         {
-          "etf_id": "00993A",
-          "weight": 2.21,
+          "etf_id": "00991A",
+          "weight": 0.001,
           "trade_date": "2026-06-03"
         },
         {
-          "etf_id": "00991A",
-          "weight": 0.001,
+          "etf_id": "00993A",
+          "weight": 2.21,
           "trade_date": "2026-06-03"
         },
         {
@@ -10811,13 +10811,13 @@
       "fund_holdings": [],
       "etf_holdings": [
         {
-          "etf_id": "00993A",
-          "weight": 2.01,
+          "etf_id": "00991A",
+          "weight": 0.001,
           "trade_date": "2026-06-03"
         },
         {
-          "etf_id": "00991A",
-          "weight": 0.001,
+          "etf_id": "00993A",
+          "weight": 2.01,
           "trade_date": "2026-06-03"
         },
         {
@@ -10963,13 +10963,13 @@
       "fund_holdings": [],
       "etf_holdings": [
         {
-          "etf_id": "00993A",
-          "weight": 2.53,
+          "etf_id": "00991A",
+          "weight": 0.001,
           "trade_date": "2026-06-03"
         },
         {
-          "etf_id": "00991A",
-          "weight": 0.001,
+          "etf_id": "00993A",
+          "weight": 2.53,
           "trade_date": "2026-06-03"
         },
         {
@@ -11779,11 +11779,6 @@
       ],
       "etf_holdings": [
         {
-          "etf_id": "00992A",
-          "weight": 3.6479,
-          "trade_date": "2026-06-03"
-        },
-        {
           "etf_id": "00993A",
           "weight": 0.22,
           "trade_date": "2026-06-03"
@@ -11791,6 +11786,11 @@
         {
           "etf_id": "00988A",
           "weight": 1.11,
+          "trade_date": "2026-06-03"
+        },
+        {
+          "etf_id": "00992A",
+          "weight": 3.6479,
           "trade_date": "2026-06-03"
         },
         {
@@ -11816,14 +11816,6 @@
       ],
       "signals": [
         {
-          "signal_type": "etf_consecutive_accumulation",
-          "trigger_period": "2026W23",
-          "funds": [
-            "復華台灣未來50"
-          ],
-          "weight_change": null
-        },
-        {
           "signal_type": "etf_consecutive_reduction",
           "trigger_period": "2026W23",
           "funds": [
@@ -11832,10 +11824,10 @@
           "weight_change": null
         },
         {
-          "signal_type": "etf_abnormal_exit",
+          "signal_type": "etf_consecutive_accumulation",
           "trigger_period": "2026W23",
           "funds": [
-            "野村臺灣智慧優選"
+            "復華台灣未來50"
           ],
           "weight_change": null
         },
@@ -11861,6 +11853,14 @@
           "weight_change": null
         },
         {
+          "signal_type": "etf_abnormal_exit",
+          "trigger_period": "2026W23",
+          "funds": [
+            "野村臺灣智慧優選"
+          ],
+          "weight_change": null
+        },
+        {
           "signal_type": "etf_consecutive_accumulation",
           "trigger_period": "2026W22",
           "funds": [
@@ -11889,20 +11889,20 @@
           "weight_change": null
         },
         {
+          "signal_type": "etf_abnormal_position",
+          "trigger_period": "2026W21",
+          "funds": [
+            "統一升級50"
+          ],
+          "weight_change": null
+        },
+        {
           "signal_type": "etf_multi_consensus",
           "trigger_period": "2026W21",
           "funds": [
             "統一升級50",
             "群益台灣精選強棒",
             "復華台灣未來50"
-          ],
-          "weight_change": null
-        },
-        {
-          "signal_type": "etf_abnormal_position",
-          "trigger_period": "2026W21",
-          "funds": [
-            "統一升級50"
           ],
           "weight_change": null
         },
@@ -11920,6 +11920,27 @@
           "funds": [
             "安聯台灣主動式",
             "群益台灣科技創新主動"
+          ],
+          "weight_change": null
+        },
+        {
+          "signal_type": "etf_consecutive_accumulation",
+          "trigger_period": "2026W20",
+          "funds": [
+            "統一台股增長",
+            "復華台灣未來50"
+          ],
+          "weight_change": null
+        },
+        {
+          "signal_type": "etf_multi_consensus",
+          "trigger_period": "2026W20",
+          "funds": [
+            "統一台股增長",
+            "統一升級50",
+            "復華台灣未來50",
+            "群益台灣科技創新主動",
+            "群益台灣精選強棒"
           ],
           "weight_change": null
         },
@@ -11933,22 +11954,19 @@
         },
         {
           "signal_type": "etf_consecutive_accumulation",
-          "trigger_period": "2026W20",
+          "trigger_period": "2026W19",
           "funds": [
-            "統一台股增長",
             "復華台灣未來50"
           ],
           "weight_change": null
         },
         {
-          "signal_type": "etf_multi_consensus",
-          "trigger_period": "2026W20",
+          "signal_type": "etf_multi_exit",
+          "trigger_period": "2026W19",
           "funds": [
-            "統一台股增長",
-            "統一升級50",
-            "復華台灣未來50",
-            "群益台灣科技創新主動",
-            "群益台灣精選強棒"
+            "群益台灣精選強棒",
+            "安聯台灣主動式",
+            "群益台灣科技創新主動"
           ],
           "weight_change": null
         },
@@ -11958,14 +11976,6 @@
           "funds": [
             "統一台股增長",
             "群益台灣精選強棒",
-            "復華台灣未來50"
-          ],
-          "weight_change": null
-        },
-        {
-          "signal_type": "etf_consecutive_accumulation",
-          "trigger_period": "2026W19",
-          "funds": [
             "復華台灣未來50"
           ],
           "weight_change": null
@@ -11980,11 +11990,10 @@
         },
         {
           "signal_type": "etf_multi_exit",
-          "trigger_period": "2026W19",
+          "trigger_period": "2026W18",
           "funds": [
-            "群益台灣精選強棒",
             "安聯台灣主動式",
-            "群益台灣科技創新主動"
+            "群益台灣精選強棒"
           ],
           "weight_change": null
         },
@@ -11998,6 +12007,24 @@
           "weight_change": null
         },
         {
+          "signal_type": "etf_multi_consensus",
+          "trigger_period": "2026W18",
+          "funds": [
+            "統一台股增長",
+            "群益台灣科技創新主動"
+          ],
+          "weight_change": null
+        },
+        {
+          "signal_type": "etf_consecutive_accumulation",
+          "trigger_period": "2026W18",
+          "funds": [
+            "統一台股增長",
+            "群益台灣科技創新主動"
+          ],
+          "weight_change": null
+        },
+        {
           "signal_type": "etf_abnormal_position",
           "trigger_period": "2026W18",
           "funds": [
@@ -12006,34 +12033,7 @@
           "weight_change": null
         },
         {
-          "signal_type": "etf_consecutive_accumulation",
-          "trigger_period": "2026W18",
-          "funds": [
-            "統一台股增長",
-            "群益台灣科技創新主動"
-          ],
-          "weight_change": null
-        },
-        {
           "signal_type": "etf_multi_consensus",
-          "trigger_period": "2026W18",
-          "funds": [
-            "統一台股增長",
-            "群益台灣科技創新主動"
-          ],
-          "weight_change": null
-        },
-        {
-          "signal_type": "etf_multi_exit",
-          "trigger_period": "2026W18",
-          "funds": [
-            "安聯台灣主動式",
-            "群益台灣精選強棒"
-          ],
-          "weight_change": null
-        },
-        {
-          "signal_type": "etf_consecutive_accumulation",
           "trigger_period": "2026W17",
           "funds": [
             "統一台股增長",
@@ -12042,7 +12042,7 @@
           "weight_change": null
         },
         {
-          "signal_type": "etf_multi_consensus",
+          "signal_type": "etf_consecutive_accumulation",
           "trigger_period": "2026W17",
           "funds": [
             "統一台股增長",
@@ -12060,13 +12060,12 @@
           "weight_change": null
         },
         {
-          "signal_type": "quarterly_to_monthly_top10",
+          "signal_type": "consecutive_accumulation",
           "trigger_period": "202604M",
           "funds": [
-            "安聯台灣大壩",
-            "統一奔騰"
+            "統一黑馬"
           ],
-          "weight_change": 0.67
+          "weight_change": 0.36
         },
         {
           "signal_type": "multi_fund_consensus",
@@ -12083,12 +12082,13 @@
           "weight_change": null
         },
         {
-          "signal_type": "consecutive_accumulation",
+          "signal_type": "quarterly_to_monthly_top10",
           "trigger_period": "202604M",
           "funds": [
-            "統一黑馬"
+            "安聯台灣大壩",
+            "統一奔騰"
           ],
-          "weight_change": 0.36
+          "weight_change": 0.67
         },
         {
           "signal_type": "quarterly_dormant_etf_active",
@@ -12099,6 +12099,14 @@
             "復華高成長"
           ],
           "weight_change": null
+        },
+        {
+          "signal_type": "dual_track_accumulation",
+          "trigger_period": "202603M",
+          "funds": [
+            "復華全方位"
+          ],
+          "weight_change": 1.53
         },
         {
           "signal_type": "quarterly_to_monthly_top10",
@@ -12122,14 +12130,6 @@
             "復華高成長"
           ],
           "weight_change": null
-        },
-        {
-          "signal_type": "dual_track_accumulation",
-          "trigger_period": "202603M",
-          "funds": [
-            "復華全方位"
-          ],
-          "weight_change": 1.53
         },
         {
           "signal_type": "consecutive_accumulation",
@@ -12323,13 +12323,13 @@
       "fund_holdings": [],
       "etf_holdings": [
         {
-          "etf_id": "00993A",
-          "weight": 1.9,
+          "etf_id": "00991A",
+          "weight": 0.0,
           "trade_date": "2026-06-03"
         },
         {
-          "etf_id": "00991A",
-          "weight": 0.0,
+          "etf_id": "00993A",
+          "weight": 1.9,
           "trade_date": "2026-06-03"
         },
         {
@@ -12379,15 +12379,6 @@
           "weight_change": null
         },
         {
-          "signal_type": "etf_multi_consensus",
-          "trigger_period": "2026W22",
-          "funds": [
-            "野村臺灣智慧優選",
-            "群益台灣精選強棒"
-          ],
-          "weight_change": null
-        },
-        {
           "signal_type": "etf_multi_exit",
           "trigger_period": "2026W22",
           "funds": [
@@ -12395,6 +12386,15 @@
             "統一台股增長",
             "群益台灣精選強棒",
             "群益台灣科技創新主動"
+          ],
+          "weight_change": null
+        },
+        {
+          "signal_type": "etf_multi_consensus",
+          "trigger_period": "2026W22",
+          "funds": [
+            "野村臺灣智慧優選",
+            "群益台灣精選強棒"
           ],
           "weight_change": null
         },
@@ -12453,15 +12453,6 @@
           "weight_change": null
         },
         {
-          "signal_type": "etf_multi_exit",
-          "trigger_period": "2026W18",
-          "funds": [
-            "群益台灣科技創新主動",
-            "安聯台灣主動式"
-          ],
-          "weight_change": null
-        },
-        {
           "signal_type": "etf_abnormal_exit",
           "trigger_period": "2026W18",
           "funds": [
@@ -12483,6 +12474,15 @@
           "funds": [
             "群益台灣精選強棒",
             "群益台灣科技創新主動"
+          ],
+          "weight_change": null
+        },
+        {
+          "signal_type": "etf_multi_exit",
+          "trigger_period": "2026W18",
+          "funds": [
+            "群益台灣科技創新主動",
+            "安聯台灣主動式"
           ],
           "weight_change": null
         },
@@ -12731,13 +12731,13 @@
           "trade_date": "2026-06-03"
         },
         {
-          "etf_id": "00993A",
-          "weight": 1.26,
+          "etf_id": "00988A",
+          "weight": 2.81,
           "trade_date": "2026-06-03"
         },
         {
-          "etf_id": "00988A",
-          "weight": 2.81,
+          "etf_id": "00993A",
+          "weight": 1.26,
           "trade_date": "2026-06-03"
         },
         {
@@ -12782,12 +12782,9 @@
           "weight_change": null
         },
         {
-          "signal_type": "etf_multi_consensus",
+          "signal_type": "etf_abnormal_position",
           "trigger_period": "2026W21",
           "funds": [
-            "統一全球創新",
-            "野村臺灣智慧優選",
-            "群益台灣科技創新主動",
             "統一升級50"
           ],
           "weight_change": null
@@ -12802,19 +12799,21 @@
           "weight_change": null
         },
         {
-          "signal_type": "etf_abnormal_position",
+          "signal_type": "etf_multi_consensus",
           "trigger_period": "2026W21",
           "funds": [
+            "統一全球創新",
+            "野村臺灣智慧優選",
+            "群益台灣科技創新主動",
             "統一升級50"
           ],
           "weight_change": null
         },
         {
-          "signal_type": "etf_consecutive_accumulation",
+          "signal_type": "etf_abnormal_position",
           "trigger_period": "2026W20",
           "funds": [
-            "統一全球創新",
-            "統一台股增長"
+            "統一升級50"
           ],
           "weight_change": null
         },
@@ -12838,18 +12837,11 @@
           "weight_change": null
         },
         {
-          "signal_type": "etf_abnormal_position",
+          "signal_type": "etf_consecutive_accumulation",
           "trigger_period": "2026W20",
           "funds": [
-            "統一升級50"
-          ],
-          "weight_change": null
-        },
-        {
-          "signal_type": "etf_abnormal_exit",
-          "trigger_period": "2026W19",
-          "funds": [
-            "安聯台灣主動式"
+            "統一全球創新",
+            "統一台股增長"
           ],
           "weight_change": null
         },
@@ -12858,6 +12850,23 @@
           "trigger_period": "2026W19",
           "funds": [
             "野村臺灣智慧優選"
+          ],
+          "weight_change": null
+        },
+        {
+          "signal_type": "etf_consecutive_accumulation",
+          "trigger_period": "2026W19",
+          "funds": [
+            "統一台股增長",
+            "統一全球創新"
+          ],
+          "weight_change": null
+        },
+        {
+          "signal_type": "etf_abnormal_exit",
+          "trigger_period": "2026W19",
+          "funds": [
+            "安聯台灣主動式"
           ],
           "weight_change": null
         },
@@ -12889,20 +12898,19 @@
           "weight_change": null
         },
         {
-          "signal_type": "etf_consecutive_accumulation",
-          "trigger_period": "2026W19",
-          "funds": [
-            "統一台股增長",
-            "統一全球創新"
-          ],
-          "weight_change": null
-        },
-        {
           "signal_type": "etf_multi_consensus",
           "trigger_period": "2026W18",
           "funds": [
             "統一全球創新",
             "統一台股增長",
+            "群益台灣科技創新主動"
+          ],
+          "weight_change": null
+        },
+        {
+          "signal_type": "etf_consecutive_accumulation",
+          "trigger_period": "2026W18",
+          "funds": [
             "群益台灣科技創新主動"
           ],
           "weight_change": null
@@ -12917,34 +12925,9 @@
         },
         {
           "signal_type": "etf_consecutive_accumulation",
-          "trigger_period": "2026W18",
-          "funds": [
-            "群益台灣科技創新主動"
-          ],
-          "weight_change": null
-        },
-        {
-          "signal_type": "etf_consecutive_accumulation",
           "trigger_period": "2026W17",
           "funds": [
             "群益台灣科技創新主動"
-          ],
-          "weight_change": null
-        },
-        {
-          "signal_type": "multi_fund_consensus",
-          "trigger_period": "202604M",
-          "funds": [
-            "復華高成長",
-            "復華全方位",
-            "野村高科技",
-            "統一全天候",
-            "統一黑馬",
-            "台新主流",
-            "安聯台灣大壩",
-            "野村優質",
-            "統一中小",
-            "元大新主流"
           ],
           "weight_change": null
         },
@@ -12966,15 +12949,6 @@
           "weight_change": null
         },
         {
-          "signal_type": "consecutive_accumulation",
-          "trigger_period": "202604M",
-          "funds": [
-            "統一黑馬",
-            "安聯台灣大壩"
-          ],
-          "weight_change": 2.05
-        },
-        {
           "signal_type": "quarterly_to_monthly_top10",
           "trigger_period": "202604M",
           "funds": [
@@ -12986,11 +12960,59 @@
           "weight_change": 4.54
         },
         {
+          "signal_type": "consecutive_accumulation",
+          "trigger_period": "202604M",
+          "funds": [
+            "統一黑馬",
+            "安聯台灣大壩"
+          ],
+          "weight_change": 2.05
+        },
+        {
+          "signal_type": "multi_fund_consensus",
+          "trigger_period": "202604M",
+          "funds": [
+            "復華高成長",
+            "復華全方位",
+            "野村高科技",
+            "統一全天候",
+            "統一黑馬",
+            "台新主流",
+            "安聯台灣大壩",
+            "野村優質",
+            "統一中小",
+            "元大新主流"
+          ],
+          "weight_change": null
+        },
+        {
           "signal_type": "quarterly_dormant_etf_active",
           "trigger_period": "202603Q",
           "funds": [
             "統一全天候",
             "統一奔騰"
+          ],
+          "weight_change": null
+        },
+        {
+          "signal_type": "dual_track_accumulation",
+          "trigger_period": "202603M",
+          "funds": [
+            "統一全天候"
+          ],
+          "weight_change": 0.2
+        },
+        {
+          "signal_type": "multi_fund_consensus",
+          "trigger_period": "202603M",
+          "funds": [
+            "復華高成長",
+            "復華全方位",
+            "野村高科技",
+            "統一全天候",
+            "元大新主流",
+            "統一黑馬",
+            "安聯台灣大壩"
           ],
           "weight_change": null
         },
@@ -13013,12 +13035,13 @@
           "weight_change": -2.55
         },
         {
-          "signal_type": "dual_track_accumulation",
+          "signal_type": "quarterly_to_monthly_top10",
           "trigger_period": "202603M",
           "funds": [
-            "統一全天候"
+            "統一黑馬",
+            "野村高科技"
           ],
-          "weight_change": 0.2
+          "weight_change": 2.49
         },
         {
           "signal_type": "consensus_formation",
@@ -13032,29 +13055,6 @@
             "統一全天候",
             "統一黑馬",
             "野村高科技"
-          ],
-          "weight_change": null
-        },
-        {
-          "signal_type": "quarterly_to_monthly_top10",
-          "trigger_period": "202603M",
-          "funds": [
-            "統一黑馬",
-            "野村高科技"
-          ],
-          "weight_change": 2.49
-        },
-        {
-          "signal_type": "multi_fund_consensus",
-          "trigger_period": "202603M",
-          "funds": [
-            "復華高成長",
-            "復華全方位",
-            "野村高科技",
-            "統一全天候",
-            "元大新主流",
-            "統一黑馬",
-            "安聯台灣大壩"
           ],
           "weight_change": null
         }
@@ -13193,13 +13193,13 @@
       "fund_holdings": [],
       "etf_holdings": [
         {
-          "etf_id": "00993A",
-          "weight": 2.32,
+          "etf_id": "00991A",
+          "weight": 0.0,
           "trade_date": "2026-06-03"
         },
         {
-          "etf_id": "00991A",
-          "weight": 0.0,
+          "etf_id": "00993A",
+          "weight": 2.32,
           "trade_date": "2026-06-03"
         },
         {
@@ -13592,13 +13592,13 @@
       "fund_holdings": [],
       "etf_holdings": [
         {
-          "etf_id": "00992A",
-          "weight": 2.0228,
+          "etf_id": "00993A",
+          "weight": 0.49,
           "trade_date": "2026-06-03"
         },
         {
-          "etf_id": "00993A",
-          "weight": 0.49,
+          "etf_id": "00992A",
+          "weight": 2.0228,
           "trade_date": "2026-06-03"
         },
         {
@@ -13692,11 +13692,10 @@
           "weight_change": null
         },
         {
-          "signal_type": "etf_multi_consensus",
+          "signal_type": "etf_abnormal_position",
           "trigger_period": "2026W17",
           "funds": [
-            "群益台灣科技創新主動",
-            "安聯台灣主動式"
+            "群益台灣科技創新主動"
           ],
           "weight_change": null
         },
@@ -13709,10 +13708,11 @@
           "weight_change": null
         },
         {
-          "signal_type": "etf_abnormal_position",
+          "signal_type": "etf_multi_consensus",
           "trigger_period": "2026W17",
           "funds": [
-            "群益台灣科技創新主動"
+            "群益台灣科技創新主動",
+            "安聯台灣主動式"
           ],
           "weight_change": null
         },
@@ -13907,19 +13907,19 @@
           "weight_change": null
         },
         {
+          "signal_type": "etf_consecutive_reduction",
+          "trigger_period": "2026W20",
+          "funds": [
+            "安聯台灣主動式"
+          ],
+          "weight_change": null
+        },
+        {
           "signal_type": "etf_multi_exit",
           "trigger_period": "2026W20",
           "funds": [
             "安聯台灣主動式",
             "群益台灣科技創新主動"
-          ],
-          "weight_change": null
-        },
-        {
-          "signal_type": "etf_consecutive_reduction",
-          "trigger_period": "2026W20",
-          "funds": [
-            "安聯台灣主動式"
           ],
           "weight_change": null
         },
@@ -13933,11 +13933,11 @@
           "weight_change": null
         },
         {
-          "signal_type": "etf_abnormal_exit",
+          "signal_type": "etf_multi_exit",
           "trigger_period": "2026W18",
           "funds": [
-            "群益台灣科技創新主動",
-            "安聯台灣主動式"
+            "安聯台灣主動式",
+            "群益台灣科技創新主動"
           ],
           "weight_change": null
         },
@@ -13951,11 +13951,11 @@
           "weight_change": null
         },
         {
-          "signal_type": "etf_multi_exit",
+          "signal_type": "etf_abnormal_exit",
           "trigger_period": "2026W18",
           "funds": [
-            "安聯台灣主動式",
-            "群益台灣科技創新主動"
+            "群益台灣科技創新主動",
+            "安聯台灣主動式"
           ],
           "weight_change": null
         },
@@ -14017,13 +14017,13 @@
           "trade_date": "2026-06-03"
         },
         {
-          "etf_id": "00993A",
-          "weight": 1.82,
+          "etf_id": "00991A",
+          "weight": 2.591,
           "trade_date": "2026-06-03"
         },
         {
-          "etf_id": "00991A",
-          "weight": 2.591,
+          "etf_id": "00993A",
+          "weight": 1.82,
           "trade_date": "2026-06-03"
         },
         {
@@ -14066,27 +14066,19 @@
           "weight_change": null
         },
         {
+          "signal_type": "etf_consecutive_reduction",
+          "trigger_period": "2026W20",
+          "funds": [
+            "統一台股增長"
+          ],
+          "weight_change": null
+        },
+        {
           "signal_type": "etf_multi_consensus",
           "trigger_period": "2026W20",
           "funds": [
             "安聯台灣主動式",
             "統一升級50"
-          ],
-          "weight_change": null
-        },
-        {
-          "signal_type": "etf_consecutive_accumulation",
-          "trigger_period": "2026W20",
-          "funds": [
-            "安聯台灣主動式"
-          ],
-          "weight_change": null
-        },
-        {
-          "signal_type": "etf_consecutive_reduction",
-          "trigger_period": "2026W20",
-          "funds": [
-            "統一台股增長"
           ],
           "weight_change": null
         },
@@ -14097,6 +14089,14 @@
             "群益台灣科技創新主動",
             "復華台灣未來50",
             "統一台股增長"
+          ],
+          "weight_change": null
+        },
+        {
+          "signal_type": "etf_consecutive_accumulation",
+          "trigger_period": "2026W20",
+          "funds": [
+            "安聯台灣主動式"
           ],
           "weight_change": null
         },
@@ -14136,18 +14136,18 @@
           "weight_change": null
         },
         {
-          "signal_type": "etf_abnormal_position",
-          "trigger_period": "2026W19",
-          "funds": [
-            "野村臺灣智慧優選"
-          ],
-          "weight_change": null
-        },
-        {
           "signal_type": "etf_abnormal_exit",
           "trigger_period": "2026W19",
           "funds": [
             "復華台灣未來50"
+          ],
+          "weight_change": null
+        },
+        {
+          "signal_type": "etf_abnormal_position",
+          "trigger_period": "2026W19",
+          "funds": [
+            "野村臺灣智慧優選"
           ],
           "weight_change": null
         },
@@ -14188,14 +14188,6 @@
           "weight_change": null
         },
         {
-          "signal_type": "etf_abnormal_exit",
-          "trigger_period": "2026W17",
-          "funds": [
-            "復華台灣未來50"
-          ],
-          "weight_change": null
-        },
-        {
           "signal_type": "etf_multi_consensus",
           "trigger_period": "2026W17",
           "funds": [
@@ -14210,6 +14202,14 @@
           "funds": [
             "群益台灣科技創新主動",
             "統一台股增長"
+          ],
+          "weight_change": null
+        },
+        {
+          "signal_type": "etf_abnormal_exit",
+          "trigger_period": "2026W17",
+          "funds": [
+            "復華台灣未來50"
           ],
           "weight_change": null
         },
@@ -14670,19 +14670,19 @@
           "weight_change": null
         },
         {
-          "signal_type": "etf_abnormal_exit",
-          "trigger_period": "2026W23",
-          "funds": [
-            "群益台灣精選強棒"
-          ],
-          "weight_change": null
-        },
-        {
           "signal_type": "etf_multi_exit",
           "trigger_period": "2026W23",
           "funds": [
             "群益台灣精選強棒",
             "統一台股增長"
+          ],
+          "weight_change": null
+        },
+        {
+          "signal_type": "etf_abnormal_exit",
+          "trigger_period": "2026W23",
+          "funds": [
+            "群益台灣精選強棒"
           ],
           "weight_change": null
         },
@@ -14721,16 +14721,6 @@
           "weight_change": null
         },
         {
-          "signal_type": "etf_multi_consensus",
-          "trigger_period": "2026W20",
-          "funds": [
-            "安聯台灣主動式",
-            "統一台股增長",
-            "群益台灣精選強棒"
-          ],
-          "weight_change": null
-        },
-        {
           "signal_type": "etf_multi_exit",
           "trigger_period": "2026W20",
           "funds": [
@@ -14748,9 +14738,28 @@
           "weight_change": null
         },
         {
+          "signal_type": "etf_multi_consensus",
+          "trigger_period": "2026W20",
+          "funds": [
+            "安聯台灣主動式",
+            "統一台股增長",
+            "群益台灣精選強棒"
+          ],
+          "weight_change": null
+        },
+        {
           "signal_type": "etf_consecutive_accumulation",
           "trigger_period": "2026W19",
           "funds": [
+            "統一台股增長"
+          ],
+          "weight_change": null
+        },
+        {
+          "signal_type": "etf_multi_consensus",
+          "trigger_period": "2026W19",
+          "funds": [
+            "群益台灣精選強棒",
             "統一台股增長"
           ],
           "weight_change": null
@@ -14765,10 +14774,19 @@
           "weight_change": null
         },
         {
-          "signal_type": "etf_multi_consensus",
-          "trigger_period": "2026W19",
+          "signal_type": "etf_multi_exit",
+          "trigger_period": "2026W18",
           "funds": [
+            "安聯台灣主動式",
             "群益台灣精選強棒",
+            "統一台股增長"
+          ],
+          "weight_change": null
+        },
+        {
+          "signal_type": "etf_consecutive_accumulation",
+          "trigger_period": "2026W18",
+          "funds": [
             "統一台股增長"
           ],
           "weight_change": null
@@ -14783,18 +14801,8 @@
         },
         {
           "signal_type": "etf_consecutive_accumulation",
-          "trigger_period": "2026W18",
+          "trigger_period": "2026W17",
           "funds": [
-            "統一台股增長"
-          ],
-          "weight_change": null
-        },
-        {
-          "signal_type": "etf_multi_exit",
-          "trigger_period": "2026W18",
-          "funds": [
-            "安聯台灣主動式",
-            "群益台灣精選強棒",
             "統一台股增長"
           ],
           "weight_change": null
@@ -14804,14 +14812,6 @@
           "trigger_period": "2026W17",
           "funds": [
             "群益台灣精選強棒",
-            "統一台股增長"
-          ],
-          "weight_change": null
-        },
-        {
-          "signal_type": "etf_consecutive_accumulation",
-          "trigger_period": "2026W17",
-          "funds": [
             "統一台股增長"
           ],
           "weight_change": null
@@ -15316,13 +15316,18 @@
       ],
       "etf_holdings": [
         {
+          "etf_id": "00993A",
+          "weight": 0.36,
+          "trade_date": "2026-06-03"
+        },
+        {
           "etf_id": "00992A",
           "weight": 2.8862,
           "trade_date": "2026-06-03"
         },
         {
-          "etf_id": "00993A",
-          "weight": 0.36,
+          "etf_id": "00981A",
+          "weight": 0.26,
           "trade_date": "2026-06-03"
         },
         {
@@ -15333,11 +15338,6 @@
         {
           "etf_id": "00982A",
           "weight": 0.0085,
-          "trade_date": "2026-06-03"
-        },
-        {
-          "etf_id": "00981A",
-          "weight": 0.26,
           "trade_date": "2026-06-03"
         },
         {
@@ -15674,18 +15674,18 @@
       ],
       "signals": [
         {
-          "signal_type": "etf_multi_exit",
+          "signal_type": "etf_consecutive_reduction",
           "trigger_period": "2026W23",
           "funds": [
-            "群益台灣精選強棒",
             "群益台灣科技創新主動"
           ],
           "weight_change": null
         },
         {
-          "signal_type": "etf_consecutive_reduction",
+          "signal_type": "etf_multi_exit",
           "trigger_period": "2026W23",
           "funds": [
+            "群益台灣精選強棒",
             "群益台灣科技創新主動"
           ],
           "weight_change": null
@@ -15876,13 +15876,13 @@
       ],
       "etf_holdings": [
         {
-          "etf_id": "00992A",
-          "weight": 0.0207,
+          "etf_id": "00980A",
+          "weight": 0.18,
           "trade_date": "2026-06-03"
         },
         {
-          "etf_id": "00980A",
-          "weight": 0.18,
+          "etf_id": "00992A",
+          "weight": 0.0207,
           "trade_date": "2026-06-03"
         },
         {
@@ -15913,18 +15913,18 @@
       ],
       "signals": [
         {
-          "signal_type": "etf_consecutive_reduction",
-          "trigger_period": "2026W23",
-          "funds": [
-            "群益台灣科技創新主動"
-          ],
-          "weight_change": null
-        },
-        {
           "signal_type": "etf_consecutive_accumulation",
           "trigger_period": "2026W23",
           "funds": [
             "統一升級50"
+          ],
+          "weight_change": null
+        },
+        {
+          "signal_type": "etf_consecutive_reduction",
+          "trigger_period": "2026W23",
+          "funds": [
+            "群益台灣科技創新主動"
           ],
           "weight_change": null
         },
@@ -16035,20 +16035,20 @@
           "weight_change": null
         },
         {
-          "signal_type": "etf_multi_consensus",
-          "trigger_period": "2026W18",
-          "funds": [
-            "群益台灣科技創新主動",
-            "統一台股增長"
-          ],
-          "weight_change": null
-        },
-        {
           "signal_type": "etf_abnormal_exit",
           "trigger_period": "2026W18",
           "funds": [
             "群益台灣精選強棒",
             "群益台灣科技創新主動"
+          ],
+          "weight_change": null
+        },
+        {
+          "signal_type": "etf_multi_consensus",
+          "trigger_period": "2026W18",
+          "funds": [
+            "群益台灣科技創新主動",
+            "統一台股增長"
           ],
           "weight_change": null
         },
@@ -16198,6 +16198,15 @@
           "weight_change": null
         },
         {
+          "signal_type": "etf_multi_consensus",
+          "trigger_period": "2026W21",
+          "funds": [
+            "統一升級50",
+            "群益台灣精選強棒"
+          ],
+          "weight_change": null
+        },
+        {
           "signal_type": "etf_consecutive_accumulation",
           "trigger_period": "2026W21",
           "funds": [
@@ -16208,8 +16217,9 @@
         },
         {
           "signal_type": "etf_multi_consensus",
-          "trigger_period": "2026W21",
+          "trigger_period": "2026W20",
           "funds": [
+            "群益台灣科技創新主動",
             "統一升級50",
             "群益台灣精選強棒"
           ],
@@ -16219,16 +16229,6 @@
           "signal_type": "etf_consecutive_accumulation",
           "trigger_period": "2026W20",
           "funds": [
-            "群益台灣精選強棒"
-          ],
-          "weight_change": null
-        },
-        {
-          "signal_type": "etf_multi_consensus",
-          "trigger_period": "2026W20",
-          "funds": [
-            "群益台灣科技創新主動",
-            "統一升級50",
             "群益台灣精選強棒"
           ],
           "weight_change": null
@@ -16814,13 +16814,13 @@
       ],
       "etf_holdings": [
         {
-          "etf_id": "00992A",
-          "weight": 2.5929,
+          "etf_id": "00981A",
+          "weight": 0.0,
           "trade_date": "2026-06-03"
         },
         {
-          "etf_id": "00981A",
-          "weight": 0.0,
+          "etf_id": "00992A",
+          "weight": 2.5929,
           "trade_date": "2026-06-03"
         },
         {
@@ -16885,18 +16885,18 @@
           "weight_change": null
         },
         {
-          "signal_type": "etf_consecutive_accumulation",
+          "signal_type": "etf_multi_consensus",
           "trigger_period": "2026W18",
           "funds": [
+            "統一台股增長",
             "群益台灣科技創新主動"
           ],
           "weight_change": null
         },
         {
-          "signal_type": "etf_multi_consensus",
+          "signal_type": "etf_consecutive_accumulation",
           "trigger_period": "2026W18",
           "funds": [
-            "統一台股增長",
             "群益台灣科技創新主動"
           ],
           "weight_change": null
@@ -17267,6 +17267,11 @@
       ],
       "etf_holdings": [
         {
+          "etf_id": "00982A",
+          "weight": 0.0005,
+          "trade_date": "2026-06-03"
+        },
+        {
           "etf_id": "00992A",
           "weight": 3.0287,
           "trade_date": "2026-06-03"
@@ -17279,11 +17284,6 @@
         {
           "etf_id": "00980A",
           "weight": 0.66,
-          "trade_date": "2026-06-03"
-        },
-        {
-          "etf_id": "00982A",
-          "weight": 0.0005,
           "trade_date": "2026-06-03"
         },
         {
@@ -17457,15 +17457,6 @@
           "weight_change": null
         },
         {
-          "signal_type": "etf_multi_consensus",
-          "trigger_period": "2026W17",
-          "funds": [
-            "統一台股增長",
-            "群益台灣科技創新主動"
-          ],
-          "weight_change": null
-        },
-        {
           "signal_type": "etf_consecutive_accumulation",
           "trigger_period": "2026W17",
           "funds": [
@@ -17484,7 +17475,7 @@
         },
         {
           "signal_type": "etf_multi_consensus",
-          "trigger_period": "2026W16",
+          "trigger_period": "2026W17",
           "funds": [
             "統一台股增長",
             "群益台灣科技創新主動"
@@ -17492,22 +17483,13 @@
           "weight_change": null
         },
         {
-          "signal_type": "dual_track_accumulation",
-          "trigger_period": "202604M",
+          "signal_type": "etf_multi_consensus",
+          "trigger_period": "2026W16",
           "funds": [
-            "統一奔騰"
+            "統一台股增長",
+            "群益台灣科技創新主動"
           ],
-          "weight_change": 0.59
-        },
-        {
-          "signal_type": "consecutive_accumulation",
-          "trigger_period": "202604M",
-          "funds": [
-            "統一中小",
-            "統一全天候",
-            "統一奔騰"
-          ],
-          "weight_change": 2.24
+          "weight_change": null
         },
         {
           "signal_type": "multi_fund_consensus",
@@ -17531,6 +17513,24 @@
           "weight_change": 0.41
         },
         {
+          "signal_type": "consecutive_accumulation",
+          "trigger_period": "202604M",
+          "funds": [
+            "統一中小",
+            "統一全天候",
+            "統一奔騰"
+          ],
+          "weight_change": 2.24
+        },
+        {
+          "signal_type": "dual_track_accumulation",
+          "trigger_period": "202604M",
+          "funds": [
+            "統一奔騰"
+          ],
+          "weight_change": 0.59
+        },
+        {
           "signal_type": "quarterly_dormant_etf_active",
           "trigger_period": "202603Q",
           "funds": [
@@ -17549,7 +17549,7 @@
           "weight_change": null
         },
         {
-          "signal_type": "consecutive_accumulation",
+          "signal_type": "dual_track_accumulation",
           "trigger_period": "202603M",
           "funds": [
             "統一奔騰"
@@ -17557,7 +17557,7 @@
           "weight_change": 2.16
         },
         {
-          "signal_type": "dual_track_accumulation",
+          "signal_type": "consecutive_accumulation",
           "trigger_period": "202603M",
           "funds": [
             "統一奔騰"
@@ -17639,13 +17639,13 @@
       "fund_holdings": [],
       "etf_holdings": [
         {
-          "etf_id": "00993A",
-          "weight": 0.36,
+          "etf_id": "00982A",
+          "weight": 0.0002,
           "trade_date": "2026-06-03"
         },
         {
-          "etf_id": "00982A",
-          "weight": 0.0002,
+          "etf_id": "00993A",
+          "weight": 0.36,
           "trade_date": "2026-06-03"
         },
         {
@@ -17698,23 +17698,23 @@
       "fund_holdings": [],
       "etf_holdings": [
         {
-          "etf_id": "00992A",
-          "weight": 2.0288,
-          "trade_date": "2026-06-03"
-        },
-        {
           "etf_id": "00993A",
           "weight": 0.3,
           "trade_date": "2026-06-03"
         },
         {
-          "etf_id": "00991A",
-          "weight": 0.009,
+          "etf_id": "00988A",
+          "weight": 1.25,
           "trade_date": "2026-06-03"
         },
         {
-          "etf_id": "00988A",
-          "weight": 1.25,
+          "etf_id": "00992A",
+          "weight": 2.0288,
+          "trade_date": "2026-06-03"
+        },
+        {
+          "etf_id": "00991A",
+          "weight": 0.009,
           "trade_date": "2026-06-03"
         },
         {
@@ -17754,17 +17754,6 @@
           "weight_change": null
         },
         {
-          "signal_type": "etf_multi_consensus",
-          "trigger_period": "2026W22",
-          "funds": [
-            "統一升級50",
-            "統一台股增長",
-            "群益台灣精選強棒",
-            "群益台灣科技創新主動"
-          ],
-          "weight_change": null
-        },
-        {
           "signal_type": "etf_consecutive_accumulation",
           "trigger_period": "2026W22",
           "funds": [
@@ -17774,10 +17763,13 @@
           "weight_change": null
         },
         {
-          "signal_type": "etf_abnormal_position",
-          "trigger_period": "2026W21",
+          "signal_type": "etf_multi_consensus",
+          "trigger_period": "2026W22",
           "funds": [
-            "統一升級50"
+            "統一升級50",
+            "統一台股增長",
+            "群益台灣精選強棒",
+            "群益台灣科技創新主動"
           ],
           "weight_change": null
         },
@@ -17796,6 +17788,40 @@
           "funds": [
             "群益台灣精選強棒",
             "統一升級50"
+          ],
+          "weight_change": null
+        },
+        {
+          "signal_type": "etf_abnormal_position",
+          "trigger_period": "2026W21",
+          "funds": [
+            "統一升級50"
+          ],
+          "weight_change": null
+        },
+        {
+          "signal_type": "etf_abnormal_position",
+          "trigger_period": "2026W20",
+          "funds": [
+            "統一升級50"
+          ],
+          "weight_change": null
+        },
+        {
+          "signal_type": "etf_consecutive_reduction",
+          "trigger_period": "2026W20",
+          "funds": [
+            "安聯台灣主動式"
+          ],
+          "weight_change": null
+        },
+        {
+          "signal_type": "etf_consecutive_accumulation",
+          "trigger_period": "2026W20",
+          "funds": [
+            "統一台股增長",
+            "統一全球創新",
+            "群益台灣精選強棒"
           ],
           "weight_change": null
         },
@@ -17812,24 +17838,16 @@
           "weight_change": null
         },
         {
-          "signal_type": "etf_consecutive_reduction",
-          "trigger_period": "2026W20",
+          "signal_type": "etf_abnormal_exit",
+          "trigger_period": "2026W19",
           "funds": [
             "安聯台灣主動式"
           ],
           "weight_change": null
         },
         {
-          "signal_type": "etf_abnormal_position",
-          "trigger_period": "2026W20",
-          "funds": [
-            "統一升級50"
-          ],
-          "weight_change": null
-        },
-        {
-          "signal_type": "etf_consecutive_accumulation",
-          "trigger_period": "2026W20",
+          "signal_type": "etf_multi_consensus",
+          "trigger_period": "2026W19",
           "funds": [
             "統一台股增長",
             "統一全球創新",
@@ -17846,18 +17864,8 @@
           "weight_change": null
         },
         {
-          "signal_type": "etf_multi_consensus",
-          "trigger_period": "2026W19",
-          "funds": [
-            "統一台股增長",
-            "統一全球創新",
-            "群益台灣精選強棒"
-          ],
-          "weight_change": null
-        },
-        {
           "signal_type": "etf_abnormal_exit",
-          "trigger_period": "2026W19",
+          "trigger_period": "2026W18",
           "funds": [
             "安聯台灣主動式"
           ],
@@ -17874,14 +17882,6 @@
           "weight_change": null
         },
         {
-          "signal_type": "etf_abnormal_exit",
-          "trigger_period": "2026W18",
-          "funds": [
-            "安聯台灣主動式"
-          ],
-          "weight_change": null
-        },
-        {
           "signal_type": "etf_multi_consensus",
           "trigger_period": "2026W18",
           "funds": [
@@ -17893,7 +17893,7 @@
           "weight_change": null
         },
         {
-          "signal_type": "etf_consecutive_accumulation",
+          "signal_type": "etf_multi_consensus",
           "trigger_period": "2026W17",
           "funds": [
             "統一台股增長",
@@ -17911,18 +17911,8 @@
           "weight_change": null
         },
         {
-          "signal_type": "etf_multi_consensus",
+          "signal_type": "etf_consecutive_accumulation",
           "trigger_period": "2026W17",
-          "funds": [
-            "統一台股增長",
-            "統一全球創新",
-            "群益台灣科技創新主動"
-          ],
-          "weight_change": null
-        },
-        {
-          "signal_type": "etf_multi_consensus",
-          "trigger_period": "2026W16",
           "funds": [
             "統一台股增長",
             "統一全球創新",
@@ -17935,6 +17925,16 @@
           "trigger_period": "2026W16",
           "funds": [
             "統一全球創新"
+          ],
+          "weight_change": null
+        },
+        {
+          "signal_type": "etf_multi_consensus",
+          "trigger_period": "2026W16",
+          "funds": [
+            "統一台股增長",
+            "統一全球創新",
+            "群益台灣科技創新主動"
           ],
           "weight_change": null
         },
@@ -18861,13 +18861,8 @@
           "trade_date": "2026-06-03"
         },
         {
-          "etf_id": "00993A",
-          "weight": 1.88,
-          "trade_date": "2026-06-03"
-        },
-        {
-          "etf_id": "00991A",
-          "weight": 3.302,
+          "etf_id": "00988A",
+          "weight": 1.6,
           "trade_date": "2026-06-03"
         },
         {
@@ -18876,8 +18871,13 @@
           "trade_date": "2026-06-03"
         },
         {
-          "etf_id": "00988A",
-          "weight": 1.6,
+          "etf_id": "00991A",
+          "weight": 3.302,
+          "trade_date": "2026-06-03"
+        },
+        {
+          "etf_id": "00993A",
+          "weight": 1.88,
           "trade_date": "2026-06-03"
         },
         {
@@ -18893,28 +18893,20 @@
       ],
       "signals": [
         {
+          "signal_type": "etf_abnormal_exit",
+          "trigger_period": "2026W23",
+          "funds": [
+            "野村臺灣智慧優選"
+          ],
+          "weight_change": null
+        },
+        {
           "signal_type": "etf_multi_exit",
           "trigger_period": "2026W23",
           "funds": [
             "野村臺灣智慧優選",
             "統一升級50",
             "群益台灣科技創新主動"
-          ],
-          "weight_change": null
-        },
-        {
-          "signal_type": "etf_consecutive_reduction",
-          "trigger_period": "2026W23",
-          "funds": [
-            "統一升級50"
-          ],
-          "weight_change": null
-        },
-        {
-          "signal_type": "etf_consecutive_accumulation",
-          "trigger_period": "2026W23",
-          "funds": [
-            "復華台灣未來50"
           ],
           "weight_change": null
         },
@@ -18928,18 +18920,17 @@
           "weight_change": null
         },
         {
-          "signal_type": "etf_abnormal_exit",
+          "signal_type": "etf_consecutive_accumulation",
           "trigger_period": "2026W23",
           "funds": [
-            "野村臺灣智慧優選"
+            "復華台灣未來50"
           ],
           "weight_change": null
         },
         {
-          "signal_type": "etf_multi_consensus",
-          "trigger_period": "2026W22",
+          "signal_type": "etf_consecutive_reduction",
+          "trigger_period": "2026W23",
           "funds": [
-            "群益台灣精選強棒",
             "統一升級50"
           ],
           "weight_change": null
@@ -18955,29 +18946,10 @@
         },
         {
           "signal_type": "etf_multi_consensus",
-          "trigger_period": "2026W21",
+          "trigger_period": "2026W22",
           "funds": [
-            "統一全球創新",
             "群益台灣精選強棒",
             "統一升級50"
-          ],
-          "weight_change": null
-        },
-        {
-          "signal_type": "etf_consecutive_accumulation",
-          "trigger_period": "2026W21",
-          "funds": [
-            "統一全球創新",
-            "統一升級50"
-          ],
-          "weight_change": null
-        },
-        {
-          "signal_type": "etf_multi_exit",
-          "trigger_period": "2026W21",
-          "funds": [
-            "統一台股增長",
-            "群益台灣科技創新主動"
           ],
           "weight_change": null
         },
@@ -18990,26 +18962,28 @@
           "weight_change": null
         },
         {
-          "signal_type": "etf_consecutive_accumulation",
-          "trigger_period": "2026W20",
+          "signal_type": "etf_multi_consensus",
+          "trigger_period": "2026W21",
           "funds": [
-            "野村臺灣智慧優選"
+            "統一全球創新",
+            "群益台灣精選強棒",
+            "統一升級50"
           ],
           "weight_change": null
         },
         {
-          "signal_type": "etf_abnormal_exit",
-          "trigger_period": "2026W20",
+          "signal_type": "etf_consecutive_accumulation",
+          "trigger_period": "2026W21",
           "funds": [
+            "統一全球創新",
             "統一升級50"
           ],
           "weight_change": null
         },
         {
           "signal_type": "etf_multi_exit",
-          "trigger_period": "2026W20",
+          "trigger_period": "2026W21",
           "funds": [
-            "統一升級50",
             "統一台股增長",
             "群益台灣科技創新主動"
           ],
@@ -19027,18 +19001,28 @@
           "weight_change": null
         },
         {
-          "signal_type": "etf_abnormal_exit",
-          "trigger_period": "2026W19",
+          "signal_type": "etf_consecutive_accumulation",
+          "trigger_period": "2026W20",
           "funds": [
-            "安聯台灣主動式"
+            "野村臺灣智慧優選"
           ],
           "weight_change": null
         },
         {
-          "signal_type": "etf_consecutive_accumulation",
-          "trigger_period": "2026W19",
+          "signal_type": "etf_multi_exit",
+          "trigger_period": "2026W20",
           "funds": [
-            "統一台股增長"
+            "統一升級50",
+            "統一台股增長",
+            "群益台灣科技創新主動"
+          ],
+          "weight_change": null
+        },
+        {
+          "signal_type": "etf_abnormal_exit",
+          "trigger_period": "2026W20",
+          "funds": [
+            "統一升級50"
           ],
           "weight_change": null
         },
@@ -19052,6 +19036,30 @@
           "weight_change": null
         },
         {
+          "signal_type": "etf_consecutive_accumulation",
+          "trigger_period": "2026W19",
+          "funds": [
+            "統一台股增長"
+          ],
+          "weight_change": null
+        },
+        {
+          "signal_type": "etf_abnormal_exit",
+          "trigger_period": "2026W19",
+          "funds": [
+            "安聯台灣主動式"
+          ],
+          "weight_change": null
+        },
+        {
+          "signal_type": "etf_consecutive_accumulation",
+          "trigger_period": "2026W18",
+          "funds": [
+            "安聯台灣主動式"
+          ],
+          "weight_change": null
+        },
+        {
           "signal_type": "etf_multi_consensus",
           "trigger_period": "2026W18",
           "funds": [
@@ -19071,10 +19079,18 @@
           "weight_change": null
         },
         {
-          "signal_type": "etf_consecutive_accumulation",
-          "trigger_period": "2026W18",
+          "signal_type": "etf_abnormal_position",
+          "trigger_period": "2026W17",
           "funds": [
             "安聯台灣主動式"
+          ],
+          "weight_change": null
+        },
+        {
+          "signal_type": "etf_consecutive_accumulation",
+          "trigger_period": "2026W17",
+          "funds": [
+            "群益台灣科技創新主動"
           ],
           "weight_change": null
         },
@@ -19089,17 +19105,9 @@
         },
         {
           "signal_type": "etf_abnormal_position",
-          "trigger_period": "2026W17",
+          "trigger_period": "2026W16",
           "funds": [
-            "安聯台灣主動式"
-          ],
-          "weight_change": null
-        },
-        {
-          "signal_type": "etf_consecutive_accumulation",
-          "trigger_period": "2026W17",
-          "funds": [
-            "群益台灣科技創新主動"
+            "統一台股增長"
           ],
           "weight_change": null
         },
@@ -19114,10 +19122,13 @@
           "weight_change": null
         },
         {
-          "signal_type": "etf_abnormal_position",
-          "trigger_period": "2026W16",
+          "signal_type": "multi_fund_consensus",
+          "trigger_period": "202604M",
           "funds": [
-            "統一台股增長"
+            "安聯台灣大壩",
+            "元大新主流",
+            "復華高成長",
+            "安聯台灣科技"
           ],
           "weight_change": null
         },
@@ -19132,17 +19143,6 @@
           "weight_change": 1.55
         },
         {
-          "signal_type": "multi_fund_consensus",
-          "trigger_period": "202604M",
-          "funds": [
-            "安聯台灣大壩",
-            "元大新主流",
-            "復華高成長",
-            "安聯台灣科技"
-          ],
-          "weight_change": null
-        },
-        {
           "signal_type": "quarterly_dormant_etf_active",
           "trigger_period": "202603Q",
           "funds": [
@@ -19151,20 +19151,20 @@
           "weight_change": null
         },
         {
-          "signal_type": "quarterly_to_monthly_top10",
-          "trigger_period": "202603M",
-          "funds": [
-            "安聯台灣大壩"
-          ],
-          "weight_change": 1.02
-        },
-        {
           "signal_type": "consecutive_accumulation",
           "trigger_period": "202603M",
           "funds": [
             "安聯台灣大壩"
           ],
           "weight_change": 0.89
+        },
+        {
+          "signal_type": "quarterly_to_monthly_top10",
+          "trigger_period": "202603M",
+          "funds": [
+            "安聯台灣大壩"
+          ],
+          "weight_change": 1.02
         }
       ]
     },
@@ -20169,10 +20169,11 @@
       ],
       "signals": [
         {
-          "signal_type": "etf_consecutive_accumulation",
+          "signal_type": "etf_multi_consensus",
           "trigger_period": "2026W23",
           "funds": [
-            "統一台股增長"
+            "統一台股增長",
+            "安聯台灣主動式"
           ],
           "weight_change": null
         },
@@ -20185,11 +20186,10 @@
           "weight_change": null
         },
         {
-          "signal_type": "etf_multi_consensus",
+          "signal_type": "etf_consecutive_accumulation",
           "trigger_period": "2026W23",
           "funds": [
-            "統一台股增長",
-            "安聯台灣主動式"
+            "統一台股增長"
           ],
           "weight_change": null
         },
@@ -20265,6 +20265,14 @@
           "weight_change": null
         },
         {
+          "signal_type": "etf_abnormal_exit",
+          "trigger_period": "2026W19",
+          "funds": [
+            "安聯台灣主動式"
+          ],
+          "weight_change": null
+        },
+        {
           "signal_type": "etf_multi_consensus",
           "trigger_period": "2026W19",
           "funds": [
@@ -20274,27 +20282,9 @@
           "weight_change": null
         },
         {
-          "signal_type": "etf_abnormal_exit",
-          "trigger_period": "2026W19",
-          "funds": [
-            "安聯台灣主動式"
-          ],
-          "weight_change": null
-        },
-        {
           "signal_type": "etf_multi_exit",
           "trigger_period": "2026W19",
           "funds": [
-            "安聯台灣主動式",
-            "統一台股增長"
-          ],
-          "weight_change": null
-        },
-        {
-          "signal_type": "etf_multi_exit",
-          "trigger_period": "2026W18",
-          "funds": [
-            "群益台灣精選強棒",
             "安聯台灣主動式",
             "統一台股增長"
           ],
@@ -20305,6 +20295,16 @@
           "trigger_period": "2026W18",
           "funds": [
             "群益台灣精選強棒"
+          ],
+          "weight_change": null
+        },
+        {
+          "signal_type": "etf_multi_exit",
+          "trigger_period": "2026W18",
+          "funds": [
+            "群益台灣精選強棒",
+            "安聯台灣主動式",
+            "統一台股增長"
           ],
           "weight_change": null
         }
@@ -20470,15 +20470,6 @@
       ],
       "signals": [
         {
-          "signal_type": "etf_multi_consensus",
-          "trigger_period": "2026W20",
-          "funds": [
-            "統一台股增長",
-            "安聯台灣主動式"
-          ],
-          "weight_change": null
-        },
-        {
           "signal_type": "etf_consecutive_accumulation",
           "trigger_period": "2026W20",
           "funds": [
@@ -20489,7 +20480,7 @@
         },
         {
           "signal_type": "etf_multi_consensus",
-          "trigger_period": "2026W19",
+          "trigger_period": "2026W20",
           "funds": [
             "統一台股增長",
             "安聯台灣主動式"
@@ -20508,6 +20499,15 @@
           "signal_type": "etf_abnormal_position",
           "trigger_period": "2026W19",
           "funds": [
+            "安聯台灣主動式"
+          ],
+          "weight_change": null
+        },
+        {
+          "signal_type": "etf_multi_consensus",
+          "trigger_period": "2026W19",
+          "funds": [
+            "統一台股增長",
             "安聯台灣主動式"
           ],
           "weight_change": null
@@ -21149,13 +21149,13 @@
       ],
       "etf_holdings": [
         {
-          "etf_id": "00992A",
-          "weight": 3.8763,
+          "etf_id": "00988A",
+          "weight": 0.95,
           "trade_date": "2026-06-03"
         },
         {
-          "etf_id": "00993A",
-          "weight": 1.16,
+          "etf_id": "00992A",
+          "weight": 3.8763,
           "trade_date": "2026-06-03"
         },
         {
@@ -21164,8 +21164,8 @@
           "trade_date": "2026-06-03"
         },
         {
-          "etf_id": "00988A",
-          "weight": 0.95,
+          "etf_id": "00993A",
+          "weight": 1.16,
           "trade_date": "2026-06-03"
         },
         {
@@ -21195,6 +21195,14 @@
           "weight_change": null
         },
         {
+          "signal_type": "etf_consecutive_reduction",
+          "trigger_period": "2026W23",
+          "funds": [
+            "群益台灣精選強棒"
+          ],
+          "weight_change": null
+        },
+        {
           "signal_type": "etf_multi_consensus",
           "trigger_period": "2026W23",
           "funds": [
@@ -21215,23 +21223,6 @@
           "weight_change": null
         },
         {
-          "signal_type": "etf_consecutive_reduction",
-          "trigger_period": "2026W23",
-          "funds": [
-            "群益台灣精選強棒"
-          ],
-          "weight_change": null
-        },
-        {
-          "signal_type": "etf_consecutive_accumulation",
-          "trigger_period": "2026W22",
-          "funds": [
-            "復華台灣未來50",
-            "統一升級50"
-          ],
-          "weight_change": null
-        },
-        {
           "signal_type": "etf_multi_consensus",
           "trigger_period": "2026W22",
           "funds": [
@@ -21241,9 +21232,10 @@
           "weight_change": null
         },
         {
-          "signal_type": "etf_abnormal_position",
-          "trigger_period": "2026W21",
+          "signal_type": "etf_consecutive_accumulation",
+          "trigger_period": "2026W22",
           "funds": [
+            "復華台灣未來50",
             "統一升級50"
           ],
           "weight_change": null
@@ -21262,6 +21254,14 @@
           "funds": [
             "復華台灣未來50",
             "群益台灣科技創新主動",
+            "統一升級50"
+          ],
+          "weight_change": null
+        },
+        {
+          "signal_type": "etf_abnormal_position",
+          "trigger_period": "2026W21",
+          "funds": [
             "統一升級50"
           ],
           "weight_change": null
@@ -21298,24 +21298,6 @@
           "weight_change": null
         },
         {
-          "signal_type": "etf_consecutive_accumulation",
-          "trigger_period": "2026W19",
-          "funds": [
-            "統一台股增長"
-          ],
-          "weight_change": null
-        },
-        {
-          "signal_type": "etf_multi_consensus",
-          "trigger_period": "2026W19",
-          "funds": [
-            "統一台股增長",
-            "統一全球創新",
-            "群益台灣精選強棒"
-          ],
-          "weight_change": null
-        },
-        {
           "signal_type": "etf_abnormal_exit",
           "trigger_period": "2026W19",
           "funds": [
@@ -21325,6 +21307,24 @@
         },
         {
           "signal_type": "etf_consecutive_accumulation",
+          "trigger_period": "2026W19",
+          "funds": [
+            "統一台股增長"
+          ],
+          "weight_change": null
+        },
+        {
+          "signal_type": "etf_multi_consensus",
+          "trigger_period": "2026W19",
+          "funds": [
+            "統一台股增長",
+            "統一全球創新",
+            "群益台灣精選強棒"
+          ],
+          "weight_change": null
+        },
+        {
+          "signal_type": "etf_consecutive_accumulation",
           "trigger_period": "2026W18",
           "funds": [
             "群益台灣科技創新主動",
@@ -21340,24 +21340,6 @@
             "統一台股增長",
             "群益台灣科技創新主動",
             "群益台灣精選強棒"
-          ],
-          "weight_change": null
-        },
-        {
-          "signal_type": "etf_consecutive_accumulation",
-          "trigger_period": "2026W17",
-          "funds": [
-            "群益台灣科技創新主動",
-            "統一台股增長"
-          ],
-          "weight_change": null
-        },
-        {
-          "signal_type": "etf_multi_consensus",
-          "trigger_period": "2026W17",
-          "funds": [
-            "統一台股增長",
-            "群益台灣科技創新主動"
           ],
           "weight_change": null
         },
@@ -21371,8 +21353,17 @@
           "weight_change": null
         },
         {
+          "signal_type": "etf_consecutive_accumulation",
+          "trigger_period": "2026W17",
+          "funds": [
+            "群益台灣科技創新主動",
+            "統一台股增長"
+          ],
+          "weight_change": null
+        },
+        {
           "signal_type": "etf_multi_consensus",
-          "trigger_period": "2026W16",
+          "trigger_period": "2026W17",
           "funds": [
             "統一台股增長",
             "群益台灣科技創新主動"
@@ -21380,22 +21371,11 @@
           "weight_change": null
         },
         {
-          "signal_type": "consensus_formation",
-          "trigger_period": "202604M",
+          "signal_type": "etf_multi_consensus",
+          "trigger_period": "2026W16",
           "funds": [
-            "元大新主流",
-            "台新主流",
-            "安聯台灣大壩",
-            "安聯台灣科技",
-            "復華全方位",
-            "復華高成長",
-            "統一中小",
-            "統一全天候",
-            "統一大中華中小",
-            "統一奔騰",
-            "統一黑馬",
-            "野村優質",
-            "野村高科技"
+            "統一台股增長",
+            "群益台灣科技創新主動"
           ],
           "weight_change": null
         },
@@ -21427,6 +21407,26 @@
           "weight_change": 2.78
         },
         {
+          "signal_type": "consensus_formation",
+          "trigger_period": "202604M",
+          "funds": [
+            "元大新主流",
+            "台新主流",
+            "安聯台灣大壩",
+            "安聯台灣科技",
+            "復華全方位",
+            "復華高成長",
+            "統一中小",
+            "統一全天候",
+            "統一大中華中小",
+            "統一奔騰",
+            "統一黑馬",
+            "野村優質",
+            "野村高科技"
+          ],
+          "weight_change": null
+        },
+        {
           "signal_type": "quarterly_dormant_etf_active",
           "trigger_period": "202603Q",
           "funds": [
@@ -21455,23 +21455,6 @@
           "weight_change": null
         },
         {
-          "signal_type": "consecutive_accumulation",
-          "trigger_period": "202603M",
-          "funds": [
-            "統一奔騰",
-            "復華高成長"
-          ],
-          "weight_change": 2.12
-        },
-        {
-          "signal_type": "dual_track_accumulation",
-          "trigger_period": "202603M",
-          "funds": [
-            "統一奔騰"
-          ],
-          "weight_change": 1.78
-        },
-        {
           "signal_type": "multi_fund_consensus",
           "trigger_period": "202603M",
           "funds": [
@@ -21485,6 +21468,23 @@
             "野村優質"
           ],
           "weight_change": null
+        },
+        {
+          "signal_type": "dual_track_accumulation",
+          "trigger_period": "202603M",
+          "funds": [
+            "統一奔騰"
+          ],
+          "weight_change": 1.78
+        },
+        {
+          "signal_type": "consecutive_accumulation",
+          "trigger_period": "202603M",
+          "funds": [
+            "統一奔騰",
+            "復華高成長"
+          ],
+          "weight_change": 2.12
         },
         {
           "signal_type": "quarterly_to_monthly_top10",
@@ -22039,13 +22039,13 @@
       ],
       "etf_holdings": [
         {
-          "etf_id": "00992A",
-          "weight": 1.6089,
+          "etf_id": "00988A",
+          "weight": 0.7,
           "trade_date": "2026-06-03"
         },
         {
-          "etf_id": "00993A",
-          "weight": 1.97,
+          "etf_id": "00992A",
+          "weight": 1.6089,
           "trade_date": "2026-06-03"
         },
         {
@@ -22054,8 +22054,8 @@
           "trade_date": "2026-06-03"
         },
         {
-          "etf_id": "00988A",
-          "weight": 0.7,
+          "etf_id": "00993A",
+          "weight": 1.97,
           "trade_date": "2026-06-03"
         },
         {
@@ -22076,27 +22076,10 @@
       ],
       "signals": [
         {
-          "signal_type": "etf_consecutive_accumulation",
-          "trigger_period": "2026W23",
-          "funds": [
-            "統一升級50",
-            "復華台灣未來50"
-          ],
-          "weight_change": null
-        },
-        {
           "signal_type": "etf_abnormal_exit",
           "trigger_period": "2026W23",
           "funds": [
             "野村臺灣智慧優選"
-          ],
-          "weight_change": null
-        },
-        {
-          "signal_type": "etf_consecutive_reduction",
-          "trigger_period": "2026W23",
-          "funds": [
-            "群益台灣精選強棒"
           ],
           "weight_change": null
         },
@@ -22112,11 +22095,28 @@
           "weight_change": null
         },
         {
+          "signal_type": "etf_consecutive_accumulation",
+          "trigger_period": "2026W23",
+          "funds": [
+            "統一升級50",
+            "復華台灣未來50"
+          ],
+          "weight_change": null
+        },
+        {
           "signal_type": "etf_multi_exit",
           "trigger_period": "2026W23",
           "funds": [
             "群益台灣科技創新主動",
             "野村臺灣智慧優選",
+            "群益台灣精選強棒"
+          ],
+          "weight_change": null
+        },
+        {
+          "signal_type": "etf_consecutive_reduction",
+          "trigger_period": "2026W23",
+          "funds": [
             "群益台灣精選強棒"
           ],
           "weight_change": null
@@ -22141,25 +22141,6 @@
           "weight_change": null
         },
         {
-          "signal_type": "etf_consecutive_accumulation",
-          "trigger_period": "2026W20",
-          "funds": [
-            "統一台股增長",
-            "群益台灣精選強棒",
-            "安聯台灣主動式",
-            "統一全球創新"
-          ],
-          "weight_change": null
-        },
-        {
-          "signal_type": "etf_abnormal_position",
-          "trigger_period": "2026W20",
-          "funds": [
-            "統一升級50"
-          ],
-          "weight_change": null
-        },
-        {
           "signal_type": "etf_multi_consensus",
           "trigger_period": "2026W20",
           "funds": [
@@ -22172,13 +22153,21 @@
           "weight_change": null
         },
         {
-          "signal_type": "etf_multi_consensus",
-          "trigger_period": "2026W19",
+          "signal_type": "etf_abnormal_position",
+          "trigger_period": "2026W20",
           "funds": [
-            "安聯台灣主動式",
-            "統一全球創新",
+            "統一升級50"
+          ],
+          "weight_change": null
+        },
+        {
+          "signal_type": "etf_consecutive_accumulation",
+          "trigger_period": "2026W20",
+          "funds": [
             "統一台股增長",
-            "群益台灣精選強棒"
+            "群益台灣精選強棒",
+            "安聯台灣主動式",
+            "統一全球創新"
           ],
           "weight_change": null
         },
@@ -22187,6 +22176,17 @@
           "trigger_period": "2026W19",
           "funds": [
             "安聯台灣主動式"
+          ],
+          "weight_change": null
+        },
+        {
+          "signal_type": "etf_multi_consensus",
+          "trigger_period": "2026W19",
+          "funds": [
+            "安聯台灣主動式",
+            "統一全球創新",
+            "統一台股增長",
+            "群益台灣精選強棒"
           ],
           "weight_change": null
         },
@@ -22253,33 +22253,6 @@
           "weight_change": null
         },
         {
-          "signal_type": "consensus_formation",
-          "trigger_period": "202604M",
-          "funds": [
-            "台新主流",
-            "安聯台灣大壩",
-            "安聯台灣科技",
-            "復華全方位",
-            "復華高成長",
-            "統一中小",
-            "統一全天候",
-            "統一大中華中小",
-            "統一奔騰",
-            "統一黑馬"
-          ],
-          "weight_change": null
-        },
-        {
-          "signal_type": "multi_fund_consensus",
-          "trigger_period": "202604M",
-          "funds": [
-            "台新主流",
-            "安聯台灣大壩",
-            "安聯台灣科技"
-          ],
-          "weight_change": null
-        },
-        {
           "signal_type": "quarterly_to_monthly_top10",
           "trigger_period": "202604M",
           "funds": [
@@ -22290,7 +22263,7 @@
         },
         {
           "signal_type": "consensus_formation",
-          "trigger_period": "202603M",
+          "trigger_period": "202604M",
           "funds": [
             "台新主流",
             "安聯台灣大壩",
@@ -22307,11 +22280,38 @@
         },
         {
           "signal_type": "multi_fund_consensus",
+          "trigger_period": "202604M",
+          "funds": [
+            "台新主流",
+            "安聯台灣大壩",
+            "安聯台灣科技"
+          ],
+          "weight_change": null
+        },
+        {
+          "signal_type": "multi_fund_consensus",
           "trigger_period": "202603M",
           "funds": [
             "台新主流",
             "安聯台灣大壩",
             "安聯台灣科技"
+          ],
+          "weight_change": null
+        },
+        {
+          "signal_type": "consensus_formation",
+          "trigger_period": "202603M",
+          "funds": [
+            "台新主流",
+            "安聯台灣大壩",
+            "安聯台灣科技",
+            "復華全方位",
+            "復華高成長",
+            "統一中小",
+            "統一全天候",
+            "統一大中華中小",
+            "統一奔騰",
+            "統一黑馬"
           ],
           "weight_change": null
         }
@@ -22795,14 +22795,6 @@
           "weight_change": null
         },
         {
-          "signal_type": "etf_abnormal_exit",
-          "trigger_period": "2026W18",
-          "funds": [
-            "群益台灣科技創新主動"
-          ],
-          "weight_change": null
-        },
-        {
           "signal_type": "etf_multi_exit",
           "trigger_period": "2026W18",
           "funds": [
@@ -22813,6 +22805,14 @@
         },
         {
           "signal_type": "etf_abnormal_exit",
+          "trigger_period": "2026W18",
+          "funds": [
+            "群益台灣科技創新主動"
+          ],
+          "weight_change": null
+        },
+        {
+          "signal_type": "etf_abnormal_exit",
           "trigger_period": "2026W17",
           "funds": [
             "復華台灣未來50"
@@ -22820,7 +22820,7 @@
           "weight_change": null
         },
         {
-          "signal_type": "etf_abnormal_position",
+          "signal_type": "etf_consecutive_accumulation",
           "trigger_period": "2026W17",
           "funds": [
             "群益台灣科技創新主動"
@@ -22828,7 +22828,7 @@
           "weight_change": null
         },
         {
-          "signal_type": "etf_consecutive_accumulation",
+          "signal_type": "etf_abnormal_position",
           "trigger_period": "2026W17",
           "funds": [
             "群益台灣科技創新主動"
@@ -23097,19 +23097,19 @@
           "weight_change": null
         },
         {
-          "signal_type": "etf_consecutive_reduction",
-          "trigger_period": "2026W18",
-          "funds": [
-            "統一台股增長"
-          ],
-          "weight_change": null
-        },
-        {
           "signal_type": "etf_multi_consensus",
           "trigger_period": "2026W18",
           "funds": [
             "統一台股增長",
             "群益台灣精選強棒"
+          ],
+          "weight_change": null
+        },
+        {
+          "signal_type": "etf_consecutive_reduction",
+          "trigger_period": "2026W18",
+          "funds": [
+            "統一台股增長"
           ],
           "weight_change": null
         },
@@ -23165,13 +23165,13 @@
       ],
       "etf_holdings": [
         {
-          "etf_id": "00992A",
-          "weight": 1.7477,
+          "etf_id": "00991A",
+          "weight": 0.006,
           "trade_date": "2026-06-03"
         },
         {
-          "etf_id": "00991A",
-          "weight": 0.006,
+          "etf_id": "00992A",
+          "weight": 1.7477,
           "trade_date": "2026-06-03"
         },
         {
@@ -23202,18 +23202,18 @@
       ],
       "signals": [
         {
-          "signal_type": "etf_consecutive_reduction",
+          "signal_type": "etf_multi_exit",
           "trigger_period": "2026W23",
           "funds": [
+            "群益台灣精選強棒",
             "群益台灣科技創新主動"
           ],
           "weight_change": null
         },
         {
-          "signal_type": "etf_multi_exit",
+          "signal_type": "etf_consecutive_reduction",
           "trigger_period": "2026W23",
           "funds": [
-            "群益台灣精選強棒",
             "群益台灣科技創新主動"
           ],
           "weight_change": null
@@ -23567,23 +23567,23 @@
       ],
       "etf_holdings": [
         {
-          "etf_id": "00992A",
-          "weight": 2.402,
-          "trade_date": "2026-06-03"
-        },
-        {
           "etf_id": "00993A",
           "weight": 0.43,
           "trade_date": "2026-06-03"
         },
         {
-          "etf_id": "00991A",
-          "weight": 0.014,
+          "etf_id": "00988A",
+          "weight": 1.24,
           "trade_date": "2026-06-03"
         },
         {
-          "etf_id": "00988A",
-          "weight": 1.24,
+          "etf_id": "00992A",
+          "weight": 2.402,
+          "trade_date": "2026-06-03"
+        },
+        {
+          "etf_id": "00991A",
+          "weight": 0.014,
           "trade_date": "2026-06-03"
         },
         {
@@ -23726,21 +23726,21 @@
           "weight_change": null
         },
         {
-          "signal_type": "etf_consecutive_accumulation",
-          "trigger_period": "2026W17",
-          "funds": [
-            "群益台灣科技創新主動",
-            "統一台股增長"
-          ],
-          "weight_change": null
-        },
-        {
           "signal_type": "etf_multi_consensus",
           "trigger_period": "2026W17",
           "funds": [
             "群益台灣科技創新主動",
             "統一台股增長",
             "安聯台灣主動式"
+          ],
+          "weight_change": null
+        },
+        {
+          "signal_type": "etf_consecutive_accumulation",
+          "trigger_period": "2026W17",
+          "funds": [
+            "群益台灣科技創新主動",
+            "統一台股增長"
           ],
           "weight_change": null
         },
@@ -23754,6 +23754,14 @@
           "weight_change": null
         },
         {
+          "signal_type": "consecutive_accumulation",
+          "trigger_period": "202604M",
+          "funds": [
+            "元大新主流"
+          ],
+          "weight_change": 0.26
+        },
+        {
           "signal_type": "multi_fund_consensus",
           "trigger_period": "202604M",
           "funds": [
@@ -23765,14 +23773,6 @@
             "統一黑馬"
           ],
           "weight_change": null
-        },
-        {
-          "signal_type": "consecutive_accumulation",
-          "trigger_period": "202604M",
-          "funds": [
-            "元大新主流"
-          ],
-          "weight_change": 0.26
         },
         {
           "signal_type": "quarterly_to_monthly_top10",
@@ -23796,18 +23796,12 @@
           "weight_change": null
         },
         {
-          "signal_type": "multi_fund_consensus",
+          "signal_type": "consecutive_accumulation",
           "trigger_period": "202603M",
           "funds": [
-            "安聯台灣大壩",
-            "安聯台灣科技",
-            "野村優質",
-            "統一全天候",
-            "統一黑馬",
-            "元大新主流",
-            "台新主流"
+            "安聯台灣科技"
           ],
-          "weight_change": null
+          "weight_change": 2.27
         },
         {
           "signal_type": "quarterly_to_monthly_top10",
@@ -23822,12 +23816,18 @@
           "weight_change": 5.49
         },
         {
-          "signal_type": "consecutive_accumulation",
+          "signal_type": "multi_fund_consensus",
           "trigger_period": "202603M",
           "funds": [
-            "安聯台灣科技"
+            "安聯台灣大壩",
+            "安聯台灣科技",
+            "野村優質",
+            "統一全天候",
+            "統一黑馬",
+            "元大新主流",
+            "台新主流"
           ],
-          "weight_change": 2.27
+          "weight_change": null
         }
       ]
     },
@@ -23836,13 +23836,13 @@
       "fund_holdings": [],
       "etf_holdings": [
         {
-          "etf_id": "00992A",
-          "weight": 0.5874,
+          "etf_id": "00993A",
+          "weight": 0.46,
           "trade_date": "2026-06-03"
         },
         {
-          "etf_id": "00993A",
-          "weight": 0.46,
+          "etf_id": "00992A",
+          "weight": 0.5874,
           "trade_date": "2026-06-03"
         },
         {
@@ -23873,6 +23873,15 @@
       ],
       "signals": [
         {
+          "signal_type": "etf_multi_exit",
+          "trigger_period": "2026W23",
+          "funds": [
+            "群益台灣科技創新主動",
+            "群益台灣精選強棒"
+          ],
+          "weight_change": null
+        },
+        {
           "signal_type": "etf_multi_consensus",
           "trigger_period": "2026W23",
           "funds": [
@@ -23891,10 +23900,10 @@
         },
         {
           "signal_type": "etf_multi_exit",
-          "trigger_period": "2026W23",
+          "trigger_period": "2026W22",
           "funds": [
-            "群益台灣科技創新主動",
-            "群益台灣精選強棒"
+            "群益台灣精選強棒",
+            "群益台灣科技創新主動"
           ],
           "weight_change": null
         },
@@ -23915,11 +23924,10 @@
           "weight_change": null
         },
         {
-          "signal_type": "etf_multi_exit",
-          "trigger_period": "2026W22",
+          "signal_type": "etf_abnormal_exit",
+          "trigger_period": "2026W20",
           "funds": [
-            "群益台灣精選強棒",
-            "群益台灣科技創新主動"
+            "安聯台灣主動式"
           ],
           "weight_change": null
         },
@@ -23928,14 +23936,6 @@
           "trigger_period": "2026W20",
           "funds": [
             "群益台灣精選強棒",
-            "安聯台灣主動式"
-          ],
-          "weight_change": null
-        },
-        {
-          "signal_type": "etf_abnormal_exit",
-          "trigger_period": "2026W20",
-          "funds": [
             "安聯台灣主動式"
           ],
           "weight_change": null
@@ -24029,14 +24029,6 @@
       ],
       "signals": [
         {
-          "signal_type": "etf_consecutive_accumulation",
-          "trigger_period": "2026W23",
-          "funds": [
-            "群益台灣科技創新主動"
-          ],
-          "weight_change": null
-        },
-        {
           "signal_type": "etf_multi_exit",
           "trigger_period": "2026W23",
           "funds": [
@@ -24051,6 +24043,14 @@
           "trigger_period": "2026W23",
           "funds": [
             "野村臺灣智慧優選"
+          ],
+          "weight_change": null
+        },
+        {
+          "signal_type": "etf_consecutive_accumulation",
+          "trigger_period": "2026W23",
+          "funds": [
+            "群益台灣科技創新主動"
           ],
           "weight_change": null
         },
@@ -24256,41 +24256,6 @@
       ],
       "signals": [
         {
-          "signal_type": "etf_abnormal_exit",
-          "trigger_period": "2026W23",
-          "funds": [
-            "野村臺灣智慧優選"
-          ],
-          "weight_change": null
-        },
-        {
-          "signal_type": "etf_multi_consensus",
-          "trigger_period": "2026W23",
-          "funds": [
-            "統一台股增長",
-            "統一升級50",
-            "復華台灣未來50"
-          ],
-          "weight_change": null
-        },
-        {
-          "signal_type": "etf_consecutive_accumulation",
-          "trigger_period": "2026W23",
-          "funds": [
-            "復華台灣未來50"
-          ],
-          "weight_change": null
-        },
-        {
-          "signal_type": "etf_consecutive_reduction",
-          "trigger_period": "2026W23",
-          "funds": [
-            "群益台灣精選強棒",
-            "群益台灣科技創新主動"
-          ],
-          "weight_change": null
-        },
-        {
           "signal_type": "etf_multi_exit",
           "trigger_period": "2026W23",
           "funds": [
@@ -24302,17 +24267,33 @@
         },
         {
           "signal_type": "etf_multi_consensus",
-          "trigger_period": "2026W22",
+          "trigger_period": "2026W23",
           "funds": [
-            "統一升級50",
             "統一台股增長",
+            "統一升級50",
             "復華台灣未來50"
           ],
           "weight_change": null
         },
         {
-          "signal_type": "etf_multi_exit",
-          "trigger_period": "2026W22",
+          "signal_type": "etf_abnormal_exit",
+          "trigger_period": "2026W23",
+          "funds": [
+            "野村臺灣智慧優選"
+          ],
+          "weight_change": null
+        },
+        {
+          "signal_type": "etf_consecutive_accumulation",
+          "trigger_period": "2026W23",
+          "funds": [
+            "復華台灣未來50"
+          ],
+          "weight_change": null
+        },
+        {
+          "signal_type": "etf_consecutive_reduction",
+          "trigger_period": "2026W23",
           "funds": [
             "群益台灣精選強棒",
             "群益台灣科技創新主動"
@@ -24339,10 +24320,20 @@
         },
         {
           "signal_type": "etf_multi_exit",
-          "trigger_period": "2026W21",
+          "trigger_period": "2026W22",
           "funds": [
-            "野村臺灣智慧優選",
-            "群益台灣精選強棒"
+            "群益台灣精選強棒",
+            "群益台灣科技創新主動"
+          ],
+          "weight_change": null
+        },
+        {
+          "signal_type": "etf_multi_consensus",
+          "trigger_period": "2026W22",
+          "funds": [
+            "統一升級50",
+            "統一台股增長",
+            "復華台灣未來50"
           ],
           "weight_change": null
         },
@@ -24375,12 +24366,11 @@
           "weight_change": null
         },
         {
-          "signal_type": "etf_multi_consensus",
-          "trigger_period": "2026W20",
+          "signal_type": "etf_multi_exit",
+          "trigger_period": "2026W21",
           "funds": [
-            "統一台股增長",
-            "統一升級50",
-            "復華台灣未來50"
+            "野村臺灣智慧優選",
+            "群益台灣精選強棒"
           ],
           "weight_change": null
         },
@@ -24389,6 +24379,16 @@
           "trigger_period": "2026W20",
           "funds": [
             "統一台股增長",
+            "復華台灣未來50"
+          ],
+          "weight_change": null
+        },
+        {
+          "signal_type": "etf_multi_consensus",
+          "trigger_period": "2026W20",
+          "funds": [
+            "統一台股增長",
+            "統一升級50",
             "復華台灣未來50"
           ],
           "weight_change": null
@@ -24429,14 +24429,6 @@
             "統一台股增長",
             "群益台灣科技創新主動",
             "復華台灣未來50",
-            "群益台灣精選強棒"
-          ],
-          "weight_change": null
-        },
-        {
-          "signal_type": "etf_abnormal_exit",
-          "trigger_period": "2026W18",
-          "funds": [
             "群益台灣精選強棒"
           ],
           "weight_change": null
@@ -24455,6 +24447,32 @@
           "trigger_period": "2026W18",
           "funds": [
             "統一台股增長"
+          ],
+          "weight_change": null
+        },
+        {
+          "signal_type": "etf_abnormal_exit",
+          "trigger_period": "2026W18",
+          "funds": [
+            "群益台灣精選強棒"
+          ],
+          "weight_change": null
+        },
+        {
+          "signal_type": "etf_consecutive_accumulation",
+          "trigger_period": "2026W17",
+          "funds": [
+            "統一台股增長",
+            "群益台灣科技創新主動"
+          ],
+          "weight_change": null
+        },
+        {
+          "signal_type": "etf_multi_consensus",
+          "trigger_period": "2026W17",
+          "funds": [
+            "統一台股增長",
+            "群益台灣科技創新主動"
           ],
           "weight_change": null
         },
@@ -24464,24 +24482,6 @@
           "funds": [
             "群益台灣科技創新主動",
             "統一台股增長"
-          ],
-          "weight_change": null
-        },
-        {
-          "signal_type": "etf_consecutive_accumulation",
-          "trigger_period": "2026W17",
-          "funds": [
-            "統一台股增長",
-            "群益台灣科技創新主動"
-          ],
-          "weight_change": null
-        },
-        {
-          "signal_type": "etf_multi_consensus",
-          "trigger_period": "2026W17",
-          "funds": [
-            "統一台股增長",
-            "群益台灣科技創新主動"
           ],
           "weight_change": null
         },
@@ -24745,16 +24745,6 @@
           "weight_change": null
         },
         {
-          "signal_type": "etf_multi_exit",
-          "trigger_period": "2026W23",
-          "funds": [
-            "安聯台灣主動式",
-            "群益台灣科技創新主動",
-            "野村臺灣智慧優選"
-          ],
-          "weight_change": null
-        },
-        {
           "signal_type": "etf_multi_consensus",
           "trigger_period": "2026W23",
           "funds": [
@@ -24765,6 +24755,16 @@
           "weight_change": null
         },
         {
+          "signal_type": "etf_multi_exit",
+          "trigger_period": "2026W23",
+          "funds": [
+            "安聯台灣主動式",
+            "群益台灣科技創新主動",
+            "野村臺灣智慧優選"
+          ],
+          "weight_change": null
+        },
+        {
           "signal_type": "etf_multi_consensus",
           "trigger_period": "2026W22",
           "funds": [
@@ -24808,15 +24808,6 @@
           "weight_change": null
         },
         {
-          "signal_type": "etf_multi_exit",
-          "trigger_period": "2026W20",
-          "funds": [
-            "安聯台灣主動式",
-            "群益台灣精選強棒"
-          ],
-          "weight_change": null
-        },
-        {
           "signal_type": "etf_abnormal_position",
           "trigger_period": "2026W20",
           "funds": [
@@ -24835,10 +24826,10 @@
         },
         {
           "signal_type": "etf_multi_exit",
-          "trigger_period": "2026W19",
+          "trigger_period": "2026W20",
           "funds": [
-            "統一台股增長",
-            "群益台灣科技創新主動"
+            "安聯台灣主動式",
+            "群益台灣精選強棒"
           ],
           "weight_change": null
         },
@@ -24852,20 +24843,11 @@
           "weight_change": null
         },
         {
-          "signal_type": "etf_multi_consensus",
-          "trigger_period": "2026W18",
+          "signal_type": "etf_multi_exit",
+          "trigger_period": "2026W19",
           "funds": [
-            "安聯台灣主動式",
             "統一台股增長",
             "群益台灣科技創新主動"
-          ],
-          "weight_change": null
-        },
-        {
-          "signal_type": "etf_abnormal_position",
-          "trigger_period": "2026W18",
-          "funds": [
-            "野村臺灣智慧優選"
           ],
           "weight_change": null
         },
@@ -24881,6 +24863,22 @@
           "weight_change": null
         },
         {
+          "signal_type": "etf_consecutive_reduction",
+          "trigger_period": "2026W18",
+          "funds": [
+            "群益台灣精選強棒"
+          ],
+          "weight_change": null
+        },
+        {
+          "signal_type": "etf_abnormal_position",
+          "trigger_period": "2026W18",
+          "funds": [
+            "野村臺灣智慧優選"
+          ],
+          "weight_change": null
+        },
+        {
           "signal_type": "etf_abnormal_exit",
           "trigger_period": "2026W18",
           "funds": [
@@ -24890,10 +24888,12 @@
           "weight_change": null
         },
         {
-          "signal_type": "etf_consecutive_reduction",
+          "signal_type": "etf_multi_consensus",
           "trigger_period": "2026W18",
           "funds": [
-            "群益台灣精選強棒"
+            "安聯台灣主動式",
+            "統一台股增長",
+            "群益台灣科技創新主動"
           ],
           "weight_change": null
         },
@@ -24906,16 +24906,6 @@
           "weight_change": null
         },
         {
-          "signal_type": "etf_multi_consensus",
-          "trigger_period": "2026W17",
-          "funds": [
-            "安聯台灣主動式",
-            "統一台股增長",
-            "群益台灣科技創新主動"
-          ],
-          "weight_change": null
-        },
-        {
           "signal_type": "etf_consecutive_accumulation",
           "trigger_period": "2026W17",
           "funds": [
@@ -24929,6 +24919,16 @@
           "trigger_period": "2026W17",
           "funds": [
             "群益台灣精選強棒"
+          ],
+          "weight_change": null
+        },
+        {
+          "signal_type": "etf_multi_consensus",
+          "trigger_period": "2026W17",
+          "funds": [
+            "安聯台灣主動式",
+            "統一台股增長",
+            "群益台灣科技創新主動"
           ],
           "weight_change": null
         },
@@ -25093,13 +25093,13 @@
       "fund_holdings": [],
       "etf_holdings": [
         {
-          "etf_id": "00992A",
-          "weight": 0.3656,
+          "etf_id": "00993A",
+          "weight": 0.38,
           "trade_date": "2026-06-03"
         },
         {
-          "etf_id": "00993A",
-          "weight": 0.38,
+          "etf_id": "00992A",
+          "weight": 0.3656,
           "trade_date": "2026-06-03"
         },
         {
@@ -25240,19 +25240,19 @@
       ],
       "signals": [
         {
+          "signal_type": "etf_consecutive_reduction",
+          "trigger_period": "2026W23",
+          "funds": [
+            "群益台灣科技創新主動"
+          ],
+          "weight_change": null
+        },
+        {
           "signal_type": "etf_multi_exit",
           "trigger_period": "2026W23",
           "funds": [
             "群益台灣科技創新主動",
             "安聯台灣主動式"
-          ],
-          "weight_change": null
-        },
-        {
-          "signal_type": "etf_consecutive_reduction",
-          "trigger_period": "2026W23",
-          "funds": [
-            "群益台灣科技創新主動"
           ],
           "weight_change": null
         },
@@ -25266,20 +25266,20 @@
           "weight_change": null
         },
         {
-          "signal_type": "etf_abnormal_exit",
-          "trigger_period": "2026W18",
-          "funds": [
-            "安聯台灣主動式",
-            "群益台灣科技創新主動"
-          ],
-          "weight_change": null
-        },
-        {
           "signal_type": "etf_multi_exit",
           "trigger_period": "2026W18",
           "funds": [
             "群益台灣科技創新主動",
             "安聯台灣主動式"
+          ],
+          "weight_change": null
+        },
+        {
+          "signal_type": "etf_abnormal_exit",
+          "trigger_period": "2026W18",
+          "funds": [
+            "安聯台灣主動式",
+            "群益台灣科技創新主動"
           ],
           "weight_change": null
         },
@@ -25406,23 +25406,23 @@
       ],
       "etf_holdings": [
         {
-          "etf_id": "00992A",
-          "weight": 1.471,
-          "trade_date": "2026-06-03"
-        },
-        {
           "etf_id": "00993A",
           "weight": 0.3,
           "trade_date": "2026-06-03"
         },
         {
-          "etf_id": "00991A",
-          "weight": 3.392,
+          "etf_id": "00988A",
+          "weight": 0.5,
           "trade_date": "2026-06-03"
         },
         {
-          "etf_id": "00988A",
-          "weight": 0.5,
+          "etf_id": "00992A",
+          "weight": 1.471,
+          "trade_date": "2026-06-03"
+        },
+        {
+          "etf_id": "00991A",
+          "weight": 3.392,
           "trade_date": "2026-06-03"
         },
         {
@@ -25443,11 +25443,13 @@
       ],
       "signals": [
         {
-          "signal_type": "etf_consecutive_reduction",
+          "signal_type": "etf_multi_consensus",
           "trigger_period": "2026W23",
           "funds": [
-            "群益台灣科技創新主動",
-            "群益台灣精選強棒"
+            "復華台灣未來50",
+            "統一升級50",
+            "安聯台灣主動式",
+            "野村臺灣智慧優選"
           ],
           "weight_change": null
         },
@@ -25457,17 +25459,6 @@
           "funds": [
             "群益台灣精選強棒",
             "群益台灣科技創新主動"
-          ],
-          "weight_change": null
-        },
-        {
-          "signal_type": "etf_multi_consensus",
-          "trigger_period": "2026W23",
-          "funds": [
-            "復華台灣未來50",
-            "統一升級50",
-            "安聯台灣主動式",
-            "野村臺灣智慧優選"
           ],
           "weight_change": null
         },
@@ -25480,11 +25471,20 @@
           "weight_change": null
         },
         {
-          "signal_type": "etf_multi_exit",
+          "signal_type": "etf_consecutive_reduction",
+          "trigger_period": "2026W23",
+          "funds": [
+            "群益台灣科技創新主動",
+            "群益台灣精選強棒"
+          ],
+          "weight_change": null
+        },
+        {
+          "signal_type": "etf_multi_consensus",
           "trigger_period": "2026W22",
           "funds": [
-            "群益台灣精選強棒",
-            "群益台灣科技創新主動"
+            "統一升級50",
+            "復華台灣未來50"
           ],
           "weight_change": null
         },
@@ -25497,11 +25497,11 @@
           "weight_change": null
         },
         {
-          "signal_type": "etf_multi_consensus",
+          "signal_type": "etf_multi_exit",
           "trigger_period": "2026W22",
           "funds": [
-            "統一升級50",
-            "復華台灣未來50"
+            "群益台灣精選強棒",
+            "群益台灣科技創新主動"
           ],
           "weight_change": null
         },
@@ -25524,6 +25524,14 @@
           "weight_change": null
         },
         {
+          "signal_type": "etf_abnormal_position",
+          "trigger_period": "2026W20",
+          "funds": [
+            "統一升級50"
+          ],
+          "weight_change": null
+        },
+        {
           "signal_type": "etf_multi_consensus",
           "trigger_period": "2026W20",
           "funds": [
@@ -25535,45 +25543,11 @@
           "weight_change": null
         },
         {
-          "signal_type": "etf_abnormal_position",
-          "trigger_period": "2026W20",
-          "funds": [
-            "統一升級50"
-          ],
-          "weight_change": null
-        },
-        {
           "signal_type": "etf_multi_exit",
           "trigger_period": "2026W19",
           "funds": [
             "復華台灣未來50",
             "統一台股增長"
-          ],
-          "weight_change": null
-        },
-        {
-          "signal_type": "etf_consecutive_reduction",
-          "trigger_period": "2026W18",
-          "funds": [
-            "復華台灣未來50"
-          ],
-          "weight_change": null
-        },
-        {
-          "signal_type": "etf_abnormal_position",
-          "trigger_period": "2026W18",
-          "funds": [
-            "安聯台灣主動式"
-          ],
-          "weight_change": null
-        },
-        {
-          "signal_type": "etf_multi_exit",
-          "trigger_period": "2026W18",
-          "funds": [
-            "復華台灣未來50",
-            "統一台股增長",
-            "群益台灣科技創新主動"
           ],
           "weight_change": null
         },
@@ -25590,14 +25564,6 @@
           "weight_change": null
         },
         {
-          "signal_type": "etf_consecutive_accumulation",
-          "trigger_period": "2026W18",
-          "funds": [
-            "統一台股增長"
-          ],
-          "weight_change": null
-        },
-        {
           "signal_type": "etf_abnormal_exit",
           "trigger_period": "2026W18",
           "funds": [
@@ -25606,11 +25572,36 @@
           "weight_change": null
         },
         {
-          "signal_type": "etf_consecutive_accumulation",
-          "trigger_period": "2026W17",
+          "signal_type": "etf_multi_exit",
+          "trigger_period": "2026W18",
           "funds": [
+            "復華台灣未來50",
             "統一台股增長",
             "群益台灣科技創新主動"
+          ],
+          "weight_change": null
+        },
+        {
+          "signal_type": "etf_consecutive_accumulation",
+          "trigger_period": "2026W18",
+          "funds": [
+            "統一台股增長"
+          ],
+          "weight_change": null
+        },
+        {
+          "signal_type": "etf_abnormal_position",
+          "trigger_period": "2026W18",
+          "funds": [
+            "安聯台灣主動式"
+          ],
+          "weight_change": null
+        },
+        {
+          "signal_type": "etf_consecutive_reduction",
+          "trigger_period": "2026W18",
+          "funds": [
+            "復華台灣未來50"
           ],
           "weight_change": null
         },
@@ -25624,6 +25615,15 @@
         },
         {
           "signal_type": "etf_multi_consensus",
+          "trigger_period": "2026W17",
+          "funds": [
+            "統一台股增長",
+            "群益台灣科技創新主動"
+          ],
+          "weight_change": null
+        },
+        {
+          "signal_type": "etf_consecutive_accumulation",
           "trigger_period": "2026W17",
           "funds": [
             "統一台股增長",
@@ -26065,6 +26065,17 @@
       ],
       "signals": [
         {
+          "signal_type": "etf_multi_exit",
+          "trigger_period": "2026W23",
+          "funds": [
+            "安聯台灣主動式",
+            "群益台灣精選強棒",
+            "統一台股增長",
+            "群益台灣科技創新主動"
+          ],
+          "weight_change": null
+        },
+        {
           "signal_type": "etf_consecutive_reduction",
           "trigger_period": "2026W23",
           "funds": [
@@ -26075,11 +26086,10 @@
         },
         {
           "signal_type": "etf_multi_exit",
-          "trigger_period": "2026W23",
+          "trigger_period": "2026W22",
           "funds": [
-            "安聯台灣主動式",
-            "群益台灣精選強棒",
             "統一台股增長",
+            "群益台灣精選強棒",
             "群益台灣科技創新主動"
           ],
           "weight_change": null
@@ -26094,12 +26104,11 @@
           "weight_change": null
         },
         {
-          "signal_type": "etf_multi_exit",
-          "trigger_period": "2026W22",
+          "signal_type": "etf_multi_consensus",
+          "trigger_period": "2026W21",
           "funds": [
-            "統一台股增長",
-            "群益台灣精選強棒",
-            "群益台灣科技創新主動"
+            "復華台灣未來50",
+            "統一升級50"
           ],
           "weight_change": null
         },
@@ -26112,11 +26121,13 @@
           "weight_change": null
         },
         {
-          "signal_type": "etf_multi_consensus",
-          "trigger_period": "2026W21",
+          "signal_type": "etf_multi_exit",
+          "trigger_period": "2026W20",
           "funds": [
-            "復華台灣未來50",
-            "統一升級50"
+            "安聯台灣主動式",
+            "群益台灣精選強棒",
+            "統一台股增長",
+            "群益台灣科技創新主動"
           ],
           "weight_change": null
         },
@@ -26146,17 +26157,6 @@
           "weight_change": null
         },
         {
-          "signal_type": "etf_multi_exit",
-          "trigger_period": "2026W20",
-          "funds": [
-            "安聯台灣主動式",
-            "群益台灣精選強棒",
-            "統一台股增長",
-            "群益台灣科技創新主動"
-          ],
-          "weight_change": null
-        },
-        {
           "signal_type": "etf_multi_consensus",
           "trigger_period": "2026W19",
           "funds": [
@@ -26168,6 +26168,34 @@
         {
           "signal_type": "etf_consecutive_accumulation",
           "trigger_period": "2026W19",
+          "funds": [
+            "統一台股增長"
+          ],
+          "weight_change": null
+        },
+        {
+          "signal_type": "etf_multi_consensus",
+          "trigger_period": "2026W18",
+          "funds": [
+            "統一台股增長",
+            "群益台灣科技創新主動"
+          ],
+          "weight_change": null
+        },
+        {
+          "signal_type": "etf_multi_exit",
+          "trigger_period": "2026W18",
+          "funds": [
+            "安聯台灣主動式",
+            "群益台灣精選強棒",
+            "統一台股增長",
+            "群益台灣科技創新主動"
+          ],
+          "weight_change": null
+        },
+        {
+          "signal_type": "etf_consecutive_accumulation",
+          "trigger_period": "2026W18",
           "funds": [
             "統一台股增長"
           ],
@@ -26183,48 +26211,20 @@
           "weight_change": null
         },
         {
-          "signal_type": "etf_multi_consensus",
-          "trigger_period": "2026W18",
-          "funds": [
-            "統一台股增長",
-            "群益台灣科技創新主動"
-          ],
-          "weight_change": null
-        },
-        {
-          "signal_type": "etf_multi_exit",
-          "trigger_period": "2026W18",
-          "funds": [
-            "安聯台灣主動式",
-            "群益台灣精選強棒",
-            "統一台股增長",
-            "群益台灣科技創新主動"
-          ],
-          "weight_change": null
-        },
-        {
-          "signal_type": "etf_consecutive_accumulation",
-          "trigger_period": "2026W18",
-          "funds": [
-            "統一台股增長"
-          ],
-          "weight_change": null
-        },
-        {
-          "signal_type": "etf_multi_consensus",
-          "trigger_period": "2026W17",
-          "funds": [
-            "統一台股增長",
-            "群益台灣科技創新主動"
-          ],
-          "weight_change": null
-        },
-        {
           "signal_type": "etf_consecutive_accumulation",
           "trigger_period": "2026W17",
           "funds": [
             "群益台灣科技創新主動",
             "統一台股增長"
+          ],
+          "weight_change": null
+        },
+        {
+          "signal_type": "etf_multi_consensus",
+          "trigger_period": "2026W17",
+          "funds": [
+            "統一台股增長",
+            "群益台灣科技創新主動"
           ],
           "weight_change": null
         },
@@ -26236,6 +26236,14 @@
             "群益台灣科技創新主動"
           ],
           "weight_change": null
+        },
+        {
+          "signal_type": "dual_track_accumulation",
+          "trigger_period": "202604M",
+          "funds": [
+            "統一奔騰"
+          ],
+          "weight_change": 2.47
         },
         {
           "signal_type": "multi_fund_consensus",
@@ -26254,16 +26262,6 @@
           "weight_change": null
         },
         {
-          "signal_type": "consecutive_accumulation",
-          "trigger_period": "202604M",
-          "funds": [
-            "野村高科技",
-            "統一奔騰",
-            "元大新主流"
-          ],
-          "weight_change": 2.54
-        },
-        {
           "signal_type": "consensus_formation",
           "trigger_period": "202604M",
           "funds": [
@@ -26280,12 +26278,14 @@
           "weight_change": null
         },
         {
-          "signal_type": "dual_track_accumulation",
+          "signal_type": "consecutive_accumulation",
           "trigger_period": "202604M",
           "funds": [
-            "統一奔騰"
+            "野村高科技",
+            "統一奔騰",
+            "元大新主流"
           ],
-          "weight_change": 2.47
+          "weight_change": 2.54
         },
         {
           "signal_type": "quarterly_dormant_etf_active",
@@ -26294,14 +26294,6 @@
             "統一奔騰"
           ],
           "weight_change": null
-        },
-        {
-          "signal_type": "consecutive_accumulation",
-          "trigger_period": "202603M",
-          "funds": [
-            "元大新主流"
-          ],
-          "weight_change": 0.4
         },
         {
           "signal_type": "multi_fund_consensus",
@@ -26314,6 +26306,14 @@
             "統一大中華中小"
           ],
           "weight_change": null
+        },
+        {
+          "signal_type": "consecutive_accumulation",
+          "trigger_period": "202603M",
+          "funds": [
+            "元大新主流"
+          ],
+          "weight_change": 0.4
         }
       ]
     },
@@ -26807,18 +26807,18 @@
           "weight_change": null
         },
         {
-          "signal_type": "etf_consecutive_accumulation",
+          "signal_type": "etf_multi_consensus",
           "trigger_period": "2026W19",
           "funds": [
+            "安聯台灣主動式",
             "統一台股增長"
           ],
           "weight_change": null
         },
         {
-          "signal_type": "etf_multi_consensus",
+          "signal_type": "etf_consecutive_accumulation",
           "trigger_period": "2026W19",
           "funds": [
-            "安聯台灣主動式",
             "統一台股增長"
           ],
           "weight_change": null
@@ -27125,14 +27125,6 @@
       ],
       "signals": [
         {
-          "signal_type": "etf_abnormal_exit",
-          "trigger_period": "2026W23",
-          "funds": [
-            "野村臺灣智慧優選"
-          ],
-          "weight_change": null
-        },
-        {
           "signal_type": "etf_multi_exit",
           "trigger_period": "2026W23",
           "funds": [
@@ -27143,18 +27135,18 @@
           "weight_change": null
         },
         {
-          "signal_type": "etf_consecutive_accumulation",
+          "signal_type": "etf_abnormal_exit",
           "trigger_period": "2026W23",
           "funds": [
-            "復華台灣未來50"
+            "野村臺灣智慧優選"
           ],
           "weight_change": null
         },
         {
-          "signal_type": "etf_abnormal_position",
-          "trigger_period": "2026W22",
+          "signal_type": "etf_consecutive_accumulation",
+          "trigger_period": "2026W23",
           "funds": [
-            "野村臺灣智慧優選"
+            "復華台灣未來50"
           ],
           "weight_change": null
         },
@@ -27169,9 +27161,9 @@
         },
         {
           "signal_type": "etf_abnormal_position",
-          "trigger_period": "2026W21",
+          "trigger_period": "2026W22",
           "funds": [
-            "統一升級50"
+            "野村臺灣智慧優選"
           ],
           "weight_change": null
         },
@@ -27186,6 +27178,14 @@
         },
         {
           "signal_type": "etf_consecutive_accumulation",
+          "trigger_period": "2026W21",
+          "funds": [
+            "統一升級50"
+          ],
+          "weight_change": null
+        },
+        {
+          "signal_type": "etf_abnormal_position",
           "trigger_period": "2026W21",
           "funds": [
             "統一升級50"
@@ -27262,20 +27262,20 @@
           "weight_change": null
         },
         {
-          "signal_type": "core_exit",
-          "trigger_period": "202603M",
-          "funds": [
-            "元大新主流"
-          ],
-          "weight_change": null
-        },
-        {
           "signal_type": "consecutive_accumulation",
           "trigger_period": "202603M",
           "funds": [
             "野村高科技"
           ],
           "weight_change": 1.29
+        },
+        {
+          "signal_type": "core_exit",
+          "trigger_period": "202603M",
+          "funds": [
+            "元大新主流"
+          ],
+          "weight_change": null
         }
       ]
     },
@@ -27320,8 +27320,8 @@
       ],
       "etf_holdings": [
         {
-          "etf_id": "00993A",
-          "weight": 1.25,
+          "etf_id": "00982A",
+          "weight": 0.0011,
           "trade_date": "2026-06-03"
         },
         {
@@ -27330,8 +27330,8 @@
           "trade_date": "2026-06-03"
         },
         {
-          "etf_id": "00982A",
-          "weight": 0.0011,
+          "etf_id": "00993A",
+          "weight": 1.25,
           "trade_date": "2026-06-03"
         },
         {
@@ -27515,13 +27515,13 @@
       ],
       "etf_holdings": [
         {
-          "etf_id": "00992A",
-          "weight": 3.597,
+          "etf_id": "00993A",
+          "weight": 0.04,
           "trade_date": "2026-06-03"
         },
         {
-          "etf_id": "00993A",
-          "weight": 0.04,
+          "etf_id": "00992A",
+          "weight": 3.597,
           "trade_date": "2026-06-03"
         },
         {
@@ -27552,11 +27552,11 @@
       ],
       "signals": [
         {
-          "signal_type": "etf_multi_consensus",
+          "signal_type": "etf_consecutive_reduction",
           "trigger_period": "2026W23",
           "funds": [
-            "復華台灣未來50",
-            "統一升級50"
+            "群益台灣科技創新主動",
+            "群益台灣精選強棒"
           ],
           "weight_change": null
         },
@@ -27571,11 +27571,11 @@
           "weight_change": null
         },
         {
-          "signal_type": "etf_consecutive_reduction",
+          "signal_type": "etf_multi_consensus",
           "trigger_period": "2026W23",
           "funds": [
-            "群益台灣科技創新主動",
-            "群益台灣精選強棒"
+            "復華台灣未來50",
+            "統一升級50"
           ],
           "weight_change": null
         },
@@ -27606,37 +27606,20 @@
           "weight_change": null
         },
         {
+          "signal_type": "etf_consecutive_accumulation",
+          "trigger_period": "2026W21",
+          "funds": [
+            "統一升級50"
+          ],
+          "weight_change": null
+        },
+        {
           "signal_type": "etf_multi_consensus",
           "trigger_period": "2026W21",
           "funds": [
             "復華台灣未來50",
             "野村臺灣智慧優選",
             "統一升級50"
-          ],
-          "weight_change": null
-        },
-        {
-          "signal_type": "etf_consecutive_accumulation",
-          "trigger_period": "2026W21",
-          "funds": [
-            "統一升級50"
-          ],
-          "weight_change": null
-        },
-        {
-          "signal_type": "etf_consecutive_accumulation",
-          "trigger_period": "2026W20",
-          "funds": [
-            "野村臺灣智慧優選"
-          ],
-          "weight_change": null
-        },
-        {
-          "signal_type": "etf_multi_consensus",
-          "trigger_period": "2026W20",
-          "funds": [
-            "統一升級50",
-            "復華台灣未來50"
           ],
           "weight_change": null
         },
@@ -27660,11 +27643,26 @@
         },
         {
           "signal_type": "etf_multi_consensus",
+          "trigger_period": "2026W20",
+          "funds": [
+            "統一升級50",
+            "復華台灣未來50"
+          ],
+          "weight_change": null
+        },
+        {
+          "signal_type": "etf_consecutive_accumulation",
+          "trigger_period": "2026W20",
+          "funds": [
+            "野村臺灣智慧優選"
+          ],
+          "weight_change": null
+        },
+        {
+          "signal_type": "etf_abnormal_exit",
           "trigger_period": "2026W19",
           "funds": [
-            "群益台灣精選強棒",
-            "野村臺灣智慧優選",
-            "統一台股增長"
+            "安聯台灣主動式"
           ],
           "weight_change": null
         },
@@ -27677,10 +27675,12 @@
           "weight_change": null
         },
         {
-          "signal_type": "etf_abnormal_exit",
+          "signal_type": "etf_multi_consensus",
           "trigger_period": "2026W19",
           "funds": [
-            "安聯台灣主動式"
+            "群益台灣精選強棒",
+            "野村臺灣智慧優選",
+            "統一台股增長"
           ],
           "weight_change": null
         },
