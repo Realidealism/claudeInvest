@@ -270,10 +270,18 @@ export default function PositionsPage() {
                     </td>
                   ) : (
                     <>
-                      <td className="px-2 py-1.5 text-right font-mono text-text-secondary">
+                      <td className={`px-2 py-1.5 text-right font-mono ${
+                        p.defense_date === data.snapshot_date
+                          ? "text-yellow-300 font-bold"
+                          : "text-text-secondary"
+                      }`}>
                         {p.defense_price !== null ? p.defense_price.toFixed(2) : "—"}
                       </td>
-                      <td className="px-2 py-1.5 hidden lg:table-cell text-text-secondary">
+                      <td className={`px-2 py-1.5 hidden lg:table-cell ${
+                        p.defense_date === data.snapshot_date
+                          ? "text-yellow-300 font-bold"
+                          : "text-text-secondary"
+                      }`}>
                         {p.defense_reason ? (
                           <span>
                             {p.defense_reason}
