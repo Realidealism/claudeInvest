@@ -119,17 +119,21 @@ def _is_common_stock(sec_type: str | None) -> bool:
 # ---------------------------------------------------------------------------
 
 def _calc_6d_change_pct(prices: list[dict]) -> float | None:
-    """6-day cumulative close price change %."""
-    if len(prices) < 7:
+    """6-day cumulative close price change % — base is close 5 trading days
+    ago (so the 6-day window includes today). Matches TWSE convention of
+    「最近6個營業日」counting today as day 1."""
+    if len(prices) < 6:
         return None
-    return (prices[-1]["close"] / prices[-7]["close"] - 1) * 100
+    return (prices[-1]["close"] / prices[-6]["close"] - 1) * 100
 
 
 def _calc_nd_change_pct(prices: list[dict], n: int) -> float | None:
-    """N-day price change % (close[-1] vs close[-n-1])."""
-    if len(prices) < n + 1:
+    """N-day cumulative close price change % — base is close N-1 trading
+    days ago (so the N-day window includes today). Matches TWSE convention
+    of「最近 N 個營業日」counting today as day 1."""
+    if len(prices) < n:
         return None
-    return (prices[-1]["close"] / prices[-(n + 1)]["close"] - 1) * 100
+    return (prices[-1]["close"] / prices[-n]["close"] - 1) * 100
 
 
 def _calc_volume_ratio(prices: list[dict]) -> float | None:
@@ -219,9 +223,9 @@ def _check_rule_2_2(prices: list, meta: dict, mkt: dict) -> Alert | None:
     chg = _calc_6d_change_pct(prices)
     if chg is None or abs(chg) <= 25:
         return None
-    if len(prices) < 7:
+    if len(prices) < 6:
         return None
-    diff = abs(prices[-1]["close"] - prices[-7]["close"])
+    diff = abs(prices[-1]["close"] - prices[-6]["close"])
     if diff < 50:
         return None
     ind = meta.get("industry") or "unknown"
@@ -241,16 +245,17 @@ def _check_rule_2_2(prices: list, meta: dict, mkt: dict) -> Alert | None:
 
 def _check_rule_3(prices: list, meta: dict, mkt: dict) -> list[Alert]:
     """§3 30/60/90日起迄漲跌 >100/130/160% AND 差幅 >85/110/135%
-    差幅 = (max(closes_in_window) - min) / min over the N-day window."""
+    差幅 = (max(closes_in_window) - min) / min over the N-day window.
+    Window includes today as day 1 — N-day window = prices[-N:]."""
     alerts = []
     thresholds = [(30, 100, 85), (60, 130, 110), (90, 160, 135)]
     for days, pct_thresh, diff_thresh in thresholds:
-        if len(prices) < days + 1:
+        if len(prices) < days:
             continue
         chg = _calc_nd_change_pct(prices, days)
         if chg is None or abs(chg) <= pct_thresh:
             continue
-        win = prices[-(days + 1):]
+        win = prices[-days:]
         closes_win = [p["close"] for p in win]
         hi_win = max(closes_win)
         lo_win = min(closes_win)
@@ -350,10 +355,10 @@ def _check_rule_10(prices: list, meta: dict, mkt: dict) -> Alert | None:
 
 def _check_rule_12(prices: list, meta: dict, mkt: dict) -> Alert | None:
     """§12 6日起迄價差≥100元 (高價股每500元增加25元門檻)"""
-    if len(prices) < 7:
+    if len(prices) < 6:
         return None
     today = prices[-1]["close"]
-    closes_6d = [p["close"] for p in prices[-7:]]
+    closes_6d = [p["close"] for p in prices[-6:]]
     high_6d = max(closes_6d)
     low_6d = min(closes_6d)
     diff = high_6d - low_6d
