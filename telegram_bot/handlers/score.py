@@ -512,11 +512,10 @@ def _get_disposal_status(
         return f"{_RED} 處置中 {interval} → {end.strftime('%m/%d')} 出關"
 
     if triggered:
-        # Show trigger detail so user can independently verify today's
-        # conditions: which §X triggered + which disposal rule met.
-        trig_rule = triggered[0]  # binding rule, e.g. (10, 6, "10日6次", 6, 0)
-        trig_label = f"{trig_rule[2]} {trig_rule[3]}/{trig_rule[1]}"
-        return f"{_RED} {predict_prefix}{trig_label} → 明日進處置"
+        # Show only the §X trigger detail (price/volume condition) so user
+        # can independently verify what crossed today. predict_prefix already
+        # contains e.g. "今日 §3(90日) 預期觸發（90日漲 233.2%）→ ".
+        return f"{_RED} {predict_prefix}明日進處置"
 
     # Past 10 trading days clean AND no prediction → omit
     look10 = recent[: min(10, len(recent))]
