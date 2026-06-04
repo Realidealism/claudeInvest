@@ -120,21 +120,32 @@ def _is_common_stock(sec_type: str | None) -> bool:
 # ---------------------------------------------------------------------------
 
 def _calc_6d_change_pct(prices: list[dict]) -> float | None:
-    """6-day cumulative close price change % — base is close 5 trading days
-    ago (so the 6-day window includes today). Matches TWSE convention of
-    「最近6個營業日」counting today as day 1."""
-    if len(prices) < 6:
-        return None
-    return (prices[-1]["close"] / prices[-6]["close"] - 1) * 100
+    """6-day cumulative price change % — ex-rights / ex-div adjusted via
+    ref_price compounding. Each day's trading-induced return is
+    (close / ref - 1); compound over the 5 intervals of the 6-day window.
+    Per TWSE/TPEx rule: 因非交易之原因（除權除息）造成價格變動者排除."""
+    return _calc_nd_change_pct(prices, 6)
 
 
 def _calc_nd_change_pct(prices: list[dict], n: int) -> float | None:
-    """N-day cumulative close price change % — base is close N-1 trading
-    days ago (so the N-day window includes today). Matches TWSE convention
-    of「最近 N 個營業日」counting today as day 1."""
+    """N-day cumulative price change % adjusted for ex-rights / ex-div.
+    Compounds n-1 daily trading-induced returns (close[i] / ref[i] - 1).
+    Falls back to raw close-to-close ratio when any ref_price is missing."""
     if len(prices) < n:
         return None
-    return (prices[-1]["close"] / prices[-n]["close"] - 1) * 100
+    window = prices[-(n - 1):]
+    cum = 1.0
+    for p in window:
+        ref = p.get("ref")
+        close = p["close"]
+        if ref is None or ref <= 0 or close <= 0:
+            # Fallback: raw close-to-close (no ex-div adjustment)
+            base = prices[-n]["close"]
+            if base <= 0:
+                return None
+            return (prices[-1]["close"] / base - 1) * 100
+        cum *= close / ref
+    return (cum - 1) * 100
 
 
 def _calc_volume_ratio(prices: list[dict]) -> float | None:

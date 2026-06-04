@@ -205,7 +205,7 @@ def _suffix(rough: bool, state: DataState | None) -> str:
 def _load_history(cur, ticker: str, today: date) -> list[dict]:
     cur.execute(
         """
-        SELECT trade_date, close_price, volume,
+        SELECT trade_date, close_price, ref_price, volume,
                COALESCE(margin_balance, 0) AS margin_balance,
                COALESCE(short_balance, 0)  AS short_balance,
                COALESCE(sbl_sell, 0)       AS sbl_sell,
@@ -222,6 +222,7 @@ def _load_history(cur, ticker: str, today: date) -> list[dict]:
     return [
         {
             "close": float(r["close_price"]),
+            "ref": float(r["ref_price"]) if r["ref_price"] is not None else None,
             "volume": int(r["volume"] or 0),
             "margin_balance": int(r["margin_balance"]),
             "short_balance": int(r["short_balance"]),
@@ -447,6 +448,29 @@ def _get_market_turnover_avg(today: date) -> dict[str, tuple[float, float]]:
     return result
 
 
+def _adj_n_day_target_close(prices: list[dict], n: int, thresh_pct: float) -> float | None:
+    """Adjusted close target for §3(n日) cumulative rule. Compounds
+    (close/ref) factors over the past n-1 days excluding today and solves
+    for today's close that would push adj_cum to thresh_pct. Falls back
+    to raw cN_ago × (1+thresh/100) when refs are unavailable."""
+    if len(prices) < n:
+        return None
+    today_ref = prices[-1].get("ref")
+    base = prices[-n]["close"]
+    if today_ref is None or today_ref <= 0 or base <= 0:
+        return base * (1 + thresh_pct / 100) if base > 0 else None
+    prev_compound = 1.0
+    for p in prices[-(n - 1):-1]:  # n-2 prior intervals (all except today)
+        ref = p.get("ref")
+        close = p["close"]
+        if ref is None or ref <= 0 or close <= 0:
+            return base * (1 + thresh_pct / 100)
+        prev_compound *= close / ref
+    if prev_compound <= 0:
+        return base * (1 + thresh_pct / 100)
+    return today_ref * (1 + thresh_pct / 100) / prev_compound
+
+
 def format_today_thresholds(ticker: str, today: date, rule_codes: list[str]) -> str:
     """For rules triggered today, return the SINGLE easiest-to-meet threshold
     (highest slack = most margin from current value), formatted without the
@@ -485,15 +509,17 @@ def format_today_thresholds(ticker: str, today: date, rule_codes: list[str]) -> 
     for code in rule_codes:
         if code == "§2①" and len(prices) >= 6:
             thresh = 30 if is_tpex else 32
-            c6 = prices[-6]["close"]
-            target = c6 * (1 + thresh / 100)
-            candidates.append((_price_slack(target), f"close ≥ {target:.2f}"))
+            target = _adj_n_day_target_close(prices, 6, thresh)
+            if target:
+                candidates.append((_price_slack(target), f"close ≥ {target:.2f}"))
         elif code == "§2②" and len(prices) >= 6:
             pct_thresh = 23 if is_tpex else 25
             diff_thresh = 40 if is_tpex else 50
+            adj_target = _adj_n_day_target_close(prices, 6, pct_thresh)
             c6 = prices[-6]["close"]
-            target = max(c6 * (1 + pct_thresh / 100), c6 + diff_thresh)
-            candidates.append((_price_slack(target), f"close ≥ {target:.2f}"))
+            target = max(adj_target or 0, c6 + diff_thresh)
+            if target > 0:
+                candidates.append((_price_slack(target), f"close ≥ {target:.2f}"))
         elif code.startswith("§3("):
             try:
                 n = int(code[3:-2])
@@ -504,11 +530,9 @@ def format_today_thresholds(ticker: str, today: date, rule_codes: list[str]) -> 
             thresh = tpex_th.get(n) if is_tpex else tw_th.get(n)
             if thresh is None or len(prices) < n:
                 continue
-            cN = prices[-n]["close"]
-            if cN <= 0:
-                continue
-            up_target = cN * (1 + thresh / 100)
-            candidates.append((_price_slack(up_target), f"close ≥ {up_target:.2f}"))
+            up_target = _adj_n_day_target_close(prices, n, thresh)
+            if up_target:
+                candidates.append((_price_slack(up_target), f"close ≥ {up_target:.2f}"))
         elif code == "§4" and len(prices) >= 60:
             avg60 = sum(p["volume"] for p in prices[-60:]) / 60
             target_vol = 5 * avg60
