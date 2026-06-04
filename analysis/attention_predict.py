@@ -89,6 +89,26 @@ def _load_prices(trade_date: date, lookback: int = 95) -> dict:
             "security_type": r["security_type"],
         }
 
+    # TTM EPS for PE-exemption check (PE<0 or ≥60倍 TWSE / ≥65倍 TPEx
+    # → 同類差幅 gate 豁免)
+    with get_cursor(commit=False) as cur:
+        cur.execute(
+            """
+            SELECT stock_id, SUM(eps) AS ttm_eps
+            FROM (
+                SELECT stock_id, eps,
+                       ROW_NUMBER() OVER (PARTITION BY stock_id ORDER BY year DESC, quarter DESC) rn
+                FROM tw.income_statements WHERE eps IS NOT NULL
+            ) t WHERE rn <= 4
+            GROUP BY stock_id
+            HAVING COUNT(*) = 4
+            """
+        )
+        for r in cur.fetchall():
+            sid = r["stock_id"]
+            if sid in meta:
+                meta[sid]["ttm_eps"] = float(r["ttm_eps"])
+
     # Build price series
     stocks = {}
     for r in rows:
@@ -237,33 +257,59 @@ def _r2_thresh(meta: dict, table: dict, default) -> float:
     return table.get(meta.get("market"), default)
 
 
+def _is_industry_exempt(meta: dict, mkt: dict, close: float) -> bool:
+    """Industry 差幅 gate is exempt when:
+      - 同類有價證券 < 5 家 (insufficient peers), OR
+      - 本益比 PE < 0 (negative TTM earnings) or PE ≥ 60倍 TWSE / 65倍 TPEx."""
+    ind = meta.get("industry") or "unknown"
+    if mkt.get("industry_count", {}).get(ind, 0) < 5:
+        return True
+    ttm_eps = meta.get("ttm_eps")
+    if ttm_eps is None:
+        return False
+    if ttm_eps <= 0:
+        return True
+    if close <= 0:
+        return False
+    pe = close / ttm_eps
+    pe_thresh = 65 if meta.get("market") == "TPEx" else 60
+    return pe >= pe_thresh
+
+
 def _check_rule_2_1(prices: list, meta: dict, mkt: dict) -> Alert | None:
     """§2① 6日累積漲跌幅 >X% AND 全體差幅 ≥20% AND 同類差幅 ≥20%.
-    X = 32 (TWSE) / 30 (TPEx)."""
+    X = 32 (TWSE) / 30 (TPEx). <5元 個股 / PE 異常 / 同類 <5家 → 同類豁免."""
+    if not prices or prices[-1]["close"] < 5:
+        return None
     chg = _calc_6d_change_pct(prices)
     thresh = _r2_thresh(meta, _R2_1_PCT, 32)
     if chg is None or abs(chg) <= thresh:
         return None
+    close = prices[-1]["close"]
     ind = meta.get("industry") or "unknown"
     ind_avg = mkt["industry_change_6d"].get(ind, 0)
     mkt_avg = _market_change_6d(mkt, meta)
-    if mkt["industry_count"].get(ind, 0) < 5:
+    industry_exempt = _is_industry_exempt(meta, mkt, close)
+    if abs(chg - mkt_avg) < 20:
         return None
-    if abs(chg - mkt_avg) < 20 or abs(chg - ind_avg) < 20:
+    if not industry_exempt and abs(chg - ind_avg) < 20:
         return None
     if meta.get("security_type") not in (None, "STOCK"):
         return None
     direction = "漲" if chg > 0 else "跌"
+    detail_ind = "同類豁免" if industry_exempt else f"同業均 {ind_avg:.1f}%"
     return Alert(
         stock_id=meta["stock_id"], name=meta["name"], market=meta["market"],
         rule="§2①",
-        detail=f"6日累積{direction}幅 {abs(chg):.1f}% (市場均 {mkt_avg:.1f}%, 同業均 {ind_avg:.1f}%)",
+        detail=f"6日累積{direction}幅 {abs(chg):.1f}% (市場均 {mkt_avg:.1f}%, {detail_ind})",
     )
 
 
 def _check_rule_2_2(prices: list, meta: dict, mkt: dict) -> Alert | None:
     """§2② 6日累積漲跌 >X% AND 價差 ≥Y元 AND 全體/同類差幅 ≥20%.
-    X/Y = 25/50 (TWSE) / 23/40 (TPEx)."""
+    X/Y = 25/50 (TWSE) / 23/40 (TPEx). <5元 個股不適用; 同類可豁免."""
+    if not prices or prices[-1]["close"] < 5:
+        return None
     chg = _calc_6d_change_pct(prices)
     pct_thresh = _r2_thresh(meta, _R2_2_PCT, 25)
     if chg is None or abs(chg) <= pct_thresh:
@@ -274,12 +320,14 @@ def _check_rule_2_2(prices: list, meta: dict, mkt: dict) -> Alert | None:
     diff_thresh = _r2_thresh(meta, _R2_2_DIFF, 50)
     if diff < diff_thresh:
         return None
+    close = prices[-1]["close"]
     ind = meta.get("industry") or "unknown"
     ind_avg = mkt["industry_change_6d"].get(ind, 0)
     mkt_avg = _market_change_6d(mkt, meta)
-    if mkt["industry_count"].get(ind, 0) < 5:
+    industry_exempt = _is_industry_exempt(meta, mkt, close)
+    if abs(chg - mkt_avg) < 20:
         return None
-    if abs(chg - mkt_avg) < 20 or abs(chg - ind_avg) < 20:
+    if not industry_exempt and abs(chg - ind_avg) < 20:
         return None
     direction = "漲" if chg > 0 else "跌"
     return Alert(
@@ -347,7 +395,9 @@ _R4_PCT = {"TWSE": 25, "TPEx": 27}
 
 def _check_rule_4(prices: list, meta: dict, mkt: dict) -> Alert | None:
     """§4 6日漲跌 > X% + 量 ≥ 5倍60日均 + 倍數差 ≥ 4
-    X = 25 (TWSE) / 27 (TPEx)"""
+    X = 25 (TWSE) / 27 (TPEx). PE 異常 / 同類<5家 → 同類差幅 豁免."""
+    if not prices:
+        return None
     chg = _calc_6d_change_pct(prices)
     pct_thresh = _R4_PCT.get(meta.get("market"), 25)
     if chg is None or abs(chg) <= pct_thresh:
@@ -358,10 +408,14 @@ def _check_rule_4(prices: list, meta: dict, mkt: dict) -> Alert | None:
     mkt_vr = mkt["vol_ratio"]
     if abs(vr - mkt_vr) < 4:
         return None
+    close = prices[-1]["close"]
     ind = meta.get("industry") or "unknown"
     ind_avg = mkt["industry_change_6d"].get(ind, 0)
     mkt_avg = _market_change_6d(mkt, meta)
-    if abs(chg - mkt_avg) < 20 or abs(chg - ind_avg) < 20:
+    industry_exempt = _is_industry_exempt(meta, mkt, close)
+    if abs(chg - mkt_avg) < 20:
+        return None
+    if not industry_exempt and abs(chg - ind_avg) < 20:
         return None
     direction = "漲" if chg > 0 else "跌"
     return Alert(
@@ -445,7 +499,8 @@ def _r12_threshold(today_close: float, market: str) -> float:
 def _check_rule_12(prices: list, meta: dict, mkt: dict) -> Alert | None:
     """§12 6日起迄價差≥X元 (高價股分級加碼) 且當日為6日最高或最低.
     TWSE: ≥100元, 每500元 +25元
-    TPEx: ≥70元, 每300元 +15元"""
+    TPEx: ≥70元, 每300元 +15元
+    Ex-div / ex-rights adjusted via adj_cum × first_close (trading-only diff)."""
     if len(prices) < 6:
         return None
     today = prices[-1]["close"]
@@ -453,7 +508,12 @@ def _check_rule_12(prices: list, meta: dict, mkt: dict) -> Alert | None:
     first_6d = closes_6d[0]
     high_6d = max(closes_6d)
     low_6d = min(closes_6d)
-    diff = abs(today - first_6d)
+    # Adjusted 起迄 = first × adj_6d_cum / 100 (trading-only NTD change)
+    adj_cum_pct = _calc_6d_change_pct(prices)
+    if adj_cum_pct is None:
+        diff = abs(today - first_6d)
+    else:
+        diff = abs(first_6d * adj_cum_pct / 100)
 
     threshold = _r12_threshold(today, meta.get("market", "TWSE"))
 

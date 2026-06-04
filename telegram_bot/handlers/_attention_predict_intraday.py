@@ -137,8 +137,26 @@ def closest_untriggered_threshold(ticker: str, today: date) -> str | None:
         threshold = base
         if today_close >= level:
             threshold = base + int(today_close // level) * step
-        up_target = max(first_6d + threshold, high_5)
-        dn_target = min(first_6d - threshold, low_5)
+        # Ex-div adjusted target: today_close ≥ today_ref × (1 + threshold/first)
+        # / prev_compound. Falls back to first + threshold when no ref.
+        today_ref = today_row.get("ref") if today_row else None
+        prev_compound = 1.0
+        prev_compound_ok = True
+        for p in prices[-5:-1]:
+            ref = p.get("ref")
+            c = p["close"]
+            if ref is None or ref <= 0 or c <= 0:
+                prev_compound_ok = False
+                break
+            prev_compound *= c / ref
+        if today_ref and today_ref > 0 and first_6d > 0 and prev_compound_ok and prev_compound > 0:
+            up_adj = today_ref * (1 + threshold / first_6d) / prev_compound
+            dn_adj = today_ref * (1 - threshold / first_6d) / prev_compound
+        else:
+            up_adj = first_6d + threshold
+            dn_adj = first_6d - threshold
+        up_target = max(up_adj, high_5)
+        dn_target = min(dn_adj, low_5)
         up_gap = up_target - today_close
         dn_gap = today_close - dn_target
         # If either direction already triggered, §12 is already met → skip
@@ -548,6 +566,7 @@ def format_today_thresholds(ticker: str, today: date, rule_codes: list[str]) -> 
             candidates.append((_vol_slack(target_vol), f"量 ≥ {target_vol / 1000:.0f} 張"))
         elif code == "§12" and len(prices) >= 6:
             first_6d = prices[-6]["close"]
+            today_ref = prices[-1].get("ref")
             if is_tpex:
                 base, step, level = 70, 15, 300
             else:
@@ -555,7 +574,20 @@ def format_today_thresholds(ticker: str, today: date, rule_codes: list[str]) -> 
             threshold = base
             if today_close >= level:
                 threshold = base + int(today_close // level) * step
-            up_target = first_6d + threshold
+            # Ex-div adjusted target (same formula as closest_threshold §12)
+            prev_compound = 1.0
+            ok = True
+            for p in prices[-5:-1]:
+                ref = p.get("ref")
+                c = p["close"]
+                if ref is None or ref <= 0 or c <= 0:
+                    ok = False
+                    break
+                prev_compound *= c / ref
+            if today_ref and today_ref > 0 and first_6d > 0 and ok and prev_compound > 0:
+                up_target = today_ref * (1 + threshold / first_6d) / prev_compound
+            else:
+                up_target = first_6d + threshold
             candidates.append((_price_slack(up_target), f"close ≥ {up_target:.2f}"))
 
     if not candidates:
@@ -615,13 +647,15 @@ def predict_today_attention(
             return True
         return (chg > 0 and today_close > today_ref) or (chg < 0 and today_close < today_ref)
 
-    # §2① 6-day change > X% (uses prices[-6] window-includes-today base)
+    # §2① 6-day change > X% (uses prices[-6] window-includes-today base).
+    # <5元 個股不適用 §2 (TWSE/TPEx 一致).
     chg6 = _calc_6d_change_pct(prices)
-    if chg6 is not None and abs(chg6) > r2_1_thresh:
+    low_price_exempt = today_close < 5
+    if not low_price_exempt and chg6 is not None and abs(chg6) > r2_1_thresh:
         direction = "漲" if chg6 > 0 else "跌"
         out.append(("§2①", f"6日{direction} {abs(chg6):.1f}%{rough}"))
     # §2② 6-day > X% + 價差 ≥ Y元
-    elif chg6 is not None and abs(chg6) > r2_2_thresh and len(prices) >= 6:
+    elif not low_price_exempt and chg6 is not None and abs(chg6) > r2_2_thresh and len(prices) >= 6:
         diff = abs(prices[-1]["close"] - prices[-6]["close"])
         if diff >= r2_2_diff_thresh:
             direction = "漲" if chg6 > 0 else "跌"
@@ -651,15 +685,18 @@ def predict_today_attention(
     if vol_ratio is not None and vol_ratio >= 5:
         out.append(("§10", f"6日均量 {vol_ratio:.1f}× 60日均{rough}"))
 
-    # §12 6-day 起迄價差 (net change) — market-specific:
-    #   TWSE: ≥100元 base, +25元 per 500元
-    #   TPEx: ≥70元 base, +15元 per 300元
+    # §12 6-day 起迄價差 (net change) — market-specific + ex-div adjusted.
     if len(prices) >= 6:
         closes_6d = [p["close"] for p in prices[-6:]]
         first_6d = closes_6d[0]
         high_6d = max(closes_6d)
         low_6d = min(closes_6d)
-        diff = abs(today_close - first_6d)
+        # adj_diff = first × adj_6d_cum / 100 (trading-only NTD change)
+        if chg6 is not None:
+            adj_diff = first_6d * chg6 / 100
+        else:
+            adj_diff = today_close - first_6d
+        diff = abs(adj_diff)
         if is_tpex:
             base, step, level = 70, 15, 300
         else:
