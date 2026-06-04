@@ -69,6 +69,7 @@ function tvUrl(ticker: string, market: string): string {
 function disposalClass(s: string | null | undefined): string {
   if (!s) return "text-text-secondary";
   if (s.includes("20分盤") || s.includes("20分鐘")) return "text-red-200 font-extrabold bg-red-900/50 px-1.5 rounded";
+  if (s.includes("🚨")) return "text-red-300 font-extrabold bg-red-900/40 px-1.5 rounded";
   if (s.includes("明日進")) return "text-red-400 font-bold";
   if (s.includes("🟠")) return "text-orange-400 font-semibold";
   return "text-text-secondary";
