@@ -42,6 +42,9 @@ def closest_untriggered_threshold(ticker: str, today: date) -> str | None:
         return None
 
     with get_cursor(commit=False) as cur:
+        cur.execute("SELECT market FROM tw.stocks WHERE stock_id = %s", (ticker,))
+        row = cur.fetchone()
+        market = row["market"] if row else "TWSE"
         history = _load_history(cur, ticker, today)
         today_row, _src = _load_today_row(cur, ticker, today)
 
@@ -49,6 +52,8 @@ def closest_untriggered_threshold(ticker: str, today: date) -> str | None:
         return None
     prices = history + [today_row]
     today_close = prices[-1]["close"]
+    # Market-specific §2① threshold: 32 (TWSE) / 30 (TPEx)
+    r2_1_thresh = 30 if market == "TPEx" else 32
 
     candidates: list[tuple[float, str]] = []  # (gap_ratio, message)
 
@@ -57,14 +62,15 @@ def closest_untriggered_threshold(ticker: str, today: date) -> str | None:
             return
         candidates.append((gap_ratio, msg))
 
-    # §2① 6-day change > 32% (window includes today as day 1 → base is
-    # close 5 trading days ago = prices[-6])
+    # §2① 6-day change > r2_1_thresh% (window includes today as day 1 → base
+    # is close 5 trading days ago = prices[-6])
     if len(prices) >= 6:
         c6_ago = prices[-6]["close"]
         if c6_ago > 0:
             chg_now = (today_close / c6_ago - 1) * 100
-            if abs(chg_now) <= 32:
-                target = c6_ago * (1.32 if chg_now >= 0 else 0.68)
+            if abs(chg_now) <= r2_1_thresh:
+                factor = r2_1_thresh / 100
+                target = c6_ago * (1 + factor) if chg_now >= 0 else c6_ago * (1 - factor)
                 gap = abs(target - today_close)
                 _add(gap / today_close, f"離 §2① 還差 {gap:.2f} 元（{('漲到' if chg_now >= 0 else '跌到')} {target:.2f}）")
 
@@ -96,22 +102,25 @@ def closest_untriggered_threshold(ticker: str, today: date) -> str | None:
             gap = abs(target - today_close)
             _add(gap / today_close, f"離 §3({days}日) 還差 {gap:.2f} 元（{('漲到' if chg_now >= 0 else '跌到')} {target:.2f}）")
 
-    # §12 6-day price range ≥ threshold (高價股 +25/500 級距)
+    # §12 6-day 起迄價差 ≥ threshold AND today is the 6-day extreme.
+    # 起迄價差 = |today - first_6d| (net change, NOT max-min range).
+    # Threshold: 100 + 25 × ⌊today/500⌋ for stocks ≥ 500元.
     if len(prices) >= 6:
         closes_6d = [p["close"] for p in prices[-6:]]
-        high_6d = max(closes_6d)
-        low_6d = min(closes_6d)
+        first_6d = closes_6d[0]
+        # high/low excluding today (used to gate "is today the new extreme")
+        other_5 = closes_6d[:-1]
+        high_5 = max(other_5)
+        low_5 = min(other_5)
         threshold = 100
         if today_close >= 500:
             threshold = 100 + int(today_close // 500) * 25
-        # Need diff ≥ threshold AND today is the new extreme
-        # Up: target close so that close - low_6d == threshold → close >= low_6d + threshold
-        # Down: close <= high_6d - threshold
-        up_target = low_6d + threshold
-        dn_target = high_6d - threshold
+        # Up direction: today ≥ first_6d + threshold AND today ≥ high_5
+        up_target = max(first_6d + threshold, high_5)
+        # Down direction: today ≤ first_6d - threshold AND today ≤ low_5
+        dn_target = min(first_6d - threshold, low_5)
         up_gap = up_target - today_close
         dn_gap = today_close - dn_target
-        # Choose the closer side
         if up_gap > 0 and (dn_gap <= 0 or up_gap <= dn_gap):
             _add(up_gap / today_close, f"離 §12 還差 {up_gap:.2f} 元（漲到 {up_target:.2f} 創 6 日新高）")
         elif dn_gap > 0:
@@ -227,9 +236,10 @@ def _load_today_row(cur, ticker: str, today: date) -> tuple[dict | None, str]:
 
 
 def consec_rule1_eligible_days(ticker: str, today: date) -> tuple[int, dict | None]:
-    """Count consecutive recent trading days where §1 (TWSE 附表第 2 條) was
-    met, walking back from the most recent day. Each day's §1 eligibility is
-    derived from K-bar: |6-day cumulative change| > 32% (rough, no market gate).
+    """Count consecutive recent trading days where §1 (6日累積漲跌異常) was
+    met, walking back from the most recent day. Each day's eligibility uses
+    market-specific thresholds (TWSE 32% / TPEx 30%) and our prices[-N]
+    convention (window includes today as day 1, so base is prices[i-5]).
 
     Today's row uses the same source priority as predict_today_attention
     (daily_prices today if exists, else intraday_quotes synthetic).
@@ -240,23 +250,29 @@ def consec_rule1_eligible_days(ticker: str, today: date) -> tuple[int, dict | No
     if classify_tw_security(ticker) != "STOCK":
         return 0, None
 
+    # Pick threshold based on listing market
     with get_cursor(commit=False) as cur:
+        cur.execute("SELECT market FROM tw.stocks WHERE stock_id = %s", (ticker,))
+        row = cur.fetchone()
+        market = row["market"] if row else "TWSE"
         history = _load_history(cur, ticker, today)
         today_row, _src = _load_today_row(cur, ticker, today)
+    thresh = 30 if market == "TPEx" else 32
 
-    if not history or len(history) < 6:
+    if not history or len(history) < 5:
         return 0, today_row
     prices = history + ([today_row] if today_row is not None else [])
 
-    # Walk back from the last available day, stop at first non-eligible
+    # Walk back from the last available day, stop at first non-eligible.
+    # «6日 cum» uses prices[i-5] (5 trading days back = window of 6 incl. day i).
     count = 0
-    for i in range(len(prices) - 1, 5, -1):
+    for i in range(len(prices) - 1, 4, -1):
         c_now = prices[i]["close"]
-        c_6_ago = prices[i - 6]["close"]
-        if c_6_ago <= 0:
+        c_base = prices[i - 5]["close"]
+        if c_base <= 0:
             break
-        chg = (c_now / c_6_ago - 1) * 100
-        if abs(chg) > 32:
+        chg = (c_now / c_base - 1) * 100
+        if abs(chg) > thresh:
             count += 1
         else:
             break

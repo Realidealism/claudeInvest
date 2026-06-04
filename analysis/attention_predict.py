@@ -159,8 +159,10 @@ def _calc_6d_avg_volume_ratio(prices: list[dict]) -> float | None:
 
 
 def _compute_market_averages(stocks: dict, meta: dict) -> dict:
-    """Compute market-wide and industry-level averages for comparison."""
-    all_changes_6d = []
+    """Compute market-wide and industry-level averages for comparison.
+    全體均值 is segregated by listing market (TWSE vs TPEx) per attstock.tw
+    behavior — a stock is compared only against peers on the same exchange."""
+    changes_by_market: dict[str, list] = {"TWSE": [], "TPEx": []}
     all_vol_ratios = []
     industry_changes: dict[str, list] = {}
 
@@ -170,7 +172,9 @@ def _compute_market_averages(stocks: dict, meta: dict) -> dict:
 
         chg = _calc_6d_change_pct(prices)
         if chg is not None:
-            all_changes_6d.append(chg)
+            mkt = meta[sid].get("market")
+            if mkt in changes_by_market:
+                changes_by_market[mkt].append(chg)
             ind = meta[sid].get("industry") or "unknown"
             industry_changes.setdefault(ind, []).append(chg)
 
@@ -178,33 +182,59 @@ def _compute_market_averages(stocks: dict, meta: dict) -> dict:
         if vr is not None:
             all_vol_ratios.append(vr)
 
-    market_avg_change_6d = sum(all_changes_6d) / len(all_changes_6d) if all_changes_6d else 0
-    market_avg_vol_ratio = sum(all_vol_ratios) / len(all_vol_ratios) if all_vol_ratios else 0
+    def _mean(lst):
+        return sum(lst) / len(lst) if lst else 0
+
+    market_avg_vol_ratio = _mean(all_vol_ratios)
 
     ind_avg_change = {}
     for ind, vals in industry_changes.items():
-        ind_avg_change[ind] = sum(vals) / len(vals) if vals else 0
+        ind_avg_change[ind] = _mean(vals)
 
     return {
-        "change_6d": market_avg_change_6d,
+        "change_6d_twse": _mean(changes_by_market["TWSE"]),
+        "change_6d_tpex": _mean(changes_by_market["TPEx"]),
+        # Backwards-compat: combined avg (still emitted but no rule uses it).
+        "change_6d": _mean(changes_by_market["TWSE"] + changes_by_market["TPEx"]),
         "vol_ratio": market_avg_vol_ratio,
         "industry_change_6d": ind_avg_change,
         "industry_count": {ind: len(vals) for ind, vals in industry_changes.items()},
     }
 
 
+def _market_change_6d(mkt: dict, meta: dict) -> float:
+    """Pick the right 全體均值 6日 for a stock based on its listing market."""
+    if meta.get("market") == "TPEx":
+        return mkt.get("change_6d_tpex", 0)
+    return mkt.get("change_6d_twse", 0)
+
+
 # ---------------------------------------------------------------------------
 # Rule checks
 # ---------------------------------------------------------------------------
 
+# Market-specific thresholds per TWSE FL007226 (上市) vs TPEx 規則 (上櫃).
+# TWSE: §2① 32% / §2② 25% + 50元
+# TPEx: 第一款一 30% / 第一款二 23% + 40元
+_R2_1_PCT = {"TWSE": 32, "TPEx": 30}
+_R2_2_PCT = {"TWSE": 25, "TPEx": 23}
+_R2_2_DIFF = {"TWSE": 50, "TPEx": 40}
+
+
+def _r2_thresh(meta: dict, table: dict, default) -> float:
+    return table.get(meta.get("market"), default)
+
+
 def _check_rule_2_1(prices: list, meta: dict, mkt: dict) -> Alert | None:
-    """§2① 6日累積漲跌幅 >32%, 差幅≥20%"""
+    """§2① 6日累積漲跌幅 >X% AND 全體差幅 ≥20% AND 同類差幅 ≥20%.
+    X = 32 (TWSE) / 30 (TPEx)."""
     chg = _calc_6d_change_pct(prices)
-    if chg is None or abs(chg) <= 32:
+    thresh = _r2_thresh(meta, _R2_1_PCT, 32)
+    if chg is None or abs(chg) <= thresh:
         return None
     ind = meta.get("industry") or "unknown"
     ind_avg = mkt["industry_change_6d"].get(ind, 0)
-    mkt_avg = mkt["change_6d"]
+    mkt_avg = _market_change_6d(mkt, meta)
     if mkt["industry_count"].get(ind, 0) < 5:
         return None
     if abs(chg - mkt_avg) < 20 or abs(chg - ind_avg) < 20:
@@ -220,18 +250,21 @@ def _check_rule_2_1(prices: list, meta: dict, mkt: dict) -> Alert | None:
 
 
 def _check_rule_2_2(prices: list, meta: dict, mkt: dict) -> Alert | None:
-    """§2② 6日累積漲跌 >25% + 價差≥50元, 差幅≥20%"""
+    """§2② 6日累積漲跌 >X% AND 價差 ≥Y元 AND 全體/同類差幅 ≥20%.
+    X/Y = 25/50 (TWSE) / 23/40 (TPEx)."""
     chg = _calc_6d_change_pct(prices)
-    if chg is None or abs(chg) <= 25:
+    pct_thresh = _r2_thresh(meta, _R2_2_PCT, 25)
+    if chg is None or abs(chg) <= pct_thresh:
         return None
     if len(prices) < 6:
         return None
     diff = abs(prices[-1]["close"] - prices[-6]["close"])
-    if diff < 50:
+    diff_thresh = _r2_thresh(meta, _R2_2_DIFF, 50)
+    if diff < diff_thresh:
         return None
     ind = meta.get("industry") or "unknown"
     ind_avg = mkt["industry_change_6d"].get(ind, 0)
-    mkt_avg = mkt["change_6d"]
+    mkt_avg = _market_change_6d(mkt, meta)
     if mkt["industry_count"].get(ind, 0) < 5:
         return None
     if abs(chg - mkt_avg) < 20 or abs(chg - ind_avg) < 20:
@@ -285,7 +318,7 @@ def _check_rule_4(prices: list, meta: dict, mkt: dict) -> Alert | None:
         return None
     ind = meta.get("industry") or "unknown"
     ind_avg = mkt["industry_change_6d"].get(ind, 0)
-    mkt_avg = mkt["change_6d"]
+    mkt_avg = _market_change_6d(mkt, meta)
     if abs(chg - mkt_avg) < 20 or abs(chg - ind_avg) < 20:
         return None
     direction = "漲" if chg > 0 else "跌"
@@ -305,7 +338,7 @@ def _check_rule_8(prices: list, meta: dict, mkt: dict) -> Alert | None:
         return None
     ind = meta.get("industry") or "unknown"
     ind_avg = mkt["industry_change_6d"].get(ind, 0)
-    mkt_avg = mkt["change_6d"]
+    mkt_avg = _market_change_6d(mkt, meta)
     if abs(chg - mkt_avg) < 20 or abs(chg - ind_avg) < 20:
         return None
 
