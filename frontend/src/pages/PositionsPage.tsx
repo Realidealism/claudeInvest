@@ -15,6 +15,7 @@ interface Position {
   defense_reason: string | null;
   defense_date: string | null;
   exit_reason?: string | null;
+  disposal_status?: string | null;
 }
 
 interface PositionsData {
@@ -218,6 +219,7 @@ export default function PositionsPage() {
                   </>
                 )}
                 <th className="px-2 py-2 text-right">成交金額</th>
+                <th className="px-2 py-2 hidden lg:table-cell">處置/警示</th>
               </tr>
             </thead>
             <tbody>
@@ -297,6 +299,12 @@ export default function PositionsPage() {
                   )}
                   <td className={`px-2 py-1.5 text-right font-mono ${turnoverClass(p.turnover)}`}>
                     {fmtTurnover(p.turnover)}
+                  </td>
+                  <td
+                    className="px-2 py-1.5 hidden lg:table-cell text-text-secondary whitespace-pre-wrap break-words"
+                    style={{ maxWidth: 260 }}
+                  >
+                    {p.disposal_status || "—"}
                   </td>
                 </tr>
               ))}
