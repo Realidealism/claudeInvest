@@ -323,6 +323,92 @@ def _load_outstanding_shares(cur, ticker: str) -> int | None:
     return int(row["s"]) // 2
 
 
+# Cache market-wide turnover averages — key: (today_iso, market)
+# Recomputed only when first queried per market per day (slow first call,
+# instant for subsequent stocks in same session).
+_TURNOVER_AVG_CACHE: dict = {}
+
+
+def _get_market_turnover_avg(today: date) -> dict[str, tuple[float, float]]:
+    """Return {"TWSE": (today_tr%, cum6d_tr%), "TPEx": (...)} averaged across
+    all common stocks with valid data. Used by §5/§11 差幅 gates."""
+    key = today.isoformat()
+    if key in _TURNOVER_AVG_CACHE:
+        return _TURNOVER_AVG_CACHE[key]
+
+    with get_cursor(commit=False) as cur:
+        # All common stocks with their market
+        cur.execute(
+            "SELECT stock_id, market FROM tw.stocks "
+            "WHERE security_type = 'STOCK' AND is_active = TRUE"
+        )
+        market_by_sid = {r["stock_id"]: r["market"] for r in cur.fetchall()}
+
+        # Latest outstanding shares for each stock (one query)
+        cur.execute(
+            """
+            SELECT DISTINCT ON (stock_id) stock_id,
+                   (t1_shares+t2_shares+t3_shares+t4_shares+t5_shares+t6_shares
+                  + t7_shares+t8_shares+t9_shares+t10_shares+t11_shares+t12_shares
+                  + t13_shares+t14_shares+t15_shares+t16_shares+t17_shares) / 2 AS outstanding
+            FROM tw.shareholder_distribution
+            ORDER BY stock_id, data_date DESC
+            """
+        )
+        outstanding_by_sid = {r["stock_id"]: r["outstanding"] for r in cur.fetchall()}
+
+        # Today's intraday volume per stock
+        cur.execute(
+            "SELECT stock_id, total_volume FROM tw.intraday_quotes "
+            "WHERE trade_date = %s",
+            (today,),
+        )
+        today_vol_by_sid = {r["stock_id"]: r["total_volume"] or 0 for r in cur.fetchall()}
+
+        # Last 5 days' daily volumes per stock (sum gives the 5-prior days
+        # volume; with today's intraday we get 6-day cumulative)
+        cur.execute(
+            """
+            SELECT stock_id, SUM(volume) AS vol5
+            FROM (
+                SELECT stock_id, volume,
+                       ROW_NUMBER() OVER (PARTITION BY stock_id ORDER BY trade_date DESC) rn
+                FROM tw.daily_prices
+                WHERE trade_date < %s AND volume IS NOT NULL
+            ) t WHERE rn <= 5
+            GROUP BY stock_id
+            """,
+            (today,),
+        )
+        vol5_by_sid = {r["stock_id"]: r["vol5"] or 0 for r in cur.fetchall()}
+
+    # Per stock: today_turnover %, 6day_cum_turnover %
+    by_market: dict[str, list] = {"TWSE": [], "TPEx": []}
+    for sid, market in market_by_sid.items():
+        out = outstanding_by_sid.get(sid)
+        if not out or out <= 0:
+            continue
+        tv = float(today_vol_by_sid.get(sid, 0) or 0)
+        v5 = float(vol5_by_sid.get(sid, 0) or 0)
+        out_f = float(out)
+        today_tr = tv / out_f * 100
+        cum6_tr = (tv + v5) / out_f * 100
+        if market in by_market:
+            by_market[market].append((today_tr, cum6_tr))
+
+    result = {}
+    for mkt, vals in by_market.items():
+        if vals:
+            result[mkt] = (
+                float(sum(v[0] for v in vals) / len(vals)),
+                float(sum(v[1] for v in vals) / len(vals)),
+            )
+        else:
+            result[mkt] = (0.0, 0.0)
+    _TURNOVER_AVG_CACHE[key] = result
+    return result
+
+
 def predict_today_attention(
     ticker: str, today: date, state: DataState | None = None
 ) -> list[tuple[str, str]]:
@@ -485,30 +571,59 @@ def predict_today_attention(
                         ("§14", f"6日當沖占比 {dt_ratio_6d:.1f}% + 前日 {dt_ratio_prev:.1f}%{clean}")
                     )
 
-    # §5 6-day change > X% + 當日週轉率 ≥ Y% (rough: no market 差幅 gate)
-    #   TWSE: cum > 25%, turnover ≥ 10%
-    #   TPEx: cum > 27%, turnover > 5%
+    # §5 / §11 share market-wide turnover gate; load lazily
+    mkt_avg_today_tr = mkt_avg_cum_tr = None
+    if outstanding and outstanding > 0:
+        try:
+            mkt_avgs = _get_market_turnover_avg(today)
+            mkt_avg_today_tr, mkt_avg_cum_tr = mkt_avgs.get(market, (0.0, 0.0))
+        except Exception:
+            mkt_avg_today_tr = mkt_avg_cum_tr = None
+
+    # §5 6-day change > X% + 當日週轉率 ≥ Y% + 全體 差幅 ≥ Z%
+    #   TWSE: cum > 25%, turnover ≥ 10%, 差幅 ≥ 5%
+    #   TPEx: cum > 27%, turnover > 5%, 差幅 ≥ 3%
     r5_cum_thresh = 27 if is_tpex else 25
     r5_tr_thresh = 5 if is_tpex else 10
+    r5_diff_thresh = 3 if is_tpex else 5
     if outstanding and outstanding > 0 and chg6 is not None and abs(chg6) > r5_cum_thresh:
         today_vol = prices[-1]["volume"]
         turnover_pct = today_vol / outstanding * 100
-        if turnover_pct >= r5_tr_thresh:
+        diff_ok = (
+            mkt_avg_today_tr is None
+            or turnover_pct - mkt_avg_today_tr >= r5_diff_thresh
+        )
+        if turnover_pct >= r5_tr_thresh and diff_ok:
             direction = "漲" if chg6 > 0 else "跌"
             out.append(
                 ("§5", f"6日{direction} {abs(chg6):.1f}% + 今日週轉率 {turnover_pct:.1f}%{rough}")
             )
 
-    # §11 6-day cumulative 週轉率 ≥ X% AND 當日週轉率 ≥ Y%
-    #   TWSE: cum_turnover > 50%, today_turnover ≥ 10%
-    #   TPEx: cum_turnover > 80%, today_turnover > 5%
+    # §11 6-day cumulative 週轉率 + 當日週轉率 + 兩個全體 差幅
+    #   TWSE: 累積 > 50% 差幅 ≥ 40%, 當日 ≥ 10% 差幅 ≥ 5%
+    #   TPEx: 累積 > 80% 差幅 ≥ 50%, 當日 > 5% 差幅 ≥ 3%
     r11_cum_thresh = 80 if is_tpex else 50
+    r11_cum_diff_thresh = 50 if is_tpex else 40
     r11_tr_thresh = 5 if is_tpex else 10
+    r11_tr_diff_thresh = 3 if is_tpex else 5
     if outstanding and outstanding > 0 and len(prices) >= 6:
         sum_vol_6d = sum(p["volume"] for p in prices[-6:])
         cum_tr_6d = sum_vol_6d / outstanding * 100
         today_tr = prices[-1]["volume"] / outstanding * 100
-        if cum_tr_6d >= r11_cum_thresh and today_tr >= r11_tr_thresh:
+        cum_diff_ok = (
+            mkt_avg_cum_tr is None
+            or cum_tr_6d - mkt_avg_cum_tr >= r11_cum_diff_thresh
+        )
+        tr_diff_ok = (
+            mkt_avg_today_tr is None
+            or today_tr - mkt_avg_today_tr >= r11_tr_diff_thresh
+        )
+        if (
+            cum_tr_6d >= r11_cum_thresh
+            and today_tr >= r11_tr_thresh
+            and cum_diff_ok
+            and tr_diff_ok
+        ):
             out.append(("§11", f"6日累積週轉率 {cum_tr_6d:.1f}% + 今日 {today_tr:.1f}%{rough}"))
 
     return out
