@@ -22,15 +22,22 @@ def fetch_daily_prices(trade_date: date) -> tuple:
         params={"date": date_str, "type": "ALLBUT0999", "response": "json"},
         validate=lambda d: d.get("stat") == "OK",
     )
+    # Raise on any empty/error path so daily_update's retry mechanism kicks
+    # in and a final failure surfaces in the run summary + telegram alert.
+    # Silently returning [] would leave daily_prices.OHLC NULL for the whole
+    # market while every other scraper (after-hours, price_limits, …) still
+    # wrote partial rows — see 2026-06-02 incident.
     if not data or data.get("stat") != "OK":
-        print(f"  API returned stat={data.get('stat') if data else 'no response'}")
-        return [], 0, 0
+        raise RuntimeError(
+            f"TWSE MI_INDEX returned stat={data.get('stat') if data else 'no response'} for {trade_date}"
+        )
 
     # Verify the API returned data for the requested date.
     api_date = str(data.get("date", "")).strip()
     if api_date and api_date != date_str:
-        print(f"  Date mismatch: requested {date_str}, API returned {api_date} — skipping")
-        return [], 0, 0
+        raise RuntimeError(
+            f"TWSE MI_INDEX date mismatch: requested {date_str}, API returned {api_date}"
+        )
 
     # Find the table containing stock price data
     tables = data.get("tables", [])
@@ -42,8 +49,9 @@ def fetch_daily_prices(trade_date: date) -> tuple:
             break
 
     if not price_table:
-        print("  Could not find price table in response.")
-        return [], 0, 0
+        raise RuntimeError(
+            f"TWSE MI_INDEX response for {trade_date} has no '每日收盤行情' table"
+        )
 
     fields = price_table.get("fields", [])
     rows = price_table.get("data", [])

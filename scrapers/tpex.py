@@ -27,17 +27,21 @@ def fetch_daily_prices(trade_date: date) -> tuple:
         params={"date": ad_date, "response": "json"},
         validate=lambda d: d.get("stat") == "ok" and d.get("tables"),
     )
+    # Raise on any empty/error path so daily_update retries and a final
+    # failure surfaces. Mirrors scrapers.twse — see 2026-06-02 incident.
     if not data or data.get("stat") != "ok" or not data.get("tables"):
-        print(f"  API returned stat={data.get('stat') if data else 'no response'}")
-        return [], 0, 0
+        raise RuntimeError(
+            f"TPEx dailyQuotes returned stat={data.get('stat') if data else 'no response'} for {trade_date}"
+        )
 
     # Verify the API returned data for the requested date (TPEx silently returns
     # today's data if it doesn't recognize the date format).
     api_date = str(data.get("date", "")).strip()
     expected = trade_date.strftime("%Y%m%d")
     if api_date and api_date != expected:
-        print(f"  Date mismatch: requested {expected}, API returned {api_date} — skipping")
-        return [], 0, 0
+        raise RuntimeError(
+            f"TPEx dailyQuotes date mismatch: requested {expected}, API returned {api_date}"
+        )
 
     # Data is in tables[0]
     table = data["tables"][0]

@@ -9,18 +9,29 @@ Usage:
 Each scraper runs independently; failures are logged but do not stop the rest.
 """
 
+import io
 import sys
 import traceback
 from datetime import date, timedelta
 from pathlib import Path
 
 from db.connection import get_cursor
+from telegram_bot.notify import send_sync
 
 # ---------------------------------------------------------------------------
 # Scraper registry — order matters (prices first, derived data last)
 # ---------------------------------------------------------------------------
 # Trading-day gate: TAIEX is scraped first; absent TAIEX => non-trading day.
 INDEX_SCRAPER = ("Market indices", "scrapers.index_prices", "scrape_date")
+
+# Labels in SCRAPERS whose failure invalidates everything downstream
+# (daily_liquidity, market_breadth, daily_snapshot, export). When any of
+# these fails after retries, the downstream steps skip rather than write
+# a partial snapshot that gets shipped to Vercel.
+CRITICAL_SCRAPER_LABELS = {
+    "TWSE daily prices",
+    "TPEx daily prices",
+}
 
 SCRAPERS = [
     # Core daily prices
@@ -62,25 +73,90 @@ SCRAPER_MAX_RETRIES = 3
 SCRAPER_RETRY_WAIT  = 10  # seconds
 
 
-def run_scraper(label: str, module_path: str, func_name: str, trade_date: date) -> bool:
-    """Import and run a single scraper. Retries up to SCRAPER_MAX_RETRIES times."""
+def _capture_trace(failure_traces: dict[str, str], label: str) -> None:
+    """Print current exception traceback to stdout AND save last 3 non-blank
+    lines into failure_traces[label] for the telegram summary. Three lines
+    is enough to carry exception type, message, and the last call-site
+    without blowing past Telegram's 4096-char limit."""
+    buf = io.StringIO()
+    traceback.print_exc(file=buf)
+    full = buf.getvalue()
+    print(full, end="")
+    lines = [l for l in full.splitlines() if l.strip()]
+    if lines:
+        failure_traces[label] = "\n".join(lines[-3:])
+
+
+def run_scraper(
+    label: str, module_path: str, func_name: str, trade_date: date,
+) -> tuple[bool, str | None]:
+    """Import and run a single scraper. Retries up to SCRAPER_MAX_RETRIES
+    times. Returns (success, last_trace) where last_trace is the last
+    failure's traceback summary (last 3 non-blank lines) on failure."""
     import time
     import importlib
     mod = importlib.import_module(module_path)
     fn  = getattr(mod, func_name)
 
+    last_trace: str | None = None
     for attempt in range(1, SCRAPER_MAX_RETRIES + 1):
         try:
             fn(trade_date)
-            return True
+            return True, None
         except Exception:
             print(f"\n  [ERROR] {label} (attempt {attempt}/{SCRAPER_MAX_RETRIES}):")
-            traceback.print_exc()
+            buf = io.StringIO()
+            traceback.print_exc(file=buf)
+            full = buf.getvalue()
+            print(full, end="")
+            lines = [l for l in full.splitlines() if l.strip()]
+            if lines:
+                last_trace = "\n".join(lines[-3:])
             if attempt < SCRAPER_MAX_RETRIES:
                 print(f"  Retrying in {SCRAPER_RETRY_WAIT}s ...")
                 time.sleep(SCRAPER_RETRY_WAIT)
 
-    return False
+    return False, last_trace
+
+
+def _build_daily_update_message(
+    trade_date: date,
+    results: list[tuple[str, str]],
+    failure_traces: dict[str, str] | None = None,
+) -> str:
+    """Compose the Telegram summary for one update_date() run.
+
+    Mirrors the Chinese summary printed at the end of update_date so users
+    receive the same view they would see in the terminal. When
+    failure_traces is supplied, each failed label gets its last-3-line
+    traceback appended so the user can see the underlying exception from
+    the telegram message without re-opening the terminal.
+    """
+    failure_traces = failure_traces or {}
+    ok_n = sum(1 for _, s in results if s == "ok")
+    failed = [label for label, s in results if s == "failed"]
+    skip_n = sum(1 for _, s in results if s == "skip")
+    counts = f"成功 {ok_n} / 失敗 {len(failed)} / 跳過 {skip_n}"
+    if failed:
+        critical_failed = [l for l in failed if l in CRITICAL_SCRAPER_LABELS]
+        lines = [
+            f"[每日更新] {trade_date}",
+            f"失敗：{', '.join(failed)}",
+            counts,
+        ]
+        if critical_failed:
+            lines.append(
+                f"【關鍵抓檔失敗】{', '.join(critical_failed)}，"
+                f"下游已跳過，前端未更新"
+            )
+        for label in failed:
+            tr = failure_traces.get(label)
+            if tr:
+                lines.append(f"── {label} ──")
+                lines.append(tr)
+        lines.append(f"重跑指令：daily_update.exe {trade_date}")
+        return "\n".join(lines)
+    return f"[每日更新] {trade_date} 全部成功（{counts}）"
 
 
 DELIST_THRESHOLD_DAYS = 20  # consecutive trading days absent before marking delisted
@@ -221,19 +297,24 @@ def update_date(trade_date: date):
 
     # Trading-day gate: TAIEX index must exist for the date to be valid.
     print(f"\n--- {INDEX_SCRAPER[0]} (trading-day gate) ---")
-    gate_ok = run_scraper(*INDEX_SCRAPER, trade_date)
+    gate_ok, gate_trace = run_scraper(*INDEX_SCRAPER, trade_date)
     if not _has_taiex(trade_date):
         print(f"\n[HOLIDAY] {trade_date} has no TAIEX data — skipping remaining scrapers.")
         return
 
     # Track results: list of (label, status) where status is "ok", "failed", "skip"
     results = []
+    failure_traces: dict[str, str] = {}
     results.append((INDEX_SCRAPER[0], "ok" if gate_ok else "failed"))
+    if not gate_ok and gate_trace:
+        failure_traces[INDEX_SCRAPER[0]] = gate_trace
 
     for label, module_path, func_name in SCRAPERS:
         print(f"\n--- {label} ---")
-        success = run_scraper(label, module_path, func_name, trade_date)
+        success, trace = run_scraper(label, module_path, func_name, trade_date)
         results.append((label, "ok" if success else "failed"))
+        if not success and trace:
+            failure_traces[label] = trace
 
     # Monthly revenue: fetch during the publication window (1st–12th)
     if trade_date.day <= 15:
@@ -249,30 +330,39 @@ def update_date(trade_date: date):
             results.append(("月營收", "ok"))
         except Exception:
             print("  [ERROR] Monthly revenue scraper failed:")
-            traceback.print_exc()
+            _capture_trace(failure_traces, "月營收")
             results.append(("月營收", "failed"))
     else:
         results.append(("月營收", "skip"))
 
-    # SITCA fund holdings: monthly top-10 (available ~10th business day)
+    # SITCA fund holdings: monthly top-10 (available ~10th business day).
+    # Import + run are split so a failed import (missing bs4 etc.) marks the
+    # step as failed instead of triggering UnboundLocalError on
+    # `except PeriodNotAvailable` and killing the whole daily_update run.
     if trade_date.day <= 20:
         print(f"\n--- SITCA monthly fund holdings ---")
         try:
             from scrapers.sitca import scrape_monthly, PeriodNotAvailable
-            m = trade_date.month - 1
-            y = trade_date.year
-            if m == 0:
-                m = 12
-                y -= 1
-            scrape_monthly(f"{y}{m:02d}")
-            results.append(("SITCA 月持股", "ok"))
-        except PeriodNotAvailable as e:
-            print(f"  [SKIP] {e}")
-            results.append(("SITCA 月持股", "skip"))
-        except Exception:
-            print("  [ERROR] SITCA monthly scraper failed:")
-            traceback.print_exc()
+        except ImportError:
+            print("  [ERROR] SITCA module import failed:")
+            _capture_trace(failure_traces, "SITCA 月持股")
             results.append(("SITCA 月持股", "failed"))
+        else:
+            try:
+                m = trade_date.month - 1
+                y = trade_date.year
+                if m == 0:
+                    m = 12
+                    y -= 1
+                scrape_monthly(f"{y}{m:02d}")
+                results.append(("SITCA 月持股", "ok"))
+            except PeriodNotAvailable as e:
+                print(f"  [SKIP] {e}")
+                results.append(("SITCA 月持股", "skip"))
+            except Exception:
+                print("  [ERROR] SITCA monthly scraper failed:")
+                _capture_trace(failure_traces, "SITCA 月持股")
+                results.append(("SITCA 月持股", "failed"))
     else:
         results.append(("SITCA 月持股", "skip"))
 
@@ -282,17 +372,23 @@ def update_date(trade_date: date):
         print(f"\n--- SITCA quarterly fund holdings ---")
         try:
             from scrapers.sitca import scrape_quarterly, PeriodNotAvailable
-            qm = quarter_end_months[trade_date.month]
-            qy = trade_date.year if qm < trade_date.month else trade_date.year - 1
-            scrape_quarterly(f"{qy}{qm:02d}")
-            results.append(("SITCA 季持股", "ok"))
-        except PeriodNotAvailable as e:
-            print(f"  [SKIP] {e}")
-            results.append(("SITCA 季持股", "skip"))
-        except Exception:
-            print("  [ERROR] SITCA quarterly scraper failed:")
-            traceback.print_exc()
+        except ImportError:
+            print("  [ERROR] SITCA module import failed:")
+            _capture_trace(failure_traces, "SITCA 季持股")
             results.append(("SITCA 季持股", "failed"))
+        else:
+            try:
+                qm = quarter_end_months[trade_date.month]
+                qy = trade_date.year if qm < trade_date.month else trade_date.year - 1
+                scrape_quarterly(f"{qy}{qm:02d}")
+                results.append(("SITCA 季持股", "ok"))
+            except PeriodNotAvailable as e:
+                print(f"  [SKIP] {e}")
+                results.append(("SITCA 季持股", "skip"))
+            except Exception:
+                print("  [ERROR] SITCA quarterly scraper failed:")
+                _capture_trace(failure_traces, "SITCA 季持股")
+                results.append(("SITCA 季持股", "failed"))
     else:
         results.append(("SITCA 季持股", "skip"))
 
@@ -309,7 +405,7 @@ def update_date(trade_date: date):
             results.append(("基金信號掃描", "ok"))
         except Exception:
             print("  [ERROR] Signal scanning failed:")
-            traceback.print_exc()
+            _capture_trace(failure_traces, "基金信號掃描")
             results.append(("基金信號掃描", "failed"))
     else:
         results.append(("基金信號掃描", "skip"))
@@ -343,7 +439,7 @@ def update_date(trade_date: date):
         results.append(("ETF 信號掃描", "ok"))
     except Exception:
         print("  [ERROR] ETF signal scan failed:")
-        traceback.print_exc()
+        _capture_trace(failure_traces, "ETF 信號掃描")
         results.append(("ETF 信號掃描", "failed"))
 
     # Hermit-stock fundamental screener snapshot.
@@ -355,7 +451,14 @@ def update_date(trade_date: date):
     print(f"\n--- Hermit-stock fundamental snapshot ---")
     try:
         import subprocess as _sp
-        hs_dir = Path(__file__).parent / "hermit_stock"
+        # PyInstaller exe: __file__ points to temp _MEI dir which has no
+        # hermit_stock subfolder. Use sys.executable's parent.parent to reach
+        # the real repo root (mirrors _git_push_frontend).
+        if getattr(sys, 'frozen', False):
+            _repo = Path(sys.executable).parent.parent
+        else:
+            _repo = Path(__file__).parent
+        hs_dir = _repo / "hermit_stock"
         proc = _sp.run(
             ["uv", "run", "python", "-m", "hermit_stock.daily_check",
              trade_date.isoformat()],
@@ -367,13 +470,17 @@ def update_date(trade_date: date):
         if proc.stdout:
             print(proc.stdout, end="")
         if proc.returncode != 0:
-            print(proc.stderr or "<no stderr>", end="")
+            stderr = proc.stderr or "<no stderr>"
+            print(stderr, end="")
+            stderr_lines = [l for l in stderr.splitlines() if l.strip()]
+            if stderr_lines:
+                failure_traces["贏勢股快照"] = "\n".join(stderr_lines[-3:])
             results.append(("贏勢股快照", "failed"))
         else:
             results.append(("贏勢股快照", "ok"))
     except Exception:
         print("  [ERROR] Hermit-stock daily check failed:")
-        traceback.print_exc()
+        _capture_trace(failure_traces, "贏勢股快照")
         results.append(("贏勢股快照", "failed"))
 
     # Detect delisted stocks after all price scrapers have run
@@ -383,44 +490,64 @@ def update_date(trade_date: date):
         results.append(("下市偵測", "ok"))
     except Exception:
         print("  [ERROR] Delist detection failed:")
-        traceback.print_exc()
+        _capture_trace(failure_traces, "下市偵測")
         results.append(("下市偵測", "failed"))
+
+    # Downstream gate: if any CRITICAL scraper failed (e.g. TWSE prices),
+    # market_breadth / daily_liquidity / daily_snapshot would compute on
+    # half the universe and export would publish a partial positions.json
+    # to Vercel. Skip the whole tail rather than ship half-empty data.
+    critical_failed = [l for l, st in results
+                       if st == "failed" and l in CRITICAL_SCRAPER_LABELS]
 
     # Market breadth aggregate (depends on close/money/volume per stock).
     breadth_days = 0
     breadth_ok = False
     print(f"\n--- Market breadth ---")
-    try:
-        from analysis.market_breadth import calculate_market_breadth, save_market_breadth
-        mb_results = calculate_market_breadth(last_n_days=3)
-        breadth_days = save_market_breadth(mb_results)
-        print(f"  Updated {breadth_days} day(s) of market_breadth.")
-        results.append(("市場廣度", "ok"))
-        breadth_ok = True
-    except Exception:
-        print("  [ERROR] Market breadth computation failed:")
-        traceback.print_exc()
-        results.append(("市場廣度", "failed"))
+    if critical_failed:
+        print(f"  [SKIP] critical scraper(s) failed: {', '.join(critical_failed)}; "
+              f"breadth would be partial.")
+        results.append(("市場廣度", "skip"))
+    else:
+        try:
+            from analysis.market_breadth import calculate_market_breadth, save_market_breadth
+            mb_results = calculate_market_breadth(last_n_days=3)
+            breadth_days = save_market_breadth(mb_results)
+            print(f"  Updated {breadth_days} day(s) of market_breadth.")
+            results.append(("市場廣度", "ok"))
+            breadth_ok = True
+        except Exception:
+            print("  [ERROR] Market breadth computation failed:")
+            _capture_trace(failure_traces, "市場廣度")
+            results.append(("市場廣度", "failed"))
 
     # Daily stock liquidity: money_level / dead_fish / halted / on_alert.
     # Consumed by the intraday ORB pipeline to exclude untradable names.
     print(f"\n--- Daily liquidity ---")
-    try:
-        from analysis.daily_liquidity import compute_daily_liquidity
-        n = compute_daily_liquidity(trade_date)
-        print(f"  Stored liquidity rows: {n}")
-        results.append(("每日流動性", "ok"))
-    except Exception:
-        print("  [ERROR] Daily liquidity computation failed:")
-        traceback.print_exc()
-        results.append(("每日流動性", "failed"))
+    if critical_failed:
+        print(f"  [SKIP] critical scraper(s) failed: {', '.join(critical_failed)}; "
+              f"liquidity would be partial.")
+        results.append(("每日流動性", "skip"))
+    else:
+        try:
+            from analysis.daily_liquidity import compute_daily_liquidity
+            n = compute_daily_liquidity(trade_date)
+            print(f"  Stored liquidity rows: {n}")
+            results.append(("每日流動性", "ok"))
+        except Exception:
+            print("  [ERROR] Daily liquidity computation failed:")
+            _capture_trace(failure_traces, "每日流動性")
+            results.append(("每日流動性", "failed"))
 
     # Combined daily snapshot — score top-300 long/short + 6 signal-factory
     # fires + unified-strategy open positions, all in one per-stock pass.
     # Skip if market_breadth failed: load_stock_data pulls market_state from
     # tw.market_breadth, and stale rows would silently degrade every output.
     print(f"\n--- Daily snapshot (score + signal + positions) ---")
-    if not breadth_ok:
+    if critical_failed:
+        print(f"  [SKIP] critical scraper(s) failed: {', '.join(critical_failed)}.")
+        results.append(("多空評比 + 操作訊號 + 策略持倉快照", "skip"))
+    elif not breadth_ok:
         print("  [SKIP] market_breadth failed; daily_snapshot needs fresh market_state.")
         results.append(("多空評比 + 操作訊號 + 策略持倉快照", "skip"))
     else:
@@ -430,20 +557,25 @@ def update_date(trade_date: date):
             results.append(("多空評比 + 操作訊號 + 策略持倉快照", "ok"))
         except Exception:
             print("  [ERROR] Daily snapshot failed:")
-            traceback.print_exc()
+            _capture_trace(failure_traces, "多空評比 + 操作訊號 + 策略持倉快照")
             results.append(("多空評比 + 操作訊號 + 策略持倉快照", "failed"))
 
     # Export JSON + git push for Vercel auto-deploy
     print(f"\n--- Frontend export + deploy ---")
-    try:
-        from export.generate import export_all
-        export_all()
-        _git_push_frontend()
-        results.append(("前端匯出部署", "ok"))
-    except Exception:
-        print("  [ERROR] Export/deploy failed:")
-        traceback.print_exc()
-        results.append(("前端匯出部署", "failed"))
+    if critical_failed:
+        print(f"  [SKIP] critical scraper(s) failed: {', '.join(critical_failed)}; "
+              f"would publish partial positions.json to Vercel.")
+        results.append(("前端匯出部署", "skip"))
+    else:
+        try:
+            from export.generate import export_all
+            export_all()
+            _git_push_frontend()
+            results.append(("前端匯出部署", "ok"))
+        except Exception:
+            print("  [ERROR] Export/deploy failed:")
+            _capture_trace(failure_traces, "前端匯出部署")
+            results.append(("前端匯出部署", "failed"))
 
     # -----------------------------------------------------------------------
     # Final summary (Chinese)
@@ -467,6 +599,12 @@ def update_date(trade_date: date):
     status = "全部成功" if not failed_list else "有失敗項目"
     print(f"\n  最終狀態：{status}")
     print(f"{'='*60}")
+
+    # Telegram summary: silent if TELEGRAM_BOT_TOKEN is not configured.
+    try:
+        send_sync(_build_daily_update_message(trade_date, results, failure_traces))
+    except Exception:
+        traceback.print_exc()
 
     print()
 
@@ -509,4 +647,12 @@ if __name__ == "__main__":
         print(f"\n[ERROR] {e}")
         traceback.print_exc()
 
-    input("\nPress Enter to exit...")
+    # Wait for Enter only when interactive. Catch EOFError so non-interactive
+    # runs (piped stdin, background tasks, command chaining) exit cleanly
+    # rather than propagating a non-zero exit that breaks shell `&&` chains.
+    # Note: sys.stdin.isatty() is unreliable for Windows subprocesses, so
+    # we rely on EOFError detection instead.
+    try:
+        input("\nPress Enter to exit...")
+    except EOFError:
+        pass
