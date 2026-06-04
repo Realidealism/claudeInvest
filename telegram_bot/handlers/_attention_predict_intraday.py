@@ -1,0 +1,437 @@
+"""Per-ticker intraday-aware attention prediction.
+
+Reuses the rule helpers from `analysis/attention_predict.py` but synthesizes a
+"today row" from `tw.intraday_quotes` (last_price, total_volume) so the same
+threshold checks can be applied mid-session — answering "if the market closed
+right now, would this stock trigger attention §X?"
+
+The market-deviation gates of §2①/§2②/§4/§10 are SKIPPED here (per-ticker
+queries can't afford to recompute market-wide averages on every /score). The
+detail string carries a `(粗估)` suffix so callers know precision is reduced.
+"""
+
+from __future__ import annotations
+
+from datetime import date
+
+from analysis.attention_predict import (
+    _calc_6d_avg_volume_ratio,
+    _calc_6d_change_pct,
+    _calc_nd_change_pct,
+    _calc_volume_ratio,
+)
+from db.connection import get_cursor
+from telegram_bot.handlers._data_freshness import DataState
+from utils.classifier import classify_tw_security
+
+
+# Need >= 90 trading days to compute §3 (90-day change). 60+ for §10 vol ratio.
+_HISTORY_LOOKBACK = 90
+
+
+def closest_untriggered_threshold(ticker: str, today: date) -> str | None:
+    """Return one-line description of the nearest §X threshold not yet hit.
+
+    Used when the stock is one attention away from disposal — caller wants
+    to show the trader the price/volume level that would trip the next
+    attention. Returns the SINGLE rule with the smallest relative gap.
+    Skips rules that have already triggered (those become a different code
+    path via `predict_today_attention`).
+    """
+    if classify_tw_security(ticker) != "STOCK":
+        return None
+
+    with get_cursor(commit=False) as cur:
+        history = _load_history(cur, ticker, today)
+        today_row, _src = _load_today_row(cur, ticker, today)
+
+    if today_row is None or not history:
+        return None
+    prices = history + [today_row]
+    today_close = prices[-1]["close"]
+
+    candidates: list[tuple[float, str]] = []  # (gap_ratio, message)
+
+    def _add(gap_ratio: float, msg: str):
+        if gap_ratio is None or gap_ratio <= 0:
+            return
+        candidates.append((gap_ratio, msg))
+
+    # §2① 6-day change > 32% (window includes today as day 1 → base is
+    # close 5 trading days ago = prices[-6])
+    if len(prices) >= 6:
+        c6_ago = prices[-6]["close"]
+        if c6_ago > 0:
+            chg_now = (today_close / c6_ago - 1) * 100
+            if abs(chg_now) <= 32:
+                target = c6_ago * (1.32 if chg_now >= 0 else 0.68)
+                gap = abs(target - today_close)
+                _add(gap / today_close, f"離 §2① 還差 {gap:.2f} 元（{('漲到' if chg_now >= 0 else '跌到')} {target:.2f}）")
+
+    # §3 30/60/90-day cumulative — needs BOTH cum% ≥ thresh AND spread% ≥
+    # spread_thresh (spread = (max-min)/min of closes in the N-day window).
+    # spread_thresh = thresh - 15 per attstock.tw documentation. N-day window
+    # includes today as day 1 → window = prices[-N:], base = prices[-N].
+    for days, thresh in ((30, 100), (60, 130), (90, 160)):
+        if len(prices) < days:
+            continue
+        window = prices[-days:]
+        cN_ago = window[0]["close"]
+        if cN_ago <= 0:
+            continue
+        closes_win = [p["close"] for p in window]
+        hi_win = max(closes_win)
+        lo_win = min(closes_win)
+        spread_pct = (hi_win / lo_win - 1) * 100 if lo_win > 0 else 0.0
+        spread_thresh = thresh - 15
+        # If spread alone isn't met, §3 can't trigger regardless of today's
+        # close → skip (don't surface as a near miss).
+        if spread_pct < spread_thresh:
+            continue
+        chg_now = (today_close / cN_ago - 1) * 100
+        if abs(chg_now) <= thresh:
+            target_up = cN_ago * (1 + thresh / 100)
+            target_dn = cN_ago * (1 - thresh / 100)
+            target = target_up if chg_now >= 0 else target_dn
+            gap = abs(target - today_close)
+            _add(gap / today_close, f"離 §3({days}日) 還差 {gap:.2f} 元（{('漲到' if chg_now >= 0 else '跌到')} {target:.2f}）")
+
+    # §12 6-day price range ≥ threshold (高價股 +25/500 級距)
+    if len(prices) >= 6:
+        closes_6d = [p["close"] for p in prices[-6:]]
+        high_6d = max(closes_6d)
+        low_6d = min(closes_6d)
+        threshold = 100
+        if today_close >= 500:
+            threshold = 100 + int(today_close // 500) * 25
+        # Need diff ≥ threshold AND today is the new extreme
+        # Up: target close so that close - low_6d == threshold → close >= low_6d + threshold
+        # Down: close <= high_6d - threshold
+        up_target = low_6d + threshold
+        dn_target = high_6d - threshold
+        up_gap = up_target - today_close
+        dn_gap = today_close - dn_target
+        # Choose the closer side
+        if up_gap > 0 and (dn_gap <= 0 or up_gap <= dn_gap):
+            _add(up_gap / today_close, f"離 §12 還差 {up_gap:.2f} 元（漲到 {up_target:.2f} 創 6 日新高）")
+        elif dn_gap > 0:
+            _add(dn_gap / today_close, f"離 §12 還差 {dn_gap:.2f} 元（跌到 {dn_target:.2f} 創 6 日新低）")
+
+    if not candidates:
+        return None
+    candidates.sort(key=lambda x: x[0])
+    return candidates[0][1]
+
+
+def _suffix(rough: bool, state: DataState | None) -> str:
+    """Build trailing parenthetical: '(粗估)' / '(盤中)' / '(前日)' combos."""
+    parts: list[str] = []
+    if rough:
+        parts.append("粗估")
+    if state == DataState.LIVE:
+        parts.append("盤中")
+    elif state == DataState.STALE_OVERNIGHT:
+        parts.append("前日")
+    return f" ({'，'.join(parts)})" if parts else ""
+
+
+def _load_history(cur, ticker: str, today: date) -> list[dict]:
+    cur.execute(
+        """
+        SELECT trade_date, close_price, volume,
+               COALESCE(margin_balance, 0) AS margin_balance,
+               COALESCE(short_balance, 0)  AS short_balance,
+               COALESCE(sbl_sell, 0)       AS sbl_sell,
+               COALESCE(dt_volume, 0)      AS dt_volume
+        FROM tw.daily_prices
+        WHERE stock_id = %s
+          AND trade_date < %s
+          AND close_price IS NOT NULL
+        ORDER BY trade_date DESC LIMIT %s
+        """,
+        (ticker, today, _HISTORY_LOOKBACK),
+    )
+    rows = cur.fetchall()
+    return [
+        {
+            "close": float(r["close_price"]),
+            "volume": int(r["volume"] or 0),
+            "margin_balance": int(r["margin_balance"]),
+            "short_balance": int(r["short_balance"]),
+            "sbl_sell": int(r["sbl_sell"]),
+            "dt_volume": int(r["dt_volume"]),
+        }
+        for r in reversed(rows)
+    ]
+
+
+def _load_today_intraday(cur, ticker: str) -> dict | None:
+    cur.execute(
+        """
+        SELECT last_price, total_volume, ref_price,
+               COALESCE(margin_balance, 0) AS margin_balance,
+               COALESCE(short_balance, 0)  AS short_balance
+        FROM tw.intraday_quotes
+        WHERE stock_id = %s
+        """,
+        (ticker,),
+    )
+    row = cur.fetchone()
+    if not row or row["last_price"] is None:
+        return None
+    return {
+        "close": float(row["last_price"]),
+        "volume": int(row["total_volume"] or 0),
+        "margin_balance": int(row["margin_balance"]),
+        "short_balance": int(row["short_balance"]),
+        # SBL borrow / day-trade volumes aren't settled until end of session
+        "sbl_sell": 0,
+        "dt_volume": 0,
+    }
+
+
+def _load_today_daily(cur, ticker: str, today: date) -> dict | None:
+    """Today's row from daily_prices — only present after daily_update runs."""
+    cur.execute(
+        """
+        SELECT close_price, volume,
+               COALESCE(margin_balance, 0) AS margin_balance,
+               COALESCE(short_balance, 0)  AS short_balance,
+               COALESCE(sbl_sell, 0)       AS sbl_sell,
+               COALESCE(dt_volume, 0)      AS dt_volume
+        FROM tw.daily_prices
+        WHERE stock_id = %s AND trade_date = %s
+        """,
+        (ticker, today),
+    )
+    row = cur.fetchone()
+    if not row or row["close_price"] is None:
+        return None
+    return {
+        "close": float(row["close_price"]),
+        "volume": int(row["volume"] or 0),
+        "margin_balance": int(row["margin_balance"]),
+        "short_balance": int(row["short_balance"]),
+        "sbl_sell": int(row["sbl_sell"]),
+        "dt_volume": int(row["dt_volume"]),
+    }
+
+
+def _load_today_row(cur, ticker: str, today: date) -> tuple[dict | None, str]:
+    """Pick the best available today's row. Returns (row, source).
+    Prefer daily_prices (definitive: SBL/dt-volume settled) over intraday_quotes."""
+    row = _load_today_daily(cur, ticker, today)
+    if row is not None:
+        return row, "daily"
+    return _load_today_intraday(cur, ticker), "intraday"
+
+
+def consec_rule1_eligible_days(ticker: str, today: date) -> tuple[int, dict | None]:
+    """Count consecutive recent trading days where §1 (TWSE 附表第 2 條) was
+    met, walking back from the most recent day. Each day's §1 eligibility is
+    derived from K-bar: |6-day cumulative change| > 32% (rough, no market gate).
+
+    Today's row uses the same source priority as predict_today_attention
+    (daily_prices today if exists, else intraday_quotes synthetic).
+
+    Returns (consec_count, today_row or None). today_row is None when no
+    intraday/daily data is available yet for today.
+    """
+    if classify_tw_security(ticker) != "STOCK":
+        return 0, None
+
+    with get_cursor(commit=False) as cur:
+        history = _load_history(cur, ticker, today)
+        today_row, _src = _load_today_row(cur, ticker, today)
+
+    if not history or len(history) < 6:
+        return 0, today_row
+    prices = history + ([today_row] if today_row is not None else [])
+
+    # Walk back from the last available day, stop at first non-eligible
+    count = 0
+    for i in range(len(prices) - 1, 5, -1):
+        c_now = prices[i]["close"]
+        c_6_ago = prices[i - 6]["close"]
+        if c_6_ago <= 0:
+            break
+        chg = (c_now / c_6_ago - 1) * 100
+        if abs(chg) > 32:
+            count += 1
+        else:
+            break
+    return count, today_row
+
+
+def _load_outstanding_shares(cur, ticker: str) -> int | None:
+    """Listed shares from shareholder_distribution table. Sum all 17 tiers,
+    divided by 2 (the scraper records each share twice — registered +
+    bearer perspective). Verified against attstock.tw for 8046 (646,165 張).
+    Returns None when no data."""
+    cur.execute(
+        """
+        SELECT (t1_shares+t2_shares+t3_shares+t4_shares+t5_shares+t6_shares
+              + t7_shares+t8_shares+t9_shares+t10_shares+t11_shares+t12_shares
+              + t13_shares+t14_shares+t15_shares+t16_shares+t17_shares) AS s
+        FROM tw.shareholder_distribution
+        WHERE stock_id = %s
+        ORDER BY data_date DESC LIMIT 1
+        """,
+        (ticker,),
+    )
+    row = cur.fetchone()
+    if not row or not row["s"]:
+        return None
+    return int(row["s"]) // 2
+
+
+def predict_today_attention(
+    ticker: str, today: date, state: DataState | None = None
+) -> list[tuple[str, str]]:
+    """Return [(rule_code, short_detail), ...] for rules predicted to trigger.
+
+    `state` lets callers tag the detail suffix (粗估/盤中/前日). Empty list
+    when: not a common STOCK, no intraday quote, insufficient history, or
+    no rule fires at current data.
+    """
+    if classify_tw_security(ticker) != "STOCK":
+        return []
+
+    with get_cursor(commit=False) as cur:
+        history = _load_history(cur, ticker, today)
+        today_row, _src = _load_today_row(cur, ticker, today)
+        outstanding = _load_outstanding_shares(cur, ticker)
+
+    if today_row is None or not history:
+        return []
+
+    prices = history + [today_row]
+    out: list[tuple[str, str]] = []
+
+    rough = _suffix(True, state)   # rules with market gate skipped
+    clean = _suffix(False, state)  # rules with absolute thresholds only
+
+    # §2① 6-day change > 32%
+    chg6 = _calc_6d_change_pct(prices)
+    if chg6 is not None and abs(chg6) > 32:
+        direction = "漲" if chg6 > 0 else "跌"
+        out.append(("§2①", f"6日{direction} {abs(chg6):.1f}%{rough}"))
+    # §2② 6-day > 25% + 價差 ≥ 50
+    elif chg6 is not None and abs(chg6) > 25 and len(prices) >= 7:
+        diff = abs(prices[-1]["close"] - prices[-7]["close"])
+        if diff >= 50:
+            direction = "漲" if chg6 > 0 else "跌"
+            out.append(
+                ("§2②", f"6日{direction} {abs(chg6):.1f}% 價差 {diff:.0f}元{rough}")
+            )
+
+    # §3 30/60/90 day cumulative
+    for days, thresh in ((30, 100), (60, 130), (90, 160)):
+        chg = _calc_nd_change_pct(prices, days)
+        if chg is not None and abs(chg) > thresh:
+            direction = "漲" if chg > 0 else "跌"
+            out.append(
+                (f"§3({days}日)", f"{days}日{direction} {abs(chg):.1f}%{clean}")
+            )
+
+    # §4 6-day change > 25% + today's volume ≥ 5× 60-day avg
+    today_vr = _calc_volume_ratio(prices)
+    if chg6 is not None and abs(chg6) > 25 and today_vr is not None and today_vr >= 5:
+        direction = "漲" if chg6 > 0 else "跌"
+        out.append(
+            ("§4", f"6日{direction} {abs(chg6):.1f}% + 今日量 {today_vr:.1f}× 60日均{rough}")
+        )
+
+    # §10 6-day avg volume / 60-day avg ≥ 5x
+    vol_ratio = _calc_6d_avg_volume_ratio(prices)
+    if vol_ratio is not None and vol_ratio >= 5:
+        out.append(("§10", f"6日均量 {vol_ratio:.1f}× 60日均{rough}"))
+
+    # §12 6-day close range ≥ 100 NTD (高價股按 500 元級距加 25)
+    if len(prices) >= 7:
+        closes_6d = [p["close"] for p in prices[-7:]]
+        high_6d = max(closes_6d)
+        low_6d = min(closes_6d)
+        diff = high_6d - low_6d
+        today_close = prices[-1]["close"]
+        threshold = 100
+        if today_close >= 500:
+            threshold = 100 + int(today_close // 500) * 25
+        if diff >= threshold:
+            is_high = today_close == high_6d or today_close > closes_6d[0]
+            is_low = today_close == low_6d or today_close < closes_6d[0]
+            if is_high or is_low:
+                marker = "新高" if is_high else "新低"
+                out.append(
+                    ("§12", f"6日價差 {diff:.0f}元（門檻 {threshold}）+ 收{marker}{clean}")
+                )
+
+    # §8 6-day change > 25% + 券資比 ≥ 20% + 券資比 ≥ 6日最低 × 4
+    if chg6 is not None and abs(chg6) > 25 and len(prices) >= 7:
+        prev = prices[-2]
+        margin = prev["margin_balance"]
+        if margin > 0:
+            short = prev["short_balance"]
+            short_margin_ratio = short / margin * 100
+            ratios_6d = []
+            for p in prices[-7:-1]:
+                if p["margin_balance"] > 0:
+                    ratios_6d.append(p["short_balance"] / p["margin_balance"] * 100)
+            if short_margin_ratio >= 20 and ratios_6d:
+                min_ratio = min(ratios_6d)
+                if min_ratio == 0 or short_margin_ratio >= min_ratio * 4:
+                    direction = "漲" if chg6 > 0 else "跌"
+                    out.append(
+                        ("§8", f"6日{direction} {abs(chg6):.1f}% + 券資比 {short_margin_ratio:.1f}%{rough}")
+                    )
+
+    # §13 6-day SBL borrow ratio ≥ 12% + prev day SBL ≥ 5× 60-day avg
+    # NB: today's sbl_sell is unknown intraday (synthesized as 0); 6-day sum
+    # uses prior 6 sessions (prices[-7:-1]) for predictive accuracy.
+    if len(prices) >= 62:
+        total_sbl_6d = sum(p["sbl_sell"] for p in prices[-7:-1])
+        total_vol_6d = sum(p["volume"] for p in prices[-7:-1])
+        if total_vol_6d > 0:
+            sbl_ratio = total_sbl_6d / total_vol_6d * 100
+            prev_sbl = prices[-2]["sbl_sell"]
+            avg60_sbl = sum(p["sbl_sell"] for p in prices[-62:-2]) / 60
+            if avg60_sbl > 0:
+                sbl_mult = prev_sbl / avg60_sbl
+                if sbl_ratio >= 12 and sbl_mult >= 5:
+                    out.append(
+                        ("§13", f"6日借券占比 {sbl_ratio:.1f}% + 前日 {sbl_mult:.1f}× 60日均{clean}")
+                    )
+
+    # §14 6-day day-trade ratio > 60% + prev day > 60%
+    # Same intraday caveat as §13 — use prior 6 sessions.
+    if len(prices) >= 7:
+        total_dt_6d = sum(p["dt_volume"] for p in prices[-7:-1])
+        total_vol_6d = sum(p["volume"] for p in prices[-7:-1])
+        if total_vol_6d > 0:
+            dt_ratio_6d = total_dt_6d / total_vol_6d * 100
+            prev = prices[-2]
+            if prev["volume"] > 0:
+                dt_ratio_prev = prev["dt_volume"] / prev["volume"] * 100
+                if dt_ratio_6d > 60 and dt_ratio_prev > 60:
+                    out.append(
+                        ("§14", f"6日當沖占比 {dt_ratio_6d:.1f}% + 前日 {dt_ratio_prev:.1f}%{clean}")
+                    )
+
+    # §5 6-day change > 25% + 當日週轉率 ≥ 10% (rough: no market gate)
+    if outstanding and outstanding > 0 and chg6 is not None and abs(chg6) > 25:
+        today_vol = prices[-1]["volume"]
+        turnover_pct = today_vol / outstanding * 100
+        if turnover_pct >= 10:
+            direction = "漲" if chg6 > 0 else "跌"
+            out.append(
+                ("§5", f"6日{direction} {abs(chg6):.1f}% + 今日週轉率 {turnover_pct:.1f}%{rough}")
+            )
+
+    # §11 6-day cumulative 週轉率 ≥ 50% (rough: no market gate)
+    if outstanding and outstanding > 0 and len(prices) >= 6:
+        sum_vol_6d = sum(p["volume"] for p in prices[-6:])
+        cum_tr_6d = sum_vol_6d / outstanding * 100
+        if cum_tr_6d >= 50:
+            out.append(("§11", f"6日累積週轉率 {cum_tr_6d:.1f}%{rough}"))
+
+    return out
