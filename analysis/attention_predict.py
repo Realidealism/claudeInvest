@@ -355,28 +355,28 @@ def _check_rule_10(prices: list, meta: dict, mkt: dict) -> Alert | None:
 
 
 def _check_rule_12(prices: list, meta: dict, mkt: dict) -> Alert | None:
-    """§12 6日起迄價差≥100元 (高價股每500元增加25元門檻)"""
+    """§12 6日起迄價差≥100元 (高價股每500元增加25元門檻) 且當日為6日最高或最低.
+    「起迄價差」= 迄(今日) - 起(6日前 = 5日前 close) — net change, NOT range."""
     if len(prices) < 6:
         return None
     today = prices[-1]["close"]
     closes_6d = [p["close"] for p in prices[-6:]]
+    first_6d = closes_6d[0]  # 起 = day-1 of 6-day window
     high_6d = max(closes_6d)
     low_6d = min(closes_6d)
-    diff = high_6d - low_6d
+    diff = abs(today - first_6d)
 
     threshold = 100
     if today >= 500:
         extra_levels = int(today // 500)
-        threshold = 100 + (extra_levels - 0) * 25
+        threshold = 100 + extra_levels * 25
 
     if diff < threshold:
         return None
 
-    # §12 itself only requires the 6-day diff threshold; new-high / new-low
-    # is a heuristic gate the report adds. Loose form: alert when today is
-    # the 6-day extreme OR has moved net up/down vs the 6-day-ago close.
-    is_high = today == high_6d or today > closes_6d[0]
-    is_low = today == low_6d or today < closes_6d[0]
+    # Today must be the 6-day high (if 起迄 > 0) or low (if 起迄 < 0)
+    is_high = today >= high_6d
+    is_low = today <= low_6d
     if not is_high and not is_low:
         return None
 
@@ -384,7 +384,7 @@ def _check_rule_12(prices: list, meta: dict, mkt: dict) -> Alert | None:
     return Alert(
         stock_id=meta["stock_id"], name=meta["name"], market=meta["market"],
         rule="§12",
-        detail=f"6日價差 {diff:.0f}元 (門檻 {threshold}元), 收盤{direction} {today:.0f}元",
+        detail=f"6日起迄價差 {diff:.0f}元 (門檻 {threshold}元), 收盤{direction} {today:.0f}元",
     )
 
 
