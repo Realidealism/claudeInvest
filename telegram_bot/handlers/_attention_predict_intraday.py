@@ -448,8 +448,9 @@ def _get_market_turnover_avg(today: date) -> dict[str, tuple[float, float]]:
 
 
 def format_today_thresholds(ticker: str, today: date, rule_codes: list[str]) -> str:
-    """For the given rule codes triggered today, return short string with
-    actual numeric thresholds (close ≥ X 元 / 量 ≥ Y 張) joined by " / ".
+    """For rules triggered today, return the SINGLE easiest-to-meet threshold
+    (highest slack = most margin from current value), formatted without the
+    §X prefix.  Examples: "close ≥ 685.10" or "量 ≥ 95000 張".
     Used by 🔴 disposal message so user can independently verify."""
     if classify_tw_security(ticker) != "STOCK" or not rule_codes:
         return ""
@@ -464,21 +465,35 @@ def format_today_thresholds(ticker: str, today: date, rule_codes: list[str]) -> 
         return ""
     prices = history + [today_row]
     today_close = prices[-1]["close"]
+    today_vol = prices[-1]["volume"]
     is_tpex = market == "TPEx"
 
-    parts: list[str] = []
+    # candidate = (slack_ratio, formatted_msg)
+    # slack_ratio > 0 means already crossed (room to spare); higher = easier
+    candidates: list[tuple[float, str]] = []
+
+    def _price_slack(target_close: float) -> float:
+        if today_close <= 0:
+            return -1
+        return (today_close - target_close) / today_close
+
+    def _vol_slack(target_vol: float) -> float:
+        if today_vol <= 0:
+            return -1
+        return (today_vol - target_vol) / today_vol
+
     for code in rule_codes:
         if code == "§2①" and len(prices) >= 6:
             thresh = 30 if is_tpex else 32
             c6 = prices[-6]["close"]
             target = c6 * (1 + thresh / 100)
-            parts.append(f"§2① close ≥ {target:.2f}")
+            candidates.append((_price_slack(target), f"close ≥ {target:.2f}"))
         elif code == "§2②" and len(prices) >= 6:
             pct_thresh = 23 if is_tpex else 25
             diff_thresh = 40 if is_tpex else 50
             c6 = prices[-6]["close"]
             target = max(c6 * (1 + pct_thresh / 100), c6 + diff_thresh)
-            parts.append(f"§2② close ≥ {target:.2f}")
+            candidates.append((_price_slack(target), f"close ≥ {target:.2f}"))
         elif code.startswith("§3("):
             try:
                 n = int(code[3:-2])
@@ -493,23 +508,20 @@ def format_today_thresholds(ticker: str, today: date, rule_codes: list[str]) -> 
             if cN <= 0:
                 continue
             up_target = cN * (1 + thresh / 100)
-            parts.append(f"{code} close ≥ {up_target:.2f}")
+            candidates.append((_price_slack(up_target), f"close ≥ {up_target:.2f}"))
         elif code == "§4" and len(prices) >= 60:
             avg60 = sum(p["volume"] for p in prices[-60:]) / 60
             target_vol = 5 * avg60
-            parts.append(f"§4 量 ≥ {target_vol / 1000:.0f} 張")
+            candidates.append((_vol_slack(target_vol), f"量 ≥ {target_vol / 1000:.0f} 張"))
         elif code == "§5" and outstanding:
             tr_thresh = 5 if is_tpex else 10
             target_vol = outstanding * tr_thresh / 100
-            parts.append(f"§5 量 ≥ {target_vol / 1000:.0f} 張 (週轉 {tr_thresh}%)")
+            candidates.append((_vol_slack(target_vol), f"量 ≥ {target_vol / 1000:.0f} 張"))
         elif code == "§11" and outstanding and len(prices) >= 6:
-            cum_thresh = 80 if is_tpex else 50
             tr_thresh = 5 if is_tpex else 10
-            cum_target_vol = outstanding * cum_thresh / 100
-            today_target_vol = outstanding * tr_thresh / 100
-            parts.append(
-                f"§11 6日累積量 ≥ {cum_target_vol / 1000:.0f} 張 + 當日 ≥ {today_target_vol / 1000:.0f} 張"
-            )
+            # use today_vol gate (vs 6日累積) — easier to monitor intraday
+            target_vol = outstanding * tr_thresh / 100
+            candidates.append((_vol_slack(target_vol), f"量 ≥ {target_vol / 1000:.0f} 張"))
         elif code == "§12" and len(prices) >= 6:
             first_6d = prices[-6]["close"]
             if is_tpex:
@@ -520,8 +532,13 @@ def format_today_thresholds(ticker: str, today: date, rule_codes: list[str]) -> 
             if today_close >= level:
                 threshold = base + int(today_close // level) * step
             up_target = first_6d + threshold
-            parts.append(f"§12 close ≥ {up_target:.2f} (起迄 ≥ {threshold:.0f} 元)")
-    return " / ".join(parts)
+            candidates.append((_price_slack(up_target), f"close ≥ {up_target:.2f}"))
+
+    if not candidates:
+        return ""
+    # Pick highest slack = easiest to maintain
+    candidates.sort(key=lambda x: -x[0])
+    return candidates[0][1]
 
 
 def predict_today_attention(
