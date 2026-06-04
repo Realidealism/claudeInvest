@@ -63,6 +63,13 @@ function tvUrl(ticker: string, market: string): string {
   return `https://tw.tradingview.com/chart/?symbol=${prefix}:${ticker}`;
 }
 
+// "明日進X確定" / "明日進處置" means today's data already locks tomorrow's
+// disposal — louder than "1 次注意即達" (conditional) or "處置中" (already in).
+function disposalClass(s: string | null | undefined): string {
+  if (s && s.includes("明日進")) return "text-red-400 font-bold";
+  return "text-text-secondary";
+}
+
 function fmtDate(d: string | null): string {
   if (!d) return "—";
   // ISO 'YYYY-MM-DD' → 'M/D'
@@ -301,7 +308,7 @@ export default function PositionsPage() {
                     {fmtTurnover(p.turnover)}
                   </td>
                   <td
-                    className="px-2 py-1.5 hidden lg:table-cell text-text-secondary whitespace-pre-wrap break-words"
+                    className={`px-2 py-1.5 hidden lg:table-cell whitespace-pre-wrap break-words ${disposalClass(p.disposal_status)}`}
                     style={{ maxWidth: 260 }}
                   >
                     {p.disposal_status || "—"}
