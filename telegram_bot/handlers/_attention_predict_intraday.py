@@ -74,11 +74,19 @@ def closest_untriggered_threshold(ticker: str, today: date) -> str | None:
                 gap = abs(target - today_close)
                 _add(gap / today_close, f"離 §2① 還差 {gap:.2f} 元（{('漲到' if chg_now >= 0 else '跌到')} {target:.2f}）")
 
-    # §3 30/60/90-day cumulative — needs BOTH cum% ≥ thresh AND spread% ≥
-    # spread_thresh (spread = (max-min)/min of closes in the N-day window).
-    # spread_thresh = thresh - 15 per attstock.tw documentation. N-day window
-    # includes today as day 1 → window = prices[-N:], base = prices[-N].
-    for days, thresh in ((30, 100), (60, 130), (90, 160)):
+    # §3 30/60/90-day cumulative — market-specific thresholds:
+    #   TWSE: cum 100/130/160% + 差幅 85/110/135%
+    #   TPEx: cum 100/140/160% + 差幅 80/80/80%
+    # N-day window includes today as day 1 → window = prices[-N:].
+    if market == "TPEx":
+        r3_thresholds = ((30, 100, 80), (60, 140, 80), (90, 160, 80))
+        # 低價股 < 5元 thresholds bump
+        if today_close < 5:
+            r3_thresholds = ((30, 120, 80), (60, 180, 80), (90, 160, 80))
+    else:
+        r3_thresholds = ((30, 100, 85), (60, 130, 110), (90, 160, 135))
+    today_ref = today_row.get("ref") if today_row else None
+    for days, thresh, spread_thresh in r3_thresholds:
         if len(prices) < days:
             continue
         window = prices[-days:]
@@ -89,7 +97,6 @@ def closest_untriggered_threshold(ticker: str, today: date) -> str | None:
         hi_win = max(closes_win)
         lo_win = min(closes_win)
         spread_pct = (hi_win / lo_win - 1) * 100 if lo_win > 0 else 0.0
-        spread_thresh = thresh - 15
         # If spread alone isn't met, §3 can't trigger regardless of today's
         # close → skip (don't surface as a near miss).
         if spread_pct < spread_thresh:
@@ -98,6 +105,13 @@ def closest_untriggered_threshold(ticker: str, today: date) -> str | None:
         if abs(chg_now) <= thresh:
             target_up = cN_ago * (1 + thresh / 100)
             target_dn = cN_ago * (1 - thresh / 100)
+            # Apply directional ref_price gate to target: 漲方需 close > ref,
+            # 跌方需 close < ref. Bump target to clear ref by ~0.01 if needed.
+            if today_ref is not None:
+                if chg_now >= 0:
+                    target_up = max(target_up, today_ref + 0.01)
+                else:
+                    target_dn = min(target_dn, today_ref - 0.01)
             target = target_up if chg_now >= 0 else target_dn
             gap = abs(target - today_close)
             _add(gap / today_close, f"離 §3({days}日) 還差 {gap:.2f} 元（{('漲到' if chg_now >= 0 else '跌到')} {target:.2f}）")
@@ -190,6 +204,7 @@ def _load_today_intraday(cur, ticker: str) -> dict | None:
         return None
     return {
         "close": float(row["last_price"]),
+        "ref": float(row["ref_price"]) if row["ref_price"] is not None else None,
         "volume": int(row["total_volume"] or 0),
         "margin_balance": int(row["margin_balance"]),
         "short_balance": int(row["short_balance"]),
@@ -203,7 +218,7 @@ def _load_today_daily(cur, ticker: str, today: date) -> dict | None:
     """Today's row from daily_prices — only present after daily_update runs."""
     cur.execute(
         """
-        SELECT close_price, volume,
+        SELECT close_price, ref_price, volume,
                COALESCE(margin_balance, 0) AS margin_balance,
                COALESCE(short_balance, 0)  AS short_balance,
                COALESCE(sbl_sell, 0)       AS sbl_sell,
@@ -218,6 +233,7 @@ def _load_today_daily(cur, ticker: str, today: date) -> dict | None:
         return None
     return {
         "close": float(row["close_price"]),
+        "ref": float(row["ref_price"]) if row["ref_price"] is not None else None,
         "volume": int(row["volume"] or 0),
         "margin_balance": int(row["margin_balance"]),
         "short_balance": int(row["short_balance"]),
@@ -314,6 +330,9 @@ def predict_today_attention(
         return []
 
     with get_cursor(commit=False) as cur:
+        cur.execute("SELECT market FROM tw.stocks WHERE stock_id = %s", (ticker,))
+        row = cur.fetchone()
+        market = row["market"] if row else "TWSE"
         history = _load_history(cur, ticker, today)
         today_row, _src = _load_today_row(cur, ticker, today)
         outstanding = _load_outstanding_shares(cur, ticker)
@@ -327,32 +346,53 @@ def predict_today_attention(
     rough = _suffix(True, state)   # rules with market gate skipped
     clean = _suffix(False, state)  # rules with absolute thresholds only
 
-    # §2① 6-day change > 32%
+    # Market-specific thresholds
+    is_tpex = market == "TPEx"
+    r2_1_thresh = 30 if is_tpex else 32
+    r2_2_thresh = 23 if is_tpex else 25
+    r2_2_diff_thresh = 40 if is_tpex else 50
+    r4_thresh = 27 if is_tpex else 25
+    today_close = prices[-1]["close"]
+    today_ref = today_row.get("ref")
+    if is_tpex and today_close < 5:
+        r3_thresholds = ((30, 120), (60, 180), (90, 160))
+    elif is_tpex:
+        r3_thresholds = ((30, 100), (60, 140), (90, 160))
+    else:
+        r3_thresholds = ((30, 100), (60, 130), (90, 160))
+
+    def _ref_gate_ok(chg: float) -> bool:
+        """§3 needs close > ref for 漲方, close < ref for 跌方."""
+        if today_ref is None:
+            return True
+        return (chg > 0 and today_close > today_ref) or (chg < 0 and today_close < today_ref)
+
+    # §2① 6-day change > X% (uses prices[-6] window-includes-today base)
     chg6 = _calc_6d_change_pct(prices)
-    if chg6 is not None and abs(chg6) > 32:
+    if chg6 is not None and abs(chg6) > r2_1_thresh:
         direction = "漲" if chg6 > 0 else "跌"
         out.append(("§2①", f"6日{direction} {abs(chg6):.1f}%{rough}"))
-    # §2② 6-day > 25% + 價差 ≥ 50
-    elif chg6 is not None and abs(chg6) > 25 and len(prices) >= 7:
-        diff = abs(prices[-1]["close"] - prices[-7]["close"])
-        if diff >= 50:
+    # §2② 6-day > X% + 價差 ≥ Y元
+    elif chg6 is not None and abs(chg6) > r2_2_thresh and len(prices) >= 6:
+        diff = abs(prices[-1]["close"] - prices[-6]["close"])
+        if diff >= r2_2_diff_thresh:
             direction = "漲" if chg6 > 0 else "跌"
             out.append(
                 ("§2②", f"6日{direction} {abs(chg6):.1f}% 價差 {diff:.0f}元{rough}")
             )
 
-    # §3 30/60/90 day cumulative
-    for days, thresh in ((30, 100), (60, 130), (90, 160)):
+    # §3 30/60/90 day cumulative + ref_price directional gate
+    for days, thresh in r3_thresholds:
         chg = _calc_nd_change_pct(prices, days)
-        if chg is not None and abs(chg) > thresh:
+        if chg is not None and abs(chg) > thresh and _ref_gate_ok(chg):
             direction = "漲" if chg > 0 else "跌"
             out.append(
                 (f"§3({days}日)", f"{days}日{direction} {abs(chg):.1f}%{clean}")
             )
 
-    # §4 6-day change > 25% + today's volume ≥ 5× 60-day avg
+    # §4 6-day change > X% + today's volume ≥ 5× 60-day avg
     today_vr = _calc_volume_ratio(prices)
-    if chg6 is not None and abs(chg6) > 25 and today_vr is not None and today_vr >= 5:
+    if chg6 is not None and abs(chg6) > r4_thresh and today_vr is not None and today_vr >= 5:
         direction = "漲" if chg6 > 0 else "跌"
         out.append(
             ("§4", f"6日{direction} {abs(chg6):.1f}% + 今日量 {today_vr:.1f}× 60日均{rough}")
@@ -363,23 +403,23 @@ def predict_today_attention(
     if vol_ratio is not None and vol_ratio >= 5:
         out.append(("§10", f"6日均量 {vol_ratio:.1f}× 60日均{rough}"))
 
-    # §12 6-day close range ≥ 100 NTD (高價股按 500 元級距加 25)
-    if len(prices) >= 7:
-        closes_6d = [p["close"] for p in prices[-7:]]
+    # §12 6-day 起迄價差 (net change) ≥ 100 NTD (高價股按 500 元級距加 25)
+    if len(prices) >= 6:
+        closes_6d = [p["close"] for p in prices[-6:]]
+        first_6d = closes_6d[0]
         high_6d = max(closes_6d)
         low_6d = min(closes_6d)
-        diff = high_6d - low_6d
-        today_close = prices[-1]["close"]
+        diff = abs(today_close - first_6d)
         threshold = 100
         if today_close >= 500:
             threshold = 100 + int(today_close // 500) * 25
         if diff >= threshold:
-            is_high = today_close == high_6d or today_close > closes_6d[0]
-            is_low = today_close == low_6d or today_close < closes_6d[0]
+            is_high = today_close >= high_6d
+            is_low = today_close <= low_6d
             if is_high or is_low:
                 marker = "新高" if is_high else "新低"
                 out.append(
-                    ("§12", f"6日價差 {diff:.0f}元（門檻 {threshold}）+ 收{marker}{clean}")
+                    ("§12", f"6日起迄價差 {diff:.0f}元（門檻 {threshold}）+ 收{marker}{clean}")
                 )
 
     # §8 6-day change > 25% + 券資比 ≥ 20% + 券資比 ≥ 6日最低 × 4

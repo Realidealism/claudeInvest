@@ -64,7 +64,7 @@ def _load_prices(trade_date: date, lookback: int = 95) -> dict:
 
         # Load prices separately (large table, indexed)
         cur.execute("""
-            SELECT stock_id, trade_date, close_price, volume,
+            SELECT stock_id, trade_date, close_price, ref_price, volume,
                    COALESCE(dt_volume, 0) AS dt_volume,
                    COALESCE(margin_balance, 0) AS margin_balance,
                    COALESCE(short_balance, 0) AS short_balance,
@@ -100,6 +100,7 @@ def _load_prices(trade_date: date, lookback: int = 95) -> dict:
         stocks[sid].append({
             "date": r["trade_date"],
             "close": float(r["close_price"]),
+            "ref": float(r["ref_price"]) if r["ref_price"] is not None else None,
             "volume": r["volume"] or 0,
             "dt_volume": r["dt_volume"],
             "margin_balance": r["margin_balance"],
@@ -277,18 +278,43 @@ def _check_rule_2_2(prices: list, meta: dict, mkt: dict) -> Alert | None:
     )
 
 
+_R3_THRESHOLDS = {
+    # market → [(window_days, cum_thresh%, spread_thresh%)]
+    "TWSE": [(30, 100, 85), (60, 130, 110), (90, 160, 135)],
+    "TPEx": [(30, 100, 80), (60, 140, 80), (90, 160, 80)],
+}
+_R3_LOW_PRICE_TPEX = {30: 120, 60: 180, 90: 160}  # < 5元 個股 threshold bump (TPEx)
+
+
 def _check_rule_3(prices: list, meta: dict, mkt: dict) -> list[Alert]:
-    """§3 30/60/90日起迄漲跌 >100/130/160% AND 差幅 >85/110/135%
-    差幅 = (max(closes_in_window) - min) / min over the N-day window.
+    """§3 30/60/90日起迄漲跌 — market-specific thresholds.
+    TWSE: 100/130/160% AND 差幅 85/110/135%
+    TPEx: 100/140/160% AND 差幅 80/80/80%
+    TPEx <5元 stocks: 30/60/90日 → 120/180/160% (90 unchanged)
     Window includes today as day 1 — N-day window = prices[-N:]."""
     alerts = []
-    thresholds = [(30, 100, 85), (60, 130, 110), (90, 160, 135)]
+    if not prices:
+        return alerts
+    market = meta.get("market", "TWSE")
+    thresholds = _R3_THRESHOLDS.get(market, _R3_THRESHOLDS["TWSE"])
+    today_close = prices[-1]["close"]
+    today_ref = prices[-1].get("ref")
+    is_low_price = today_close < 5
     for days, pct_thresh, diff_thresh in thresholds:
         if len(prices) < days:
             continue
+        # 低價股 TPEx 提高 threshold
+        if is_low_price and market == "TPEx":
+            pct_thresh = _R3_LOW_PRICE_TPEX.get(days, pct_thresh)
         chg = _calc_nd_change_pct(prices, days)
         if chg is None or abs(chg) <= pct_thresh:
             continue
+        # Directional ref_price gate: 漲方需 close > ref, 跌方需 close < ref
+        if today_ref is not None:
+            if chg > 0 and today_close <= today_ref:
+                continue
+            if chg < 0 and today_close >= today_ref:
+                continue
         win = prices[-days:]
         closes_win = [p["close"] for p in win]
         hi_win = max(closes_win)
@@ -305,10 +331,15 @@ def _check_rule_3(prices: list, meta: dict, mkt: dict) -> list[Alert]:
     return alerts
 
 
+_R4_PCT = {"TWSE": 25, "TPEx": 27}
+
+
 def _check_rule_4(prices: list, meta: dict, mkt: dict) -> Alert | None:
-    """§4 6日漲跌>25% + 當日成交量≥5倍60日均, 倍數差≥4"""
+    """§4 6日漲跌 > X% + 量 ≥ 5倍60日均 + 倍數差 ≥ 4
+    X = 25 (TWSE) / 27 (TPEx)"""
     chg = _calc_6d_change_pct(prices)
-    if chg is None or abs(chg) <= 25:
+    pct_thresh = _R4_PCT.get(meta.get("market"), 25)
+    if chg is None or abs(chg) <= pct_thresh:
         return None
     vr = _calc_volume_ratio(prices)
     if vr is None or vr < 5:
