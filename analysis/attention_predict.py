@@ -418,22 +418,33 @@ def _check_rule_10(prices: list, meta: dict, mkt: dict) -> Alert | None:
     )
 
 
+def _r12_threshold(today_close: float, market: str) -> float:
+    """§12 起迄價差 threshold by market.
+    TWSE: 100元 base + 25元 per 500元 above 500元
+    TPEx: 70元 base + 15元 per 300元 above 300元"""
+    if market == "TPEx":
+        base, step, level = 70, 15, 300
+    else:
+        base, step, level = 100, 25, 500
+    if today_close < level:
+        return base
+    return base + int(today_close // level) * step
+
+
 def _check_rule_12(prices: list, meta: dict, mkt: dict) -> Alert | None:
-    """§12 6日起迄價差≥100元 (高價股每500元增加25元門檻) 且當日為6日最高或最低.
-    「起迄價差」= 迄(今日) - 起(6日前 = 5日前 close) — net change, NOT range."""
+    """§12 6日起迄價差≥X元 (高價股分級加碼) 且當日為6日最高或最低.
+    TWSE: ≥100元, 每500元 +25元
+    TPEx: ≥70元, 每300元 +15元"""
     if len(prices) < 6:
         return None
     today = prices[-1]["close"]
     closes_6d = [p["close"] for p in prices[-6:]]
-    first_6d = closes_6d[0]  # 起 = day-1 of 6-day window
+    first_6d = closes_6d[0]
     high_6d = max(closes_6d)
     low_6d = min(closes_6d)
     diff = abs(today - first_6d)
 
-    threshold = 100
-    if today >= 500:
-        extra_levels = int(today // 500)
-        threshold = 100 + extra_levels * 25
+    threshold = _r12_threshold(today, meta.get("market", "TWSE"))
 
     if diff < threshold:
         return None

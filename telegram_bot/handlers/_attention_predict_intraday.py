@@ -118,26 +118,32 @@ def closest_untriggered_threshold(ticker: str, today: date) -> str | None:
 
     # §12 6-day 起迄價差 ≥ threshold AND today is the 6-day extreme.
     # 起迄價差 = |today - first_6d| (net change, NOT max-min range).
-    # Threshold: 100 + 25 × ⌊today/500⌋ for stocks ≥ 500元.
+    # Threshold by market:
+    #   TWSE: 100元 base + 25元/500元 above 500元
+    #   TPEx:  70元 base + 15元/300元 above 300元
     if len(prices) >= 6:
         closes_6d = [p["close"] for p in prices[-6:]]
         first_6d = closes_6d[0]
-        # high/low excluding today (used to gate "is today the new extreme")
         other_5 = closes_6d[:-1]
         high_5 = max(other_5)
         low_5 = min(other_5)
-        threshold = 100
-        if today_close >= 500:
-            threshold = 100 + int(today_close // 500) * 25
-        # Up direction: today ≥ first_6d + threshold AND today ≥ high_5
+        if market == "TPEx":
+            base, step, level = 70, 15, 300
+        else:
+            base, step, level = 100, 25, 500
+        threshold = base
+        if today_close >= level:
+            threshold = base + int(today_close // level) * step
         up_target = max(first_6d + threshold, high_5)
-        # Down direction: today ≤ first_6d - threshold AND today ≤ low_5
         dn_target = min(first_6d - threshold, low_5)
         up_gap = up_target - today_close
         dn_gap = today_close - dn_target
-        if up_gap > 0 and (dn_gap <= 0 or up_gap <= dn_gap):
+        # If either direction already triggered, §12 is already met → skip
+        if up_gap <= 0 or dn_gap <= 0:
+            pass
+        elif up_gap <= dn_gap:
             _add(up_gap / today_close, f"離 §12 還差 {up_gap:.2f} 元（漲到 {up_target:.2f} 創 6 日新高）")
-        elif dn_gap > 0:
+        else:
             _add(dn_gap / today_close, f"離 §12 還差 {dn_gap:.2f} 元（跌到 {dn_target:.2f} 創 6 日新低）")
 
     if not candidates:
@@ -403,16 +409,22 @@ def predict_today_attention(
     if vol_ratio is not None and vol_ratio >= 5:
         out.append(("§10", f"6日均量 {vol_ratio:.1f}× 60日均{rough}"))
 
-    # §12 6-day 起迄價差 (net change) ≥ 100 NTD (高價股按 500 元級距加 25)
+    # §12 6-day 起迄價差 (net change) — market-specific:
+    #   TWSE: ≥100元 base, +25元 per 500元
+    #   TPEx: ≥70元 base, +15元 per 300元
     if len(prices) >= 6:
         closes_6d = [p["close"] for p in prices[-6:]]
         first_6d = closes_6d[0]
         high_6d = max(closes_6d)
         low_6d = min(closes_6d)
         diff = abs(today_close - first_6d)
-        threshold = 100
-        if today_close >= 500:
-            threshold = 100 + int(today_close // 500) * 25
+        if is_tpex:
+            base, step, level = 70, 15, 300
+        else:
+            base, step, level = 100, 25, 500
+        threshold = base
+        if today_close >= level:
+            threshold = base + int(today_close // level) * step
         if diff >= threshold:
             is_high = today_close >= high_6d
             is_low = today_close <= low_6d
@@ -473,21 +485,30 @@ def predict_today_attention(
                         ("§14", f"6日當沖占比 {dt_ratio_6d:.1f}% + 前日 {dt_ratio_prev:.1f}%{clean}")
                     )
 
-    # §5 6-day change > 25% + 當日週轉率 ≥ 10% (rough: no market gate)
-    if outstanding and outstanding > 0 and chg6 is not None and abs(chg6) > 25:
+    # §5 6-day change > X% + 當日週轉率 ≥ Y% (rough: no market 差幅 gate)
+    #   TWSE: cum > 25%, turnover ≥ 10%
+    #   TPEx: cum > 27%, turnover > 5%
+    r5_cum_thresh = 27 if is_tpex else 25
+    r5_tr_thresh = 5 if is_tpex else 10
+    if outstanding and outstanding > 0 and chg6 is not None and abs(chg6) > r5_cum_thresh:
         today_vol = prices[-1]["volume"]
         turnover_pct = today_vol / outstanding * 100
-        if turnover_pct >= 10:
+        if turnover_pct >= r5_tr_thresh:
             direction = "漲" if chg6 > 0 else "跌"
             out.append(
                 ("§5", f"6日{direction} {abs(chg6):.1f}% + 今日週轉率 {turnover_pct:.1f}%{rough}")
             )
 
-    # §11 6-day cumulative 週轉率 ≥ 50% (rough: no market gate)
+    # §11 6-day cumulative 週轉率 ≥ X% AND 當日週轉率 ≥ Y%
+    #   TWSE: cum_turnover > 50%, today_turnover ≥ 10%
+    #   TPEx: cum_turnover > 80%, today_turnover > 5%
+    r11_cum_thresh = 80 if is_tpex else 50
+    r11_tr_thresh = 5 if is_tpex else 10
     if outstanding and outstanding > 0 and len(prices) >= 6:
         sum_vol_6d = sum(p["volume"] for p in prices[-6:])
         cum_tr_6d = sum_vol_6d / outstanding * 100
-        if cum_tr_6d >= 50:
-            out.append(("§11", f"6日累積週轉率 {cum_tr_6d:.1f}%{rough}"))
+        today_tr = prices[-1]["volume"] / outstanding * 100
+        if cum_tr_6d >= r11_cum_thresh and today_tr >= r11_tr_thresh:
+            out.append(("§11", f"6日累積週轉率 {cum_tr_6d:.1f}% + 今日 {today_tr:.1f}%{rough}"))
 
     return out
