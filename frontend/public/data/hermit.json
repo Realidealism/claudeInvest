@@ -1,5 +1,5 @@
 {
-  "snapshot_date": "2026-06-03",
+  "snapshot_date": "2026-06-04",
   "picks": [
     {
       "rank": 1,
@@ -20,9 +20,9 @@
       },
       "valuation": {
         "method": "PE",
-        "multiple": 80.11,
+        "multiple": 82.47,
         "band": "> +2σ",
-        "upside_pct": -65.83,
+        "upside_pct": -66.75,
         "decision": "SELL"
       },
       "is_new": false,
@@ -50,12 +50,12 @@
         "method": "PE",
         "multiple": 103.76,
         "band": "> +2σ",
-        "upside_pct": -75.28,
+        "upside_pct": -75.22,
         "decision": "SELL"
       },
-      "is_new": true,
-      "prev_rank": null,
-      "rank_delta": null
+      "is_new": false,
+      "prev_rank": 2,
+      "rank_delta": 0
     },
     {
       "rank": 3,
@@ -76,14 +76,14 @@
       },
       "valuation": {
         "method": "PB",
-        "multiple": 5.93,
+        "multiple": 5.6,
         "band": "> +2σ",
-        "upside_pct": -54.9,
+        "upside_pct": -52.19,
         "decision": "SELL"
       },
       "is_new": false,
-      "prev_rank": 32,
-      "rank_delta": 29
+      "prev_rank": 3,
+      "rank_delta": 0
     },
     {
       "rank": 4,
@@ -104,14 +104,14 @@
       },
       "valuation": {
         "method": "PE",
-        "multiple": 13.75,
+        "multiple": 15.1,
         "band": "−1σ ~ mean",
-        "upside_pct": 317.18,
+        "upside_pct": 279.66,
         "decision": "BUY"
       },
-      "is_new": true,
-      "prev_rank": null,
-      "rank_delta": null
+      "is_new": false,
+      "prev_rank": 4,
+      "rank_delta": 0
     },
     {
       "rank": 5,
@@ -132,14 +132,14 @@
       },
       "valuation": {
         "method": "PE",
-        "multiple": 24.86,
+        "multiple": 24.65,
         "band": "+1σ ~ +2σ",
-        "upside_pct": -18.96,
+        "upside_pct": -18.27,
         "decision": "SELL"
       },
       "is_new": false,
-      "prev_rank": 7,
-      "rank_delta": 2
+      "prev_rank": 5,
+      "rank_delta": 0
     },
     {
       "rank": 6,
@@ -160,14 +160,14 @@
       },
       "valuation": {
         "method": "PE",
-        "multiple": 12.94,
+        "multiple": 13.01,
         "band": "−1σ ~ mean",
-        "upside_pct": 37.11,
+        "upside_pct": 36.3,
         "decision": "BUY"
       },
       "is_new": false,
-      "prev_rank": 8,
-      "rank_delta": 2
+      "prev_rank": 6,
+      "rank_delta": 0
     },
     {
       "rank": 7,
@@ -188,14 +188,14 @@
       },
       "valuation": {
         "method": "PE",
-        "multiple": 87.22,
+        "multiple": 83.52,
         "band": "mean ~ +1σ",
-        "upside_pct": -121.93,
+        "upside_pct": -122.8,
         "decision": "SELL"
       },
       "is_new": false,
-      "prev_rank": 9,
-      "rank_delta": 2
+      "prev_rank": 7,
+      "rank_delta": 0
     },
     {
       "rank": 8,
@@ -216,14 +216,14 @@
       },
       "valuation": {
         "method": "PE",
-        "multiple": 18.64,
-        "band": "mean ~ +1σ",
-        "upside_pct": -0.4,
-        "decision": "SELL"
+        "multiple": 17.48,
+        "band": "−1σ ~ mean",
+        "upside_pct": 6.25,
+        "decision": "HOLD"
       },
       "is_new": false,
-      "prev_rank": 10,
-      "rank_delta": 2
+      "prev_rank": 8,
+      "rank_delta": 0
     },
     {
       "rank": 9,
@@ -244,14 +244,14 @@
       },
       "valuation": {
         "method": "PB",
-        "multiple": 6.45,
+        "multiple": 6.35,
         "band": "> +2σ",
-        "upside_pct": -76.86,
+        "upside_pct": -76.41,
         "decision": "SELL"
       },
       "is_new": false,
-      "prev_rank": 11,
-      "rank_delta": 2
+      "prev_rank": 9,
+      "rank_delta": 0
     },
     {
       "rank": 10,
@@ -272,14 +272,14 @@
       },
       "valuation": {
         "method": "PE",
-        "multiple": 535.58,
+        "multiple": 527.88,
         "band": "mean ~ +1σ",
-        "upside_pct": -61.58,
+        "upside_pct": -60.97,
         "decision": "SELL"
       },
       "is_new": false,
-      "prev_rank": 12,
-      "rank_delta": 2
+      "prev_rank": 10,
+      "rank_delta": 0
     },
     {
       "rank": 11,
@@ -300,14 +300,14 @@
       },
       "valuation": {
         "method": "PE",
-        "multiple": 24.78,
+        "multiple": 24.88,
         "band": "> +2σ",
-        "upside_pct": -45.34,
+        "upside_pct": -45.52,
         "decision": "SELL"
       },
-      "is_new": true,
-      "prev_rank": null,
-      "rank_delta": null
+      "is_new": false,
+      "prev_rank": 11,
+      "rank_delta": 0
     },
     {
       "rank": 12,
@@ -328,14 +328,14 @@
       },
       "valuation": {
         "method": "PE",
-        "multiple": 14.6,
+        "multiple": 14.54,
         "band": "mean ~ +1σ",
-        "upside_pct": -11.01,
+        "upside_pct": -10.62,
         "decision": "SELL"
       },
-      "is_new": true,
-      "prev_rank": null,
-      "rank_delta": null
+      "is_new": false,
+      "prev_rank": 12,
+      "rank_delta": 0
     },
     {
       "rank": 13,
@@ -356,14 +356,14 @@
       },
       "valuation": {
         "method": "PE",
-        "multiple": 8.98,
+        "multiple": 8.9,
         "band": "−1σ ~ mean",
-        "upside_pct": 114.97,
+        "upside_pct": 116.79,
         "decision": "BUY"
       },
       "is_new": false,
-      "prev_rank": 2,
-      "rank_delta": -11
+      "prev_rank": 13,
+      "rank_delta": 0
     },
     {
       "rank": 14,
@@ -384,14 +384,14 @@
       },
       "valuation": {
         "method": "PE",
-        "multiple": 19.22,
+        "multiple": 19.08,
         "band": "mean ~ +1σ",
-        "upside_pct": -24.72,
+        "upside_pct": -24.16,
         "decision": "SELL"
       },
       "is_new": false,
-      "prev_rank": 16,
-      "rank_delta": 2
+      "prev_rank": 14,
+      "rank_delta": 0
     },
     {
       "rank": 15,
@@ -412,14 +412,14 @@
       },
       "valuation": {
         "method": "PS",
-        "multiple": 3.15,
+        "multiple": 3.28,
         "band": "−1σ ~ mean",
-        "upside_pct": 15.76,
+        "upside_pct": 11.27,
         "decision": "HOLD"
       },
       "is_new": false,
-      "prev_rank": 17,
-      "rank_delta": 2
+      "prev_rank": 15,
+      "rank_delta": 0
     },
     {
       "rank": 16,
@@ -440,14 +440,14 @@
       },
       "valuation": {
         "method": "PE",
-        "multiple": 15.17,
+        "multiple": 15.33,
         "band": "mean ~ +1σ",
-        "upside_pct": -4.58,
+        "upside_pct": -5.57,
         "decision": "SELL"
       },
       "is_new": false,
-      "prev_rank": 20,
-      "rank_delta": 4
+      "prev_rank": 16,
+      "rank_delta": 0
     },
     {
       "rank": 17,
@@ -468,14 +468,14 @@
       },
       "valuation": {
         "method": "PE",
-        "multiple": 152.54,
+        "multiple": 154.96,
         "band": "> +2σ",
-        "upside_pct": -49.85,
+        "upside_pct": -50.59,
         "decision": "SELL"
       },
-      "is_new": true,
-      "prev_rank": null,
-      "rank_delta": null
+      "is_new": false,
+      "prev_rank": 17,
+      "rank_delta": 0
     },
     {
       "rank": 18,
@@ -496,14 +496,14 @@
       },
       "valuation": {
         "method": "PE",
-        "multiple": 24.99,
+        "multiple": 25.19,
         "band": "mean ~ +1σ",
-        "upside_pct": -20.0,
+        "upside_pct": -20.6,
         "decision": "SELL"
       },
       "is_new": false,
-      "prev_rank": 21,
-      "rank_delta": 3
+      "prev_rank": 18,
+      "rank_delta": 0
     },
     {
       "rank": 19,
@@ -524,14 +524,14 @@
       },
       "valuation": {
         "method": "PE",
-        "multiple": 153.89,
+        "multiple": 158.32,
         "band": "> +2σ",
-        "upside_pct": -78.98,
+        "upside_pct": -79.5,
         "decision": "SELL"
       },
       "is_new": false,
-      "prev_rank": 3,
-      "rank_delta": -16
+      "prev_rank": 19,
+      "rank_delta": 0
     },
     {
       "rank": 20,
@@ -552,14 +552,14 @@
       },
       "valuation": {
         "method": "PB",
-        "multiple": 4.25,
+        "multiple": 4.61,
         "band": "> +2σ",
-        "upside_pct": -71.1,
+        "upside_pct": -73.3,
         "decision": "SELL"
       },
       "is_new": false,
-      "prev_rank": 4,
-      "rank_delta": -16
+      "prev_rank": 20,
+      "rank_delta": 0
     },
     {
       "rank": 21,
@@ -580,14 +580,14 @@
       },
       "valuation": {
         "method": "PE",
-        "multiple": 97.1,
+        "multiple": 102.82,
         "band": "mean ~ +1σ",
-        "upside_pct": -24.17,
+        "upside_pct": -28.33,
         "decision": "SELL"
       },
-      "is_new": true,
-      "prev_rank": null,
-      "rank_delta": null
+      "is_new": false,
+      "prev_rank": 21,
+      "rank_delta": 0
     },
     {
       "rank": 22,
@@ -608,14 +608,14 @@
       },
       "valuation": {
         "method": "PB",
-        "multiple": 14.44,
+        "multiple": 14.37,
         "band": "+1σ ~ +2σ",
-        "upside_pct": -32.78,
+        "upside_pct": -32.29,
         "decision": "SELL"
       },
       "is_new": false,
-      "prev_rank": 85,
-      "rank_delta": 63
+      "prev_rank": 22,
+      "rank_delta": 0
     },
     {
       "rank": 23,
@@ -636,14 +636,14 @@
       },
       "valuation": {
         "method": "PE",
-        "multiple": 51.59,
+        "multiple": 47.45,
         "band": "−1σ ~ mean",
-        "upside_pct": 99.84,
+        "upside_pct": 117.2,
         "decision": "BUY"
       },
-      "is_new": true,
-      "prev_rank": null,
-      "rank_delta": null
+      "is_new": false,
+      "prev_rank": 23,
+      "rank_delta": 0
     },
     {
       "rank": 24,
@@ -664,14 +664,14 @@
       },
       "valuation": {
         "method": "PB",
-        "multiple": 5.61,
+        "multiple": 5.5,
         "band": "+1σ ~ +2σ",
-        "upside_pct": -41.02,
+        "upside_pct": -39.8,
         "decision": "SELL"
       },
-      "is_new": true,
-      "prev_rank": null,
-      "rank_delta": null
+      "is_new": false,
+      "prev_rank": 24,
+      "rank_delta": 0
     },
     {
       "rank": 25,
@@ -692,9 +692,9 @@
       },
       "valuation": {
         "method": "PB",
-        "multiple": 0.87,
+        "multiple": 0.86,
         "band": "−1σ ~ mean",
-        "upside_pct": 8.9,
+        "upside_pct": 9.71,
         "decision": "HOLD"
       },
       "is_new": false,
@@ -720,14 +720,14 @@
       },
       "valuation": {
         "method": "PB",
-        "multiple": 2.25,
+        "multiple": 2.24,
         "band": "mean ~ +1σ",
-        "upside_pct": -5.4,
+        "upside_pct": -4.89,
         "decision": "SELL"
       },
-      "is_new": true,
-      "prev_rank": null,
-      "rank_delta": null
+      "is_new": false,
+      "prev_rank": 26,
+      "rank_delta": 0
     },
     {
       "rank": 27,
@@ -754,11 +754,39 @@
         "decision": "HOLD"
       },
       "is_new": false,
-      "prev_rank": 26,
-      "rank_delta": -1
+      "prev_rank": 27,
+      "rank_delta": 0
     },
     {
       "rank": 28,
+      "ticker": "2302",
+      "name": "麗正",
+      "industry": "半導體業",
+      "score": 6,
+      "grade": "B",
+      "rules": {
+        "F1": true,
+        "F2": false,
+        "F3": false,
+        "F4": true,
+        "F5": true,
+        "F6": true,
+        "F7": true,
+        "F8": true
+      },
+      "valuation": {
+        "method": "PB",
+        "multiple": 3.24,
+        "band": "> +2σ",
+        "upside_pct": -46.49,
+        "decision": "SELL"
+      },
+      "is_new": true,
+      "prev_rank": null,
+      "rank_delta": null
+    },
+    {
+      "rank": 29,
       "ticker": "2337",
       "name": "旺宏",
       "industry": "半導體業",
@@ -776,17 +804,17 @@
       },
       "valuation": {
         "method": "PB",
-        "multiple": 6.34,
+        "multiple": 6.12,
         "band": "> +2σ",
-        "upside_pct": -75.17,
+        "upside_pct": -74.24,
         "decision": "SELL"
       },
       "is_new": false,
-      "prev_rank": 27,
+      "prev_rank": 28,
       "rank_delta": -1
     },
     {
-      "rank": 29,
+      "rank": 30,
       "ticker": "2344",
       "name": "華邦電",
       "industry": "半導體業",
@@ -804,17 +832,17 @@
       },
       "valuation": {
         "method": "PE",
-        "multiple": 52.67,
+        "multiple": 53.26,
         "band": "mean ~ +1σ",
-        "upside_pct": -490.58,
+        "upside_pct": -485.82,
         "decision": "SELL"
       },
       "is_new": false,
-      "prev_rank": 28,
+      "prev_rank": 29,
       "rank_delta": -1
     },
     {
-      "rank": 30,
+      "rank": 31,
       "ticker": "2395",
       "name": "研華",
       "industry": "電腦及週邊設備業",
@@ -832,17 +860,17 @@
       },
       "valuation": {
         "method": "PE",
-        "multiple": 39.68,
-        "band": "+1σ ~ +2σ",
-        "upside_pct": -23.58,
+        "multiple": 40.37,
+        "band": "> +2σ",
+        "upside_pct": -24.87,
         "decision": "SELL"
       },
       "is_new": false,
-      "prev_rank": 29,
+      "prev_rank": 30,
       "rank_delta": -1
     },
     {
-      "rank": 31,
+      "rank": 32,
       "ticker": "2464",
       "name": "盟立",
       "industry": "其他電子業",
@@ -860,17 +888,45 @@
       },
       "valuation": {
         "method": "PB",
-        "multiple": 7.21,
+        "multiple": 6.98,
         "band": "> +2σ",
-        "upside_pct": -66.52,
+        "upside_pct": -65.38,
         "decision": "SELL"
       },
       "is_new": false,
-      "prev_rank": 30,
+      "prev_rank": 31,
       "rank_delta": -1
     },
     {
-      "rank": 32,
+      "rank": 33,
+      "ticker": "2472",
+      "name": "立隆電",
+      "industry": "電子零組件業",
+      "score": 6,
+      "grade": "B",
+      "rules": {
+        "F1": true,
+        "F2": false,
+        "F3": false,
+        "F4": true,
+        "F5": true,
+        "F6": true,
+        "F7": true,
+        "F8": true
+      },
+      "valuation": {
+        "method": "PB",
+        "multiple": 6.0,
+        "band": "> +2σ",
+        "upside_pct": -65.83,
+        "decision": "SELL"
+      },
+      "is_new": true,
+      "prev_rank": null,
+      "rank_delta": null
+    },
+    {
+      "rank": 34,
       "ticker": "2610",
       "name": "華航",
       "industry": "航運業",
@@ -888,17 +944,17 @@
       },
       "valuation": {
         "method": "PE",
-        "multiple": 7.73,
+        "multiple": 7.71,
         "band": "−1σ ~ mean",
-        "upside_pct": 756.53,
+        "upside_pct": 758.04,
         "decision": "BUY"
       },
       "is_new": false,
-      "prev_rank": 31,
-      "rank_delta": -1
+      "prev_rank": 32,
+      "rank_delta": -2
     },
     {
-      "rank": 33,
+      "rank": 35,
       "ticker": "2945",
       "name": "三商家購",
       "industry": "貿易百貨業",
@@ -916,17 +972,17 @@
       },
       "valuation": {
         "method": "PE",
-        "multiple": 18.71,
+        "multiple": 18.67,
         "band": "−1σ ~ mean",
-        "upside_pct": 31.17,
+        "upside_pct": 31.45,
         "decision": "BUY"
       },
-      "is_new": true,
-      "prev_rank": null,
-      "rank_delta": null
+      "is_new": false,
+      "prev_rank": 33,
+      "rank_delta": -2
     },
     {
-      "rank": 34,
+      "rank": 36,
       "ticker": "3037",
       "name": "欣興",
       "industry": "電子零組件業",
@@ -944,17 +1000,17 @@
       },
       "valuation": {
         "method": "PE",
-        "multiple": 141.64,
-        "band": "> +2σ",
-        "upside_pct": -71.21,
+        "multiple": 137.54,
+        "band": "+1σ ~ +2σ",
+        "upside_pct": -70.29,
         "decision": "SELL"
       },
       "is_new": false,
-      "prev_rank": 35,
-      "rank_delta": 1
+      "prev_rank": 34,
+      "rank_delta": -2
     },
     {
-      "rank": 35,
+      "rank": 37,
       "ticker": "3048",
       "name": "益登",
       "industry": "電子通路業",
@@ -972,17 +1028,17 @@
       },
       "valuation": {
         "method": "PB",
-        "multiple": 3.2,
+        "multiple": 3.14,
         "band": "> +2σ",
-        "upside_pct": -45.23,
+        "upside_pct": -44.06,
         "decision": "SELL"
       },
       "is_new": false,
-      "prev_rank": 36,
-      "rank_delta": 1
+      "prev_rank": 35,
+      "rank_delta": -2
     },
     {
-      "rank": 36,
+      "rank": 38,
       "ticker": "3054",
       "name": "立萬利",
       "industry": "食品工業",
@@ -1000,17 +1056,17 @@
       },
       "valuation": {
         "method": "PS",
-        "multiple": 25.21,
+        "multiple": 27.73,
         "band": "−1σ ~ mean",
-        "upside_pct": 32.57,
+        "upside_pct": 20.5,
         "decision": "BUY"
       },
-      "is_new": true,
-      "prev_rank": null,
-      "rank_delta": null
+      "is_new": false,
+      "prev_rank": 36,
+      "rank_delta": -2
     },
     {
-      "rank": 37,
+      "rank": 39,
       "ticker": "3152",
       "name": "璟德",
       "industry": "通信網路業",
@@ -1028,17 +1084,17 @@
       },
       "valuation": {
         "method": "PE",
-        "multiple": 19.63,
+        "multiple": 19.36,
         "band": "−1σ ~ mean",
-        "upside_pct": 67.08,
+        "upside_pct": 69.32,
         "decision": "BUY"
       },
-      "is_new": true,
-      "prev_rank": null,
-      "rank_delta": null
+      "is_new": false,
+      "prev_rank": 37,
+      "rank_delta": -2
     },
     {
-      "rank": 38,
+      "rank": 40,
       "ticker": "3264",
       "name": "欣銓",
       "industry": "半導體業",
@@ -1056,17 +1112,17 @@
       },
       "valuation": {
         "method": "PE",
-        "multiple": 34.36,
+        "multiple": 35.4,
         "band": "> +2σ",
-        "upside_pct": -62.12,
+        "upside_pct": -63.18,
         "decision": "SELL"
       },
       "is_new": false,
-      "prev_rank": 66,
-      "rank_delta": 28
+      "prev_rank": 38,
+      "rank_delta": -2
     },
     {
-      "rank": 39,
+      "rank": 41,
       "ticker": "3265",
       "name": "台星科",
       "industry": "半導體業",
@@ -1084,17 +1140,17 @@
       },
       "valuation": {
         "method": "PE",
-        "multiple": 33.33,
+        "multiple": 33.86,
         "band": "> +2σ",
-        "upside_pct": -53.19,
+        "upside_pct": -53.87,
         "decision": "SELL"
       },
       "is_new": false,
-      "prev_rank": 67,
-      "rank_delta": 28
+      "prev_rank": 39,
+      "rank_delta": -2
     },
     {
-      "rank": 40,
+      "rank": 42,
       "ticker": "3402",
       "name": "漢科",
       "industry": "其他電子業",
@@ -1112,17 +1168,17 @@
       },
       "valuation": {
         "method": "PE",
-        "multiple": 19.78,
+        "multiple": 19.92,
         "band": "> +2σ",
-        "upside_pct": -32.14,
+        "upside_pct": -32.58,
         "decision": "SELL"
       },
-      "is_new": true,
-      "prev_rank": null,
-      "rank_delta": null
+      "is_new": false,
+      "prev_rank": 40,
+      "rank_delta": -2
     },
     {
-      "rank": 41,
+      "rank": 43,
       "ticker": "4207",
       "name": "環泰",
       "industry": "食品工業",
@@ -1140,17 +1196,17 @@
       },
       "valuation": {
         "method": "PE",
-        "multiple": 9.9,
+        "multiple": 9.87,
         "band": "−1σ ~ mean",
-        "upside_pct": 32.46,
+        "upside_pct": 32.77,
         "decision": "BUY"
       },
       "is_new": false,
-      "prev_rank": 40,
-      "rank_delta": -1
+      "prev_rank": 41,
+      "rank_delta": -2
     },
     {
-      "rank": 42,
+      "rank": 44,
       "ticker": "4907",
       "name": "富宇",
       "industry": "建材營造業",
@@ -1168,17 +1224,17 @@
       },
       "valuation": {
         "method": "PE",
-        "multiple": 10.12,
+        "multiple": 10.49,
         "band": "−1σ ~ mean",
-        "upside_pct": 140.79,
+        "upside_pct": 132.35,
         "decision": "BUY"
       },
-      "is_new": true,
-      "prev_rank": null,
-      "rank_delta": null
+      "is_new": false,
+      "prev_rank": 42,
+      "rank_delta": -2
     },
     {
-      "rank": 43,
+      "rank": 45,
       "ticker": "5299",
       "name": "杰力",
       "industry": "半導體業",
@@ -1196,17 +1252,17 @@
       },
       "valuation": {
         "method": "PE",
-        "multiple": 22.93,
+        "multiple": 22.52,
         "band": "+1σ ~ +2σ",
-        "upside_pct": -36.51,
+        "upside_pct": -35.31,
         "decision": "SELL"
       },
-      "is_new": true,
-      "prev_rank": null,
-      "rank_delta": null
+      "is_new": false,
+      "prev_rank": 43,
+      "rank_delta": -2
     },
     {
-      "rank": 44,
+      "rank": 46,
       "ticker": "6126",
       "name": "信音",
       "industry": "電子零組件業",
@@ -1224,17 +1280,17 @@
       },
       "valuation": {
         "method": "PE",
-        "multiple": 51.39,
+        "multiple": 51.81,
         "band": "> +2σ",
-        "upside_pct": -60.18,
+        "upside_pct": -60.44,
         "decision": "SELL"
       },
-      "is_new": true,
-      "prev_rank": null,
-      "rank_delta": null
+      "is_new": false,
+      "prev_rank": 44,
+      "rank_delta": -2
     },
     {
-      "rank": 45,
+      "rank": 47,
       "ticker": "6215",
       "name": "和椿",
       "industry": "其他電子業",
@@ -1252,17 +1308,17 @@
       },
       "valuation": {
         "method": "PE",
-        "multiple": 41.08,
+        "multiple": 40.91,
         "band": "mean ~ +1σ",
-        "upside_pct": -23.79,
+        "upside_pct": -23.44,
         "decision": "SELL"
       },
-      "is_new": true,
-      "prev_rank": null,
-      "rank_delta": null
+      "is_new": false,
+      "prev_rank": 45,
+      "rank_delta": -2
     },
     {
-      "rank": 46,
+      "rank": 48,
       "ticker": "6257",
       "name": "矽格",
       "industry": "半導體業",
@@ -1280,17 +1336,17 @@
       },
       "valuation": {
         "method": "PE",
-        "multiple": 34.43,
+        "multiple": 34.13,
         "band": "> +2σ",
-        "upside_pct": -60.21,
+        "upside_pct": -59.81,
         "decision": "SELL"
       },
       "is_new": false,
-      "prev_rank": 45,
-      "rank_delta": -1
+      "prev_rank": 46,
+      "rank_delta": -2
     },
     {
-      "rank": 47,
+      "rank": 49,
       "ticker": "6419",
       "name": "京晨科",
       "industry": "光電業",
@@ -1308,17 +1364,17 @@
       },
       "valuation": {
         "method": "PE",
-        "multiple": 11.76,
+        "multiple": 11.45,
         "band": "−1σ ~ mean",
-        "upside_pct": 5.28,
+        "upside_pct": 8.43,
         "decision": "HOLD"
       },
       "is_new": false,
-      "prev_rank": 82,
-      "rank_delta": 35
+      "prev_rank": 47,
+      "rank_delta": -2
     },
     {
-      "rank": 48,
+      "rank": 50,
       "ticker": "6426",
       "name": "統新",
       "industry": "通信網路業",
@@ -1338,15 +1394,15 @@
         "method": "PB",
         "multiple": 10.01,
         "band": "> +2σ",
-        "upside_pct": -71.9,
+        "upside_pct": -71.84,
         "decision": "SELL"
       },
-      "is_new": true,
-      "prev_rank": null,
-      "rank_delta": null
+      "is_new": false,
+      "prev_rank": 48,
+      "rank_delta": -2
     },
     {
-      "rank": 49,
+      "rank": 51,
       "ticker": "6693",
       "name": "廣閎科",
       "industry": "半導體業",
@@ -1364,17 +1420,17 @@
       },
       "valuation": {
         "method": "PB",
-        "multiple": 6.19,
+        "multiple": 6.31,
         "band": "> +2σ",
-        "upside_pct": -47.44,
+        "upside_pct": -48.4,
         "decision": "SELL"
       },
       "is_new": false,
-      "prev_rank": 47,
+      "prev_rank": 49,
       "rank_delta": -2
     },
     {
-      "rank": 50,
+      "rank": 52,
       "ticker": "6834",
       "name": "天二科技",
       "industry": "電子零組件業",
@@ -1392,17 +1448,45 @@
       },
       "valuation": {
         "method": "PB",
-        "multiple": 4.69,
+        "multiple": 4.36,
         "band": "> +2σ",
-        "upside_pct": -61.08,
+        "upside_pct": -58.04,
         "decision": "SELL"
+      },
+      "is_new": false,
+      "prev_rank": 50,
+      "rank_delta": -2
+    },
+    {
+      "rank": 53,
+      "ticker": "8087",
+      "name": "麗升能源",
+      "industry": "綠能環保",
+      "score": 6,
+      "grade": "B",
+      "rules": {
+        "F1": true,
+        "F2": false,
+        "F3": false,
+        "F4": true,
+        "F5": true,
+        "F6": true,
+        "F7": true,
+        "F8": true
+      },
+      "valuation": {
+        "method": "PB",
+        "multiple": 1.74,
+        "band": "−2σ ~ −1σ",
+        "upside_pct": 69.84,
+        "decision": "BUY"
       },
       "is_new": true,
       "prev_rank": null,
       "rank_delta": null
     },
     {
-      "rank": 51,
+      "rank": 54,
       "ticker": "8271",
       "name": "宇瞻",
       "industry": "半導體業",
@@ -1420,17 +1504,17 @@
       },
       "valuation": {
         "method": "PE",
-        "multiple": 12.18,
+        "multiple": 11.94,
         "band": "−1σ ~ mean",
-        "upside_pct": 32.71,
+        "upside_pct": 35.39,
         "decision": "BUY"
       },
-      "is_new": true,
-      "prev_rank": null,
-      "rank_delta": null
+      "is_new": false,
+      "prev_rank": 51,
+      "rank_delta": -3
     },
     {
-      "rank": 52,
+      "rank": 55,
       "ticker": "8299",
       "name": "群聯",
       "industry": "半導體業",
@@ -1448,17 +1532,17 @@
       },
       "valuation": {
         "method": "PE",
-        "multiple": 25.52,
+        "multiple": 24.52,
         "band": "mean ~ +1σ",
-        "upside_pct": -11.69,
+        "upside_pct": -8.05,
         "decision": "SELL"
       },
       "is_new": false,
-      "prev_rank": 87,
-      "rank_delta": 35
+      "prev_rank": 52,
+      "rank_delta": -3
     },
     {
-      "rank": 53,
+      "rank": 56,
       "ticker": "8415",
       "name": "大國鋼",
       "industry": "鋼鐵工業",
@@ -1476,17 +1560,17 @@
       },
       "valuation": {
         "method": "PE",
-        "multiple": 10.55,
+        "multiple": 10.6,
         "band": "−1σ ~ mean",
-        "upside_pct": 17.87,
+        "upside_pct": 17.25,
         "decision": "HOLD"
       },
-      "is_new": true,
-      "prev_rank": null,
-      "rank_delta": null
+      "is_new": false,
+      "prev_rank": 53,
+      "rank_delta": -3
     },
     {
-      "rank": 54,
+      "rank": 57,
       "ticker": "8438",
       "name": "昶昕",
       "industry": "綠能環保",
@@ -1504,17 +1588,17 @@
       },
       "valuation": {
         "method": "PE",
-        "multiple": 33.12,
+        "multiple": 33.0,
         "band": "+1σ ~ +2σ",
-        "upside_pct": -35.64,
+        "upside_pct": -35.38,
         "decision": "SELL"
       },
       "is_new": false,
-      "prev_rank": 49,
-      "rank_delta": -5
+      "prev_rank": 54,
+      "rank_delta": -3
     },
     {
-      "rank": 55,
+      "rank": 58,
       "ticker": "1303",
       "name": "南亞",
       "industry": "塑膠工業",
@@ -1532,17 +1616,45 @@
       },
       "valuation": {
         "method": "PE",
-        "multiple": 48.92,
+        "multiple": 48.05,
         "band": "mean ~ +1σ",
-        "upside_pct": -1064.15,
+        "upside_pct": -1080.62,
         "decision": "SELL"
       },
       "is_new": false,
-      "prev_rank": 50,
-      "rank_delta": -5
+      "prev_rank": 55,
+      "rank_delta": -3
     },
     {
-      "rank": 56,
+      "rank": 59,
+      "ticker": "1725",
+      "name": "元禎",
+      "industry": "化學工業",
+      "score": 5,
+      "grade": "B",
+      "rules": {
+        "F1": false,
+        "F2": false,
+        "F3": false,
+        "F4": true,
+        "F5": true,
+        "F6": true,
+        "F7": true,
+        "F8": true
+      },
+      "valuation": {
+        "method": "PB",
+        "multiple": 0.9,
+        "band": "−1σ ~ mean",
+        "upside_pct": 25.72,
+        "decision": "BUY"
+      },
+      "is_new": true,
+      "prev_rank": null,
+      "rank_delta": null
+    },
+    {
+      "rank": 60,
       "ticker": "1735",
       "name": "日勝化",
       "industry": "化學工業",
@@ -1560,17 +1672,17 @@
       },
       "valuation": {
         "method": "PE",
-        "multiple": 32.72,
+        "multiple": 32.04,
         "band": "−1σ ~ mean",
-        "upside_pct": 54.14,
+        "upside_pct": 57.36,
         "decision": "BUY"
       },
       "is_new": false,
-      "prev_rank": 51,
-      "rank_delta": -5
+      "prev_rank": 56,
+      "rank_delta": -4
     },
     {
-      "rank": 57,
+      "rank": 61,
       "ticker": "2030",
       "name": "彰源",
       "industry": "鋼鐵工業",
@@ -1588,17 +1700,17 @@
       },
       "valuation": {
         "method": "PE",
-        "multiple": 29.0,
+        "multiple": 28.69,
         "band": "mean ~ +1σ",
-        "upside_pct": -10.69,
+        "upside_pct": -9.73,
         "decision": "SELL"
       },
       "is_new": false,
-      "prev_rank": 52,
-      "rank_delta": -5
+      "prev_rank": 57,
+      "rank_delta": -4
     },
     {
-      "rank": 58,
+      "rank": 62,
       "ticker": "2072",
       "name": "世紀風電",
       "industry": "綠能環保",
@@ -1616,17 +1728,17 @@
       },
       "valuation": {
         "method": "PB",
-        "multiple": 1.49,
+        "multiple": 1.64,
         "band": null,
         "upside_pct": null,
         "decision": "HOLD"
       },
       "is_new": false,
-      "prev_rank": 53,
-      "rank_delta": -5
+      "prev_rank": 58,
+      "rank_delta": -4
     },
     {
-      "rank": 59,
+      "rank": 63,
       "ticker": "2108",
       "name": "南帝",
       "industry": "橡膠工業",
@@ -1644,17 +1756,101 @@
       },
       "valuation": {
         "method": "PE",
-        "multiple": 33.22,
+        "multiple": 35.52,
         "band": "+1σ ~ +2σ",
-        "upside_pct": -41.93,
+        "upside_pct": -45.65,
         "decision": "SELL"
       },
       "is_new": false,
-      "prev_rank": 54,
-      "rank_delta": -5
+      "prev_rank": 59,
+      "rank_delta": -4
     },
     {
-      "rank": 60,
+      "rank": 64,
+      "ticker": "2221",
+      "name": "大甲",
+      "industry": "其他業",
+      "score": 5,
+      "grade": "B",
+      "rules": {
+        "F1": false,
+        "F2": false,
+        "F3": false,
+        "F4": true,
+        "F5": true,
+        "F6": true,
+        "F7": true,
+        "F8": true
+      },
+      "valuation": {
+        "method": "PB",
+        "multiple": 1.64,
+        "band": "> +2σ",
+        "upside_pct": -24.18,
+        "decision": "SELL"
+      },
+      "is_new": true,
+      "prev_rank": null,
+      "rank_delta": null
+    },
+    {
+      "rank": 65,
+      "ticker": "2235",
+      "name": "謚源",
+      "industry": "電機機械",
+      "score": 5,
+      "grade": "B",
+      "rules": {
+        "F1": false,
+        "F2": false,
+        "F3": false,
+        "F4": true,
+        "F5": true,
+        "F6": true,
+        "F7": true,
+        "F8": true
+      },
+      "valuation": {
+        "method": "PB",
+        "multiple": null,
+        "band": null,
+        "upside_pct": null,
+        "decision": "HOLD"
+      },
+      "is_new": true,
+      "prev_rank": null,
+      "rank_delta": null
+    },
+    {
+      "rank": 66,
+      "ticker": "2258",
+      "name": "鴻華先進-創",
+      "industry": "汽車工業",
+      "score": 5,
+      "grade": "B",
+      "rules": {
+        "F1": true,
+        "F2": false,
+        "F3": false,
+        "F4": false,
+        "F5": true,
+        "F6": true,
+        "F7": true,
+        "F8": true
+      },
+      "valuation": {
+        "method": "PB",
+        "multiple": 4.51,
+        "band": "mean ~ +1σ",
+        "upside_pct": -5.74,
+        "decision": "SELL"
+      },
+      "is_new": true,
+      "prev_rank": null,
+      "rank_delta": null
+    },
+    {
+      "rank": 67,
       "ticker": "2347",
       "name": "聯強",
       "industry": "電子通路業",
@@ -1672,17 +1868,17 @@
       },
       "valuation": {
         "method": "PE",
-        "multiple": 15.82,
+        "multiple": 15.61,
         "band": "+1σ ~ +2σ",
-        "upside_pct": -32.01,
+        "upside_pct": -31.08,
         "decision": "SELL"
       },
       "is_new": false,
-      "prev_rank": 55,
-      "rank_delta": -5
+      "prev_rank": 60,
+      "rank_delta": -7
     },
     {
-      "rank": 61,
+      "rank": 68,
       "ticker": "2397",
       "name": "友通",
       "industry": "電腦及週邊設備業",
@@ -1700,17 +1896,17 @@
       },
       "valuation": {
         "method": "PE",
-        "multiple": 28.92,
+        "multiple": 28.19,
         "band": "+1σ ~ +2σ",
-        "upside_pct": -34.49,
+        "upside_pct": -32.76,
         "decision": "SELL"
       },
       "is_new": false,
-      "prev_rank": 56,
-      "rank_delta": -5
+      "prev_rank": 61,
+      "rank_delta": -7
     },
     {
-      "rank": 62,
+      "rank": 69,
       "ticker": "2428",
       "name": "興勤",
       "industry": "電子零組件業",
@@ -1728,17 +1924,17 @@
       },
       "valuation": {
         "method": "PE",
-        "multiple": 24.64,
+        "multiple": 24.09,
         "band": "> +2σ",
-        "upside_pct": -43.22,
+        "upside_pct": -41.9,
         "decision": "SELL"
       },
       "is_new": false,
-      "prev_rank": 57,
-      "rank_delta": -5
+      "prev_rank": 62,
+      "rank_delta": -7
     },
     {
-      "rank": 63,
+      "rank": 70,
       "ticker": "2492",
       "name": "華新科",
       "industry": "電子零組件業",
@@ -1756,17 +1952,17 @@
       },
       "valuation": {
         "method": "PE",
-        "multiple": 81.03,
+        "multiple": 75.1,
         "band": "> +2σ",
-        "upside_pct": -73.13,
+        "upside_pct": -70.95,
         "decision": "SELL"
       },
       "is_new": false,
-      "prev_rank": 58,
-      "rank_delta": -5
+      "prev_rank": 63,
+      "rank_delta": -7
     },
     {
-      "rank": 64,
+      "rank": 71,
       "ticker": "2615",
       "name": "萬海",
       "industry": "航運業",
@@ -1786,15 +1982,15 @@
         "method": "PB",
         "multiple": 0.82,
         "band": "−1σ ~ mean",
-        "upside_pct": 116.12,
+        "upside_pct": 116.54,
         "decision": "BUY"
       },
       "is_new": false,
-      "prev_rank": 60,
-      "rank_delta": -4
+      "prev_rank": 64,
+      "rank_delta": -7
     },
     {
-      "rank": 65,
+      "rank": 72,
       "ticker": "2618",
       "name": "長榮航",
       "industry": "航運業",
@@ -1812,17 +2008,17 @@
       },
       "valuation": {
         "method": "PE",
-        "multiple": 7.15,
+        "multiple": 7.19,
         "band": "mean ~ +1σ",
-        "upside_pct": -422.36,
+        "upside_pct": -420.31,
         "decision": "SELL"
       },
       "is_new": false,
-      "prev_rank": 61,
-      "rank_delta": -4
+      "prev_rank": 65,
+      "rank_delta": -7
     },
     {
-      "rank": 66,
+      "rank": 73,
       "ticker": "3023",
       "name": "信邦",
       "industry": "電子零組件業",
@@ -1840,17 +2036,17 @@
       },
       "valuation": {
         "method": "PE",
-        "multiple": 24.9,
+        "multiple": 24.47,
         "band": "mean ~ +1σ",
-        "upside_pct": -11.68,
+        "upside_pct": -10.12,
         "decision": "SELL"
       },
       "is_new": false,
-      "prev_rank": 95,
-      "rank_delta": 29
+      "prev_rank": 66,
+      "rank_delta": -7
     },
     {
-      "rank": 67,
+      "rank": 74,
       "ticker": "3026",
       "name": "禾伸堂",
       "industry": "電子零組件業",
@@ -1868,9 +2064,37 @@
       },
       "valuation": {
         "method": "PE",
-        "multiple": 82.47,
+        "multiple": 80.15,
         "band": "> +2σ",
-        "upside_pct": -81.23,
+        "upside_pct": -80.61,
+        "decision": "SELL"
+      },
+      "is_new": false,
+      "prev_rank": 67,
+      "rank_delta": -7
+    },
+    {
+      "rank": 75,
+      "ticker": "3071",
+      "name": "協禧",
+      "industry": "電腦及週邊設備業",
+      "score": 5,
+      "grade": "B",
+      "rules": {
+        "F1": false,
+        "F2": false,
+        "F3": false,
+        "F4": true,
+        "F5": true,
+        "F6": true,
+        "F7": true,
+        "F8": true
+      },
+      "valuation": {
+        "method": "PB",
+        "multiple": 2.36,
+        "band": "mean ~ +1σ",
+        "upside_pct": -10.67,
         "decision": "SELL"
       },
       "is_new": true,
@@ -1878,7 +2102,7 @@
       "rank_delta": null
     },
     {
-      "rank": 68,
+      "rank": 76,
       "ticker": "3209",
       "name": "全科",
       "industry": "電子通路業",
@@ -1896,17 +2120,17 @@
       },
       "valuation": {
         "method": "PE",
-        "multiple": 21.67,
+        "multiple": 21.45,
         "band": "> +2σ",
-        "upside_pct": -48.43,
+        "upside_pct": -47.86,
         "decision": "SELL"
       },
       "is_new": false,
-      "prev_rank": 37,
-      "rank_delta": -31
+      "prev_rank": 68,
+      "rank_delta": -8
     },
     {
-      "rank": 69,
+      "rank": 77,
       "ticker": "3303",
       "name": "岱稜",
       "industry": "其他電子業",
@@ -1924,17 +2148,17 @@
       },
       "valuation": {
         "method": "PE",
-        "multiple": 11.72,
+        "multiple": 11.75,
         "band": "−1σ ~ mean",
-        "upside_pct": 39.12,
+        "upside_pct": 38.83,
         "decision": "BUY"
       },
-      "is_new": true,
-      "prev_rank": null,
-      "rank_delta": null
+      "is_new": false,
+      "prev_rank": 69,
+      "rank_delta": -8
     },
     {
-      "rank": 70,
+      "rank": 78,
       "ticker": "3466",
       "name": "德晉",
       "industry": "通信網路業",
@@ -1952,17 +2176,17 @@
       },
       "valuation": {
         "method": "PB",
-        "multiple": 1.78,
+        "multiple": 1.79,
         "band": "−1σ ~ mean",
-        "upside_pct": 31.18,
+        "upside_pct": 30.43,
         "decision": "BUY"
       },
-      "is_new": true,
-      "prev_rank": null,
-      "rank_delta": null
+      "is_new": false,
+      "prev_rank": 70,
+      "rank_delta": -8
     },
     {
-      "rank": 71,
+      "rank": 79,
       "ticker": "3467",
       "name": "台灣精材",
       "industry": "半導體業",
@@ -1986,11 +2210,11 @@
         "decision": "HOLD"
       },
       "is_new": false,
-      "prev_rank": 69,
-      "rank_delta": -2
+      "prev_rank": 71,
+      "rank_delta": -8
     },
     {
-      "rank": 72,
+      "rank": 80,
       "ticker": "3605",
       "name": "宏致",
       "industry": "電子零組件業",
@@ -2008,17 +2232,17 @@
       },
       "valuation": {
         "method": "PB",
-        "multiple": 1.59,
+        "multiple": 1.57,
         "band": "+1σ ~ +2σ",
-        "upside_pct": -29.05,
+        "upside_pct": -28.1,
         "decision": "SELL"
       },
-      "is_new": true,
-      "prev_rank": null,
-      "rank_delta": null
+      "is_new": false,
+      "prev_rank": 72,
+      "rank_delta": -8
     },
     {
-      "rank": 73,
+      "rank": 81,
       "ticker": "3646",
       "name": "艾恩特",
       "industry": "電子零組件業",
@@ -2036,17 +2260,45 @@
       },
       "valuation": {
         "method": "PE",
-        "multiple": 148.12,
+        "multiple": 147.19,
         "band": "> +2σ",
-        "upside_pct": -85.59,
+        "upside_pct": -85.42,
         "decision": "SELL"
+      },
+      "is_new": false,
+      "prev_rank": 73,
+      "rank_delta": -8
+    },
+    {
+      "rank": 82,
+      "ticker": "4532",
+      "name": "瑞智",
+      "industry": "電機機械",
+      "score": 5,
+      "grade": "B",
+      "rules": {
+        "F1": false,
+        "F2": false,
+        "F3": false,
+        "F4": true,
+        "F5": true,
+        "F6": true,
+        "F7": true,
+        "F8": true
+      },
+      "valuation": {
+        "method": "PB",
+        "multiple": 1.23,
+        "band": "−1σ ~ mean",
+        "upside_pct": 7.05,
+        "decision": "HOLD"
       },
       "is_new": true,
       "prev_rank": null,
       "rank_delta": null
     },
     {
-      "rank": 74,
+      "rank": 83,
       "ticker": "4555",
       "name": "氣立",
       "industry": "電機機械",
@@ -2064,17 +2316,17 @@
       },
       "valuation": {
         "method": "PB",
-        "multiple": 1.37,
+        "multiple": 1.3,
         "band": "mean ~ +1σ",
-        "upside_pct": -9.87,
+        "upside_pct": -5.48,
         "decision": "SELL"
       },
-      "is_new": true,
-      "prev_rank": null,
-      "rank_delta": null
+      "is_new": false,
+      "prev_rank": 74,
+      "rank_delta": -9
     },
     {
-      "rank": 75,
+      "rank": 84,
       "ticker": "4561",
       "name": "健椿",
       "industry": "電機機械",
@@ -2092,17 +2344,17 @@
       },
       "valuation": {
         "method": "PE",
-        "multiple": 79.69,
+        "multiple": 75.94,
         "band": "> +2σ",
-        "upside_pct": -74.93,
+        "upside_pct": -73.62,
         "decision": "SELL"
       },
-      "is_new": true,
-      "prev_rank": null,
-      "rank_delta": null
+      "is_new": false,
+      "prev_rank": 75,
+      "rank_delta": -9
     },
     {
-      "rank": 76,
+      "rank": 85,
       "ticker": "4583",
       "name": "台灣精銳",
       "industry": "電機機械",
@@ -2120,17 +2372,17 @@
       },
       "valuation": {
         "method": "PE",
-        "multiple": 59.91,
+        "multiple": 59.21,
         "band": "+1σ ~ +2σ",
-        "upside_pct": -42.2,
+        "upside_pct": -41.48,
         "decision": "SELL"
       },
       "is_new": false,
-      "prev_rank": 71,
-      "rank_delta": -5
+      "prev_rank": 76,
+      "rank_delta": -9
     },
     {
-      "rank": 77,
+      "rank": 86,
       "ticker": "4949",
       "name": "有成精密",
       "industry": "光電業",
@@ -2148,17 +2400,17 @@
       },
       "valuation": {
         "method": "PB",
-        "multiple": 4.14,
+        "multiple": 4.03,
         "band": "> +2σ",
-        "upside_pct": -57.01,
+        "upside_pct": -55.77,
         "decision": "SELL"
       },
       "is_new": false,
-      "prev_rank": 72,
-      "rank_delta": -5
+      "prev_rank": 77,
+      "rank_delta": -9
     },
     {
-      "rank": 78,
+      "rank": 87,
       "ticker": "5328",
       "name": "華容",
       "industry": "電子零組件業",
@@ -2176,17 +2428,17 @@
       },
       "valuation": {
         "method": "PE",
-        "multiple": 84.56,
+        "multiple": 83.33,
         "band": "+1σ ~ +2σ",
-        "upside_pct": -39.69,
+        "upside_pct": -38.78,
         "decision": "SELL"
       },
-      "is_new": true,
-      "prev_rank": null,
-      "rank_delta": null
+      "is_new": false,
+      "prev_rank": 78,
+      "rank_delta": -9
     },
     {
-      "rank": 79,
+      "rank": 88,
       "ticker": "5464",
       "name": "霖宏",
       "industry": "電子零組件業",
@@ -2204,17 +2456,17 @@
       },
       "valuation": {
         "method": "PB",
-        "multiple": 4.25,
+        "multiple": 4.0,
         "band": "> +2σ",
-        "upside_pct": -65.46,
+        "upside_pct": -63.25,
         "decision": "SELL"
       },
       "is_new": false,
-      "prev_rank": 74,
-      "rank_delta": -5
+      "prev_rank": 79,
+      "rank_delta": -9
     },
     {
-      "rank": 80,
+      "rank": 89,
       "ticker": "5471",
       "name": "松翰",
       "industry": "半導體業",
@@ -2232,17 +2484,17 @@
       },
       "valuation": {
         "method": "PE",
-        "multiple": 54.33,
+        "multiple": 53.3,
         "band": "+1σ ~ +2σ",
-        "upside_pct": -44.58,
+        "upside_pct": -43.47,
         "decision": "SELL"
       },
       "is_new": false,
-      "prev_rank": 75,
-      "rank_delta": -5
+      "prev_rank": 80,
+      "rank_delta": -9
     },
     {
-      "rank": 81,
+      "rank": 90,
       "ticker": "6168",
       "name": "宏齊",
       "industry": "光電業",
@@ -2260,9 +2512,37 @@
       },
       "valuation": {
         "method": "PB",
-        "multiple": 1.85,
+        "multiple": 1.78,
         "band": "+1σ ~ +2σ",
-        "upside_pct": -18.64,
+        "upside_pct": -15.41,
+        "decision": "SELL"
+      },
+      "is_new": false,
+      "prev_rank": 81,
+      "rank_delta": -9
+    },
+    {
+      "rank": 91,
+      "ticker": "6173",
+      "name": "信昌電",
+      "industry": "電子零組件業",
+      "score": 5,
+      "grade": "B",
+      "rules": {
+        "F1": true,
+        "F2": false,
+        "F3": false,
+        "F4": false,
+        "F5": true,
+        "F6": true,
+        "F7": true,
+        "F8": true
+      },
+      "valuation": {
+        "method": "PB",
+        "multiple": 4.16,
+        "band": "> +2σ",
+        "upside_pct": -68.44,
         "decision": "SELL"
       },
       "is_new": true,
@@ -2270,7 +2550,63 @@
       "rank_delta": null
     },
     {
-      "rank": 82,
+      "rank": 92,
+      "ticker": "6175",
+      "name": "立敦",
+      "industry": "電子零組件業",
+      "score": 5,
+      "grade": "B",
+      "rules": {
+        "F1": false,
+        "F2": false,
+        "F3": false,
+        "F4": true,
+        "F5": true,
+        "F6": true,
+        "F7": true,
+        "F8": true
+      },
+      "valuation": {
+        "method": "PB",
+        "multiple": 3.09,
+        "band": "> +2σ",
+        "upside_pct": -42.84,
+        "decision": "SELL"
+      },
+      "is_new": true,
+      "prev_rank": null,
+      "rank_delta": null
+    },
+    {
+      "rank": 93,
+      "ticker": "6187",
+      "name": "萬潤",
+      "industry": "半導體業",
+      "score": 5,
+      "grade": "B",
+      "rules": {
+        "F1": false,
+        "F2": false,
+        "F3": false,
+        "F4": true,
+        "F5": true,
+        "F6": true,
+        "F7": true,
+        "F8": true
+      },
+      "valuation": {
+        "method": "PB",
+        "multiple": 15.95,
+        "band": "> +2σ",
+        "upside_pct": -53.84,
+        "decision": "SELL"
+      },
+      "is_new": true,
+      "prev_rank": null,
+      "rank_delta": null
+    },
+    {
+      "rank": 94,
       "ticker": "6190",
       "name": "萬泰科",
       "industry": "通信網路業",
@@ -2288,17 +2624,17 @@
       },
       "valuation": {
         "method": "PE",
-        "multiple": 43.46,
+        "multiple": 42.93,
         "band": "> +2σ",
-        "upside_pct": -55.82,
+        "upside_pct": -55.24,
         "decision": "SELL"
       },
       "is_new": false,
-      "prev_rank": 78,
-      "rank_delta": -4
+      "prev_rank": 82,
+      "rank_delta": -12
     },
     {
-      "rank": 83,
+      "rank": 95,
       "ticker": "6204",
       "name": "艾華",
       "industry": "電子零組件業",
@@ -2316,17 +2652,17 @@
       },
       "valuation": {
         "method": "PE",
-        "multiple": 105.61,
+        "multiple": 108.16,
         "band": "> +2σ",
-        "upside_pct": -68.44,
+        "upside_pct": -69.13,
         "decision": "SELL"
       },
-      "is_new": true,
-      "prev_rank": null,
-      "rank_delta": null
+      "is_new": false,
+      "prev_rank": 83,
+      "rank_delta": -12
     },
     {
-      "rank": 84,
+      "rank": 96,
       "ticker": "6206",
       "name": "飛捷",
       "industry": "電腦及週邊設備業",
@@ -2344,17 +2680,17 @@
       },
       "valuation": {
         "method": "PE",
-        "multiple": 19.82,
+        "multiple": 19.61,
         "band": "mean ~ +1σ",
-        "upside_pct": -19.16,
+        "upside_pct": -18.27,
         "decision": "SELL"
       },
-      "is_new": true,
-      "prev_rank": null,
-      "rank_delta": null
+      "is_new": false,
+      "prev_rank": 84,
+      "rank_delta": -12
     },
     {
-      "rank": 85,
+      "rank": 97,
       "ticker": "6271",
       "name": "同欣電",
       "industry": "半導體業",
@@ -2372,17 +2708,17 @@
       },
       "valuation": {
         "method": "PE",
-        "multiple": 37.09,
+        "multiple": 36.13,
         "band": "> +2σ",
-        "upside_pct": -53.54,
+        "upside_pct": -52.25,
         "decision": "SELL"
       },
-      "is_new": true,
-      "prev_rank": null,
-      "rank_delta": null
+      "is_new": false,
+      "prev_rank": 85,
+      "rank_delta": -12
     },
     {
-      "rank": 86,
+      "rank": 98,
       "ticker": "6274",
       "name": "台燿",
       "industry": "電子零組件業",
@@ -2402,15 +2738,15 @@
         "method": "PE",
         "multiple": 120.55,
         "band": "> +2σ",
-        "upside_pct": -76.15,
+        "upside_pct": -76.08,
         "decision": "SELL"
       },
       "is_new": false,
-      "prev_rank": 81,
-      "rank_delta": -5
+      "prev_rank": 86,
+      "rank_delta": -12
     },
     {
-      "rank": 87,
+      "rank": 99,
       "ticker": "6526",
       "name": "達發",
       "industry": "半導體業",
@@ -2428,17 +2764,17 @@
       },
       "valuation": {
         "method": "PE",
-        "multiple": 40.85,
+        "multiple": 39.41,
         "band": "−1σ ~ mean",
-        "upside_pct": 28.4,
+        "upside_pct": 33.02,
         "decision": "BUY"
       },
-      "is_new": true,
-      "prev_rank": null,
-      "rank_delta": null
+      "is_new": false,
+      "prev_rank": 87,
+      "rank_delta": -12
     },
     {
-      "rank": 88,
+      "rank": 100,
       "ticker": "6548",
       "name": "長科*",
       "industry": "半導體業",
@@ -2456,353 +2792,22 @@
       },
       "valuation": {
         "method": "PE",
-        "multiple": 52.78,
+        "multiple": 58.05,
         "band": "> +2σ",
-        "upside_pct": -62.37,
-        "decision": "SELL"
-      },
-      "is_new": true,
-      "prev_rank": null,
-      "rank_delta": null
-    },
-    {
-      "rank": 89,
-      "ticker": "6651",
-      "name": "全宇昕",
-      "industry": "半導體業",
-      "score": 5,
-      "grade": "B",
-      "rules": {
-        "F1": false,
-        "F2": false,
-        "F3": false,
-        "F4": true,
-        "F5": true,
-        "F6": true,
-        "F7": true,
-        "F8": true
-      },
-      "valuation": {
-        "method": "PE",
-        "multiple": 21.12,
-        "band": "> +2σ",
-        "upside_pct": -41.81,
-        "decision": "SELL"
-      },
-      "is_new": true,
-      "prev_rank": null,
-      "rank_delta": null
-    },
-    {
-      "rank": 90,
-      "ticker": "6790",
-      "name": "永豐實",
-      "industry": "造紙工業",
-      "score": 5,
-      "grade": "B",
-      "rules": {
-        "F1": true,
-        "F2": false,
-        "F3": false,
-        "F4": true,
-        "F5": false,
-        "F6": true,
-        "F7": true,
-        "F8": true
-      },
-      "valuation": {
-        "method": "PE",
-        "multiple": 12.95,
-        "band": "−1σ ~ mean",
-        "upside_pct": 1.84,
-        "decision": "HOLD"
-      },
-      "is_new": true,
-      "prev_rank": null,
-      "rank_delta": null
-    },
-    {
-      "rank": 91,
-      "ticker": "6918",
-      "name": "愛派司",
-      "industry": "生技醫療業",
-      "score": 5,
-      "grade": "B",
-      "rules": {
-        "F1": false,
-        "F2": false,
-        "F3": null,
-        "F4": true,
-        "F5": true,
-        "F6": true,
-        "F7": true,
-        "F8": true
-      },
-      "valuation": {
-        "method": "PB",
-        "multiple": 2.24,
-        "band": "−1σ ~ mean",
-        "upside_pct": 18.04,
-        "decision": "HOLD"
-      },
-      "is_new": true,
-      "prev_rank": null,
-      "rank_delta": null
-    },
-    {
-      "rank": 92,
-      "ticker": "7721",
-      "name": "微程式",
-      "industry": "數位雲端",
-      "score": 5,
-      "grade": "B",
-      "rules": {
-        "F1": null,
-        "F2": null,
-        "F3": null,
-        "F4": true,
-        "F5": true,
-        "F6": true,
-        "F7": true,
-        "F8": true
-      },
-      "valuation": {
-        "method": "PB",
-        "multiple": 3.4,
-        "band": "mean ~ +1σ",
-        "upside_pct": -16.16,
-        "decision": "SELL"
-      },
-      "is_new": true,
-      "prev_rank": null,
-      "rank_delta": null
-    },
-    {
-      "rank": 93,
-      "ticker": "7744",
-      "name": "崴寶",
-      "industry": "電子零組件業",
-      "score": 5,
-      "grade": "B",
-      "rules": {
-        "F1": null,
-        "F2": null,
-        "F3": null,
-        "F4": true,
-        "F5": true,
-        "F6": true,
-        "F7": true,
-        "F8": true
-      },
-      "valuation": {
-        "method": "PB",
-        "multiple": 5.82,
-        "band": "−1σ ~ mean",
-        "upside_pct": 23.75,
-        "decision": "BUY"
-      },
-      "is_new": true,
-      "prev_rank": null,
-      "rank_delta": null
-    },
-    {
-      "rank": 94,
-      "ticker": "7769",
-      "name": "鴻勁",
-      "industry": "半導體業",
-      "score": 5,
-      "grade": "B",
-      "rules": {
-        "F1": null,
-        "F2": null,
-        "F3": null,
-        "F4": true,
-        "F5": true,
-        "F6": true,
-        "F7": true,
-        "F8": true
-      },
-      "valuation": {
-        "method": "PB",
-        "multiple": 21.59,
-        "band": "−1σ ~ mean",
-        "upside_pct": 22.04,
-        "decision": "BUY"
-      },
-      "is_new": true,
-      "prev_rank": null,
-      "rank_delta": null
-    },
-    {
-      "rank": 95,
-      "ticker": "7788",
-      "name": "松川精密",
-      "industry": "電子零組件業",
-      "score": 5,
-      "grade": "B",
-      "rules": {
-        "F1": null,
-        "F2": null,
-        "F3": null,
-        "F4": true,
-        "F5": true,
-        "F6": true,
-        "F7": true,
-        "F8": true
-      },
-      "valuation": {
-        "method": "PB",
-        "multiple": 2.65,
-        "band": "+1σ ~ +2σ",
-        "upside_pct": -19.35,
-        "decision": "SELL"
-      },
-      "is_new": true,
-      "prev_rank": null,
-      "rank_delta": null
-    },
-    {
-      "rank": 96,
-      "ticker": "8045",
-      "name": "達運光電",
-      "industry": "通信網路業",
-      "score": 5,
-      "grade": "B",
-      "rules": {
-        "F1": false,
-        "F2": false,
-        "F3": false,
-        "F4": true,
-        "F5": true,
-        "F6": true,
-        "F7": true,
-        "F8": true
-      },
-      "valuation": {
-        "method": "PB",
-        "multiple": 3.45,
-        "band": "−1σ ~ mean",
-        "upside_pct": 34.86,
-        "decision": "BUY"
-      },
-      "is_new": true,
-      "prev_rank": null,
-      "rank_delta": null
-    },
-    {
-      "rank": 97,
-      "ticker": "9942",
-      "name": "茂順",
-      "industry": "其他業",
-      "score": 5,
-      "grade": "B",
-      "rules": {
-        "F1": false,
-        "F2": false,
-        "F3": false,
-        "F4": true,
-        "F5": true,
-        "F6": true,
-        "F7": true,
-        "F8": true
-      },
-      "valuation": {
-        "method": "PE",
-        "multiple": 14.56,
-        "band": "mean ~ +1σ",
-        "upside_pct": -5.13,
-        "decision": "SELL"
-      },
-      "is_new": true,
-      "prev_rank": null,
-      "rank_delta": null
-    },
-    {
-      "rank": 98,
-      "ticker": "1304",
-      "name": "台聚",
-      "industry": "塑膠工業",
-      "score": 4,
-      "grade": "C",
-      "rules": {
-        "F1": false,
-        "F2": false,
-        "F3": false,
-        "F4": true,
-        "F5": false,
-        "F6": true,
-        "F7": true,
-        "F8": true
-      },
-      "valuation": {
-        "method": "PB",
-        "multiple": 0.97,
-        "band": "−1σ ~ mean",
-        "upside_pct": 6.89,
-        "decision": "HOLD"
-      },
-      "is_new": false,
-      "prev_rank": 90,
-      "rank_delta": -8
-    },
-    {
-      "rank": 99,
-      "ticker": "2103",
-      "name": "台橡",
-      "industry": "橡膠工業",
-      "score": 4,
-      "grade": "C",
-      "rules": {
-        "F1": false,
-        "F2": false,
-        "F3": false,
-        "F4": true,
-        "F5": false,
-        "F6": true,
-        "F7": true,
-        "F8": true
-      },
-      "valuation": {
-        "method": "PE",
-        "multiple": 32.39,
-        "band": "mean ~ +1σ",
-        "upside_pct": -13.01,
+        "upside_pct": -65.73,
         "decision": "SELL"
       },
       "is_new": false,
-      "prev_rank": 91,
-      "rank_delta": -8
-    },
-    {
-      "rank": 100,
-      "ticker": "2351",
-      "name": "順德",
-      "industry": "半導體業",
-      "score": 4,
-      "grade": "C",
-      "rules": {
-        "F1": false,
-        "F2": false,
-        "F3": false,
-        "F4": false,
-        "F5": true,
-        "F6": true,
-        "F7": true,
-        "F8": true
-      },
-      "valuation": {
-        "method": "PE",
-        "multiple": 91.41,
-        "band": "> +2σ",
-        "upside_pct": -64.32,
-        "decision": "SELL"
-      },
-      "is_new": false,
-      "prev_rank": 92,
-      "rank_delta": -8
+      "prev_rank": 88,
+      "rank_delta": -12
     }
   ],
   "history": [
+    {
+      "date": "2026-06-04",
+      "top_n": 100,
+      "new_count": 12
+    },
     {
       "date": "2026-06-03",
       "top_n": 100,
