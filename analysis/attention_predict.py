@@ -137,10 +137,11 @@ def _calc_nd_change_pct(prices: list[dict], n: int) -> float | None:
 
 
 def _calc_volume_ratio(prices: list[dict]) -> float | None:
-    """Today's volume / 60-day average volume."""
-    if len(prices) < 61:
+    """Today's volume / 60-day average volume — 60-day window includes today
+    as day 1 (today + 59 prior), matching TWSE「最近60個營業日」convention."""
+    if len(prices) < 60:
         return None
-    avg60 = sum(p["volume"] for p in prices[-61:-1]) / 60
+    avg60 = sum(p["volume"] for p in prices[-60:]) / 60
     if avg60 == 0:
         return None
     return prices[-1]["volume"] / avg60
