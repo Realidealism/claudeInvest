@@ -447,6 +447,83 @@ def _get_market_turnover_avg(today: date) -> dict[str, tuple[float, float]]:
     return result
 
 
+def format_today_thresholds(ticker: str, today: date, rule_codes: list[str]) -> str:
+    """For the given rule codes triggered today, return short string with
+    actual numeric thresholds (close ≥ X 元 / 量 ≥ Y 張) joined by " / ".
+    Used by 🔴 disposal message so user can independently verify."""
+    if classify_tw_security(ticker) != "STOCK" or not rule_codes:
+        return ""
+    with get_cursor(commit=False) as cur:
+        cur.execute("SELECT market FROM tw.stocks WHERE stock_id = %s", (ticker,))
+        row = cur.fetchone()
+        market = row["market"] if row else "TWSE"
+        history = _load_history(cur, ticker, today)
+        today_row, _src = _load_today_row(cur, ticker, today)
+        outstanding = _load_outstanding_shares(cur, ticker)
+    if today_row is None or not history:
+        return ""
+    prices = history + [today_row]
+    today_close = prices[-1]["close"]
+    is_tpex = market == "TPEx"
+
+    parts: list[str] = []
+    for code in rule_codes:
+        if code == "§2①" and len(prices) >= 6:
+            thresh = 30 if is_tpex else 32
+            c6 = prices[-6]["close"]
+            target = c6 * (1 + thresh / 100)
+            parts.append(f"§2① close ≥ {target:.2f}")
+        elif code == "§2②" and len(prices) >= 6:
+            pct_thresh = 23 if is_tpex else 25
+            diff_thresh = 40 if is_tpex else 50
+            c6 = prices[-6]["close"]
+            target = max(c6 * (1 + pct_thresh / 100), c6 + diff_thresh)
+            parts.append(f"§2② close ≥ {target:.2f}")
+        elif code.startswith("§3("):
+            try:
+                n = int(code[3:-2])
+            except ValueError:
+                continue
+            tw_th = {30: 100, 60: 130, 90: 160}
+            tpex_th = {30: 100, 60: 140, 90: 160}
+            thresh = tpex_th.get(n) if is_tpex else tw_th.get(n)
+            if thresh is None or len(prices) < n:
+                continue
+            cN = prices[-n]["close"]
+            if cN <= 0:
+                continue
+            up_target = cN * (1 + thresh / 100)
+            parts.append(f"{code} close ≥ {up_target:.2f}")
+        elif code == "§4" and len(prices) >= 60:
+            avg60 = sum(p["volume"] for p in prices[-60:]) / 60
+            target_vol = 5 * avg60
+            parts.append(f"§4 量 ≥ {target_vol / 1000:.0f} 張")
+        elif code == "§5" and outstanding:
+            tr_thresh = 5 if is_tpex else 10
+            target_vol = outstanding * tr_thresh / 100
+            parts.append(f"§5 量 ≥ {target_vol / 1000:.0f} 張 (週轉 {tr_thresh}%)")
+        elif code == "§11" and outstanding and len(prices) >= 6:
+            cum_thresh = 80 if is_tpex else 50
+            tr_thresh = 5 if is_tpex else 10
+            cum_target_vol = outstanding * cum_thresh / 100
+            today_target_vol = outstanding * tr_thresh / 100
+            parts.append(
+                f"§11 6日累積量 ≥ {cum_target_vol / 1000:.0f} 張 + 當日 ≥ {today_target_vol / 1000:.0f} 張"
+            )
+        elif code == "§12" and len(prices) >= 6:
+            first_6d = prices[-6]["close"]
+            if is_tpex:
+                base, step, level = 70, 15, 300
+            else:
+                base, step, level = 100, 25, 500
+            threshold = base
+            if today_close >= level:
+                threshold = base + int(today_close // level) * step
+            up_target = first_6d + threshold
+            parts.append(f"§12 close ≥ {up_target:.2f} (起迄 ≥ {threshold:.0f} 元)")
+    return " / ".join(parts)
+
+
 def predict_today_attention(
     ticker: str, today: date, state: DataState | None = None
 ) -> list[tuple[str, str]]:

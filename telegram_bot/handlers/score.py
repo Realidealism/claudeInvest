@@ -25,6 +25,7 @@ from telegram_bot.auth import restricted
 from telegram_bot.handlers._attention_predict_intraday import (
     closest_untriggered_threshold,
     consec_rule1_eligible_days,
+    format_today_thresholds,
     predict_today_attention,
 )
 from telegram_bot.handlers._data_freshness import DataState, Freshness, detect_state
@@ -512,10 +513,18 @@ def _get_disposal_status(
         return f"{_RED} 處置中 {interval} → {end.strftime('%m/%d')} 出關"
 
     if triggered:
-        # Show only the §X trigger detail (price/volume condition) so user
-        # can independently verify what crossed today. predict_prefix already
-        # contains e.g. "今日 §3(90日) 預期觸發（90日漲 233.2%）→ ".
-        return f"{_RED} {predict_prefix}明日進處置"
+        # Show actual threshold values (close ≥ X 元 / 量 ≥ Y 張) for the
+        # §X that triggered today, so user can independently verify.
+        thresh_str = ""
+        if predicted:
+            try:
+                rule_codes = [code for code, _ in predicted[:3]]
+                thresh_str = format_today_thresholds(ticker, today, rule_codes)
+            except Exception:
+                thresh_str = ""
+        if thresh_str:
+            return f"{_RED} {thresh_str} → 明日進處置"
+        return f"{_RED} 明日進處置"
 
     # Past 10 trading days clean AND no prediction → omit
     look10 = recent[: min(10, len(recent))]
