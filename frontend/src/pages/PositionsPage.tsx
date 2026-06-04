@@ -65,8 +65,11 @@ function tvUrl(ticker: string, market: string): string {
 
 // "明日進X確定" / "明日進處置" means today's data already locks tomorrow's
 // disposal — louder than "1 次注意即達" (conditional) or "處置中" (already in).
+// 20分鐘 = second-time disposal (全件預收, real liquidity killer) — strongest tier.
 function disposalClass(s: string | null | undefined): string {
-  if (s && s.includes("明日進")) return "text-red-400 font-bold";
+  if (!s) return "text-text-secondary";
+  if (s.includes("20分鐘")) return "text-red-200 font-extrabold bg-red-900/50 px-1.5 rounded";
+  if (s.includes("明日進")) return "text-red-400 font-bold";
   return "text-text-secondary";
 }
 
