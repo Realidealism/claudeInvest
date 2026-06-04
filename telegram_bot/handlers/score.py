@@ -512,7 +512,11 @@ def _get_disposal_status(
         return f"{_RED} 處置中 {interval} → {end.strftime('%m/%d')} 出關"
 
     if triggered:
-        return f"{_RED} 明日進處置"
+        # Show trigger detail so user can independently verify today's
+        # conditions: which §X triggered + which disposal rule met.
+        trig_rule = triggered[0]  # binding rule, e.g. (10, 6, "10日6次", 6, 0)
+        trig_label = f"{trig_rule[2]} {trig_rule[3]}/{trig_rule[1]}"
+        return f"{_RED} {predict_prefix}{trig_label} → 明日進處置"
 
     # Past 10 trading days clean AND no prediction → omit
     look10 = recent[: min(10, len(recent))]
