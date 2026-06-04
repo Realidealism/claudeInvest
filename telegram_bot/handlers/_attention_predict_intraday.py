@@ -47,13 +47,16 @@ def closest_untriggered_threshold(ticker: str, today: date) -> str | None:
         market = row["market"] if row else "TWSE"
         history = _load_history(cur, ticker, today)
         today_row, _src = _load_today_row(cur, ticker, today)
+        outstanding = _load_outstanding_shares(cur, ticker)
 
     if today_row is None or not history:
         return None
     prices = history + [today_row]
     today_close = prices[-1]["close"]
+    today_vol = prices[-1]["volume"]
+    is_tpex = market == "TPEx"
     # Market-specific §2① threshold: 32 (TWSE) / 30 (TPEx)
-    r2_1_thresh = 30 if market == "TPEx" else 32
+    r2_1_thresh = 30 if is_tpex else 32
 
     candidates: list[tuple[float, str]] = []  # (gap_ratio, message)
 
@@ -145,6 +148,41 @@ def closest_untriggered_threshold(ticker: str, today: date) -> str | None:
             _add(up_gap / today_close, f"離 §12 還差 {up_gap:.2f} 元（漲到 {up_target:.2f} 創 6 日新高）")
         else:
             _add(dn_gap / today_close, f"離 §12 還差 {dn_gap:.2f} 元（跌到 {dn_target:.2f} 創 6 日新低）")
+
+    # §4 volume gate: today_vol ≥ 5 × 60日均量 (when 6日 cum 也接近 25/27%)
+    if len(prices) >= 60 and today_vol > 0:
+        avg60_vol = sum(p["volume"] for p in prices[-60:]) / 60
+        target_vol_5x = 5 * avg60_vol
+        vol_gap = target_vol_5x - today_vol
+        if vol_gap > 0:
+            _add(
+                vol_gap / today_vol,
+                f"離 §4 量還差 {vol_gap/1000:.0f} 張（需達 {target_vol_5x/1000:.0f} 張 = 5× 60日均）",
+            )
+
+    # §5 turnover gate: today_turnover ≥ 10%/5% of outstanding
+    if outstanding and outstanding > 0 and today_vol > 0:
+        r5_tr_thresh = 5 if is_tpex else 10
+        target_vol_tr = outstanding * r5_tr_thresh / 100
+        vol_gap = target_vol_tr - today_vol
+        if vol_gap > 0:
+            _add(
+                vol_gap / today_vol,
+                f"離 §5 量還差 {vol_gap/1000:.0f} 張（需達 {target_vol_tr/1000:.0f} 張 = 週轉 {r5_tr_thresh}%）",
+            )
+
+    # §11 cum_turnover gate: 6日累積週轉 ≥ 50%/80%
+    if outstanding and outstanding > 0 and len(prices) >= 6:
+        r11_cum_thresh = 80 if is_tpex else 50
+        cum_vol_6d_excl_today = sum(p["volume"] for p in prices[-6:-1])
+        target_cum_vol = outstanding * r11_cum_thresh / 100
+        target_today_vol = target_cum_vol - cum_vol_6d_excl_today
+        if target_today_vol > today_vol and today_vol > 0:
+            vol_gap = target_today_vol - today_vol
+            _add(
+                vol_gap / today_vol,
+                f"離 §11 量還差 {vol_gap/1000:.0f} 張（需達 {target_today_vol/1000:.0f} 張 → 6日累積週轉 {r11_cum_thresh}%）",
+            )
 
     if not candidates:
         return None
