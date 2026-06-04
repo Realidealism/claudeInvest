@@ -240,12 +240,22 @@ def _check_rule_2_2(prices: list, meta: dict, mkt: dict) -> Alert | None:
 
 
 def _check_rule_3(prices: list, meta: dict, mkt: dict) -> list[Alert]:
-    """§3 30/60/90日起迄漲跌 >100/130/160%"""
+    """§3 30/60/90日起迄漲跌 >100/130/160% AND 差幅 >85/110/135%
+    差幅 = (max(closes_in_window) - min) / min over the N-day window."""
     alerts = []
     thresholds = [(30, 100, 85), (60, 130, 110), (90, 160, 135)]
     for days, pct_thresh, diff_thresh in thresholds:
+        if len(prices) < days + 1:
+            continue
         chg = _calc_nd_change_pct(prices, days)
         if chg is None or abs(chg) <= pct_thresh:
+            continue
+        win = prices[-(days + 1):]
+        closes_win = [p["close"] for p in win]
+        hi_win = max(closes_win)
+        lo_win = min(closes_win)
+        spread_pct = (hi_win / lo_win - 1) * 100 if lo_win > 0 else 0.0
+        if spread_pct < diff_thresh:
             continue
         direction = "漲" if chg > 0 else "跌"
         alerts.append(Alert(
