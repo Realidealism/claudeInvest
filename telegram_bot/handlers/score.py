@@ -322,6 +322,27 @@ def _past_trading_days(today: date, n: int) -> list[date]:
         return [r["trade_date"] for r in cur.fetchall()]
 
 
+def _next_trading_day(today: date) -> date:
+    """Next TAIEX trading day strictly after today.
+    Prefer DB (tw.index_prices); fallback to weekday skip when DB hasn't
+    populated future rows yet (typical — calendar lands one day at a time)."""
+    with get_cursor(commit=False) as cur:
+        cur.execute(
+            """
+            SELECT MIN(trade_date) AS d FROM tw.index_prices
+            WHERE index_id = 'TAIEX' AND trade_date > %s
+            """,
+            (today,),
+        )
+        r = cur.fetchone()
+    if r and r.get("d"):
+        return r["d"]
+    d = today + timedelta(days=1)
+    while d.weekday() >= 5:
+        d += timedelta(days=1)
+    return d
+
+
 # In-process cooldown so concurrent /score calls don't spam TWSE scrapers
 _TPE_TZ = timezone(timedelta(hours=8))
 _ALERT_REFRESH_COOLDOWN_S = 300
@@ -418,6 +439,9 @@ def _get_disposal_status(
             if ongoing:
                 end = ongoing["period_end"]
                 interval = _parse_auction_interval(ongoing.get("measure")) or "5分盤"
+                next_td = _next_trading_day(today)
+                if end == next_td:
+                    return f"{_RED} 處置中 {interval} → 明天出處置"
                 return f"{_RED} 處置中 {interval} → {end.strftime('%m/%d')} 出關"
             return None
         att_dates = _attention_dates_in_window(cur, ticker, recent[-1], today)
@@ -510,6 +534,9 @@ def _get_disposal_status(
     if ongoing:
         end = ongoing["period_end"]
         interval = _parse_auction_interval(ongoing.get("measure")) or "5分盤"
+        next_td = _next_trading_day(today)
+        if end == next_td:
+            return f"{_RED} 處置中 {interval} → 明天出處置"
         return f"{_RED} 處置中 {interval} → {end.strftime('%m/%d')} 出關"
 
     if triggered:
@@ -763,6 +790,195 @@ def _build_reply(ticker: str) -> str:
             sections.append(formatted)
 
     return "\n\n".join(sections)
+
+
+# ── Batch watchlist scoring ───────────────────────────────────────────────
+
+
+def _batch_fetch_sides_and_quotes(tickers: list[str]) -> dict[str, dict]:
+    """One-shot DB read of (long/short ranking row + last_price) for many
+    tickers. Returns {ticker: {"long": entry|None, "short": entry|None,
+    "last_price": float|None, "name": str, "market": str}}.
+
+    Built around the same "most recent (snapshot_date, snapshot_time)" anchor
+    as the single-ticker path so /watch score stays consistent with /score."""
+    out: dict[str, dict] = {
+        t: {"long": None, "short": None, "last_price": None, "name": "", "market": ""}
+        for t in tickers
+    }
+    if not tickers:
+        return out
+    with get_cursor(commit=False) as cur:
+        cur.execute("""
+            SELECT s.stock_id, s.side, s.rank, s.total_pct, s.turnover,
+                   s.is_new, s.prev_rank, s.rank_delta,
+                   s.pct_d1, s.pct_d2, s.pct_d3,
+                   st.name, st.market
+            FROM tw.score_snapshot_intraday s
+            JOIN tw.stocks st ON st.stock_id = s.stock_id
+            WHERE s.stock_id = ANY(%s)
+              AND (s.snapshot_date, s.snapshot_time) = (
+                  SELECT snapshot_date, snapshot_time FROM tw.score_snapshot_intraday
+                  ORDER BY snapshot_date DESC, snapshot_time DESC LIMIT 1
+              )
+        """, (list(tickers),))
+        for r in cur.fetchall():
+            sid = r["stock_id"]
+            entry = {
+                "rank": r["rank"],
+                "ticker": sid,
+                "name": r["name"],
+                "market": r["market"],
+                "total_pct": float(r["total_pct"]),
+                "turnover": float(r["turnover"]) if r["turnover"] is not None else 0.0,
+                "is_new": r["is_new"],
+                "prev_rank": r["prev_rank"],
+                "rank_delta": r["rank_delta"],
+                "pct_d1": float(r["pct_d1"]) if r["pct_d1"] is not None else None,
+                "pct_d2": float(r["pct_d2"]) if r["pct_d2"] is not None else None,
+                "pct_d3": float(r["pct_d3"]) if r["pct_d3"] is not None else None,
+                "off_ranking": True,
+            }
+            out[sid][r["side"]] = entry
+            out[sid]["name"] = r["name"]
+            out[sid]["market"] = r["market"]
+
+        # Turnover rank within the snapshot
+        cur.execute("""
+            SELECT stock_id, rk, total FROM (
+                SELECT stock_id,
+                       RANK() OVER (ORDER BY turnover DESC NULLS LAST) AS rk,
+                       COUNT(*) OVER () AS total
+                FROM tw.score_snapshot_intraday
+                WHERE (snapshot_date, snapshot_time) = (
+                    SELECT snapshot_date, snapshot_time FROM tw.score_snapshot_intraday
+                    ORDER BY snapshot_date DESC, snapshot_time DESC LIMIT 1
+                ) AND side = 'long'
+            ) x WHERE stock_id = ANY(%s)
+        """, (list(tickers),))
+        for r in cur.fetchall():
+            out[r["stock_id"]]["tv_rank"] = int(r["rk"])
+            out[r["stock_id"]]["tv_total"] = int(r["total"])
+
+        # Latest intraday quote per ticker (DISTINCT ON keeps newest row per stock)
+        cur.execute("""
+            SELECT DISTINCT ON (stock_id) stock_id, last_price
+            FROM tw.intraday_quotes
+            WHERE stock_id = ANY(%s)
+            ORDER BY stock_id, updated_at DESC
+        """, (list(tickers),))
+        for r in cur.fetchall():
+            if r["last_price"] is not None:
+                out[r["stock_id"]]["last_price"] = float(r["last_price"])
+    return out
+
+
+def _watchlist_sort_key(ticker: str, side_pos: dict[str, dict | None]) -> tuple:
+    """Sort positions-first (pnl ascending so worst first), then alphabetical.
+
+    Group buckets: (0) active position, (1) exited today, (2) no position."""
+    long_p = side_pos.get("long")
+    short_p = side_pos.get("short")
+    actives = [p for p in (long_p, short_p) if p and not p["_is_exited"]]
+    exited = [p for p in (long_p, short_p) if p and p["_is_exited"]]
+    if actives:
+        worst_pnl = min(float(p["pnl_pct"]) for p in actives)
+        return (0, worst_pnl, ticker)
+    if exited:
+        worst_pnl = min(float(p["pnl_pct"]) for p in exited)
+        return (1, worst_pnl, ticker)
+    return (2, 0.0, ticker)
+
+
+def _format_one_line(ticker: str, ctx: dict, side_pos: dict[str, dict | None]) -> str:
+    """One-line summary per stock. Segments separated by ' ｜ ';
+    leading emoji indicates position state."""
+    long_e = ctx.get("long")
+    short_e = ctx.get("short")
+    name = ctx.get("name") or ticker
+    last_price = ctx.get("last_price")
+    tv_rank = ctx.get("tv_rank")
+    tv_total = ctx.get("tv_total")
+
+    # Position segment (leading emoji + pnl + defense)
+    long_p = side_pos.get("long")
+    short_p = side_pos.get("short")
+    pos_segments = []
+    head_emoji = "⚪"
+    for p, side_zh in ((long_p, "多"), (short_p, "空")):
+        if p is None:
+            continue
+        pnl = float(p["pnl_pct"])
+        if p["_is_exited"]:
+            head_emoji = _YELLOW
+            pos_segments.append(f"{side_zh}出場 {pnl:+.2f}%")
+        else:
+            head_emoji = _RED if p["_side"] == "long" else _GREEN
+            defense = p.get("defense_price")
+            def_part = f" 防{float(defense):.2f}" if defense is not None else ""
+            pos_segments.append(f"持{side_zh} {pnl:+.2f}%{def_part}")
+    pos_str = " ".join(pos_segments) if pos_segments else "—"
+
+    # Score ranks
+    long_rank = long_e["rank"] if long_e else "—"
+    short_rank = short_e["rank"] if short_e else "—"
+    score_str = f"多#{long_rank} 空#{short_rank}"
+
+    # Price + turnover rank
+    price_str = f"{last_price:.2f}" if last_price is not None else "—"
+    tv_str = f"排#{tv_rank}" if tv_rank else ""
+    price_seg = f"{price_str} {tv_str}".strip()
+
+    return f"{head_emoji} {ticker} {name}  ｜{pos_str}  ｜{score_str}  ｜{price_seg}"
+
+
+def build_watchlist_summary(tickers: list[str]) -> str:
+    """Compose the /watch score reply for the given tickers."""
+    if not tickers:
+        return "[追蹤清單評分] 清單為空"
+
+    try:
+        freshness = detect_state()
+    except Exception:
+        freshness = None
+    tag_part = f"  [{freshness.tag}]" if freshness else ""
+
+    scores = _load_json(_SCORES_JSON)
+    positions = _load_json(_POSITIONS_JSON)
+    snapshot_date = scores.get("snapshot_date", "?") if scores else "?"
+
+    try:
+        ctx_map = _batch_fetch_sides_and_quotes(tickers)
+    except Exception:
+        ctx_map = {t: {"long": None, "short": None, "last_price": None,
+                       "name": "", "market": ""} for t in tickers}
+
+    # Layer JSON top-300 entries over DB rows so in-rank tickers lose the
+    # off_ranking flag and pick up the cleaner JSON-shaped dict.
+    if scores is not None:
+        for side in ("long", "short"):
+            for e in scores.get(side, []):
+                t = e.get("ticker")
+                if t in ctx_map:
+                    ctx_map[t][side] = {**e, "off_ranking": False}
+                    ctx_map[t]["name"] = e.get("name", "") or ctx_map[t]["name"]
+                    ctx_map[t]["market"] = e.get("market", "") or ctx_map[t]["market"]
+
+    # Position lookup per ticker, keyed by side
+    pos_map: dict[str, dict[str, dict | None]] = {}
+    for t in tickers:
+        entries = _get_positions(t, positions)
+        pos_map[t] = {"long": None, "short": None}
+        for p in entries:
+            pos_map[t][p["_side"]] = p
+
+    ordered = sorted(tickers, key=lambda t: _watchlist_sort_key(t, pos_map[t]))
+
+    lines = [f"[追蹤清單評分] {len(tickers)} 檔 — {snapshot_date}{tag_part}"]
+    lines.append("")
+    for t in ordered:
+        lines.append(_format_one_line(t, ctx_map[t], pos_map[t]))
+    return "\n".join(lines)
 
 
 @restricted
