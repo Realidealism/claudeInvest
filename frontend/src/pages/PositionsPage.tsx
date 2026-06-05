@@ -68,6 +68,9 @@ function tvUrl(ticker: string, market: string): string {
 // 20分鐘 = second-time disposal (全件預收, real liquidity killer) — strongest tier.
 function disposalClass(s: string | null | undefined): string {
   if (!s) return "text-text-secondary";
+  // 🟢 "明天出處置" — bullish (exit imminent), check before 20分盤 since the
+  // ongoing-disposal string still names the auction interval
+  if (s.includes("🟢")) return "text-emerald-400 font-semibold";
   if (s.includes("20分盤") || s.includes("20分鐘")) return "text-red-200 font-extrabold bg-red-900/50 px-1.5 rounded";
   if (s.includes("🚨")) return "text-red-300 font-extrabold bg-red-900/40 px-1.5 rounded";
   if (s.includes("明日進")) return "text-red-400 font-bold";

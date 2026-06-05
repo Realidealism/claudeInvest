@@ -441,7 +441,7 @@ def _get_disposal_status(
                 interval = _parse_auction_interval(ongoing.get("measure")) or "5分盤"
                 next_td = _next_trading_day(today)
                 if end == next_td:
-                    return f"{_RED} 處置中 {interval} → 明天出處置"
+                    return f"{_GREEN} 處置中 {interval} → 明天出處置"
                 return f"{_RED} 處置中 {interval} → {end.strftime('%m/%d')} 出關"
             return None
         att_dates = _attention_dates_in_window(cur, ticker, recent[-1], today)
@@ -536,7 +536,7 @@ def _get_disposal_status(
         interval = _parse_auction_interval(ongoing.get("measure")) or "5分盤"
         next_td = _next_trading_day(today)
         if end == next_td:
-            return f"{_RED} 處置中 {interval} → 明天出處置"
+            return f"{_GREEN} 處置中 {interval} → 明天出處置"
         return f"{_RED} 處置中 {interval} → {end.strftime('%m/%d')} 出關"
 
     if triggered:
