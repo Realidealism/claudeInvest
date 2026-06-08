@@ -181,47 +181,19 @@ def _get_turnover_rank_and_price(ticker: str) -> tuple[int | None, int | None, f
     return rank, total, price
 
 
-def _lookup_db_sides(ticker: str) -> dict[str, dict | None]:
-    """Fallback for tickers outside the JSON top-300 slice.
-
-    Reads the most recent (snapshot_date, snapshot_time) tuple straight from
-    tw.score_snapshot_intraday — which now stores the full alive universe per
-    side — and returns a dict shaped like the JSON entries with an extra
-    ``off_ranking`` flag so the formatter can mark these rows."""
-    out: dict[str, dict | None] = {"long": None, "short": None}
+def _lookup_name_market(ticker: str) -> tuple[str, str]:
+    """Lightweight name+market lookup for tickers outside the JSON top-500
+    slice. We deliberately do NOT pull rank/score from DB — those rows reply
+    with "名單外" instead. Returns ("", "") if the ticker is unknown."""
     with get_cursor(commit=False) as cur:
-        cur.execute("""
-            SELECT s.side, s.rank, s.total_pct, s.turnover,
-                   s.is_new, s.prev_rank, s.rank_delta,
-                   s.pct_d1, s.pct_d2, s.pct_d3,
-                   st.name, st.market
-            FROM tw.score_snapshot_intraday s
-            JOIN tw.stocks st ON st.stock_id = s.stock_id
-            WHERE s.stock_id = %s
-              AND (s.snapshot_date, s.snapshot_time) = (
-                  SELECT snapshot_date, snapshot_time
-                  FROM tw.score_snapshot_intraday
-                  ORDER BY snapshot_date DESC, snapshot_time DESC
-                  LIMIT 1
-              )
-        """, (ticker,))
-        for r in cur.fetchall():
-            out[r["side"]] = {
-                "rank": r["rank"],
-                "ticker": ticker,
-                "name": r["name"],
-                "market": r["market"],
-                "total_pct": float(r["total_pct"]),
-                "turnover": float(r["turnover"]) if r["turnover"] is not None else 0.0,
-                "is_new": r["is_new"],
-                "prev_rank": r["prev_rank"],
-                "rank_delta": r["rank_delta"],
-                "pct_d1": float(r["pct_d1"]) if r["pct_d1"] is not None else None,
-                "pct_d2": float(r["pct_d2"]) if r["pct_d2"] is not None else None,
-                "pct_d3": float(r["pct_d3"]) if r["pct_d3"] is not None else None,
-                "off_ranking": True,
-            }
-    return out
+        cur.execute(
+            "SELECT name, market FROM tw.stocks WHERE stock_id = %s",
+            (ticker,),
+        )
+        r = cur.fetchone()
+    if r is None:
+        return "", ""
+    return r["name"] or "", r["market"] or ""
 
 
 # ── Signal lookup ─────────────────────────────────────────────────────────
@@ -720,45 +692,50 @@ def _build_reply(ticker: str) -> str:
     snapshot_date = "?"
     turnover_part = ""
 
+    off_ranking = False
     if scores is not None:
         snapshot_date = scores.get("snapshot_date", "?")
         long_entry = _find_in_ranking(scores.get("long", []), ticker)
         short_entry = _find_in_ranking(scores.get("short", []), ticker)
 
-        # Off-ranking fallback: anything not in the JSON top-300 slice
-        # is still kept in tw.score_snapshot_intraday — pull it from DB.
-        if long_entry is None or short_entry is None:
+        # Off-ranking: not in the JSON top-500 slice on either side.
+        # We still want a useful reply (signals / positions / ETF /
+        # disposal), so fetch name+market only and tag the header
+        # "名單外".
+        if long_entry is None and short_entry is None:
+            off_ranking = True
             try:
-                db_sides = _lookup_db_sides(ticker)
+                name, market = _lookup_name_market(ticker)
             except Exception:
-                db_sides = {"long": None, "short": None}
-            if long_entry is None:
-                long_entry = db_sides["long"]
-            if short_entry is None:
-                short_entry = db_sides["short"]
-
-        any_entry = long_entry or short_entry
-        if any_entry is not None:
+                name, market = "", ""
+        else:
+            any_entry = long_entry or short_entry
             name = any_entry.get("name", "")
             market = any_entry.get("market", "")
-            try:
-                tv_rank, tv_total, last_price = _get_turnover_rank_and_price(ticker)
-            except Exception:
-                tv_rank = tv_total = last_price = None
-            extra_lines = []
-            if last_price is not None:
-                extra_lines.append(f"成交價：{last_price:.2f}")
-            if tv_rank is not None and tv_total is not None:
-                extra_lines.append(f"成交金額排名：#{tv_rank} / {tv_total}")
-            if extra_lines:
-                turnover_part = "\n" + "\n".join(extra_lines)
+
+        try:
+            tv_rank, tv_total, last_price = _get_turnover_rank_and_price(ticker)
+        except Exception:
+            tv_rank = tv_total = last_price = None
+        extra_lines = []
+        if last_price is not None:
+            extra_lines.append(f"成交價：{last_price:.2f}")
+        if tv_rank is not None and tv_total is not None:
+            extra_lines.append(f"成交金額排名：#{tv_rank} / {tv_total}")
+        if extra_lines:
+            turnover_part = "\n" + "\n".join(extra_lines)
 
     # Header (with freshness tag if available)
     tag_part = f"  [{freshness.tag}]" if freshness else ""
-    if name or market:
+    if off_ranking:
+        if name or market:
+            header = f"[評分] {ticker} {name}（{market}） — 名單外（{snapshot_date}）{tag_part}{turnover_part}"
+        else:
+            header = f"[評分] {ticker} — 名單外（{snapshot_date}）{tag_part}"
+    elif name or market:
         header = f"[評分] {ticker} {name}（{market}） — {snapshot_date}{tag_part}{turnover_part}"
     else:
-        header = f"[評分] {ticker} — 排行榜外（{snapshot_date}）{tag_part}"
+        header = f"[評分] {ticker} — {snapshot_date}{tag_part}"
 
     sections = [header]
 
@@ -874,20 +851,25 @@ def _batch_fetch_sides_and_quotes(tickers: list[str]) -> dict[str, dict]:
 
 
 def _watchlist_sort_key(ticker: str, side_pos: dict[str, dict | None]) -> tuple:
-    """Sort positions-first (pnl ascending so worst first), then alphabetical.
+    """Sort by signed distance to defense, ascending: broken (negative) first,
+    then thin margin, then fat margin. No-position stocks at bottom by symbol.
 
-    Group buckets: (0) active position, (1) exited today, (2) no position."""
-    long_p = side_pos.get("long")
-    short_p = side_pos.get("short")
-    actives = [p for p in (long_p, short_p) if p and not p["_is_exited"]]
-    exited = [p for p in (long_p, short_p) if p and p["_is_exited"]]
-    if actives:
-        worst_pnl = min(float(p["pnl_pct"]) for p in actives)
-        return (0, worst_pnl, ticker)
-    if exited:
-        worst_pnl = min(float(p["pnl_pct"]) for p in exited)
-        return (1, worst_pnl, ticker)
-    return (2, 0.0, ticker)
+    Long-safe direction is current > defense (positive); short-safe is current
+    < defense (positive after sign flip). Already-exited rows score negative
+    and naturally float above active rows with positive cushion."""
+    positions = [p for p in (side_pos.get("long"), side_pos.get("short")) if p]
+    if not positions:
+        return (1, 0.0, ticker)
+
+    def _signed_dist_pct(p: dict) -> float:
+        defense = p.get("defense_price")
+        current = p.get("current_close")
+        if defense is None or current is None or float(defense) == 0:
+            return float("inf")
+        raw = (float(current) - float(defense)) / float(defense) * 100.0
+        return raw if p["_side"] == "long" else -raw
+
+    return (0, min(_signed_dist_pct(p) for p in positions), ticker)
 
 
 def _format_one_line(ticker: str, ctx: dict, side_pos: dict[str, dict | None]) -> str:
@@ -900,23 +882,35 @@ def _format_one_line(ticker: str, ctx: dict, side_pos: dict[str, dict | None]) -
     tv_rank = ctx.get("tv_rank")
     tv_total = ctx.get("tv_total")
 
-    # Position segment (leading emoji + pnl + defense)
+    # Position segment (leading emoji + pnl + defense). The lead emoji is
+    # state-based, not side-based: 🔴 already exited, 🟡 within 5% of defense
+    # (caution), 🟢 safe margin, ⚪ no position. Worst state across both
+    # sides wins.
     long_p = side_pos.get("long")
     short_p = side_pos.get("short")
     pos_segments = []
-    head_emoji = "⚪"
+    state_emoji = {0: "⚪", 1: _GREEN, 2: _YELLOW, 3: _RED}
+    state_priority = 0
     for p, side_zh in ((long_p, "多"), (short_p, "空")):
         if p is None:
             continue
         pnl = float(p["pnl_pct"])
+        defense = p.get("defense_price")
+        current = p.get("current_close")
+        def_part = f" 防{float(defense):.2f}" if defense is not None else ""
         if p["_is_exited"]:
-            head_emoji = _YELLOW
-            pos_segments.append(f"{side_zh}出場 {pnl:+.2f}%")
+            this_state = 3
+            pos_segments.append(f"{side_zh}出場 {pnl:+.2f}%{def_part}")
         else:
-            head_emoji = _RED if p["_side"] == "long" else _GREEN
-            defense = p.get("defense_price")
-            def_part = f" 防{float(defense):.2f}" if defense is not None else ""
+            within_5pct = (
+                defense is not None and current is not None and float(defense) != 0
+                and abs(float(current) - float(defense)) / float(defense) < 0.05
+            )
+            this_state = 2 if within_5pct else 1
             pos_segments.append(f"持{side_zh} {pnl:+.2f}%{def_part}")
+        if this_state > state_priority:
+            state_priority = this_state
+    head_emoji = state_emoji[state_priority]
     pos_str = " ".join(pos_segments) if pos_segments else "—"
 
     # Score ranks
@@ -924,12 +918,12 @@ def _format_one_line(ticker: str, ctx: dict, side_pos: dict[str, dict | None]) -
     short_rank = short_e["rank"] if short_e else "—"
     score_str = f"多#{long_rank} 空#{short_rank}"
 
-    # Price + turnover rank
+    # Price sits next to the name; turnover rank takes the final segment.
     price_str = f"{last_price:.2f}" if last_price is not None else "—"
-    tv_str = f"排#{tv_rank}" if tv_rank else ""
-    price_seg = f"{price_str} {tv_str}".strip()
+    name_with_price = f"{name} {price_str}"
+    tv_str = f"排#{tv_rank}" if tv_rank else "—"
 
-    return f"{head_emoji} {ticker} {name}  ｜{pos_str}  ｜{score_str}  ｜{price_seg}"
+    return f"{head_emoji} {ticker} {name_with_price}  ｜{pos_str}  ｜{score_str}  ｜{tv_str}"
 
 
 def build_watchlist_summary(tickers: list[str]) -> str:

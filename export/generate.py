@@ -1073,12 +1073,13 @@ def export_operations(cur, out: Path):
 
 
 def export_scores_intraday(cur, out: Path):
-    """Intraday (12:50) ScoreBoard preview — top-300 long + top-300 short.
+    """Intraday (12:50) ScoreBoard preview — top-500 long + top-500 short.
 
     Mirrors export_scores but reads from tw.score_snapshot_intraday and
-    picks the most recent (snapshot_date, snapshot_time) tuple. DB now
+    picks the most recent (snapshot_date, snapshot_time) tuple. DB
     persists the full alive universe per side; the LIMIT below keeps the
-    JSON small for the frontend. /score reads the rest straight from DB."""
+    JSON small for the frontend. /score replies with "名單外" for
+    tickers beyond the LIMIT."""
     cur.execute("""
         SELECT snapshot_date, snapshot_time
         FROM tw.score_snapshot_intraday
@@ -1104,7 +1105,7 @@ def export_scores_intraday(cur, out: Path):
             JOIN tw.stocks st ON st.stock_id = s.stock_id
             WHERE s.snapshot_date = %s AND s.snapshot_time = %s AND s.side = %s
             ORDER BY s.rank
-            LIMIT 300
+            LIMIT 500
         """, (snap_date, snap_time, side))
         for r in cur.fetchall():
             sides[side].append({
