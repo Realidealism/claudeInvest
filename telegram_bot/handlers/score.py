@@ -501,15 +501,17 @@ def _get_disposal_status(
     # Per TWSE 作業要點 第6條第7項: attention days BEFORE + DURING disposal
     # don't count toward the next-disposal trigger. The 5/5, 10/6, 30/12
     # counters effectively reset after exit, so rule_states here are stale
-    # and any upgrade prediction would be tautological. Just show the exit
-    # date.
+    # and any upgrade prediction would be tautological. Show last day +
+    # the trading day normal-trade resumes (period_end is inclusive).
     if ongoing:
         end = ongoing["period_end"]
         interval = _parse_auction_interval(ongoing.get("measure")) or "5分盤"
-        next_td = _next_trading_day(today)
-        if end == next_td:
-            return f"{_GREEN} 處置中 {interval} → 明天出處置"
-        return f"{_RED} 處置中 {interval} → {end.strftime('%m/%d')} 出關"
+        resume = _next_trading_day(end)
+        end_str = end.strftime("%m/%d")
+        resume_str = resume.strftime("%m/%d")
+        if end == today:
+            return f"{_GREEN} 處置中 {interval} → 今日最後一天，{resume_str} 起恢復"
+        return f"{_RED} 處置中 {interval} → {end_str} 止（{resume_str} 起恢復）"
 
     if triggered:
         # Show actual threshold values (close ≥ X 元 / 量 ≥ Y 張) for the
