@@ -215,42 +215,50 @@ def export_funds(cur, out: Path):
         if f["fund_type"] == "fund":
             # Monthly: all periods
             cur.execute("""
-                SELECT period, ticker, ticker_name, rank, weight
-                FROM tw.fund_holdings_monthly
-                WHERE fund_id = %s
-                ORDER BY period DESC, rank
+                SELECT h.period, h.ticker, h.ticker_name, st.market,
+                       h.rank, h.weight
+                FROM tw.fund_holdings_monthly h
+                LEFT JOIN tw.stocks st ON st.stock_id = h.ticker
+                WHERE h.fund_id = %s
+                ORDER BY h.period DESC, h.rank
             """, (fid,))
             monthly = {}
             for r in cur.fetchall():
                 monthly.setdefault(r["period"], []).append({
                     "ticker": r["ticker"],
                     "ticker_name": r["ticker_name"],
+                    "market": r["market"],
                     "rank": r["rank"],
                     "weight": float(r["weight"]) if r["weight"] else None,
                 })
 
             # Quarterly: all periods
             cur.execute("""
-                SELECT period, ticker, ticker_name, weight
-                FROM tw.fund_holdings_quarterly
-                WHERE fund_id = %s
-                ORDER BY period DESC, weight DESC
+                SELECT h.period, h.ticker, h.ticker_name, st.market,
+                       h.weight
+                FROM tw.fund_holdings_quarterly h
+                LEFT JOIN tw.stocks st ON st.stock_id = h.ticker
+                WHERE h.fund_id = %s
+                ORDER BY h.period DESC, h.weight DESC
             """, (fid,))
             quarterly = {}
             for r in cur.fetchall():
                 quarterly.setdefault(r["period"], []).append({
                     "ticker": r["ticker"],
                     "ticker_name": r["ticker_name"],
+                    "market": r["market"],
                     "weight": float(r["weight"]) if r["weight"] else None,
                 })
         else:
             # ETF: use etf_holdings grouped by trade_date
             cur.execute("""
-                SELECT trade_date, stock_id AS ticker, stock_name AS ticker_name,
-                       weight, shares
-                FROM tw.etf_holdings
-                WHERE etf_id = %s
-                ORDER BY trade_date DESC, weight DESC
+                SELECT h.trade_date, h.stock_id AS ticker,
+                       h.stock_name AS ticker_name, st.market,
+                       h.weight, h.shares
+                FROM tw.etf_holdings h
+                LEFT JOIN tw.stocks st ON st.stock_id = h.stock_id
+                WHERE h.etf_id = %s
+                ORDER BY h.trade_date DESC, h.weight DESC
             """, (f["code"],))
             monthly = {}
             for r in cur.fetchall():
@@ -258,6 +266,7 @@ def export_funds(cur, out: Path):
                 monthly.setdefault(key, []).append({
                     "ticker": r["ticker"],
                     "ticker_name": r["ticker_name"],
+                    "market": r["market"],
                     "rank": None,
                     "weight": float(r["weight"]) if r["weight"] else None,
                     "shares": r["shares"],

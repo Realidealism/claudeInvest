@@ -4,9 +4,16 @@ import { useParams, Link, useNavigate } from "react-router-dom";
 interface Holding {
   ticker: string;
   ticker_name: string;
+  market?: string;
   rank?: number;
   weight: number | null;
   shares?: number | null;
+}
+
+// TradingView uses 'TWSE:' for TWSE and 'TPEX:' (all caps) for TPEx.
+function tvUrl(ticker: string, market: string | undefined): string {
+  const prefix = market === "TPEx" ? "TPEX" : "TWSE";
+  return `https://tw.tradingview.com/chart/?symbol=${prefix}:${ticker}`;
 }
 
 interface FundInfo {
@@ -155,7 +162,14 @@ export default function FundDetailPage() {
                 : null;
               return (
                 <div key={h.ticker} className="flex items-center gap-2 text-xs">
-                  <span className="w-16 font-mono shrink-0">{h.ticker}</span>
+                  <a
+                    href={tvUrl(h.ticker, h.market)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="w-16 font-mono shrink-0 text-accent hover:underline"
+                  >
+                    {h.ticker}
+                  </a>
                   <span className="w-16 shrink-0 truncate">{h.ticker_name}</span>
                   <div className="flex-1 h-4 bg-surface rounded overflow-hidden">
                     <div
@@ -195,7 +209,14 @@ export default function FundDetailPage() {
             <div className="max-h-[600px] overflow-y-auto space-y-0.5">
               {(quarterly[selectedQPeriod] || []).map((h) => (
                 <div key={h.ticker} className="flex items-center gap-2 text-xs">
-                  <span className="w-16 font-mono shrink-0">{h.ticker}</span>
+                  <a
+                    href={tvUrl(h.ticker, h.market)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="w-16 font-mono shrink-0 text-accent hover:underline"
+                  >
+                    {h.ticker}
+                  </a>
                   <span className="w-20 shrink-0 truncate">{h.ticker_name}</span>
                   <div className="flex-1 h-3 bg-surface rounded overflow-hidden">
                     <div
