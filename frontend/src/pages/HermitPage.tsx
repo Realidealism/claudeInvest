@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link } from "react-router-dom";
 
 interface Valuation {
   method: string | null;
@@ -13,6 +12,7 @@ interface Pick {
   rank: number;
   ticker: string;
   name: string;
+  market?: string;
   industry: string | null;
   score: number;
   grade: string;
@@ -21,6 +21,12 @@ interface Pick {
   is_new: boolean;
   prev_rank: number | null;
   rank_delta: number | null;
+}
+
+// TradingView uses 'TWSE:' for TWSE and 'TPEX:' (all caps) for TPEx.
+function tvUrl(ticker: string, market: string | undefined): string {
+  const prefix = market === "TPEx" ? "TPEX" : "TWSE";
+  return `https://tw.tradingview.com/chart/?symbol=${prefix}:${ticker}`;
 }
 
 interface HistoryItem {
@@ -187,9 +193,14 @@ export default function HermitPage() {
               >
                 <td className="px-2 py-1.5">{p.rank}</td>
                 <td className="px-2 py-1.5 font-mono">
-                  <Link to={`/stock/${p.ticker}`} className="text-accent hover:underline">
+                  <a
+                    href={tvUrl(p.ticker, p.market)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-accent hover:underline"
+                  >
                     {p.ticker}
-                  </Link>
+                  </a>
                 </td>
                 <td className="px-2 py-1.5">{p.name}</td>
                 <td className="px-2 py-1.5 hidden md:table-cell text-text-secondary">

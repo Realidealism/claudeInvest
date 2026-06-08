@@ -13,10 +13,17 @@ interface FundsData {
 interface Signal {
   ticker: string;
   ticker_name: string;
+  market?: string;
   funds: string[];
   trigger_date: string;
   trigger_period: string;
   weight_change: number | null;
+}
+
+// TradingView uses 'TWSE:' for TWSE and 'TPEX:' (all caps) for TPEx.
+function tvUrl(ticker: string, market: string | undefined): string {
+  const prefix = market === "TPEx" ? "TPEX" : "TWSE";
+  return `https://tw.tradingview.com/chart/?symbol=${prefix}:${ticker}`;
 }
 
 interface SignalsData {
@@ -92,10 +99,10 @@ export default function SearchPage() {
 
   // Group by ticker
   const grouped = useMemo(() => {
-    const map: Record<string, { name: string; signals: FlatSignal[] }> = {};
+    const map: Record<string, { name: string; market?: string; signals: FlatSignal[] }> = {};
     for (const s of results) {
       if (!map[s.ticker]) {
-        map[s.ticker] = { name: s.ticker_name, signals: [] };
+        map[s.ticker] = { name: s.ticker_name, market: s.market, signals: [] };
       }
       map[s.ticker].signals.push(s);
     }
@@ -128,13 +135,18 @@ export default function SearchPage() {
       )}
 
       {tickers.map((ticker) => {
-        const { name, signals } = grouped[ticker];
+        const { name, market, signals } = grouped[ticker];
         return (
           <div key={ticker} className="mb-6">
             <h3 className="text-sm font-semibold mb-2">
-              <Link to={`/stock/${ticker}`} className="text-accent hover:underline font-mono">
+              <a
+                href={tvUrl(ticker, market)}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-accent hover:underline font-mono"
+              >
                 {ticker}
-              </Link>
+              </a>
               <span className="ml-2 text-text-primary">{name}</span>
               <span className="ml-2 text-text-secondary font-normal">({signals.length} 筆)</span>
             </h3>

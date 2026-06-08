@@ -4,11 +4,18 @@ import { Link } from "react-router-dom";
 interface Signal {
   ticker: string;
   ticker_name: string;
+  market?: string;
   funds: string[];
   trigger_date: string;
   trigger_period: string;
   weight_change: number | null;
   evidence: Record<string, unknown>;
+}
+
+// TradingView uses 'TWSE:' for TWSE and 'TPEX:' (all caps) for TPEx.
+function tvUrl(ticker: string, market: string | undefined): string {
+  const prefix = market === "TPEx" ? "TPEX" : "TWSE";
+  return `https://tw.tradingview.com/chart/?symbol=${prefix}:${ticker}`;
 }
 
 interface SignalsData {
@@ -164,7 +171,14 @@ export default function SignalsPage() {
                 className="border-b border-border/50 hover:bg-surface-hover transition-colors"
               >
                 <td className="py-2 pr-4 font-mono">
-                  <Link to={`/stock/${s.ticker}`} className="text-accent hover:underline">{s.ticker}</Link>
+                  <a
+                    href={tvUrl(s.ticker, s.market)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-accent hover:underline"
+                  >
+                    {s.ticker}
+                  </a>
                 </td>
                 <td className="py-2 pr-4">{s.ticker_name}</td>
                 <td className={`py-2 pr-4 ${PHASE_COLORS[s._type] || ""}`}>

@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
 
 interface FundColumn {
   code: string;
@@ -14,7 +13,14 @@ interface FundChange {
 
 interface TickerChange {
   ticker_name: string;
+  market?: string;
   funds: Record<string, FundChange>;
+}
+
+// TradingView uses 'TWSE:' for TWSE and 'TPEX:' (all caps) for TPEx.
+function tvUrl(ticker: string, market: string | undefined): string {
+  const prefix = market === "TPEx" ? "TPEX" : "TWSE";
+  return `https://tw.tradingview.com/chart/?symbol=${prefix}:${ticker}`;
 }
 
 interface FlowData {
@@ -90,7 +96,14 @@ export default function FlowPage() {
             {sorted.map(([ticker, change]) => (
               <tr key={ticker} className="border-b border-border/30">
                 <td className="py-2 pr-4 font-mono sticky left-0 bg-surface z-10 w-16">
-                  <Link to={`/stock/${ticker}`} className="text-accent hover:underline">{ticker}</Link>
+                  <a
+                    href={tvUrl(ticker, change.market)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-accent hover:underline"
+                  >
+                    {ticker}
+                  </a>
                 </td>
                 <td className="py-2 pr-4 sticky left-[4.5rem] bg-surface z-10 w-20 truncate">
                   {change.ticker_name}

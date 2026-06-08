@@ -15,6 +15,31 @@ from pathlib import Path
 from db.connection import get_cursor, init_db
 
 
+def _disposal_status_for(ticker: str, freshness) -> str:
+    """Best-effort disposal status string for a single ticker.
+
+    Imports lazily so this module doesn't hard-depend on telegram_bot at
+    import time (telegram_bot pulls PTB which may not be installed in some
+    deployment slices). Returns "" on any failure.
+
+    TODO: extract disposal logic to a neutral analysis/ module so export
+    doesn't reach into telegram_bot.
+    """
+    try:
+        from telegram_bot.handlers.score import _get_disposal_status
+        return _get_disposal_status(ticker, freshness, allow_refresh=False) or ""
+    except Exception:
+        return ""
+
+
+def _current_freshness():
+    try:
+        from telegram_bot.handlers._data_freshness import detect_state
+        return detect_state()
+    except Exception:
+        return None
+
+
 def _serial(obj):
     if isinstance(obj, (date, datetime)):
         return obj.isoformat()
@@ -36,19 +61,22 @@ def _write(data, path: Path):
 
 def export_signals(cur, out: Path):
     cur.execute("""
-        SELECT signal_type, ticker, ticker_name, funds,
-               trigger_date, trigger_period, weight_change, evidence
-        FROM tw.signals
-        ORDER BY trigger_period DESC, ticker
+        SELECT s.signal_type, s.ticker, s.ticker_name, st.market,
+               s.funds, s.trigger_date, s.trigger_period,
+               s.weight_change, s.evidence
+        FROM tw.signals s
+        LEFT JOIN tw.stocks st ON st.stock_id = s.ticker
+        ORDER BY s.trigger_period DESC, s.ticker
     """)
     rows = cur.fetchall()
 
     by_type = {}
     for r in rows:
-        st = r["signal_type"]
-        by_type.setdefault(st, []).append({
+        st_type = r["signal_type"]
+        by_type.setdefault(st_type, []).append({
             "ticker": r["ticker"],
             "ticker_name": r["ticker_name"],
+            "market": r["market"],
             "funds": r["funds"],
             "trigger_date": r["trigger_date"],
             "trigger_period": r["trigger_period"],
@@ -307,80 +335,7 @@ def export_dual_track(cur, out: Path):
 
 
 # -----------------------------------------------------------------------
-# 5. stocks.json — per-ticker cross-fund distribution
-# -----------------------------------------------------------------------
-
-def export_stocks(cur, out: Path):
-    cur.execute("SELECT MAX(period) FROM tw.fund_holdings_monthly")
-    latest_m = list(cur.fetchone().values())[0]
-
-    # All tickers from holdings + signals
-    cur.execute("""
-        SELECT DISTINCT ticker, ticker_name
-        FROM tw.fund_holdings_monthly
-        WHERE period = %s
-    """, (latest_m,))
-    ticker_map = {r["ticker"]: r["ticker_name"] for r in cur.fetchall()}
-
-    # Add tickers from signals that aren't in current holdings
-    cur.execute("""
-        SELECT DISTINCT s.ticker, s.ticker_name
-        FROM tw.signals s
-        WHERE s.ticker NOT IN (
-            SELECT ticker FROM tw.fund_holdings_monthly WHERE period = %s
-        )
-    """, (latest_m,))
-    for r in cur.fetchall():
-        ticker_map[r["ticker"]] = r["ticker_name"]
-
-    tickers = [{"ticker": k, "ticker_name": v} for k, v in sorted(ticker_map.items())]
-
-    # Per-ticker: which funds hold it and with what weight
-    stocks = {}
-    for t in tickers:
-        cur.execute("""
-            SELECT f.code, f.name, m.weight, m.rank, m.period
-            FROM tw.fund_holdings_monthly m
-            JOIN tw.funds f ON m.fund_id = f.id
-            WHERE m.ticker = %s
-            ORDER BY m.period DESC, m.weight DESC
-        """, (t["ticker"],))
-        holdings = [dict(r) for r in cur.fetchall()]
-
-        # ETF holdings for this ticker
-        cur.execute("""
-            SELECT etf_id, weight, trade_date
-            FROM tw.etf_holdings
-            WHERE stock_id = %s
-            ORDER BY trade_date DESC
-            LIMIT 7
-        """, (t["ticker"],))
-        etf = [dict(r) for r in cur.fetchall()]
-
-        # Signals for this ticker
-        cur.execute("""
-            SELECT signal_type, trigger_period, funds, weight_change
-            FROM tw.signals
-            WHERE ticker = %s
-            ORDER BY trigger_period DESC
-        """, (t["ticker"],))
-        signals = [dict(r) for r in cur.fetchall()]
-
-        stocks[t["ticker"]] = {
-            "ticker_name": t["ticker_name"],
-            "fund_holdings": holdings,
-            "etf_holdings": etf,
-            "signals": signals,
-        }
-
-    _write({
-        "stocks": stocks,
-        "latest_monthly": latest_m,
-    }, out / "stocks.json")
-
-
-# -----------------------------------------------------------------------
-# 6. timeline.json — per-fund holdings across periods
+# 5. timeline.json — per-fund holdings across periods
 # -----------------------------------------------------------------------
 
 def export_timeline(cur, out: Path):
@@ -401,10 +356,12 @@ def export_timeline(cur, out: Path):
     trajectories = {}
     for f in funds:
         cur.execute("""
-            SELECT period, ticker, ticker_name, rank, weight
-            FROM tw.fund_holdings_monthly
-            WHERE fund_id = %s
-            ORDER BY period, rank
+            SELECT h.period, h.ticker, h.ticker_name, st.market,
+                   h.rank, h.weight
+            FROM tw.fund_holdings_monthly h
+            LEFT JOIN tw.stocks st ON st.stock_id = h.ticker
+            WHERE h.fund_id = %s
+            ORDER BY h.period, h.rank
         """, (f["id"],))
 
         by_period = {}
@@ -412,6 +369,7 @@ def export_timeline(cur, out: Path):
             by_period.setdefault(r["period"], []).append({
                 "ticker": r["ticker"],
                 "ticker_name": r["ticker_name"],
+                "market": r["market"],
                 "rank": r["rank"],
                 "weight": float(r["weight"]) if r["weight"] else None,
             })
@@ -526,12 +484,13 @@ def export_flow(cur, out: Path):
 
     # Weight and amount for both periods
     cur.execute("""
-        SELECT c.ticker, c.ticker_name,
+        SELECT c.ticker, c.ticker_name, st.market,
                f.code AS fund_code, f.name AS fund_name,
                c.weight AS curr_weight, c.amount AS curr_amount,
                p.weight AS prev_weight, p.amount AS prev_amount
         FROM tw.fund_holdings_monthly c
         JOIN tw.funds f ON c.fund_id = f.id
+        LEFT JOIN tw.stocks st ON st.stock_id = c.ticker
         LEFT JOIN tw.fund_holdings_monthly p
             ON c.fund_id = p.fund_id AND c.ticker = p.ticker AND p.period = %s
         WHERE c.period = %s
@@ -542,7 +501,11 @@ def export_flow(cur, out: Path):
     for r in cur.fetchall():
         ticker = r["ticker"]
         if ticker not in changes:
-            changes[ticker] = {"ticker_name": r["ticker_name"], "funds": {}}
+            changes[ticker] = {
+                "ticker_name": r["ticker_name"],
+                "market": r["market"],
+                "funds": {},
+            }
 
         cp = curr_prices.get(ticker)
         pp = prev_prices.get(ticker)
@@ -574,49 +537,6 @@ def export_flow(cur, out: Path):
 
 
 # -----------------------------------------------------------------------
-# 9. prices.json — OHLCV for stocks in signals/holdings (last 12 months)
-# -----------------------------------------------------------------------
-
-def export_prices(cur, out: Path):
-    # Only tickers with recent signals (3 months) or in latest holdings
-    cur.execute("""
-        SELECT DISTINCT ticker FROM tw.signals
-        WHERE trigger_date >= CURRENT_DATE - INTERVAL '6 months'
-    """)
-    tickers = {r["ticker"] for r in cur.fetchall()}
-    cur.execute("""
-        SELECT DISTINCT ticker FROM tw.fund_holdings_monthly
-        WHERE period = (SELECT MAX(period) FROM tw.fund_holdings_monthly)
-    """)
-    tickers |= {r["ticker"] for r in cur.fetchall()}
-
-    prices = {}
-    for ticker in sorted(tickers):
-        cur.execute("""
-            SELECT trade_date, open_price, high_price, low_price, close_price, volume
-            FROM tw.daily_prices
-            WHERE stock_id = %s AND trade_date >= CURRENT_DATE - INTERVAL '12 months'
-            ORDER BY trade_date
-        """, (ticker,))
-        rows = cur.fetchall()
-        if not rows:
-            continue
-        prices[ticker] = [
-            {
-                "t": str(r["trade_date"]),
-                "o": float(r["open_price"]) if r["open_price"] else None,
-                "h": float(r["high_price"]) if r["high_price"] else None,
-                "l": float(r["low_price"]) if r["low_price"] else None,
-                "c": float(r["close_price"]) if r["close_price"] else None,
-                "v": int(r["volume"]) if r["volume"] else 0,
-            }
-            for r in rows
-        ]
-
-    _write(prices, out / "prices.json")
-
-
-# -----------------------------------------------------------------------
 # Main
 # -----------------------------------------------------------------------
 
@@ -632,7 +552,8 @@ def export_hermit(cur, out: Path):
 
     # Latest snapshot rows joined with stock name/industry
     cur.execute("""
-        SELECT s.rank, s.stock_id, st.name, st.industry, s.score, s.grade,
+        SELECT s.rank, s.stock_id, st.name, st.market, st.industry,
+               s.score, s.grade,
                s.f1_pass, s.f2_pass, s.f3_pass, s.f4_pass,
                s.f5_pass, s.f6_pass, s.f7_pass, s.f8_pass,
                s.val_method, s.val_multiple, s.val_band,
@@ -649,6 +570,7 @@ def export_hermit(cur, out: Path):
             "rank": r["rank"],
             "ticker": r["stock_id"],
             "name": r["name"],
+            "market": r["market"],
             "industry": r["industry"],
             "score": r["score"],
             "grade": r["grade"],
@@ -1154,7 +1076,9 @@ def export_scores_intraday(cur, out: Path):
     """Intraday (12:50) ScoreBoard preview — top-300 long + top-300 short.
 
     Mirrors export_scores but reads from tw.score_snapshot_intraday and
-    picks the most recent (snapshot_date, snapshot_time) tuple."""
+    picks the most recent (snapshot_date, snapshot_time) tuple. DB now
+    persists the full alive universe per side; the LIMIT below keeps the
+    JSON small for the frontend. /score reads the rest straight from DB."""
     cur.execute("""
         SELECT snapshot_date, snapshot_time
         FROM tw.score_snapshot_intraday
@@ -1180,6 +1104,7 @@ def export_scores_intraday(cur, out: Path):
             JOIN tw.stocks st ON st.stock_id = s.stock_id
             WHERE s.snapshot_date = %s AND s.snapshot_time = %s AND s.side = %s
             ORDER BY s.rank
+            LIMIT 300
         """, (snap_date, snap_time, side))
         for r in cur.fetchall():
             sides[side].append({
@@ -1292,6 +1217,7 @@ def export_positions_intraday(cur, out: Path):
         "long": [], "short": [],
         "exited_long": [], "exited_short": [],
     }
+    freshness = _current_freshness()
     for side in ("long", "short"):
         for is_exited, key in ((False, side), (True, f"exited_{side}")):
             cur.execute("""
@@ -1322,6 +1248,7 @@ def export_positions_intraday(cur, out: Path):
                     "defense_reason": r["defense_reason"],
                     "defense_date": r["defense_date"],
                     "exit_reason": r["exit_reason"],
+                    "disposal_status": _disposal_status_for(r["stock_id"], freshness),
                 })
 
     _write(out_data, out / "positions_intraday.json")
@@ -1371,6 +1298,7 @@ def export_positions(cur, out: Path):
         "long": [], "short": [],
         "exited_long": [], "exited_short": [],
     }
+    freshness = _current_freshness()
     for side in ("long", "short"):
         for is_exited, key in ((False, side), (True, f"exited_{side}")):
             cur.execute("""
@@ -1400,6 +1328,7 @@ def export_positions(cur, out: Path):
                     "defense_reason": r["defense_reason"],
                     "defense_date": r["defense_date"],
                     "exit_reason": r["exit_reason"],
+                    "disposal_status": _disposal_status_for(r["stock_id"], freshness),
                 })
 
     _write(out_data, out / "positions.json")
@@ -1424,11 +1353,9 @@ def export_all(out_dir: str | None = None):
         export_backtest(cur, out)
         export_funds(cur, out)
         export_dual_track(cur, out)
-        export_stocks(cur, out)
         export_timeline(cur, out)
         export_dna(cur, out)
         export_flow(cur, out)
-        export_prices(cur, out)
         export_hermit(cur, out)
         export_revenue_screens(cur, out)
         export_scores(cur, out)

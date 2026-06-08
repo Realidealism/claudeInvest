@@ -1,11 +1,17 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
 
 interface Holding {
   ticker: string;
   ticker_name: string;
+  market?: string;
   rank: number;
   weight: number | null;
+}
+
+// TradingView uses 'TWSE:' for TWSE and 'TPEX:' (all caps) for TPEx.
+function tvUrl(ticker: string, market: string | undefined): string {
+  const prefix = market === "TPEx" ? "TPEX" : "TWSE";
+  return `https://tw.tradingview.com/chart/?symbol=${prefix}:${ticker}`;
 }
 
 interface Trajectory {
@@ -39,10 +45,12 @@ export default function TimelinePage() {
   const periods = data.monthly_periods.slice().reverse();
 
   // Collect all tickers across all periods for this fund
-  const allTickers = new Map<string, string>();
+  const allTickers = new Map<string, { name: string; market?: string }>();
   for (const holdings of Object.values(traj.periods)) {
     for (const h of holdings) {
-      allTickers.set(h.ticker, h.ticker_name);
+      if (!allTickers.has(h.ticker)) {
+        allTickers.set(h.ticker, { name: h.ticker_name, market: h.market });
+      }
     }
   }
 
@@ -93,12 +101,19 @@ export default function TimelinePage() {
             </tr>
           </thead>
           <tbody>
-            {tickerList.map(([ticker, name]) => (
+            {tickerList.map(([ticker, info]) => (
               <tr key={ticker} className="border-b border-border/30 hover:bg-surface-hover transition-colors">
                 <td className="py-1.5 pr-3 font-mono sticky left-0 bg-surface">
-                  <Link to={`/stock/${ticker}`} className="text-accent hover:underline">{ticker}</Link>
+                  <a
+                    href={tvUrl(ticker, info.market)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-accent hover:underline"
+                  >
+                    {ticker}
+                  </a>
                 </td>
-                <td className="py-1.5 pr-3 sticky left-16 bg-surface truncate max-w-24">{name}</td>
+                <td className="py-1.5 pr-3 sticky left-16 bg-surface truncate max-w-24">{info.name}</td>
                 {periodMaps.map((map, i) => {
                   const h = map.get(ticker);
                   if (!h) return <td key={periods[i]} className="py-1.5 px-2 text-center text-text-secondary">—</td>;
