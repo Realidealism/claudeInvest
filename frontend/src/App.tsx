@@ -14,6 +14,9 @@ import RevenueScreensPage from "./pages/RevenueScreensPage";
 import ScoresPage from "./pages/ScoresPage";
 import OperationsPage from "./pages/OperationsPage";
 import PositionsPage from "./pages/PositionsPage";
+import BreadthPage from "./pages/BreadthPage";
+import MarginPage from "./pages/MarginPage";
+import FearGreedPage from "./pages/FearGreedPage";
 
 export default function App() {
   return (
@@ -34,6 +37,9 @@ export default function App() {
         <Route path="/scores" element={<ScoresPage />} />
         <Route path="/operations" element={<OperationsPage />} />
         <Route path="/positions" element={<PositionsPage />} />
+        <Route path="/breadth" element={<BreadthPage />} />
+        <Route path="/margin" element={<MarginPage />} />
+        <Route path="/fear-greed" element={<FearGreedPage />} />
       </Route>
     </Routes>
   );

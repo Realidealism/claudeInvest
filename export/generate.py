@@ -7,7 +7,9 @@ Usage:
 """
 
 import json
+import os
 import sys
+import tempfile
 from datetime import date, datetime
 from decimal import Decimal
 from pathlib import Path
@@ -49,9 +51,27 @@ def _serial(obj):
 
 
 def _write(data, path: Path):
+    """Atomically write JSON to ``path``.
+
+    Writes to a sibling tempfile in the same directory and ``os.replace``s
+    onto the final path so a concurrent reader (publish.bat / Telegram
+    push) never sees a half-written JSON. Same-directory replace is
+    atomic on both POSIX and Windows.
+    """
     path.parent.mkdir(parents=True, exist_ok=True)
-    with open(path, "w", encoding="utf-8") as f:
-        json.dump(data, f, ensure_ascii=False, default=_serial, indent=2)
+    fd, tmp_name = tempfile.mkstemp(
+        prefix=path.name + ".", suffix=".tmp", dir=str(path.parent)
+    )
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as f:
+            json.dump(data, f, ensure_ascii=False, default=_serial, indent=2)
+        os.replace(tmp_name, path)
+    except Exception:
+        try:
+            os.unlink(tmp_name)
+        except OSError:
+            pass
+        raise
     print(f"  {path.name}: {path.stat().st_size:,} bytes")
 
 
@@ -1283,6 +1303,9 @@ def export_intraday(out_dir: str | None = None):
         export_scores_intraday(cur, out)
         export_operations_intraday(cur, out)
         export_positions_intraday(cur, out)
+        # Refresh /breadth so the live 90th bar reflects this snapshot's
+        # sidecar. Daily breadth/margin are owned by export_all().
+        export_breadth(cur, out)
     print("Intraday export done.")
 
 
@@ -1344,6 +1367,306 @@ def export_positions(cur, out: Path):
     _write(out_data, out / "positions.json")
 
 
+BREADTH_WINDOW_DAYS = 89
+MARGIN_WINDOW_DAYS = 233
+MARGIN_STAT_WINDOW_DAYS = 752   # ~3 years; basis for percentile + rolling stats
+MARGIN_MA_WINDOW = 55           # ~quarterly Fibonacci-aligned MA + std for the band
+
+
+def _breadth_row_from_counts(
+    trade_date,
+    total,
+    short_up, short_down,
+    medium_up, medium_down,
+    long_up, long_down,
+    short_trend=None, medium_trend=None, long_trend=None,
+    is_intraday=False,
+    intraday_time=None,
+):
+    s_up = short_up / total if total else 0
+    s_dn = short_down / total if total else 0
+    m_up = medium_up / total if total else 0
+    m_dn = medium_down / total if total else 0
+    l_up = long_up / total if total else 0
+    l_dn = long_down / total if total else 0
+    row = {
+        "date": trade_date,
+        "total": total,
+        "s_up":  round(s_up, 6),  "s_dn": round(s_dn, 6),
+        "s_neu": round(max(0.0, 1 - s_up - s_dn), 6),
+        "m_up":  round(m_up, 6),  "m_dn": round(m_dn, 6),
+        "m_neu": round(max(0.0, 1 - m_up - m_dn), 6),
+        "l_up":  round(l_up, 6),  "l_dn": round(l_dn, 6),
+        "l_neu": round(max(0.0, 1 - l_up - l_dn), 6),
+        "s_trend": short_trend,
+        "m_trend": medium_trend,
+        "l_trend": long_trend,
+    }
+    if is_intraday:
+        row["is_intraday"] = True
+        if intraday_time is not None:
+            row["intraday_time"] = intraday_time
+    return row
+
+
+def export_breadth(cur, out: Path):
+    """Daily market-wide 多空頭排列 ratios (short/medium/long), last 89 trading days.
+
+    For each trading date, emits (up_pct, down_pct, neutral_pct) where:
+      up_pct       = short_up / active_stocks
+      down_pct     = short_down / active_stocks
+      neutral_pct  = 1 - up_pct - down_pct
+    and analogously for medium / long. Mirrors the Excel reference
+    `MarketCompany.xlsm` which charts H/I/O (short), J/K/P (medium),
+    L/M/Q (long) over time.
+
+    Intraday append: if a sidecar `data/breadth_intraday.json` exists and
+    its date is newer than the latest daily date, it is appended as the
+    90th bar with `is_intraday=true` so the live trading-hours view
+    extends seamlessly past the last close.
+    """
+    cur.execute(
+        """
+        SELECT trade_date, total_stocks,
+               short_up_total, short_down_total,
+               medium_up_total, medium_down_total,
+               long_up_total, long_down_total,
+               short_trend_total, medium_trend_total, long_trend_total
+        FROM tw.market_breadth
+        WHERE total_stocks > 0
+        ORDER BY trade_date DESC
+        LIMIT %s
+        """,
+        (BREADTH_WINDOW_DAYS,),
+    )
+    rows = list(reversed(cur.fetchall()))
+    series = [
+        _breadth_row_from_counts(
+            r["trade_date"], r["total_stocks"],
+            r["short_up_total"], r["short_down_total"],
+            r["medium_up_total"], r["medium_down_total"],
+            r["long_up_total"], r["long_down_total"],
+            r["short_trend_total"], r["medium_trend_total"], r["long_trend_total"],
+        )
+        for r in rows
+    ]
+
+    latest_daily = series[-1]["date"] if series else None
+
+    # Append intraday bar from sidecar if newer than latest close.
+    sidecar = Path(__file__).parent.parent / "data" / "breadth_intraday.json"
+    if sidecar.exists():
+        try:
+            with open(sidecar, encoding="utf-8") as f:
+                ib = json.load(f)
+            ib_date = ib.get("trade_date")
+            ib_total = ib.get("total", ib.get("active"))  # legacy fallback
+            if ib_date and (latest_daily is None or str(ib_date) > str(latest_daily)):
+                # Re-derive trend from ratios using existing classifier so the
+                # intraday bar carries the same trend cells the cards show.
+                from analysis.market_breadth import classify_trend, TREND_CODE
+                s_up_pct = ib["short_up"] / ib_total * 100 if ib_total else 0
+                s_dn_pct = ib["short_down"] / ib_total * 100 if ib_total else 0
+                m_up_pct = ib["medium_up"] / ib_total * 100 if ib_total else 0
+                m_dn_pct = ib["medium_down"] / ib_total * 100 if ib_total else 0
+                l_up_pct = ib["long_up"] / ib_total * 100 if ib_total else 0
+                l_dn_pct = ib["long_down"] / ib_total * 100 if ib_total else 0
+                s_trend = TREND_CODE[classify_trend(s_up_pct, s_dn_pct, 100 - s_up_pct - s_dn_pct)]
+                m_trend = TREND_CODE[classify_trend(m_up_pct, m_dn_pct, 100 - m_up_pct - m_dn_pct)]
+                l_trend = TREND_CODE[classify_trend(l_up_pct, l_dn_pct, 100 - l_up_pct - l_dn_pct)]
+                series.append(_breadth_row_from_counts(
+                    ib_date, ib_total,
+                    ib["short_up"], ib["short_down"],
+                    ib["medium_up"], ib["medium_down"],
+                    ib["long_up"], ib["long_down"],
+                    s_trend, m_trend, l_trend,
+                    is_intraday=True,
+                    intraday_time=ib.get("snapshot_time"),
+                ))
+        except Exception as e:
+            print(f"  [WARN] breadth_intraday sidecar skipped: {e}")
+
+    _write({
+        "latest_date": series[-1]["date"] if series else None,
+        "series": series,
+    }, out / "breadth.json")
+
+
+def export_margin(cur, out: Path):
+    """Daily market-wide 融資融券 statistics (tw.margin_summary).
+
+    Surfaces both the張-balance time series and value-weighted ratios so
+    the frontend can show 融資/融券餘額消長 and 資券比 over time. Units:
+      margin_balance / short_balance: 張 (lots)
+      margin_balance_value: 仟元 (thousands NTD)
+      short_to_margin_pct = short_balance / margin_balance * 100%
+    """
+    cur.execute(
+        """
+        SELECT trade_date,
+               margin_balance, margin_buy, margin_sell, margin_repay,
+               margin_balance_value,
+               short_balance,  short_buy, short_sell, short_repay
+        FROM tw.margin_summary
+        WHERE margin_balance IS NOT NULL
+        ORDER BY trade_date DESC
+        LIMIT %s
+        """,
+        (MARGIN_STAT_WINDOW_DAYS,),
+    )
+    rows = list(reversed(cur.fetchall()))
+
+    import numpy as np
+    n = len(rows)
+    # 用「金額」(margin_balance_value, 仟元) 算水位 — 反映真實槓桿規模，
+    # 不會被股價膨脹推高。「張」維持在時序圖供活絡度參考。
+    mb_arr = np.array(
+        [r["margin_balance_value"] if r["margin_balance_value"] is not None else np.nan for r in rows],
+        dtype=float,
+    )
+
+    # Rolling 60-day MA + std for margin_balance_value, used for the ±2σ context band.
+    ma60 = np.full(n, np.nan)
+    upper = np.full(n, np.nan)
+    lower = np.full(n, np.nan)
+    w = MARGIN_MA_WINDOW
+    for i in range(w - 1, n):
+        window = mb_arr[i - w + 1 : i + 1]
+        valid = window[~np.isnan(window)]
+        if len(valid) < w // 2:
+            continue
+        mu = float(valid.mean())
+        sd = float(valid.std())
+        ma60[i] = mu
+        upper[i] = mu + 2 * sd
+        lower[i] = mu - 2 * sd
+
+    full_series = []
+    for i, r in enumerate(rows):
+        mb = r["margin_balance"]
+        sb = r["short_balance"]
+        ratio = (sb / mb * 100) if (mb and sb is not None) else None
+        net_margin = None
+        if r["margin_buy"] is not None and r["margin_sell"] is not None and r["margin_repay"] is not None:
+            net_margin = r["margin_buy"] - r["margin_sell"] - r["margin_repay"]
+        net_short = None
+        if r["short_buy"] is not None and r["short_sell"] is not None and r["short_repay"] is not None:
+            net_short = r["short_sell"] - r["short_buy"] - r["short_repay"]
+        full_series.append({
+            "date": r["trade_date"],
+            "margin_balance": mb,
+            "short_balance":  sb,
+            "margin_balance_value": int(r["margin_balance_value"]) if r["margin_balance_value"] is not None else None,
+            "short_to_margin_pct": round(ratio, 4) if ratio is not None else None,
+            "net_margin": net_margin,
+            "net_short": net_short,
+            "ma60":  int(round(ma60[i]))  if not np.isnan(ma60[i])  else None,
+            "upper": int(round(upper[i])) if not np.isnan(upper[i]) else None,
+            "lower": int(round(lower[i])) if not np.isnan(lower[i]) else None,
+        })
+
+    # Slice the last 233 days for the displayed series (the rest is just
+    # warm-up so ma60/upper/lower already have valid values at series[0]).
+    series = full_series[-MARGIN_WINDOW_DAYS:] if len(full_series) > MARGIN_WINDOW_DAYS else full_series
+
+    # Multi-horizon percentile rank of today's margin_balance.
+    # Uses inclusive rank: P = (#<=today) / N — 50 means median, 100 means
+    # tied with the highest value in the window.
+    def _percentile_of(arr: np.ndarray, target: float) -> float | None:
+        valid = arr[~np.isnan(arr)]
+        if len(valid) == 0 or target is None or np.isnan(target):
+            return None
+        return float((valid <= target).sum() / len(valid) * 100)
+
+    stats = None
+    if n and not np.isnan(mb_arr[-1]):
+        latest = float(mb_arr[-1])
+        # Inclusive windows ending at today (idx n-1).
+        p_1m = _percentile_of(mb_arr[max(0, n - 22):n], latest)
+        p_6m = _percentile_of(mb_arr[max(0, n - 132):n], latest)
+        p_3y = _percentile_of(mb_arr, latest)
+        # 3-year z-score (against full window) as a one-glance heat number.
+        full_valid = mb_arr[~np.isnan(mb_arr)]
+        z_3y = (
+            float((latest - full_valid.mean()) / full_valid.std())
+            if len(full_valid) >= 2 and full_valid.std() > 0
+            else None
+        )
+        stats = {
+            "stat_window_days": int(len(full_valid)),
+            "ma_window": MARGIN_MA_WINDOW,
+            "margin_balance_pct_1m": round(p_1m, 1) if p_1m is not None else None,
+            "margin_balance_pct_6m": round(p_6m, 1) if p_6m is not None else None,
+            "margin_balance_pct_3y": round(p_3y, 1) if p_3y is not None else None,
+            "margin_balance_z_3y":   round(z_3y, 2) if z_3y is not None else None,
+        }
+
+    _write({
+        "latest_date": series[-1]["date"] if series else None,
+        "stats": stats,
+        "series": series,
+    }, out / "margin.json")
+
+
+_FG_SUB_SLOTS = [
+    "momentum", "strength", "breadth",
+    "put_call", "safe_haven", "junk_bond", "volatility",
+]
+
+
+def export_fear_greed(cur, out: Path):
+    """CNN Fear & Greed Index — last 365 days headline series + latest
+    breakdown (headline rating + 7 sub-indicator raw scores & ratings)."""
+    cur.execute(
+        """
+        SELECT trade_date, score, rating,
+               momentum_score,   momentum_rating,
+               strength_score,   strength_rating,
+               breadth_score,    breadth_rating,
+               put_call_score,   put_call_rating,
+               safe_haven_score, safe_haven_rating,
+               junk_bond_score,  junk_bond_rating,
+               volatility_score, volatility_rating
+        FROM tw.cnn_fear_greed
+        ORDER BY trade_date DESC
+        LIMIT 365
+        """
+    )
+    rows = list(reversed(cur.fetchall()))
+    if not rows:
+        _write({"latest_date": None, "latest": None, "series": []},
+               out / "fear_greed.json")
+        return
+
+    series = [
+        {
+            "date":  r["trade_date"],
+            "score": float(r["score"]) if r["score"] is not None else None,
+        }
+        for r in rows
+    ]
+
+    last = rows[-1]
+    sub = {}
+    for slot in _FG_SUB_SLOTS:
+        s = last[f"{slot}_score"]
+        sub[slot] = {
+            "score":  float(s) if s is not None else None,
+            "rating": last[f"{slot}_rating"],
+        }
+    latest = {
+        "score":  float(last["score"]) if last["score"] is not None else None,
+        "rating": last["rating"],
+        "sub": sub,
+    }
+
+    _write({
+        "latest_date": last["trade_date"],
+        "latest": latest,
+        "series": series,
+    }, out / "fear_greed.json")
+
+
 def export_all(out_dir: str | None = None):
     if out_dir is None:
         import sys
@@ -1371,6 +1694,9 @@ def export_all(out_dir: str | None = None):
         export_scores(cur, out)
         export_operations(cur, out)
         export_positions(cur, out)
+        export_breadth(cur, out)
+        export_margin(cur, out)
+        export_fear_greed(cur, out)
         # intraday JSONs (scores/operations/positions) are intentionally
         # NOT refreshed here — they are owned by intraday_snapshot.exe
         # which writes them at 12:50 with h(t)-projected bars. Daily

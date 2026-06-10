@@ -43,6 +43,7 @@ SCRAPERS = [
     # Supplemental data
     ("Odd-lot (all sessions)",  "scrapers.odd_lot",          "scrape_date"),
     ("Margin trading",          "scrapers.margin",           "scrape_date"),
+    ("CNN Fear & Greed",        "scrapers.cnn_feargreed",    "scrape_date"),
     ("Price limits",            "scrapers.price_limits",     "scrape_date"),
     ("Institutional investors", "scrapers.institutional",    "scrape_date"),
     # ETF holdings
@@ -450,6 +451,7 @@ def update_date(trade_date: date):
     # which are not in this parent project's venv).
     print(f"\n--- Hermit-stock fundamental snapshot ---")
     try:
+        import os as _os
         import subprocess as _sp
         # PyInstaller exe: __file__ points to temp _MEI dir which has no
         # hermit_stock subfolder. Use sys.executable's parent.parent to reach
@@ -459,6 +461,9 @@ def update_date(trade_date: date):
         else:
             _repo = Path(__file__).parent
         hs_dir = _repo / "hermit_stock"
+        # Force UTF-8 stdout/stderr in the child Python; otherwise it inherits
+        # Windows cp950 and chokes on Unicode chars like ≥ in print(...).
+        _env = {**_os.environ, "PYTHONIOENCODING": "utf-8"}
         proc = _sp.run(
             ["uv", "run", "python", "-m", "hermit_stock.daily_check",
              trade_date.isoformat()],
@@ -466,6 +471,7 @@ def update_date(trade_date: date):
             capture_output=True, text=True,
             encoding="utf-8", errors="replace",  # tolerate cp950 in uv warnings
             timeout=300, check=False,
+            env=_env,
         )
         if proc.stdout:
             print(proc.stdout, end="")

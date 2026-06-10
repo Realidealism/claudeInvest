@@ -3,6 +3,15 @@ import { NavLink, Outlet, useLocation } from "react-router-dom";
 
 const NAV_GROUPS = [
   {
+    key: "market",
+    label: "市場面",
+    items: [
+      { to: "/breadth",    label: "多空頭排列" },
+      { to: "/margin",     label: "融資融券" },
+      { to: "/fear-greed", label: "CNN 恐懼貪婪指數" },
+    ],
+  },
+  {
     key: "chips",
     label: "籌碼面",
     items: [

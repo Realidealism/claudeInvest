@@ -1,4 +1,4 @@
-"""Intraday (12:50) snapshot — preview of ScoreBoard top-300 + 6 signal fires
+"""Intraday (12:50) snapshot — preview of ScoreBoard (full alive universe) + 6 signal fires
 + open positions, using a market-wide h(t)-projected full-day bar.
 
 Mirrors analysis.daily_snapshot.py but:
@@ -27,8 +27,16 @@ from psycopg2.extras import execute_batch
 
 from db.connection import get_cursor, get_connection
 from analysis.realtime_data import load_stock_data_intraday
+from analysis.close import calculate_close, calc_sort_forming
+from analysis.money import calculate_money
+from analysis.volume import calculate_volume
 from analysis.score import build_scoreboard
-from intraday.estimate import get_h_curve, _get_h
+from intraday.estimate import (
+    HCurveNotReadyError,
+    get_h_curve,
+    _get_h,
+    require_today_buckets,
+)
 from signal_backtest.factories._conditions import (
     pick_condition, touch_condition,
     buy_condition, sell_condition,
@@ -196,6 +204,28 @@ def _eval_stock(stock_id: str) -> dict | None:
     tv_raw = float(data.turnover[idx])
     tv = tv_raw if tv_raw == tv_raw else 0.0
 
+    # Market-breadth piggyback: align with tw.market_breadth *_total ∪
+    # total_stocks semantics — exclude dead_fish stocks, count union of
+    # sort_normal and sort_forming. Reduced market-wide in run() and
+    # written to the breadth sidecar so `/breadth` can append a live
+    # 90th bar.
+    try:
+        cr = calculate_close(data.close)
+        mr = calculate_money(data.turnover)
+        vr = calculate_volume(data.volume)
+        sn = cr.ma.sort_normal
+        sf = calc_sort_forming(cr, vr.volume_status)
+        alive = not bool(mr.dead_fish[idx])
+        sn_su = alive and bool(sn["short"].up[idx]    or sf["short"].up[idx])
+        sn_sd = alive and bool(sn["short"].down[idx]  or sf["short"].down[idx])
+        sn_mu = alive and bool(sn["medium"].up[idx]   or sf["medium"].up[idx])
+        sn_md = alive and bool(sn["medium"].down[idx] or sf["medium"].down[idx])
+        sn_lu = alive and bool(sn["long"].up[idx]     or sf["long"].up[idx])
+        sn_ld = alive and bool(sn["long"].down[idx]   or sf["long"].down[idx])
+    except Exception:
+        alive = False
+        sn_su = sn_sd = sn_mu = sn_md = sn_lu = sn_ld = False
+
     return {
         "sid": stock_id,
         "lp": lp, "sp": sp, "tv": tv,
@@ -204,6 +234,10 @@ def _eval_stock(stock_id: str) -> dict | None:
         "lp_d3": lp_d3, "sp_d3": sp_d3,
         "fires": fires,
         "open_positions": open_positions,
+        "br_alive": alive,
+        "sn_su": sn_su, "sn_sd": sn_sd,
+        "sn_mu": sn_mu, "sn_md": sn_md,
+        "sn_lu": sn_lu, "sn_ld": sn_ld,
     }
 
 
@@ -258,11 +292,14 @@ def _load_prev_score_ranks(snapshot_date: date, side: str) -> dict[str, int]:
 
 def _save_score_side(snapshot_date: date, snapshot_time: datetime, side: str,
                      results: list[dict], prev: dict[str, int]) -> int:
+    # Persist the full alive universe so /score can resolve off-ranking
+    # tickers from DB. Frontend JSON exporter (export/generate.py)
+    # still caps the slice it writes to scores_intraday.json at TOP_N.
     if side == "long":
-        ranked = sorted(results, key=lambda r: (-r["lp"], -r["tv"]))[:TOP_N]
+        ranked = sorted(results, key=lambda r: (-r["lp"], -r["tv"]))
         pct_key, d1_key, d2_key, d3_key = "lp", "lp_d1", "lp_d2", "lp_d3"
     else:
-        ranked = sorted(results, key=lambda r: (-r["sp"], -r["tv"]))[:TOP_N]
+        ranked = sorted(results, key=lambda r: (-r["sp"], -r["tv"]))
         pct_key, d1_key, d2_key, d3_key = "sp", "sp_d1", "sp_d2", "sp_d3"
 
     rows = []
@@ -379,11 +416,53 @@ def _save_signal_fires(snapshot_date: date, snapshot_time: datetime,
     return counts
 
 
-def _compute_volume_scale(now: datetime) -> float:
+def _save_breadth_sidecar(snapshot_date: date, snapshot_time: datetime,
+                          results: list[dict]) -> dict:
+    """Reduce per-stock breadth flags (sort_normal ∪ sort_forming, dead_fish
+    excluded) into market-wide counts and write to
+    data/breadth_intraday.json so export_breadth() can append a live 90th
+    bar in /breadth. Mirrors tw.market_breadth *_total semantics."""
+    import json
+    from pathlib import Path
+
+    total = sum(1 for r in results if r["br_alive"])
+    counts = {
+        "short_up":   sum(1 for r in results if r["sn_su"]),
+        "short_down": sum(1 for r in results if r["sn_sd"]),
+        "medium_up":  sum(1 for r in results if r["sn_mu"]),
+        "medium_down":sum(1 for r in results if r["sn_md"]),
+        "long_up":    sum(1 for r in results if r["sn_lu"]),
+        "long_down":  sum(1 for r in results if r["sn_ld"]),
+    }
+
+    payload = {
+        "trade_date": snapshot_date.isoformat(),
+        "snapshot_time": snapshot_time.isoformat(),
+        "total": total,
+        **counts,
+    }
+    sidecar = Path(__file__).parent.parent / "data" / "breadth_intraday.json"
+    sidecar.parent.mkdir(parents=True, exist_ok=True)
+    with open(sidecar, "w", encoding="utf-8") as f:
+        json.dump(payload, f, ensure_ascii=False, indent=2)
+    return counts
+
+
+def _compute_volume_scale(now: datetime, *, final_pass: bool = False) -> float:
     """Build the market-wide h(t) curve once and return scale = 1/h.
 
-    Raises if h is unavailable for the current bucket (too early in
-    session, no historical curve data, etc.)."""
+    Raises HCurveNotReadyError when the sweep hasn't accumulated enough
+    today buckets yet — the snapshot daemon catches this and sleeps for
+    a retry instead of crashing. Hard RuntimeErrors are reserved for
+    misconfigurations (empty curve, h too small to project safely).
+
+    final_pass=True is used for the post-close pass: today's session is
+    over so h pinned at 1.0 from _get_h is the truthful answer, and we
+    skip the today-bucket precondition (the sweep already confirmed the
+    13:30 bucket before the daemon entered this branch)."""
+    if not final_pass:
+        require_today_buckets(now.date())
+
     h_curve = get_h_curve()
     if not h_curve:
         raise RuntimeError(
@@ -392,25 +471,30 @@ def _compute_volume_scale(now: datetime) -> float:
         )
     h = _get_h(now, h_curve)
     if h is None or h <= 0.05:
-        raise RuntimeError(
+        raise HCurveNotReadyError(
             f"h(t)={h} for {now:%H:%M} TPE — too early or session not active."
         )
     return 1.0 / h
 
 
-def run() -> dict:
+def run(*, final_pass: bool = False) -> dict:
     """Main entry. Builds h(t) scale, parallelizes per-stock evaluation,
-    writes intraday score + signal snapshots."""
+    writes intraday score + signal snapshots.
+
+    final_pass=True is used for the daemon's post-close pass once the
+    sweep has confirmed the 13:30 bucket; h(t) collapses to 1.0 and the
+    today-bucket precondition is bypassed."""
     # Multiprocessing on Windows requires this top-level guard at the
     # script entry point (root intraday_snapshot.py handles it).
     from multiprocessing import Pool
 
     now = datetime.now(_TPE_TZ)
     snapshot_date = now.date()
-    print(f"  Intraday snapshot @ {now:%Y-%m-%d %H:%M} TPE "
+    tag = " (final)" if final_pass else ""
+    print(f"  Intraday snapshot{tag} @ {now:%Y-%m-%d %H:%M} TPE "
           f"(workers={N_WORKERS}, min_level={MIN_MONEY_LEVEL}) ...")
 
-    scale = _compute_volume_scale(now)
+    scale = _compute_volume_scale(now, final_pass=final_pass)
     print(f"  volume scale = {scale:.4f} (h(t) = {1.0 / scale:.4f})")
 
     stock_ids = _load_active_stock_ids(snapshot_date)
@@ -431,7 +515,8 @@ def run() -> dict:
     prev_short = _load_prev_score_ranks(snapshot_date, "short")
     long_n  = _save_score_side(snapshot_date, now, "long",  results, prev_long)
     short_n = _save_score_side(snapshot_date, now, "short", results, prev_short)
-    print(f"  Score top-{TOP_N} long: {long_n} / short: {short_n}")
+    print(f"  Score all alive  long: {long_n} / short: {short_n} "
+          f"(JSON exposes top-{TOP_N})")
 
     counts = _save_signal_fires(snapshot_date, now, results)
     for name, _ in SIGNALS:
@@ -440,6 +525,11 @@ def run() -> dict:
     pos_counts = _save_open_positions(snapshot_date, now, results)
     print(f"  Open positions long: {pos_counts['long']} / short: {pos_counts['short']}")
     print(f"  Exited intraday  long: {pos_counts['exited_long']} / short: {pos_counts['exited_short']}")
+
+    breadth_counts = _save_breadth_sidecar(snapshot_date, now, results)
+    print(f"  Breadth  short: {breadth_counts['short_up']}↑/{breadth_counts['short_down']}↓  "
+          f"medium: {breadth_counts['medium_up']}↑/{breadth_counts['medium_down']}↓  "
+          f"long: {breadth_counts['long_up']}↑/{breadth_counts['long_down']}↓")
 
     print(f"  Total wall time: {time.time() - t0:.1f}s")
     return {
