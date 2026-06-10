@@ -12,6 +12,8 @@ a = Analysis(
         'intraday.store',
         'intraday.sweeper',
         'intraday.sinopac_snapshot',
+        'intraday.estimate',
+        'intraday.session',
         'db.connection',
         'config.settings',
         'utils.classifier',
