@@ -24,6 +24,9 @@ interface Props {
   onCrosshairMove?: (idx: number | null) => void;
   // 外部設定 crosshair 位置（用來跨圖同步）
   externalCrosshairIdx?: number | null;
+  // 預設 true：hover 時每條 line 顯示圓點 marker。VIX 這種多條 reference
+  // 線疊圖會擠出 4 個點，視覺很雜，可設 false 改成只看十字游標。
+  crosshairMarkers?: boolean;
 }
 
 function fmt(v: number, mode: "pct" | "int" | "raw" | "kTwd"): string {
@@ -41,7 +44,7 @@ function fmt(v: number, mode: "pct" | "int" | "raw" | "kTwd"): string {
 
 export default function MultiLineChart({
   data, series, height = 220, format = "raw", barSpacing,
-  onCrosshairMove, externalCrosshairIdx,
+  onCrosshairMove, externalCrosshairIdx, crosshairMarkers = true,
 }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<IChartApi | null>(null);
@@ -115,6 +118,7 @@ export default function MultiLineChart({
         lastValueVisible: !s.hideLastValue,
         priceLineVisible: false,
         priceScaleId: "left",
+        crosshairMarkerVisible: crosshairMarkers,
         priceFormat: {
           type: "custom",
           formatter: (p: number) => fmt(p, format),
@@ -145,6 +149,8 @@ export default function MultiLineChart({
       }
     });
 
+    // Re-applying deps that aren't in the dependency array would skip the
+    // useEffect rerun; crosshairMarkers/format/etc. are already in deps.
     if (barSpacing === undefined) {
       chart.timeScale().fitContent();
     } else {
@@ -162,7 +168,7 @@ export default function MultiLineChart({
       observer.disconnect();
       chart.remove();
     };
-  }, [data, series, height, format, barSpacing]);
+  }, [data, series, height, format, barSpacing, crosshairMarkers]);
 
   // External crosshair sync: when externalCrosshairIdx changes, drive this
   // chart's crosshair to the same bar (or clear it). The chart that

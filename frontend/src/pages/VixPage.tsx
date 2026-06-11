@@ -166,6 +166,7 @@ function SidePanel({ side, color, hoveredIdx, onMove }: PanelProps) {
         height={200}
         onCrosshairMove={onMove}
         externalCrosshairIdx={hoveredIdx}
+        crosshairMarkers={false}
       />
     </div>
   );
