@@ -52,17 +52,20 @@ _DIFF_LOOKBACK_DAYS = 14
 
 # TWSE 處置 trigger rules (ref: 處置作業要點 第6條).
 #
-# Empirically derived: attention rows carry one or more "第N款" codes in
-# their reason text. Each 款 bucket has its own accumulation threshold —
-# pooling all attention together produced false positives (see
-# disposal_prediction_audit history). Only 第1款 (六日累積漲幅) has
-# enough samples for a confident threshold; other 款項 stay audit-only
-# until enough data lands to lock down their thresholds.
+# Empirically derived from the disposal_prediction_audit history:
+#   第1款 (六日累積漲幅) triggers disposal when a stock hits 第1款
+#   attention on 3 CONSECUTIVE trading days — not a 30-day count.
+#   In the audit data: 74/76 TPs had consec≥3; 0/100 FPs did.
+# Other 款項 stay audit-only until enough data lands to lock down their
+# thresholds (likely also consecutive-based, just with different counts).
 #
-# Format: kuan_code -> (window_trading_days, threshold)
-_KUAN_DISPOSAL_RULES: dict[int, tuple[int, int]] = {
-    1: (30, 3),
+# Format: kuan_code -> consecutive_trading_days_required
+_KUAN_DISPOSAL_RULES: dict[int, int] = {
+    1: 3,
 }
+# Lookback window for the consecutive scan — must be >= max(consec_req)
+# but kept tight so we don't scan needless history.
+_CONSEC_LOOKBACK_TD = 10
 
 # Maps 第一款 / 第十一款 etc. to int.
 _CN_NUMERAL = {
@@ -389,7 +392,7 @@ def _get_disposal_status(
     STALE → "最近交易日" framing.
     """
     today = date.today()
-    max_window = max(w for w, _ in _KUAN_DISPOSAL_RULES.values())  # 30
+    max_window = _CONSEC_LOOKBACK_TD
     state = freshness.state if freshness else None
 
     # Try to fetch yesterday+today's stock_alerts before checking ongoing
@@ -432,24 +435,12 @@ def _get_disposal_status(
         # The old logic counted attention days as a single pool which over-
         # triggered "明日進處置" on stocks whose attentions came from
         # distinct 款項 (each accumulates independently).
+        #
+        # Note: empirically TWSE does NOT exclude attention days that
+        # overlap with a prior disposal — see 6182's 5/25 case where the
+        # previous disposal ended 5/25 and the new consec run started
+        # exactly that day. So no "post-disposal filter" here.
         buckets = _attention_kuan_buckets(cur, ticker, recent[-1], today)
-
-        # Per TWSE 作業要點 第6條第7項: attention days before + during the most
-        # recent disposal don't count toward the next-disposal trigger.
-        cur.execute(
-            """
-            SELECT MAX(period_end) AS m FROM tw.stock_alerts
-            WHERE stock_id = %s AND alert_type = 'disposal'
-              AND period_end IS NOT NULL AND period_end < %s
-            """,
-            (ticker, today),
-        )
-        last_disposal_end = cur.fetchone()["m"]
-        if last_disposal_end:
-            buckets = {
-                k: {d for d in dates if d > last_disposal_end}
-                for k, dates in buckets.items()
-            }
 
     # Intraday attention prediction: if today's data would trigger a §X rule,
     # conceptually attention is added on `today` — bump the matching 款 bucket.
@@ -469,13 +460,15 @@ def _get_disposal_status(
             inflated.setdefault(kuan, set()).add(today)
 
     # Per-款 rule check. Only 款項 listed in _KUAN_DISPOSAL_RULES warn;
-    # the rest stay audit-only.
-    triggered: list[tuple[int, int, int]] = []  # (kuan, count, threshold)
-    for kuan, (window, threshold) in _KUAN_DISPOSAL_RULES.items():
-        win_dates = set(recent[: min(window, len(recent))])
-        count = len(inflated.get(kuan, set()) & win_dates)
-        if count >= threshold:
-            triggered.append((kuan, count, threshold))
+    # the rest stay audit-only. Trigger requires N CONSECUTIVE trading
+    # days of 第N款 attention (TWSE 「連續 N 日」 rule).
+    triggered: list[tuple[int, int, int]] = []  # (kuan, consec_run, threshold)
+    consec_runs: dict[int, int] = {}
+    for kuan, consec_req in _KUAN_DISPOSAL_RULES.items():
+        run = _consec_run_ending_at(inflated.get(kuan, set()), recent)
+        consec_runs[kuan] = run
+        if run >= consec_req:
+            triggered.append((kuan, run, consec_req))
 
     # ── Already in disposal: bare ongoing message, no upgrade prediction ───
     # Per TWSE 作業要點 第6條第7項: attention days BEFORE + DURING disposal
@@ -494,10 +487,8 @@ def _get_disposal_status(
         return f"{_RED} 處置中 {interval} → {end_str} 止（{resume_str} 起恢復）"
 
     if triggered:
-        # Triggered 款項 string for the warning (e.g. "第1款 3/3").
-        parts = [f"第{k}款 {c}/{t}" for k, c, t in triggered]
-        # Show actual threshold values (close ≥ X 元 / 量 ≥ Y 張) for the
-        # §X that triggered today, so user can independently verify.
+        # Triggered 款項 string (e.g. "第1款 連3日").
+        parts = [f"第{k}款 連{c}日" for k, c, _ in triggered]
         thresh_str = ""
         if predicted:
             try:
@@ -516,13 +507,32 @@ def _get_disposal_status(
     if not any_recent_att:
         return None
 
-    # On-the-edge: 第1款 reached 2 (one short of 3) within window → soft warning
-    one_kuan_dates = inflated.get(1, set())
-    one_kuan_in_30d = len(one_kuan_dates & set(recent[: min(30, len(recent))]))
-    if one_kuan_in_30d == 2:
-        return f"{_ORANGE} 第1款 2/3 — 再 1 次即進處置"
+    # On-the-edge: 第1款 consec run = 2 (one short of 3) → soft warning.
+    if consec_runs.get(1, 0) == 2:
+        return f"{_ORANGE} 第1款 連2日 — 再 1 日即進處置"
 
     return None
+
+
+def _consec_run_ending_at(
+    kuan_dates: set[date], trading_days: list[date]
+) -> int:
+    """Length of the consecutive trading-day attention run that ENDS on
+    ``trading_days[0]`` (the most recent / as_of day). Returns 0 if as_of
+    itself has no attention — TWSE only triggers disposal on the day a
+    stock just hit attention and that hit extends a 3-day run.
+
+    Weekends are skipped automatically because ``trading_days`` is sourced
+    from tw.index_prices (TAIEX calendar) — so 5/29 → 6/1 counts as
+    consecutive even though they straddle a weekend."""
+    if not kuan_dates or not trading_days:
+        return 0
+    run = 0
+    for d in trading_days:
+        if d not in kuan_dates:
+            return run
+        run += 1
+    return run
 
 
 def _attention_kuan_buckets(
@@ -567,7 +577,15 @@ def predict_disposal_trigger(
     """
     if not recent:
         return False, {}
-    # Already in disposal at as_of? bot wouldn't predict another trigger.
+    # Stack-suppression: TWSE doesn't re-announce disposal on a stock
+    # the day after it just announced one. Two-part check:
+    #   1. in_disposal: a disposal period covers as_of
+    #   2. recently_announced: a disposal alert landed in the past 2
+    #      trading days (strictly before as_of — today's alert is
+    #      what we're predicting)
+    # We suppress only when BOTH hold — stocks like 8291/6173 that
+    # stack disposals every ~3 td slip through #1 alone (the period
+    # still covers as_of but the alert is older).
     cur.execute(
         """
         SELECT 1 FROM tw.stock_alerts
@@ -579,35 +597,40 @@ def predict_disposal_trigger(
     )
     in_disposal = cur.fetchone() is not None
 
+    # Empirically tuned: 3 td hits 100% precision / 74% recall on the
+    # 14-day audit backfill. 2 td drops precision to 71% (more FPs from
+    # back-to-back disposals); 4 td drops recall to 57% (over-blocks
+    # legitimate stacked-disposal triggers like 8291).
+    THROTTLE_TD = 3
+    recently_announced = False
+    if in_disposal and len(recent) > THROTTLE_TD:
+        floor_td = recent[THROTTLE_TD]
+        cur.execute(
+            """
+            SELECT 1 FROM tw.stock_alerts
+            WHERE stock_id = %s AND alert_type = 'disposal'
+              AND alert_date > %s AND alert_date < %s
+            LIMIT 1
+            """,
+            (ticker, floor_td, as_of),
+        )
+        recently_announced = cur.fetchone() is not None
+
     buckets = _attention_kuan_buckets(cur, ticker, recent[-1], as_of)
-    cur.execute(
-        """
-        SELECT MAX(period_end) AS m FROM tw.stock_alerts
-        WHERE stock_id = %s AND alert_type = 'disposal'
-          AND period_end IS NOT NULL AND period_end < %s
-        """,
-        (ticker, as_of),
-    )
-    last_end = cur.fetchone()["m"]
-    if last_end:
-        buckets = {
-            k: {d for d in dates if d > last_end}
-            for k, dates in buckets.items()
-        }
+    # No post-disposal filter — TWSE empirically counts attention days
+    # that fall on or after the prior disposal's period_end (see 6182).
     counts: dict[int, int] = {}
     triggered = False
-    for kuan, (window, threshold) in _KUAN_DISPOSAL_RULES.items():
-        win = set(recent[: min(window, len(recent))])
-        c = len(buckets.get(kuan, set()) & win)
-        counts[kuan] = c
-        if c >= threshold and not in_disposal:
+    for kuan, consec_req in _KUAN_DISPOSAL_RULES.items():
+        run = _consec_run_ending_at(buckets.get(kuan, set()), recent)
+        counts[kuan] = run
+        if run >= consec_req and not recently_announced:
             triggered = True
-    # also report counts for non-rule 款 so the audit can see what's
-    # building up even when no rule fires
+    # Also report consec runs for non-rule 款 so the audit can see what's
+    # building up even when no rule fires.
     for kuan, dates in buckets.items():
         if kuan not in counts:
-            win = set(recent[: min(30, len(recent))])
-            counts[kuan] = len(dates & win)
+            counts[kuan] = _consec_run_ending_at(dates, recent)
     return triggered, counts
 
 
