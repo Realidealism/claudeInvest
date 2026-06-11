@@ -51,13 +51,37 @@ _POS_BUCKETS = (
 _DIFF_LOOKBACK_DAYS = 14
 
 # TWSE 處置 trigger rules (ref: 處置作業要點 第6條).
-# Conditions 3/4 explicit; (5,5) used both as summary indicator and as the
-# fastest path to "明日 1 次即進" (4/5 means tomorrow's attention triggers).
-_DISPOSAL_RULES = (
-    (5, 5, "連續5日"),
-    (10, 6, "10日6次"),
-    (30, 12, "30日12次"),
-)
+#
+# Empirically derived: attention rows carry one or more "第N款" codes in
+# their reason text. Each 款 bucket has its own accumulation threshold —
+# pooling all attention together produced false positives (see
+# disposal_prediction_audit history). Only 第1款 (六日累積漲幅) has
+# enough samples for a confident threshold; other 款項 stay audit-only
+# until enough data lands to lock down their thresholds.
+#
+# Format: kuan_code -> (window_trading_days, threshold)
+_KUAN_DISPOSAL_RULES: dict[int, tuple[int, int]] = {
+    1: (30, 3),
+}
+
+# Maps 第一款 / 第十一款 etc. to int.
+_CN_NUMERAL = {
+    "一": 1, "二": 2, "三": 3, "四": 4, "五": 5,
+    "六": 6, "七": 7, "八": 8, "九": 9,
+    "十": 10, "十一": 11, "十二": 12, "十三": 13,
+}
+# Matches both half-width (第N款) and full-width / square-bracket variants.
+_KUAN_PATTERN = re.compile(r"第(十[一二三]?|[一二三四五六七八九])款")
+
+
+def _extract_kuan_codes(reason: str | None) -> set[int]:
+    """Pull 「第N款」 codes out of a TWSE attention reason text.
+
+    A single attention row may cite multiple 款 — they're all tracked
+    independently."""
+    if not reason:
+        return set()
+    return {_CN_NUMERAL[m] for m in _KUAN_PATTERN.findall(reason) if m in _CN_NUMERAL}
 
 
 def _parse_auction_interval(measure: str | None) -> str | None:
@@ -346,21 +370,6 @@ def _maybe_refresh_alerts(today: date) -> None:
         logger.warning("stock_alerts refresh failed: %s", exc)
 
 
-def _attention_dates_in_window(cur, ticker: str, start: date, end: date) -> set[date]:
-    """Return distinct alert_dates where this stock had attention announced
-    in [start, end]. Used both for counting and for detecting which day rolls
-    out of the window tomorrow."""
-    cur.execute(
-        """
-        SELECT DISTINCT alert_date FROM tw.stock_alerts
-        WHERE stock_id = %s AND alert_type = 'attention'
-          AND alert_date >= %s AND alert_date <= %s
-        """,
-        (ticker, start, end),
-    )
-    return {r["alert_date"] for r in cur.fetchall()}
-
-
 def _get_disposal_status(
     ticker: str, freshness: Freshness | None = None, allow_refresh: bool = True
 ) -> str | None:
@@ -380,7 +389,7 @@ def _get_disposal_status(
     STALE → "最近交易日" framing.
     """
     today = date.today()
-    max_window = max(w for w, _, _ in _DISPOSAL_RULES)  # 30
+    max_window = max(w for w, _ in _KUAN_DISPOSAL_RULES.values())  # 30
     state = freshness.state if freshness else None
 
     # Try to fetch yesterday+today's stock_alerts before checking ongoing
@@ -411,12 +420,20 @@ def _get_disposal_status(
             if ongoing:
                 end = ongoing["period_end"]
                 interval = _parse_auction_interval(ongoing.get("measure")) or "5分盤"
-                next_td = _next_trading_day(today)
-                if end == next_td:
-                    return f"{_GREEN} 處置中 {interval} → 明天出處置"
-                return f"{_RED} 處置中 {interval} → {end.strftime('%m/%d')} 出關"
+                resume = _next_trading_day(end)
+                end_str = end.strftime("%m/%d")
+                resume_str = resume.strftime("%m/%d")
+                if end == today:
+                    return f"{_GREEN} 處置中 {interval} → 今日最後一天，{resume_str} 起恢復"
+                return f"{_RED} 處置中 {interval} → {end_str} 止（{resume_str} 起恢復）"
             return None
-        att_dates = _attention_dates_in_window(cur, ticker, recent[-1], today)
+
+        # Pull attention rows with their reasons so we can bucket by 款項.
+        # The old logic counted attention days as a single pool which over-
+        # triggered "明日進處置" on stocks whose attentions came from
+        # distinct 款項 (each accumulates independently).
+        buckets = _attention_kuan_buckets(cur, ticker, recent[-1], today)
+
         # Per TWSE 作業要點 第6條第7項: attention days before + during the most
         # recent disposal don't count toward the next-disposal trigger.
         cur.execute(
@@ -429,73 +446,36 @@ def _get_disposal_status(
         )
         last_disposal_end = cur.fetchone()["m"]
         if last_disposal_end:
-            att_dates = {d for d in att_dates if d > last_disposal_end}
-        # has_prior_disposal still used by the triggered-case message
-        cur.execute(
-            """
-            SELECT 1 FROM tw.stock_alerts
-            WHERE stock_id = %s AND alert_type = 'disposal'
-              AND alert_date >= %s AND alert_date < %s
-            LIMIT 1
-            """,
-            (ticker, today - timedelta(days=45), today),
-        )
-        has_prior_disposal = cur.fetchone() is not None
-
-    # Per-rule base analysis (without intraday prediction).
-    # Only 10/6 and 30/12 here — (5,5) "連續5日" and condition 1 stripped per UX simplify.
-    rule_states: list[tuple[int, int, str, int, int]] = []
-    for window, threshold, name in _DISPOSAL_RULES:
-        win_size = min(window, len(recent))
-        win_dates = set(recent[:win_size])
-        today_count = len(win_dates & att_dates)
-        oldest = recent[win_size - 1]
-        oldest_had_att = oldest in att_dates
-        tomorrow_base = today_count - (1 if oldest_had_att else 0)
-        tomorrow_need = max(0, threshold - tomorrow_base)
-        rule_states.append((window, threshold, name, today_count, tomorrow_need))
+            buckets = {
+                k: {d for d in dates if d > last_disposal_end}
+                for k, dates in buckets.items()
+            }
 
     # Intraday attention prediction: if today's data would trigger a §X rule,
-    # conceptually today_count + 1 for every disposal rule.
+    # conceptually attention is added on `today` — bump the matching 款 bucket.
     try:
         predicted = predict_today_attention(ticker, today, state)
     except Exception:
         predicted = []
-    inflate = bool(predicted and today not in att_dates)
-
-    if inflate:
-        states = [
-            (w, t, n, tc + 1, max(0, tn - 1))
-            for w, t, n, tc, tn in rule_states
-        ]
-    else:
-        states = rule_states
-
-    # Compact summary: only show 5日 and 10日 progress (skip 30/12 — too noisy)
-    summary_segments = [
-        f"{w}日 {tc}/{t}" for w, t, _, tc, _ in states if w in (5, 10)
-    ]
-    summary = "｜".join(summary_segments)
-
-    # Wording switches based on data freshness
-    if state == DataState.STALE_OVERNIGHT:
-        day_word = "最近交易日"
-        trigger_verb = "觸發"
-    elif state in (DataState.CLOSED_PENDING, DataState.CLOSED_FINAL):
-        day_word = "今日"
-        trigger_verb = "觸發"
-    else:  # LIVE / PRE_MARKET / None
-        day_word = "今日"
-        trigger_verb = "預期觸發"
-
-    predict_prefix = ""
+    inflated = {k: set(v) for k, v in buckets.items()}
     if predicted:
-        rules_str = "/".join(rc for rc, _ in predicted[:3])
-        main_detail = predicted[0][1]
-        predict_prefix = f"{day_word} {rules_str} {trigger_verb}（{main_detail}）→ "
+        for code, _ in predicted:
+            # predict_today_attention returns rule codes like "§1" / "§4";
+            # map to 款 number via the trailing digit.
+            try:
+                kuan = int("".join(ch for ch in code if ch.isdigit()))
+            except ValueError:
+                continue
+            inflated.setdefault(kuan, set()).add(today)
 
-    triggered = [s for s in states if s[3] >= s[1]]
-    most_pressing_need = min((s[4] for s in states), default=99)
+    # Per-款 rule check. Only 款項 listed in _KUAN_DISPOSAL_RULES warn;
+    # the rest stay audit-only.
+    triggered: list[tuple[int, int, int]] = []  # (kuan, count, threshold)
+    for kuan, (window, threshold) in _KUAN_DISPOSAL_RULES.items():
+        win_dates = set(recent[: min(window, len(recent))])
+        count = len(inflated.get(kuan, set()) & win_dates)
+        if count >= threshold:
+            triggered.append((kuan, count, threshold))
 
     # ── Already in disposal: bare ongoing message, no upgrade prediction ───
     # Per TWSE 作業要點 第6條第7項: attention days BEFORE + DURING disposal
@@ -514,6 +494,8 @@ def _get_disposal_status(
         return f"{_RED} 處置中 {interval} → {end_str} 止（{resume_str} 起恢復）"
 
     if triggered:
+        # Triggered 款項 string for the warning (e.g. "第1款 3/3").
+        parts = [f"第{k}款 {c}/{t}" for k, c, t in triggered]
         # Show actual threshold values (close ≥ X 元 / 量 ≥ Y 張) for the
         # §X that triggered today, so user can independently verify.
         thresh_str = ""
@@ -523,20 +505,110 @@ def _get_disposal_status(
                 thresh_str = format_today_thresholds(ticker, today, rule_codes)
             except Exception:
                 thresh_str = ""
-        if thresh_str:
-            return f"{_RED} {thresh_str} → 明日進處置"
-        return f"{_RED} 明日進處置"
+        head = thresh_str + " → " if thresh_str else ""
+        return f"{_RED} {head}明日進處置（{'｜'.join(parts)}）"
 
-    # Past 10 trading days clean AND no prediction → omit
-    look10 = recent[: min(10, len(recent))]
-    if not predicted and not any(d in att_dates for d in look10):
+    # Past 10 trading days clean across all buckets → omit
+    look10 = set(recent[: min(10, len(recent))])
+    any_recent_att = any(
+        bool(dates & look10) for dates in inflated.values()
+    )
+    if not any_recent_att:
         return None
 
-    if most_pressing_need == 1:
-        return f"{_ORANGE} 後天可能進處置"
+    # On-the-edge: 第1款 reached 2 (one short of 3) within window → soft warning
+    one_kuan_dates = inflated.get(1, set())
+    one_kuan_in_30d = len(one_kuan_dates & set(recent[: min(30, len(recent))]))
+    if one_kuan_in_30d == 2:
+        return f"{_ORANGE} 第1款 2/3 — 再 1 次即進處置"
 
-    # All other tomorrow_need values (>= 2) — drop entirely per UX simplify.
     return None
+
+
+def _attention_kuan_buckets(
+    cur, ticker: str, start: date, end: date
+) -> dict[int, set[date]]:
+    """For each 款 cited in the attention rows for `ticker` in [start, end],
+    return the set of alert_dates that cited it. One attention day can land
+    in multiple buckets (the reason text often cites several 款 in one
+    announcement)."""
+    cur.execute(
+        """
+        SELECT alert_date, reason
+        FROM tw.stock_alerts
+        WHERE stock_id = %s AND alert_type = 'attention'
+          AND alert_date >= %s AND alert_date <= %s
+        """,
+        (ticker, start, end),
+    )
+    buckets: dict[int, set[date]] = {}
+    for r in cur.fetchall():
+        for k in _extract_kuan_codes(r["reason"]):
+            buckets.setdefault(k, set()).add(r["alert_date"])
+    return buckets
+
+
+def predict_disposal_trigger(
+    cur, ticker: str, as_of: date, recent: list[date]
+) -> tuple[bool, dict[int, int]]:
+    """Pure-DB version of the disposal trigger check used by the audit.
+
+    Returns ``(would_trigger, kuan_counts)`` where ``kuan_counts`` maps each
+    cited 款 to the in-window count after applying the "after last disposal"
+    filter. No intraday prediction inflation — audit runs at EOD when the
+    actual attention for ``as_of`` is already in the DB.
+
+    ``recent`` is the list of the last N trading days (newest first) up to
+    and including ``as_of``; caller supplies it so we don't re-query inside
+    the loop.
+
+    Returns ``(False, ...)`` if the stock is already in ongoing disposal at
+    ``as_of`` — TWSE won't double-enter, and neither does the live bot.
+    """
+    if not recent:
+        return False, {}
+    # Already in disposal at as_of? bot wouldn't predict another trigger.
+    cur.execute(
+        """
+        SELECT 1 FROM tw.stock_alerts
+        WHERE stock_id = %s AND alert_type = 'disposal'
+          AND period_start <= %s AND period_end >= %s
+        LIMIT 1
+        """,
+        (ticker, as_of, as_of),
+    )
+    in_disposal = cur.fetchone() is not None
+
+    buckets = _attention_kuan_buckets(cur, ticker, recent[-1], as_of)
+    cur.execute(
+        """
+        SELECT MAX(period_end) AS m FROM tw.stock_alerts
+        WHERE stock_id = %s AND alert_type = 'disposal'
+          AND period_end IS NOT NULL AND period_end < %s
+        """,
+        (ticker, as_of),
+    )
+    last_end = cur.fetchone()["m"]
+    if last_end:
+        buckets = {
+            k: {d for d in dates if d > last_end}
+            for k, dates in buckets.items()
+        }
+    counts: dict[int, int] = {}
+    triggered = False
+    for kuan, (window, threshold) in _KUAN_DISPOSAL_RULES.items():
+        win = set(recent[: min(window, len(recent))])
+        c = len(buckets.get(kuan, set()) & win)
+        counts[kuan] = c
+        if c >= threshold and not in_disposal:
+            triggered = True
+    # also report counts for non-rule 款 so the audit can see what's
+    # building up even when no rule fires
+    for kuan, dates in buckets.items():
+        if kuan not in counts:
+            win = set(recent[: min(30, len(recent))])
+            counts[kuan] = len(dates & win)
+    return triggered, counts
 
 
 # ── Formatters ────────────────────────────────────────────────────────────

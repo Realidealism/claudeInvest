@@ -583,6 +583,28 @@ def update_date(trade_date: date):
             _capture_trace(failure_traces, "前端匯出部署")
             results.append(("前端匯出部署", "failed"))
 
+    # Disposal prediction audit. Runs against TWSE's just-scraped alerts
+    # (we expect period_start = next trading day after trade_date) and
+    # logs discrepancies to tw.disposal_prediction_audit + pushes them
+    # to Telegram. Non-critical — failures don't abort daily_update.
+    print(f"\n--- 處置預測 audit ---")
+    try:
+        from analysis.disposal_audit import run_audit
+        from datetime import timedelta as _td
+        # The disposal announcements scraped today have period_start
+        # tomorrow — audit that future date so it lines up with the
+        # actual data we just landed.
+        audit_target = trade_date + _td(days=1)
+        # Skip weekends — TWSE batches roll into the following Monday.
+        while audit_target.weekday() >= 5:
+            audit_target += _td(days=1)
+        run_audit(audit_target, push=True)
+        results.append(("處置預測 audit", "ok"))
+    except Exception:
+        print("  [ERROR] Audit failed:")
+        _capture_trace(failure_traces, "處置預測 audit")
+        results.append(("處置預測 audit", "failed"))
+
     # -----------------------------------------------------------------------
     # Final summary (Chinese)
     # -----------------------------------------------------------------------
