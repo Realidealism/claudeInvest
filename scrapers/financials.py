@@ -33,9 +33,14 @@ FINMIND_URL = "https://api.finmindtrade.com/api/v4/data"
 # FinMind free tier: ~600 req/hour. Be conservative: one request every 2s.
 MIN_INTERVAL = 2.0
 MAX_RETRIES = 3
-BACKOFF_BASE = 10.0
+# When 402 hits, wait this long before retrying — FinMind hourly cap typically
+# resets within 30-60 min, so a long sleep avoids burning retries on a still-
+# capped endpoint. _cooldown_until is shared across stocks so the rest of the
+# run also waits, not just the failing ticker.
+BACKOFF_BASE = 600.0  # 10 min
 
 _last_req_time = 0.0
+_cooldown_until = 0.0
 
 
 # ---------- FinMind type → DB column mapping (general industry only) ----------
@@ -96,7 +101,11 @@ CASHFLOW_MAP = {
 
 def _rate_limit():
     global _last_req_time
-    elapsed = time.time() - _last_req_time
+    now = time.time()
+    if now < _cooldown_until:
+        time.sleep(_cooldown_until - now)
+        now = time.time()
+    elapsed = now - _last_req_time
     if elapsed < MIN_INTERVAL:
         time.sleep(MIN_INTERVAL - elapsed)
     _last_req_time = time.time()
@@ -115,9 +124,14 @@ def _fetch(dataset: str, stock_id: str, start: str, end: str) -> list[dict] | No
             _rate_limit()
             r = requests.get(FINMIND_URL, params=params, timeout=30)
             if r.status_code == 402:
-                # Rate limit exceeded on free tier
+                # Rate limit exceeded. Set a shared cooldown so subsequent
+                # stocks block on the same wait via _rate_limit(), instead of
+                # each individually paying the 402 retry penalty.
+                global _cooldown_until
                 wait = BACKOFF_BASE * (2 ** attempt)
-                print(f"  [402] FinMind rate limit hit, waiting {wait}s ...")
+                _cooldown_until = time.time() + wait
+                print(f"  [402] FinMind rate limit hit, cooldown {wait:.0f}s "
+                      f"({wait/60:.1f} min) ...")
                 time.sleep(wait)
                 continue
             r.raise_for_status()
@@ -231,28 +245,40 @@ def _save_cashflow(stock_id: str, grouped: dict):
 
 # ---------- Public API ----------
 
-def scrape_stock(stock_id: str, start_year: int = 2013, end_year: int | None = None):
-    """Fetch and save all three statements for one stock across a year range."""
+def scrape_stock(stock_id: str, start_year: int = 2013, end_year: int | None = None) -> bool:
+    """Fetch and save all three statements for one stock across a year range.
+
+    Returns False if any of the three fetches failed (_fetch returned None);
+    an empty list is legitimate no-data and still counts as success."""
     if end_year is None:
         end_year = date.today().year
     start = f"{start_year}-01-01"
     end = f"{end_year}-12-31"
     print(f"[{stock_id}] fetching {start} ~ {end}")
+    ok = True
 
     income = _fetch("TaiwanStockFinancialStatements", stock_id, start, end)
-    if income:
+    if income is None:
+        ok = False
+    elif income:
         _save_income(stock_id, _group_by_period(income, INCOME_MAP))
         print(f"  income: {len(income)} rows")
 
     balance = _fetch("TaiwanStockBalanceSheet", stock_id, start, end)
-    if balance:
+    if balance is None:
+        ok = False
+    elif balance:
         _save_balance(stock_id, _group_by_period(balance, BALANCE_MAP))
         print(f"  balance: {len(balance)} rows")
 
     cashflow = _fetch("TaiwanStockCashFlowsStatement", stock_id, start, end)
-    if cashflow:
+    if cashflow is None:
+        ok = False
+    elif cashflow:
         _save_cashflow(stock_id, _group_by_period(cashflow, CASHFLOW_MAP))
         print(f"  cashflow: {len(cashflow)} rows")
+
+    return ok
 
 
 def _already_covered(stock_id: str, start_year: int, end_year: int) -> bool:
@@ -288,16 +314,24 @@ def scrape_all(start_year: int = 2013, end_year: int | None = None,
 
     print(f"Scraping financials for {len(stock_ids)} stocks ({start_year}~{end_year})")
     skipped = 0
+    failed = []
     for i, sid in enumerate(stock_ids, 1):
         if resume and _already_covered(sid, start_year, end_year):
             skipped += 1
             continue
         print(f"[{i}/{len(stock_ids)}] {sid}  (skipped so far: {skipped})")
         try:
-            scrape_stock(sid, start_year, end_year)
+            if not scrape_stock(sid, start_year, end_year):
+                failed.append(sid)
         except Exception as e:
             print(f"  ERROR on {sid}: {e}")
+            failed.append(sid)
     print(f"\nDone. Skipped {skipped} already-covered stocks.")
+    if failed:
+        preview = ", ".join(failed[:20])
+        more = f" (+{len(failed) - 20} more)" if len(failed) > 20 else ""
+        print(f"Failed: {len(failed)} stock(s): {preview}{more}")
+    return failed
 
 
 if __name__ == "__main__":
@@ -307,11 +341,13 @@ if __name__ == "__main__":
     if len(sys.argv) >= 2 and sys.argv[1] == "all":
         sy = int(sys.argv[2]) if len(sys.argv) >= 3 else 2013
         ey = int(sys.argv[3]) if len(sys.argv) >= 4 else None
-        scrape_all(sy, ey)
+        if scrape_all(sy, ey):
+            sys.exit(1)
     elif len(sys.argv) >= 2:
         sid = sys.argv[1]
         sy = int(sys.argv[2]) if len(sys.argv) >= 3 else 2013
         ey = int(sys.argv[3]) if len(sys.argv) >= 4 else None
-        scrape_stock(sid, sy, ey)
+        if not scrape_stock(sid, sy, ey):
+            sys.exit(1)
     else:
         scrape_stock("2330", 2023, 2023)

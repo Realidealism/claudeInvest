@@ -29,7 +29,16 @@ def get_cursor(commit=True):
 
 
 def init_db():
-    """Run all migration files to initialize the database."""
+    """Apply pending migration files to the database.
+
+    Applied filenames are recorded in public.schema_migrations so each file
+    runs exactly once. The first run against a pre-existing DB re-executes
+    every file (they are all idempotent) and records them as the baseline;
+    after that, init_db() is a fast no-op unless new files appear.
+
+    Migration files are append-only from here on: editing an already-applied
+    file has no effect — write a new numbered file instead.
+    """
     import os
 
     # Support PyInstaller bundled paths
@@ -42,14 +51,35 @@ def init_db():
     conn = get_connection()
     try:
         cursor = conn.cursor()
+        # Serialize concurrent init_db() calls (cron jobs + intraday daemons
+        # start in parallel); lock is released on commit/rollback.
+        cursor.execute("SELECT pg_advisory_xact_lock(hashtext('init_db'))")
+        cursor.execute(
+            "CREATE TABLE IF NOT EXISTS public.schema_migrations ("
+            "  filename   TEXT PRIMARY KEY,"
+            "  applied_at TIMESTAMPTZ NOT NULL DEFAULT now()"
+            ")"
+        )
+        cursor.execute("SELECT filename FROM public.schema_migrations")
+        applied = {row[0] for row in cursor.fetchall()}
+
+        ran = 0
         for filename in migration_files:
+            if filename in applied:
+                continue
             filepath = os.path.join(migration_dir, filename)
             with open(filepath, "r", encoding="utf-8") as f:
                 sql = f.read()
             cursor.execute(sql)
+            cursor.execute(
+                "INSERT INTO public.schema_migrations (filename) VALUES (%s)",
+                (filename,),
+            )
             print(f"Executed: {filename}")
+            ran += 1
         conn.commit()
-        print("Database initialized successfully.")
+        if ran:
+            print(f"Database initialized successfully ({ran} migration(s) applied).")
     except Exception:
         conn.rollback()
         raise

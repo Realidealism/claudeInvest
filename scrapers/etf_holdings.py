@@ -7,6 +7,7 @@ against the previous trading day.
 Tracked ETFs:
   00981A  主動統一台股增長      (ezmoney, fundCode=49YTW)
   00988A  主動統一全球創新      (ezmoney, fundCode=61YTW)
+  00403A  主動統一升級50        (ezmoney, fundCode=63YTW)
   00992A  群益台灣科技創新主動  (capitalfund, fundId=500)
 """
 
@@ -27,6 +28,12 @@ else:
 REPORT_DIR = os.path.join(_BASE_DIR, "reports")
 from utils.http_client import fetch, get_session, _get_domain, _wait_for_rate_limit
 
+
+class ScrapeError(Exception):
+    """Fetch/parse failure that must surface as a failed task — distinct
+    from a source legitimately returning zero holdings."""
+
+
 # ---------------------------------------------------------------------------
 # ETF registry
 # ---------------------------------------------------------------------------
@@ -41,6 +48,11 @@ ETF_REGISTRY = [
         "etf_id": "00988A",
         "source": "ezmoney",
         "fund_code": "61YTW",
+    },
+    {
+        "etf_id": "00403A",
+        "source": "ezmoney",
+        "fund_code": "63YTW",
     },
     {
         "etf_id": "00991A",
@@ -83,16 +95,17 @@ def _fetch_ezmoney(fund_code: str) -> list[dict]:
     """
     resp = fetch(EZMONEY_URL, params={"fundCode": fund_code})
     if resp is None:
-        print(f"  [ERROR] Failed to fetch ezmoney page for {fund_code}")
-        return []
+        raise ScrapeError(f"ezmoney fetch failed for {fund_code}")
 
     page = resp.text
 
     # Extract DataAsset JSON from data-content attribute
     m = re.search(r'id="DataAsset"\s+data-content="([^"]+)"', page)
     if not m:
-        print(f"  [ERROR] DataAsset not found in page for {fund_code}")
-        return []
+        raise ScrapeError(
+            f"DataAsset not found in ezmoney page for {fund_code} "
+            "(site layout changed?)"
+        )
 
     raw = html_mod.unescape(m.group(1))
     assets = json.loads(raw)
@@ -142,10 +155,14 @@ def _fetch_capitalfund(fund_id: str) -> list[dict]:
         resp.raise_for_status()
         data = resp.json()
     except Exception as e:
-        print(f"  [ERROR] Failed to fetch capitalfund API for fundId={fund_id}: {e}")
-        return []
+        raise ScrapeError(f"capitalfund API failed for fundId={fund_id}: {e}")
 
-    stocks = data.get("data", data).get("stocks", [])
+    stocks = data.get("data", data).get("stocks")
+    if stocks is None:
+        raise ScrapeError(
+            f"capitalfund response has no 'stocks' key for fundId={fund_id} "
+            "(API shape changed?)"
+        )
     holdings = []
     for s in stocks:
         stock_id = (s.get("stocNo") or "").strip()
@@ -181,8 +198,7 @@ def _fetch_fhtrust(etf_code: str, trade_date: date) -> list[dict]:
     url = f"{FHTRUST_EXCEL_URL}/{etf_code}/{date_str}"
     resp = fetch(url)
     if resp is None or resp.status_code != 200:
-        print(f"  [ERROR] Failed to fetch fhtrust Excel for {etf_code}/{date_str}")
-        return []
+        raise ScrapeError(f"fhtrust Excel fetch failed for {etf_code}/{date_str}")
 
     wb = load_workbook(BytesIO(resp.content))
     ws = wb.active
@@ -241,10 +257,13 @@ def _fetch_nomura(fund_no: str, trade_date: date) -> list[dict]:
         resp.raise_for_status()
         data = resp.json()
     except Exception as e:
-        print(f"  [ERROR] Nomura API failed for {fund_no}: {e}")
-        return []
+        raise ScrapeError(f"Nomura API failed for {fund_no}: {e}")
 
-    entries = data.get("Entries") or {}
+    entries = data.get("Entries")
+    if entries is None:
+        raise ScrapeError(
+            f"Nomura response has no 'Entries' for {fund_no} (API shape changed?)"
+        )
     table_data = (entries.get("Data") or {}).get("Table") or []
 
     holdings = []
@@ -303,8 +322,7 @@ def _fetch_allianz(fund_id: str) -> list[dict]:
         token_resp.raise_for_status()
         xsrf_token = token_resp.json()["token"]
     except Exception as e:
-        print(f"  [ERROR] Allianz XSRF token failed: {e}")
-        return []
+        raise ScrapeError(f"Allianz XSRF token failed: {e}")
 
     # Step 2: fetch holdings
     _wait_for_rate_limit(_get_domain(ALLIANZ_API_BASE))
@@ -322,10 +340,13 @@ def _fetch_allianz(fund_id: str) -> list[dict]:
         resp.raise_for_status()
         data = resp.json()
     except Exception as e:
-        print(f"  [ERROR] Allianz GetFundAssets failed for {fund_id}: {e}")
-        return []
+        raise ScrapeError(f"Allianz GetFundAssets failed for {fund_id}: {e}")
 
-    entries = data.get("Entries") or {}
+    entries = data.get("Entries")
+    if entries is None:
+        raise ScrapeError(
+            f"Allianz response has no 'Entries' for {fund_id} (API shape changed?)"
+        )
     table_data = (entries.get("Data") or {}).get("Table") or []
 
     holdings = []
@@ -380,8 +401,7 @@ def _fetch_holdings(etf: dict, trade_date: date = None) -> list[dict]:
     elif source == "allianz":
         return _fetch_allianz(etf["fund_id"])
     else:
-        print(f"  [ERROR] Unknown source: {source}")
-        return []
+        raise ScrapeError(f"Unknown source: {source}")
 
 # ---------------------------------------------------------------------------
 # Diff computation
@@ -679,29 +699,41 @@ def export_recent_diffs_excel(trade_date: date, days: int = 5):
 
 
 def scrape_date(trade_date: date):
-    """Scrape ETF holdings for all tracked ETFs and compute diffs."""
+    """Scrape ETF holdings for all tracked ETFs and compute diffs.
+
+    Each ETF is scraped independently: one failure doesn't block the rest,
+    but any failure re-raises at the end so daily_update marks the task
+    failed and the Telegram summary names the broken ETFs."""
+    failures = []
     for etf in ETF_REGISTRY:
         etf_id = etf["etf_id"]
         print(f"  Fetching holdings for {etf_id} ...")
 
-        holdings = _fetch_holdings(etf, trade_date)
-        if not holdings:
-            print(f"  [WARN] No holdings data for {etf_id}, skipping.")
-            continue
+        try:
+            holdings = _fetch_holdings(etf, trade_date)
+            if not holdings:
+                print(f"  [WARN] No holdings data for {etf_id}, skipping.")
+                continue
 
-        print(f"  {etf_id}: {len(holdings)} stocks")
+            print(f"  {etf_id}: {len(holdings)} stocks")
 
-        with get_cursor() as cur:
-            prev = _get_prev_holdings(cur, etf_id, trade_date)
-            _save_holdings(cur, etf_id, trade_date, holdings)
+            with get_cursor() as cur:
+                prev = _get_prev_holdings(cur, etf_id, trade_date)
+                _save_holdings(cur, etf_id, trade_date, holdings)
 
-            if prev:
-                diffs = _compute_diff(prev, holdings)
-                _save_diff(cur, etf_id, trade_date, diffs)
+                if prev:
+                    diffs = _compute_diff(prev, holdings)
+                    _save_diff(cur, etf_id, trade_date, diffs)
 
-                added = sum(1 for d in diffs if d["change_type"] == "added")
-                removed = sum(1 for d in diffs if d["change_type"] == "removed")
-                changed = len(diffs) - added - removed
-                print(f"  {etf_id} diff: +{added} added, -{removed} removed, ~{changed} changed")
-            else:
-                print(f"  {etf_id}: first snapshot, no diff computed.")
+                    added = sum(1 for d in diffs if d["change_type"] == "added")
+                    removed = sum(1 for d in diffs if d["change_type"] == "removed")
+                    changed = len(diffs) - added - removed
+                    print(f"  {etf_id} diff: +{added} added, -{removed} removed, ~{changed} changed")
+                else:
+                    print(f"  {etf_id}: first snapshot, no diff computed.")
+        except Exception as e:
+            print(f"  [ERROR] {etf_id}: {e}")
+            failures.append(etf_id)
+
+    if failures:
+        raise RuntimeError(f"ETF holdings scrape failed for: {', '.join(failures)}")

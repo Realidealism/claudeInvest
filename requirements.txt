@@ -1,10 +1,25 @@
-numpy>=1.24.0
+numpy==1.26.4
+pandas==2.2.3
 psycopg2-binary==2.9.9
 requests==2.32.3
 python-dotenv==1.0.1
-matplotlib>=3.7.0
-plotly>=5.18.0
-dash>=2.14.0
+beautifulsoup4==4.14.3
+openpyxl==3.1.5
+matplotlib==3.10.8
+plotly==6.6.0
+dash==4.1.0
+python-telegram-bot[job-queue]==22.7
+
+# SinoPac Shioaji — market data for pre_market_update.py / intraday fallback.
+# NOTE: shioaji and esun_marketdata declare conflicting websocket-client /
+# pyee requirements (pip check reports them). The installed set favors
+# shioaji; E.Sun uses REST polling only, so the conflict is harmless —
+# do NOT "fix" it by upgrading websocket-client.
+shioaji==1.2.8
+
+# Social-monitor watcher (Phase 2): Gemini analysis (YouTube videos are
+# passed directly to Gemini as a video Part — no separate transcript dep).
+google-genai==1.70.0
 
 # esun_marketdata is distributed by E.Sun as a platform-specific wheel, not
 # on PyPI. Install it manually before running intraday_update.py:

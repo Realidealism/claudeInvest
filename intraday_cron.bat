@@ -1,39 +1,26 @@
 @echo off
-REM 12:50 intraday snapshot + git push wrapper.
-REM Scheduled by Task Scheduler:
-REM   schtasks /Create /SC WEEKLY /D MON,TUE,WED,THU,FRI ^
-REM     /TN "Invest\IntradaySnapshot" ^
-REM     /TR "C:\Claude\Invest\intraday_cron.bat" /ST 12:50 /F
+REM RETIRED -- this wrapper used to fire at 12:50 to run a one-shot
+REM intraday snapshot + Telegram push + git push. The architecture has
+REM moved to:
 REM
-REM Log: logs\intraday_cron.log (rotated by overwrite each run)
+REM   intraday_snapshot.exe   -- long-running daemon, back-to-back passes
+REM                             during the trading session (09:00-13:30)
+REM                             plus one final pass after close. Started
+REM                             once at boot via Task Scheduler with
+REM                             trigger "At system startup".
+REM
+REM   intraday_publish.bat    -- every 15 min during 09:00-14:00, git pushes
+REM                             the 3 intraday JSONs and runs
+REM                             telegram_bot.push_intraday_signals (deduped
+REM                             via tw.intraday_push_state so each
+REM                             (date, stock, signal) is messaged at most
+REM                             once per day).
+REM
+REM This script is left as a safe no-op so any Task Scheduler entry that
+REM still calls it doesn't fail loudly. To fully retire it, delete the
+REM "Invest\IntradaySnapshot" entry in Task Scheduler.
 
 cd /d C:\Claude\Invest
 if not exist logs mkdir logs
-
-echo ============================== >> logs\intraday_cron.log
-echo [%DATE% %TIME%] starting          >> logs\intraday_cron.log
-
-dist\intraday_snapshot.exe >> logs\intraday_cron.log 2>&1
-if errorlevel 1 (
-    echo [%DATE% %TIME%] snapshot FAILED ^(exit %ERRORLEVEL%^), skipping git >> logs\intraday_cron.log
-    exit /b 1
-)
-
-git add frontend/public/data/scores_intraday.json frontend/public/data/operations_intraday.json frontend/public/data/positions_intraday.json >> logs\intraday_cron.log 2>&1
-
-REM `git diff --cached --quiet` returns 1 when there ARE staged changes, 0 when clean.
-git diff --cached --quiet
-if errorlevel 1 (
-    git commit -m "Update intraday data" >> logs\intraday_cron.log 2>&1
-    git push origin main >> logs\intraday_cron.log 2>&1
-    if errorlevel 1 (
-        echo [%DATE% %TIME%] git push FAILED >> logs\intraday_cron.log
-        exit /b 2
-    )
-    echo [%DATE% %TIME%] pushed              >> logs\intraday_cron.log
-) else (
-    echo [%DATE% %TIME%] no changes to commit >> logs\intraday_cron.log
-)
-
-echo [%DATE% %TIME%] done                >> logs\intraday_cron.log
+echo [%DATE% %TIME%] intraday_cron.bat invoked but retired - see intraday_publish.bat >> logs\intraday_cron.log
 exit /b 0

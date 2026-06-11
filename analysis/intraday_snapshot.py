@@ -443,8 +443,11 @@ def _save_breadth_sidecar(snapshot_date: date, snapshot_time: datetime,
     }
     sidecar = Path(__file__).parent.parent / "data" / "breadth_intraday.json"
     sidecar.parent.mkdir(parents=True, exist_ok=True)
-    with open(sidecar, "w", encoding="utf-8") as f:
+    # Write-then-replace so export_breadth() never reads a half-written file.
+    tmp = sidecar.with_suffix(".json.tmp")
+    with open(tmp, "w", encoding="utf-8") as f:
         json.dump(payload, f, ensure_ascii=False, indent=2)
+    os.replace(tmp, sidecar)
     return counts
 
 
