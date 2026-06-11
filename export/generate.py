@@ -1306,6 +1306,11 @@ def export_intraday(out_dir: str | None = None):
         # Refresh /breadth so the live 90th bar reflects this snapshot's
         # sidecar. Daily breadth/margin are owned by export_all().
         export_breadth(cur, out)
+        # VIX rides on the intraday loop too — the snapshot daemon polls
+        # TAIFEX MIS at most once per minute (throttled in
+        # intraday_snapshot._run_pass) and we re-emit vix.json here so
+        # intraday_publish.bat can pick it up alongside the other JSONs.
+        export_vix(cur, out)
     print("Intraday export done.")
 
 
@@ -1667,6 +1672,129 @@ def export_fear_greed(cur, out: Path):
     }, out / "fear_greed.json")
 
 
+# Roughly one trading year. The 252-day rolling window backs the p20/p50/
+# p80 rating thresholds shown on the VIX page; series shown is also capped
+# to this length so the chart never spans more than ~1 year.
+VIX_WINDOW_DAYS = 252
+
+
+def _vix_rating(close: float | None, thresholds: dict[str, float | None]) -> str | None:
+    """Bucket a VIX close into calm / low / elevated / panic using the
+    rolling p20/p50/p80 thresholds. Falls back to None if any threshold is
+    missing or close is None."""
+    if close is None:
+        return None
+    p20, p50, p80 = thresholds.get("p20"), thresholds.get("p50"), thresholds.get("p80")
+    if p20 is None or p50 is None or p80 is None:
+        return None
+    if close < p20:
+        return "calm"
+    if close < p50:
+        return "low"
+    if close < p80:
+        return "elevated"
+    return "panic"
+
+
+def _vix_thresholds(values: list[float]) -> dict[str, float | None]:
+    if not values:
+        return {"p20": None, "p50": None, "p80": None}
+    import numpy as np
+    arr = np.asarray(values, dtype=float)
+    arr = arr[~np.isnan(arr)]
+    if arr.size == 0:
+        return {"p20": None, "p50": None, "p80": None}
+    return {
+        "p20": round(float(np.percentile(arr, 20)), 2),
+        "p50": round(float(np.percentile(arr, 50)), 2),
+        "p80": round(float(np.percentile(arr, 80)), 2),
+    }
+
+
+def export_vix(cur, out: Path):
+    """VIX page — last 252 trading days of US ^VIX (from CNN F&G's
+    volatility sub-indicator) and TAIFEX TWVIX, each with p20/p50/p80
+    rating thresholds computed over the same window."""
+
+    # US ^VIX — reuse the value CNN F&G already scrapes daily into
+    # cnn_fear_greed.volatility_score (the raw VIX level, not the 0-100
+    # normalised rating).
+    cur.execute(
+        f"""
+        SELECT trade_date, volatility_score AS close
+        FROM tw.cnn_fear_greed
+        WHERE volatility_score IS NOT NULL
+        ORDER BY trade_date DESC
+        LIMIT {VIX_WINDOW_DAYS}
+        """
+    )
+    us_rows = list(reversed(cur.fetchall()))
+    us_series = [
+        {"date": r["trade_date"], "close": round(float(r["close"]), 2)}
+        for r in us_rows
+    ]
+    us_thr = _vix_thresholds([p["close"] for p in us_series])
+    us_latest = (
+        {
+            "close":  us_series[-1]["close"],
+            "rating": _vix_rating(us_series[-1]["close"], us_thr),
+        }
+        if us_series else None
+    )
+
+    # TAIFEX TWVIX
+    cur.execute(
+        f"""
+        SELECT trade_date, close, intraday_time
+        FROM tw.vix_tw
+        ORDER BY trade_date DESC
+        LIMIT {VIX_WINDOW_DAYS}
+        """
+    )
+    tw_rows = list(reversed(cur.fetchall()))
+    tw_series = [
+        {"date": r["trade_date"], "close": round(float(r["close"]), 2)}
+        for r in tw_rows
+    ]
+    tw_thr = _vix_thresholds([p["close"] for p in tw_series])
+    # intraday_time: non-NULL HHMMSS = MIS poller wrote this row mid-session.
+    # Surface it on the latest payload so the page can render a "盤中 HH:MM" tag.
+    tw_latest_intraday = tw_rows[-1]["intraday_time"] if tw_rows else None
+    tw_latest = (
+        {
+            "close":         tw_series[-1]["close"],
+            "rating":        _vix_rating(tw_series[-1]["close"], tw_thr),
+            "intraday_time": tw_latest_intraday,
+        }
+        if tw_series else None
+    )
+
+    # latest_date is the most recent date that has data on either side; US
+    # publishes daily even on TW holidays and vice versa.
+    candidates = [s[-1]["date"] for s in (us_series, tw_series) if s]
+    latest_date = max(candidates) if candidates else None
+
+    _write({
+        "latest_date": latest_date,
+        "us": {
+            "symbol":     "^VIX",
+            "label":      "美股 VIX",
+            "source":     "CBOE (via CNN F&G)",
+            "latest":     us_latest,
+            "thresholds": us_thr,
+            "series":     us_series,
+        },
+        "tw": {
+            "symbol":     "TWVIX",
+            "label":      "台指 VIX",
+            "source":     "TAIFEX",
+            "latest":     tw_latest,
+            "thresholds": tw_thr,
+            "series":     tw_series,
+        },
+    }, out / "vix.json")
+
+
 def export_all(out_dir: str | None = None):
     if out_dir is None:
         import sys
@@ -1697,6 +1825,7 @@ def export_all(out_dir: str | None = None):
         export_breadth(cur, out)
         export_margin(cur, out)
         export_fear_greed(cur, out)
+        export_vix(cur, out)
         # intraday JSONs (scores/operations/positions) are intentionally
         # NOT refreshed here — they are owned by intraday_snapshot.exe
         # which writes them at 12:50 with h(t)-projected bars. Daily

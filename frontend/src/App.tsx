@@ -17,6 +17,7 @@ import PositionsPage from "./pages/PositionsPage";
 import BreadthPage from "./pages/BreadthPage";
 import MarginPage from "./pages/MarginPage";
 import FearGreedPage from "./pages/FearGreedPage";
+import VixPage from "./pages/VixPage";
 
 export default function App() {
   return (
@@ -40,6 +41,7 @@ export default function App() {
         <Route path="/breadth" element={<BreadthPage />} />
         <Route path="/margin" element={<MarginPage />} />
         <Route path="/fear-greed" element={<FearGreedPage />} />
+        <Route path="/vix" element={<VixPage />} />
       </Route>
     </Routes>
   );

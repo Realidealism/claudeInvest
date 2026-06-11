@@ -8,6 +8,7 @@ const NAV_GROUPS = [
     items: [
       { to: "/breadth",    label: "多空頭排列" },
       { to: "/margin",     label: "融資融券" },
+      { to: "/vix",        label: "VIX 波動率指數" },
       { to: "/fear-greed", label: "CNN 恐懼貪婪指數" },
     ],
   },
