@@ -442,6 +442,28 @@ def _get_disposal_status(
         # exactly that day. So no "post-disposal filter" here.
         buckets = _attention_kuan_buckets(cur, ticker, recent[-1], today)
 
+        # Throttle: if TWSE just announced a disposal in the past 3 td
+        # (strictly before today — today's announcement is the one
+        # we're predicting), suppress this repeat. Mirrors the
+        # disposal_audit empirical tuning that took precision from
+        # 71.3% → 100% at the 3 td window. Rarely fires for the live
+        # bot because the ongoing branch usually returns first, but
+        # catches the very-short-disposal edge case (period ended,
+        # alert still recent).
+        recently_announced = False
+        if len(recent) > 3:
+            floor_td = recent[3]
+            cur.execute(
+                """
+                SELECT 1 FROM tw.stock_alerts
+                WHERE stock_id = %s AND alert_type = 'disposal'
+                  AND alert_date > %s AND alert_date < %s
+                LIMIT 1
+                """,
+                (ticker, floor_td, today),
+            )
+            recently_announced = cur.fetchone() is not None
+
     # Intraday attention prediction: if today's data would trigger a §X rule,
     # conceptually attention is added on `today` — bump the matching 款 bucket.
     try:
@@ -467,7 +489,7 @@ def _get_disposal_status(
     for kuan, consec_req in _KUAN_DISPOSAL_RULES.items():
         run = _consec_run_ending_at(inflated.get(kuan, set()), recent)
         consec_runs[kuan] = run
-        if run >= consec_req:
+        if run >= consec_req and not recently_announced:
             triggered.append((kuan, run, consec_req))
 
     # ── Already in disposal: bare ongoing message, no upgrade prediction ───

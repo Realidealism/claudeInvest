@@ -1,0 +1,312 @@
+"""Daily 08:00 TPE 早安管家 digest.
+
+Runs once per weekday morning. Builds a watchlist-scoped brief from the
+daily EOD JSON snapshots refreshed by daily_update.exe the previous evening:
+
+  📊 評分變動    notable rank movements in tw.score_snapshot (top-300)
+  📈 訊號命中    6-signal hits ∩ watchlist
+  🔄 部位進出    yesterday's strategy entries + exits ∩ watchlist
+  ⚠️ 處置預警    near-disposal alerts via _get_disposal_status
+
+Sections are silently dropped when empty; when every section is empty the
+brief is suppressed entirely (no "今早無重點" filler).
+
+CLI (force-build, ignores trading-day gate):
+    python -m telegram_bot.watchers.morning_brief
+"""
+
+from __future__ import annotations
+
+import asyncio
+import json
+import logging
+import sys
+from datetime import date, datetime, time as dtime, timedelta, timezone
+from pathlib import Path
+
+from intraday.watchlist import load_tw_watchlist
+from telegram_bot.notify import send_sync
+from telegram_bot.push_intraday_signals import _SIGNAL_LABEL, _SIGNAL_ORDER
+
+logger = logging.getLogger(__name__)
+
+_TPE_TZ = timezone(timedelta(hours=8))
+_PUSH_TIME = dtime(hour=8, minute=0)
+
+JOB_NAME = "morning_brief"
+
+# Rank-change event thresholds
+_ENTER_TOP_RANK = 50
+_RANK_DELTA_NOTABLE = 30
+
+_REPO_ROOT = Path(__file__).resolve().parent.parent.parent
+_SCORES_JSON = _REPO_ROOT / "frontend" / "public" / "data" / "scores.json"
+_OPERATIONS_JSON = _REPO_ROOT / "frontend" / "public" / "data" / "operations.json"
+_POSITIONS_JSON = _REPO_ROOT / "frontend" / "public" / "data" / "positions.json"
+
+
+# ── Helpers ───────────────────────────────────────────────────────────────
+
+
+def _now_tpe() -> datetime:
+    return datetime.now(_TPE_TZ)
+
+
+def _is_trading_day(d: date) -> bool:
+    return d.weekday() < 5
+
+
+def _load_json(path: Path) -> dict | None:
+    if not path.exists():
+        return None
+    try:
+        with path.open(encoding="utf-8") as f:
+            return json.load(f)
+    except Exception:
+        return None
+
+
+def _weekday_zh(d: date) -> str:
+    return "週" + "一二三四五六日"[d.weekday()]
+
+
+# ── Section builders ──────────────────────────────────────────────────────
+
+
+def _build_section_score_changes(
+    scores: dict | None, watchlist: set[str]
+) -> list[str] | None:
+    """Flag watchlist tickers that newly entered the top-50 OR moved ≥30 ranks
+    in either direction. Capped at top-300 (daily snapshot limit)."""
+    if not scores:
+        return None
+    lines: list[str] = []
+    for side, label in (("long", "多"), ("short", "空")):
+        for e in scores.get(side, []):
+            if e.get("ticker") not in watchlist:
+                continue
+            rank = e.get("rank")
+            prev = e.get("prev_rank")
+            delta = e.get("rank_delta")
+            is_new = e.get("is_new")
+
+            event = None
+            if rank is not None and rank <= _ENTER_TOP_RANK and (
+                is_new or (prev is not None and prev > _ENTER_TOP_RANK)
+            ):
+                event = f"進入{label}前 {_ENTER_TOP_RANK}"
+            elif isinstance(delta, (int, float)) and abs(delta) >= _RANK_DELTA_NOTABLE:
+                direction = "↑" if delta > 0 else "↓"
+                event = f"{label}側 {direction}{abs(int(delta))} 名"
+
+            if event:
+                lines.append(
+                    f"  {e.get('ticker')} {e.get('name', '')} {label}#{rank}  {event}"
+                )
+    return lines or None
+
+
+def _build_section_signals(
+    operations: dict | None, watchlist: set[str]
+) -> list[str] | None:
+    if not operations:
+        return None
+    sigs = operations.get("signals", {})
+    lines: list[str] = []
+    for kind in _SIGNAL_ORDER:
+        hits = [e for e in sigs.get(kind, []) if e.get("ticker") in watchlist]
+        if not hits:
+            continue
+        label = _SIGNAL_LABEL.get(kind, kind)
+        body = " / ".join(f"{e['ticker']} {e.get('name', '')}" for e in hits)
+        lines.append(f"  {label}：{body}")
+    return lines or None
+
+
+def _build_section_positions(
+    positions: dict | None, watchlist: set[str], snapshot_date: str | None
+) -> list[str] | None:
+    if not positions:
+        return None
+    lines: list[str] = []
+    # Yesterday's new entries — active rows whose entry_date matches the snapshot.
+    for bucket, side_zh in (("long", "多"), ("short", "空")):
+        for p in positions.get(bucket, []):
+            if p.get("ticker") not in watchlist:
+                continue
+            if p.get("entry_date") != snapshot_date:
+                continue
+            tier = p.get("entry_tier", "")
+            entry_price = p.get("entry_price")
+            price_str = f"{float(entry_price):g}" if entry_price is not None else "?"
+            lines.append(
+                f"  🆕 {p['ticker']} {p.get('name', '')} {side_zh}單"
+                f"  @ {price_str}（tier={tier}）"
+            )
+    # Yesterday's exits — daily snapshot's exited_* buckets only contain rows
+    # whose exit_date == snapshot_date, so no extra filter needed.
+    for bucket, side_zh in (("exited_long", "多"), ("exited_short", "空")):
+        for p in positions.get(bucket, []):
+            if p.get("ticker") not in watchlist:
+                continue
+            pnl = p.get("pnl_pct")
+            pnl_str = f"{float(pnl):+.2f}%" if pnl is not None else "?"
+            reason = p.get("exit_reason") or ""
+            reason_part = f"（{reason}）" if reason else ""
+            lines.append(
+                f"  🟡 {p['ticker']} {p.get('name', '')} {side_zh}單 出場 {pnl_str}{reason_part}"
+            )
+    return lines or None
+
+
+def _build_section_disposal(watchlist: set[str]) -> list[str] | None:
+    """Reuse score.py's _get_disposal_status. Only keep the loud rows
+    (🔴 in disposal / 進處置 / 🟠 1 次即進) so the brief stays focused.
+    Names are batch-fetched from tw.stocks so each row shows
+    "<ticker> <name>" instead of just the ticker."""
+    try:
+        from telegram_bot.handlers.score import _get_disposal_status
+    except Exception:
+        return None
+    try:
+        from telegram_bot.handlers._data_freshness import detect_state
+        freshness = detect_state()
+    except Exception:
+        freshness = None
+
+    # Batch name lookup so we don't hit DB per ticker.
+    names: dict[str, str] = {}
+    try:
+        from db.connection import get_cursor
+        with get_cursor(commit=False) as cur:
+            cur.execute(
+                "SELECT stock_id, name FROM tw.stocks WHERE stock_id = ANY(%s)",
+                (list(watchlist),),
+            )
+            for r in cur.fetchall():
+                names[r["stock_id"]] = r["name"] or ""
+    except Exception:
+        pass
+
+    lines: list[str] = []
+    for t in sorted(watchlist):
+        try:
+            status = _get_disposal_status(t, freshness, allow_refresh=False)
+        except Exception:
+            continue
+        if not status:
+            continue
+        if "🔴" in status or "🟠" in status:
+            name = names.get(t, "")
+            label = f"{t} {name}".rstrip()
+            lines.append(f"  {label}  {status}")
+    return lines or None
+
+
+# ── Composer ──────────────────────────────────────────────────────────────
+
+
+def _build_message(today: date, snapshot_date: str, sections: dict) -> str:
+    header = (
+        f"[早安管家] {today} {_weekday_zh(today)}\n"
+        f"資料日：{snapshot_date}"
+    )
+    parts = [header]
+    section_titles = (
+        ("scores", "📊 評分變動"),
+        ("signals", "📈 昨日訊號（追蹤股）"),
+        ("positions", "🔄 昨日部位進出（追蹤股）"),
+        ("disposal", "⚠️ 處置預警（追蹤股）"),
+    )
+    for key, title in section_titles:
+        body = sections.get(key)
+        if body:
+            parts.append(f"{title}\n" + "\n".join(body))
+    return "\n\n".join(parts)
+
+
+def _run_check(*, respect_gates: bool) -> tuple[str | None, str]:
+    today = _now_tpe().date()
+    if respect_gates and not _is_trading_day(today):
+        return None, "skipped: non-trading day"
+
+    watchlist = set(load_tw_watchlist(include_etf=True))
+    if not watchlist:
+        return None, "skipped: watchlist empty"
+
+    scores = _load_json(_SCORES_JSON)
+    operations = _load_json(_OPERATIONS_JSON)
+    positions = _load_json(_POSITIONS_JSON)
+    snapshot_date = (
+        (scores or {}).get("snapshot_date")
+        or (operations or {}).get("snapshot_date")
+        or (positions or {}).get("snapshot_date")
+        or "?"
+    )
+
+    sections = {
+        "scores": _build_section_score_changes(scores, watchlist),
+        "signals": _build_section_signals(operations, watchlist),
+        "positions": _build_section_positions(positions, watchlist, snapshot_date),
+        "disposal": _build_section_disposal(watchlist),
+    }
+
+    populated = sum(1 for v in sections.values() if v)
+    if populated == 0:
+        return None, "no notable events; suppressed"
+
+    msg = _build_message(today, snapshot_date, sections)
+    ok = send_sync(msg) if respect_gates else True
+    return msg, f"sections={populated}, send_ok={ok}"
+
+
+async def check_once(context) -> None:  # noqa: ANN001 — PTB context
+    try:
+        msg, status = await asyncio.to_thread(_run_check, respect_gates=True)
+        logger.info("morning_brief: %s", status)
+    except Exception as exc:
+        logger.exception("morning_brief crashed: %s", exc)
+
+
+# ── Wiring ────────────────────────────────────────────────────────────────
+
+
+def register(application) -> None:  # noqa: ANN001 — PTB Application
+    jq = application.job_queue
+    if jq is None:
+        logger.warning(
+            "JobQueue unavailable; morning_brief not scheduled. "
+            "Install python-telegram-bot[job-queue]."
+        )
+        return
+    # `days` semantics differ across PTB versions; safer to run every day and
+    # let _run_check's trading-day gate filter weekends.
+    jq.run_daily(
+        check_once,
+        time=_PUSH_TIME.replace(tzinfo=_TPE_TZ),
+        name=JOB_NAME,
+    )
+    logger.info(
+        "Scheduled %s daily at %s TPE (weekend self-gated)",
+        JOB_NAME,
+        _PUSH_TIME.strftime("%H:%M"),
+    )
+
+
+# ── CLI ───────────────────────────────────────────────────────────────────
+
+
+def _cli() -> int:
+    logging.basicConfig(
+        level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s"
+    )
+    msg, status = _run_check(respect_gates=False)
+    print(f"[morning_brief] {status}")
+    if msg:
+        print()
+        print(msg)
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(_cli())
