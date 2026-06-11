@@ -18,6 +18,7 @@ import BreadthPage from "./pages/BreadthPage";
 import MarginPage from "./pages/MarginPage";
 import FearGreedPage from "./pages/FearGreedPage";
 import VixPage from "./pages/VixPage";
+import YieldCurvePage from "./pages/YieldCurvePage";
 
 export default function App() {
   return (
@@ -42,6 +43,7 @@ export default function App() {
         <Route path="/margin" element={<MarginPage />} />
         <Route path="/fear-greed" element={<FearGreedPage />} />
         <Route path="/vix" element={<VixPage />} />
+        <Route path="/yield-curve" element={<YieldCurvePage />} />
       </Route>
     </Routes>
   );

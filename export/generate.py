@@ -1711,6 +1711,81 @@ def _vix_thresholds(values: list[float]) -> dict[str, float | None]:
     }
 
 
+# Roughly one trading year for the chart series. Spread rating uses
+# absolute economic thresholds rather than rolling percentile, so the
+# window only governs how much history the chart draws.
+YIELD_WINDOW_DAYS = 252
+
+# Absolute spread thresholds (percentage points). These mirror the
+# canonical newsroom buckets — < 0 = inverted (classic recession lead),
+# 0–0.5 = flat, 0.5–1.5 = normal, > 1.5 = steep (expansionary).
+YIELD_THRESHOLDS = {"flat": 0.0, "normal": 0.5, "steep": 1.5}
+
+
+def _yield_rating(spread: float | None) -> str | None:
+    if spread is None:
+        return None
+    if spread < YIELD_THRESHOLDS["flat"]:
+        return "inverted"
+    if spread < YIELD_THRESHOLDS["normal"]:
+        return "flat"
+    if spread < YIELD_THRESHOLDS["steep"]:
+        return "normal"
+    return "steep"
+
+
+def export_yield_curve(cur, out: Path):
+    """US Treasury yield-curve page — last ~1 year of 10Y-2Y and 10Y-3M
+    spreads (and the three raw rates) computed from tw.yield_curve."""
+    cur.execute(
+        f"""
+        SELECT trade_date, dgs10, dgs2, dgs3mo
+        FROM tw.yield_curve
+        WHERE dgs10 IS NOT NULL
+          AND (dgs2 IS NOT NULL OR dgs3mo IS NOT NULL)
+        ORDER BY trade_date DESC
+        LIMIT {YIELD_WINDOW_DAYS}
+        """
+    )
+    rows = list(reversed(cur.fetchall()))
+
+    def _spread(a, b):
+        if a is None or b is None:
+            return None
+        return round(float(a) - float(b), 3)
+
+    series = [
+        {
+            "date":       r["trade_date"],
+            "dgs10":      float(r["dgs10"])  if r["dgs10"]  is not None else None,
+            "dgs2":       float(r["dgs2"])   if r["dgs2"]   is not None else None,
+            "dgs3mo":     float(r["dgs3mo"]) if r["dgs3mo"] is not None else None,
+            "spread_2y":  _spread(r["dgs10"], r["dgs2"]),
+            "spread_3m":  _spread(r["dgs10"], r["dgs3mo"]),
+        }
+        for r in rows
+    ]
+
+    latest_2y = next(
+        ({"spread": p["spread_2y"], "rating": _yield_rating(p["spread_2y"]), "date": p["date"]}
+         for p in reversed(series) if p["spread_2y"] is not None),
+        None,
+    )
+    latest_3m = next(
+        ({"spread": p["spread_3m"], "rating": _yield_rating(p["spread_3m"]), "date": p["date"]}
+         for p in reversed(series) if p["spread_3m"] is not None),
+        None,
+    )
+
+    _write({
+        "latest_date": series[-1]["date"] if series else None,
+        "thresholds":  YIELD_THRESHOLDS,
+        "spread_2y":   {"label": "10Y - 2Y", "latest": latest_2y},
+        "spread_3m":   {"label": "10Y - 3M", "latest": latest_3m},
+        "series":      series,
+    }, out / "yield_curve.json")
+
+
 def export_vix(cur, out: Path):
     """VIX page — last 252 trading days of US ^VIX (from CNN F&G's
     volatility sub-indicator) and TAIFEX TWVIX, each with p20/p50/p80
@@ -1826,6 +1901,7 @@ def export_all(out_dir: str | None = None):
         export_margin(cur, out)
         export_fear_greed(cur, out)
         export_vix(cur, out)
+        export_yield_curve(cur, out)
         # intraday JSONs (scores/operations/positions) are intentionally
         # NOT refreshed here — they are owned by intraday_snapshot.exe
         # which writes them at 12:50 with h(t)-projected bars. Daily
