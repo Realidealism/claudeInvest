@@ -160,13 +160,50 @@ export default function YieldCurvePage() {
         </span>
       </div>
 
-      <div className="bg-surface-alt border border-border rounded p-3 text-[11px] text-text-secondary leading-5">
-        殖利率倒掛（長天期利率低於短天期）= 經典衰退領先指標。rating 用絕對門檻切：
-        <span className="text-red-400">&lt; 0 倒掛</span>　·
-        <span className="text-orange-400">0~0.5 平緩</span>　·
-        <span className="text-emerald-400">0.5~1.5 正常</span>　·
-        <span className="text-sky-400">&gt; 1.5 陡峭</span>。
-        資料源 FRED (St. Louis Fed) DGS10 / DGS2 / DGS3MO。
+      <div className="bg-surface-alt border border-border rounded p-3 text-[11px] text-text-secondary leading-5 space-y-2">
+        <p>
+          殖利率倒掛（長天期利率低於短天期）= 經典衰退領先指標。rating 用絕對門檻切，過去 3 年走勢。
+          資料源 U.S. Department of the Treasury daily yield curve。
+        </p>
+        <table className="w-full mt-1">
+          <thead>
+            <tr className="text-text-secondary">
+              <th className="text-left py-1 pr-2 w-20">Rating</th>
+              <th className="text-left py-1 pr-2 w-28">區間</th>
+              <th className="text-left py-1 pr-2">市場意涵</th>
+              <th className="text-left py-1">歷史對應策略</th>
+            </tr>
+          </thead>
+          <tbody className="text-text-primary">
+            <tr className="border-t border-border/50">
+              <td className="py-1 pr-2"><span className="px-1.5 py-0.5 rounded text-[10px] bg-red-500/15 text-red-400">倒掛</span></td>
+              <td className="py-1 pr-2">&lt; 0</td>
+              <td className="py-1 pr-2">衰退領先訊號，1969 起每次倒掛後 6-24 個月平均出現衰退</td>
+              <td className="py-1">降股票權重 / 偏防禦類股（公用、醫療、必需消費）</td>
+            </tr>
+            <tr className="border-t border-border/50">
+              <td className="py-1 pr-2"><span className="px-1.5 py-0.5 rounded text-[10px] bg-orange-500/15 text-orange-400">平緩</span></td>
+              <td className="py-1 pr-2">0 ~ 0.5</td>
+              <td className="py-1 pr-2">兩種情境：① 經濟末期、準備倒掛 ② 剛從倒掛脫離（復甦初期）</td>
+              <td className="py-1">看方向決定 — 趨平=警戒、趨陡=轉好</td>
+            </tr>
+            <tr className="border-t border-border/50">
+              <td className="py-1 pr-2"><span className="px-1.5 py-0.5 rounded text-[10px] bg-emerald-500/15 text-emerald-400">正常</span></td>
+              <td className="py-1 pr-2">0.5 ~ 1.5</td>
+              <td className="py-1 pr-2">健康擴張期，市場預期通膨溫和</td>
+              <td className="py-1">標準配置，cyclical / 成長股可偏積極</td>
+            </tr>
+            <tr className="border-t border-border/50">
+              <td className="py-1 pr-2"><span className="px-1.5 py-0.5 rounded text-[10px] bg-sky-500/15 text-sky-400">陡峭</span></td>
+              <td className="py-1 pr-2">&gt; 1.5</td>
+              <td className="py-1 pr-2">多半在衰退剛結束或 Fed 強力降息時出現，復甦早期多頭起點</td>
+              <td className="py-1">加碼 cyclical / 銀行 / 小型股</td>
+            </tr>
+          </tbody>
+        </table>
+        <p className="text-[10px] italic text-text-secondary/80 pt-1">
+          以上為歷史經驗對應的常見市場解讀，並非投資建議。實際操作請評估自身風險。
+        </p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -176,7 +213,7 @@ export default function YieldCurvePage() {
 
       <div className="bg-surface-alt border border-border rounded p-3">
         <div className="text-xs font-medium text-text-primary mb-1">
-          過去 1 年利差走勢（dashed = 0 / 0.5 / 1.5 警戒帶）
+          過去 3 年利差走勢（dashed = 0 / 0.5 / 1.5 警戒帶）
         </div>
         <MultiLineChart
           data={seriesWithRefs}

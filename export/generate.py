@@ -1711,10 +1711,12 @@ def _vix_thresholds(values: list[float]) -> dict[str, float | None]:
     }
 
 
-# Roughly one trading year for the chart series. Spread rating uses
+# Roughly three trading years for the chart series. Spread rating uses
 # absolute economic thresholds rather than rolling percentile, so the
-# window only governs how much history the chart draws.
-YIELD_WINDOW_DAYS = 252
+# window only governs how much history the chart draws — chosen to
+# cover the 2022–2024 inversion cycle so users can see the current
+# value in its 3-year context.
+YIELD_WINDOW_DAYS = 750
 
 # Absolute spread thresholds (percentage points). These mirror the
 # canonical newsroom buckets — < 0 = inverted (classic recession lead),

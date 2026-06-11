@@ -21,9 +21,9 @@ column names from the original FRED-based plan: 3 Mo → dgs3mo,
 2 Yr → dgs2, 10 Yr → dgs10) and ignore the rest. Empty cells (rare —
 Treasury occasionally leaves a maturity blank) become NULL.
 
-Every run pulls the current calendar year plus the previous one, so we
-always have ≥252 trading days available regardless of when in the year
-we run for the first time.
+Every run pulls the current calendar year plus the previous three, so
+we always have ~3 years (≈750 trading days) of history available — the
+window the dashboard chart now uses.
 """
 
 from __future__ import annotations
@@ -137,10 +137,11 @@ def save_rows(per_date: dict[date, dict[str, float | None]]) -> int:
 
 
 def scrape_date(trade_date: date) -> ScrapeResult:
-    """Pull the current calendar year plus the previous one; both
+    """Pull the current calendar year plus the previous three; all
     upserts are idempotent. trade_date informs which year we ask for
-    but the daily run window is the past two calendar years."""
-    years = [trade_date.year, trade_date.year - 1]
+    but the daily run window is the past four calendar years (~3y of
+    trading days after weekends + holidays)."""
+    years = [trade_date.year - i for i in range(4)]
     per_date: dict[date, dict[str, float | None]] = {}
     api_rows = 0
     parse_errors = 0
