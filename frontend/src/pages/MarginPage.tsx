@@ -91,6 +91,9 @@ export default function MarginPage() {
   const prev = data.series.length >= 2 ? data.series[data.series.length - 2] : null;
   const marginDiff = (latest.margin_balance ?? 0) - (prev?.margin_balance ?? 0);
   const shortDiff  = (latest.short_balance  ?? 0) - (prev?.short_balance  ?? 0);
+  // 融資金額 D/D 變化（仟元）；display 用「億」(1 億 = 1e5 仟元)，跟主值 fmtKtwd 對齊
+  const marginValueDiffK = (latest.margin_balance_value ?? 0) - (prev?.margin_balance_value ?? 0);
+  const marginValueDiffYi = +(marginValueDiffK / 1e5).toFixed(1);
 
   return (
     <div className="space-y-4">
@@ -118,7 +121,13 @@ export default function MarginPage() {
           diffSuffix="pp"
           diffPositive="green"
         />
-        <KpiCard label="融資金額" main={fmtKtwd(latest.margin_balance_value)} />
+        <KpiCard
+          label="融資金額"
+          main={fmtKtwd(latest.margin_balance_value)}
+          diff={marginValueDiffYi}
+          diffSuffix="億"
+          diffPositive="red"
+        />
       </div>
 
       {data.stats && <HeatCard stats={data.stats} />}
