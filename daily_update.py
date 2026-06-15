@@ -518,6 +518,32 @@ def update_date(trade_date: date):
         try:
             from analysis.market_breadth import calculate_market_breadth, save_market_breadth
             mb_results = calculate_market_breadth(last_n_days=3)
+            # Coverage guard: scrapers can report "ok" yet return only part of
+            # the universe (silent partial). The critical_failed gate above is
+            # exception-based and misses this. Persisting a half-count row would
+            # leave a permanent spike, since the 3-day rolling window never
+            # revisits it. Reject the latest day if its active-stock count is
+            # far below the recent norm.
+            latest_mb = max(mb_results, key=lambda d: d.trade_date) if mb_results else None
+            if latest_mb is not None:
+                with get_cursor(commit=False) as cur:
+                    cur.execute(
+                        """
+                        SELECT active_stocks FROM tw.market_breadth
+                        WHERE active_stocks > 0 AND trade_date < %s
+                        ORDER BY trade_date DESC LIMIT 20
+                        """,
+                        (latest_mb.trade_date,),
+                    )
+                    recent = sorted(r["active_stocks"] for r in cur.fetchall())
+                if recent:
+                    median = recent[len(recent) // 2]
+                    if latest_mb.active_stocks < 0.7 * median:
+                        raise RuntimeError(
+                            f"breadth coverage too low: {latest_mb.active_stocks} "
+                            f"active stocks vs recent median {median} — likely a "
+                            f"partial scrape; refusing to persist."
+                        )
             breadth_days = save_market_breadth(mb_results)
             print(f"  Updated {breadth_days} day(s) of market_breadth.")
             results.append(("市場廣度", "ok"))
