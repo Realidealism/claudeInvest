@@ -18,9 +18,10 @@ interface ChipPicksData {
   weeks: Week[];
 }
 
-function tvUrl(market: string | null, ticker: string): string | null {
-  const ex = market === "TWSE" ? "TWSE" : market === "TPEx" ? "TPEX" : null;
-  return ex ? `https://www.tradingview.com/chart/?symbol=${ex}:${ticker}` : null;
+// TradingView files 上市 under TWSE; 上櫃(TPEx) and 興櫃(ESB) both under TPEX.
+function tvUrl(market: string | null, ticker: string): string {
+  const prefix = market === "TWSE" ? "TWSE" : "TPEX";
+  return `https://tw.tradingview.com/chart/?symbol=${prefix}:${ticker}`;
 }
 
 function PicksTable({ title, picks }: { title: string; picks: Pick[] }) {
@@ -37,32 +38,25 @@ function PicksTable({ title, picks }: { title: string; picks: Pick[] }) {
             </tr>
           </thead>
           <tbody>
-            {picks.map((p) => {
-              const url = tvUrl(p.market, p.ticker);
-              return (
-                <tr
-                  key={p.ticker}
-                  className="border-b border-border/50 hover:bg-surface-hover"
-                >
-                  <td className="py-2 pr-4 text-text-secondary">{p.rank}</td>
-                  <td className="py-2 pr-4 font-medium">
-                    {url ? (
-                      <a
-                        href={url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-accent hover:underline"
-                      >
-                        {p.ticker}
-                      </a>
-                    ) : (
-                      p.ticker
-                    )}
-                  </td>
-                  <td className="py-2 pr-4">{p.name ?? "—"}</td>
-                </tr>
-              );
-            })}
+            {picks.map((p) => (
+              <tr
+                key={p.ticker}
+                className="border-b border-border/50 hover:bg-surface-hover"
+              >
+                <td className="py-2 pr-4 text-text-secondary">{p.rank}</td>
+                <td className="py-2 pr-4 font-medium">
+                  <a
+                    href={tvUrl(p.market, p.ticker)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-accent hover:underline"
+                  >
+                    {p.ticker}
+                  </a>
+                </td>
+                <td className="py-2 pr-4">{p.name ?? "—"}</td>
+              </tr>
+            ))}
           </tbody>
         </table>
       </div>
