@@ -25,6 +25,7 @@ const NAV_GROUPS = [
       { to: "/dna",        label: "經理人DNA" },
       { to: "/flow",       label: "資金流向" },
       { to: "/search",     label: "訊號查詢" },
+      { to: "/chip-picks", label: "集保選股" },
     ],
   },
   {

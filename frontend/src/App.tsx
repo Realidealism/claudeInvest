@@ -9,6 +9,7 @@ import TimelinePage from "./pages/TimelinePage";
 import DnaPage from "./pages/DnaPage";
 import FlowPage from "./pages/FlowPage";
 import SearchPage from "./pages/SearchPage";
+import ChipPicksPage from "./pages/ChipPicksPage";
 import HermitPage from "./pages/HermitPage";
 import RevenueScreensPage from "./pages/RevenueScreensPage";
 import ScoresPage from "./pages/ScoresPage";
@@ -34,6 +35,7 @@ export default function App() {
         <Route path="/dna" element={<DnaPage />} />
         <Route path="/flow" element={<FlowPage />} />
         <Route path="/search" element={<SearchPage />} />
+        <Route path="/chip-picks" element={<ChipPicksPage />} />
         <Route path="/hermit" element={<HermitPage />} />
         <Route path="/revenue" element={<RevenueScreensPage />} />
         <Route path="/scores" element={<ScoresPage />} />

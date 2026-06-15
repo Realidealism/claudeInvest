@@ -1872,6 +1872,53 @@ def export_vix(cur, out: Path):
     }, out / "vix.json")
 
 
+def export_chip_picks(cur, out: Path):
+    """chip_picks.json — 集保大戶選股 (chip_model) 最近 5 週的 top-N 選股。
+
+    Computes signals on the fly from tw.shareholder_distribution (chip_model
+    carries its own read-only connections); only the stock-name lookup uses the
+    passed cursor. No DB snapshot table — generate_signals already produces every
+    week's signals in one pass.
+    """
+    from chip_model.db_access import load_common_universe
+    from chip_model.metrics import compute_metrics
+    from chip_model.strategy import Rule, generate_signals
+
+    signals = generate_signals(compute_metrics(), Rule(), load_common_universe())
+    if signals.empty:
+        _write({"latest_date": None, "weeks": []}, out / "chip_picks.json")
+        return
+
+    recent = sorted(signals["data_date"].unique())[-5:]  # oldest -> newest
+
+    ids = sorted(signals[signals["data_date"].isin(recent)]["stock_id"].unique())
+    cur.execute(
+        "SELECT stock_id, name, market FROM tw.stocks WHERE stock_id = ANY(%s)",
+        (ids,),
+    )
+    info = {r["stock_id"]: (r["name"], r["market"]) for r in cur.fetchall()}
+
+    weeks = []
+    for d in reversed(recent):  # newest first
+        wk = signals[signals["data_date"] == d]
+        picks = []
+        for rank, r in enumerate(wk.itertuples(index=False), start=1):
+            name, market = info.get(r.stock_id, (None, None))
+            picks.append({
+                "rank": rank,
+                "ticker": r.stock_id,
+                "name": name,
+                "market": market,
+                "d_big": round(float(r.d_big), 2),
+                "d_retail": round(float(r.d_retail), 2),
+                "d_holders": int(r.d_holders),
+                "ratio": round(float(r.ratio), 2),
+            })
+        weeks.append({"date": d, "picks": picks})
+
+    _write({"latest_date": recent[-1], "weeks": weeks}, out / "chip_picks.json")
+
+
 def export_all(out_dir: str | None = None):
     if out_dir is None:
         import sys
@@ -1904,6 +1951,7 @@ def export_all(out_dir: str | None = None):
         export_fear_greed(cur, out)
         export_vix(cur, out)
         export_yield_curve(cur, out)
+        export_chip_picks(cur, out)
         # intraday JSONs (scores/operations/positions) are intentionally
         # NOT refreshed here — they are owned by intraday_snapshot.exe
         # which writes them at 12:50 with h(t)-projected bars. Daily
