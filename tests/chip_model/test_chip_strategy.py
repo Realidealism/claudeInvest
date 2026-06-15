@@ -51,6 +51,12 @@ def test_consensus_beats_single_outlier():
     assert list(sig["stock_id"]) == ["A"]
 
 
+def test_short_side_reverses():
+    """side='short' picks 籌碼擴散 — reverse order: D worst-chip ranks first."""
+    sig = generate_signals(_metrics(), Rule(top_n=2), {"A", "B", "C", "D"}, side="short")
+    assert list(sig["stock_id"]) == ["D", "C"]
+
+
 def test_deterministic():
     a = generate_signals(_metrics(), Rule(top_n=3), {"A", "B", "C", "D"})
     b = generate_signals(_metrics(), Rule(top_n=3), {"A", "B", "C", "D"})

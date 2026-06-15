@@ -1873,48 +1873,49 @@ def export_vix(cur, out: Path):
 
 
 def export_chip_picks(cur, out: Path):
-    """chip_picks.json — 集保大戶選股 (chip_model) 最近 5 週的 top-N 選股。
+    """chip_picks.json — 集保大戶選股 (chip_model) 最近 5 週、做多/做空各 top-30。
 
     Computes signals on the fly from tw.shareholder_distribution (chip_model
     carries its own read-only connections); only the stock-name lookup uses the
     passed cursor. No DB snapshot table — generate_signals already produces every
-    week's signals in one pass.
+    week's signals in one pass. market is kept for the frontend TradingView link.
     """
     from chip_model.db_access import load_common_universe
     from chip_model.metrics import compute_metrics
     from chip_model.strategy import Rule, generate_signals
 
-    signals = generate_signals(compute_metrics(), Rule(), load_common_universe())
-    if signals.empty:
+    metrics = compute_metrics()
+    universe = load_common_universe()
+    rule = Rule(top_n=30)
+    longs = generate_signals(metrics, rule, universe, side="long")
+    shorts = generate_signals(metrics, rule, universe, side="short")
+    if longs.empty:
         _write({"latest_date": None, "weeks": []}, out / "chip_picks.json")
         return
 
-    recent = sorted(signals["data_date"].unique())[-5:]  # oldest -> newest
+    recent = sorted(longs["data_date"].unique())[-5:]  # oldest -> newest
 
-    ids = sorted(signals[signals["data_date"].isin(recent)]["stock_id"].unique())
+    ids = set(longs[longs["data_date"].isin(recent)]["stock_id"]) | \
+          set(shorts[shorts["data_date"].isin(recent)]["stock_id"])
     cur.execute(
         "SELECT stock_id, name, market FROM tw.stocks WHERE stock_id = ANY(%s)",
-        (ids,),
+        (sorted(ids),),
     )
     info = {r["stock_id"]: (r["name"], r["market"]) for r in cur.fetchall()}
 
-    weeks = []
-    for d in reversed(recent):  # newest first
-        wk = signals[signals["data_date"] == d]
-        picks = []
+    def rows_for(sig, d):
+        wk = sig[sig["data_date"] == d]
+        out_rows = []
         for rank, r in enumerate(wk.itertuples(index=False), start=1):
             name, market = info.get(r.stock_id, (None, None))
-            picks.append({
-                "rank": rank,
-                "ticker": r.stock_id,
-                "name": name,
-                "market": market,
-                "d_big": round(float(r.d_big), 2),
-                "d_retail": round(float(r.d_retail), 2),
-                "d_holders": int(r.d_holders),
-                "ratio": round(float(r.ratio), 2),
-            })
-        weeks.append({"date": d, "picks": picks})
+            out_rows.append({"rank": rank, "ticker": r.stock_id,
+                             "name": name, "market": market})
+        return out_rows
+
+    weeks = [
+        {"date": d, "long": rows_for(longs, d), "short": rows_for(shorts, d)}
+        for d in reversed(recent)  # newest first
+    ]
 
     _write({"latest_date": recent[-1], "weeks": weeks}, out / "chip_picks.json")
 

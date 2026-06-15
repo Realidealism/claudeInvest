@@ -5,15 +5,12 @@ interface Pick {
   ticker: string;
   name: string | null;
   market: string | null;
-  d_big: number;
-  d_retail: number;
-  d_holders: number;
-  ratio: number;
 }
 
 interface Week {
   date: string;
-  picks: Pick[];
+  long: Pick[];
+  short: Pick[];
 }
 
 interface ChipPicksData {
@@ -21,9 +18,17 @@ interface ChipPicksData {
   weeks: Week[];
 }
 
+type Side = "long" | "short";
+
+function tvUrl(market: string | null, ticker: string): string | null {
+  const ex = market === "TWSE" ? "TWSE" : market === "TPEx" ? "TPEX" : null;
+  return ex ? `https://www.tradingview.com/chart/?symbol=${ex}:${ticker}` : null;
+}
+
 export default function ChipPicksPage() {
   const [data, setData] = useState<ChipPicksData | null>(null);
   const [week, setWeek] = useState<string | null>(null);
+  const [side, setSide] = useState<Side>("long");
 
   useEffect(() => {
     fetch("/data/chip_picks.json")
@@ -40,14 +45,32 @@ export default function ChipPicksPage() {
     return <div className="text-text-secondary">尚無選股資料</div>;
 
   const current = data.weeks.find((w) => w.date === week) ?? data.weeks[0];
+  const picks = side === "long" ? current.long : current.short;
 
   return (
     <div>
       <h2 className="text-lg font-semibold mb-1">集保選股</h2>
       <p className="text-xs text-text-secondary mb-4">
-        每週取「大戶持股增 + 散戶持股減 + 千張大戶人數增」三維共識前 20 名（普通股，4 週變化）。
-        集保歷史僅約 14 個月、樣本偏小，結論信心度低，僅供方向參考。
+        依集保股權變化選股。做多＝籌碼集中（大戶增、散戶減、千張人數增）；做空＝籌碼擴散（反向）。
+        每週各取前 30 名。集保歷史僅約 14 個月、樣本偏小，做空側訊號較弱，僅供方向參考。
       </p>
+
+      <div className="flex gap-1.5 mb-3">
+        {(["long", "short"] as Side[]).map((s) => (
+          <button
+            key={s}
+            onClick={() => setSide(s)}
+            className={
+              "px-3 py-1 rounded text-xs font-medium " +
+              (s === side
+                ? "bg-accent text-white"
+                : "bg-surface-alt text-text-secondary hover:bg-surface-hover")
+            }
+          >
+            {s === "long" ? "做多標的" : "做空標的"}
+          </button>
+        ))}
+      </div>
 
       <div className="flex flex-wrap gap-1.5 mb-4">
         {data.weeks.map((w) => (
@@ -73,29 +96,35 @@ export default function ChipPicksPage() {
               <th className="py-2 pr-4 font-medium">排名</th>
               <th className="py-2 pr-4 font-medium">代號</th>
               <th className="py-2 pr-4 font-medium">名稱</th>
-              <th className="py-2 pr-4 font-medium">市場</th>
-              <th className="py-2 pr-4 font-medium text-right">大戶增</th>
-              <th className="py-2 pr-4 font-medium text-right">散戶減</th>
-              <th className="py-2 pr-4 font-medium text-right">千張人數增</th>
-              <th className="py-2 pr-4 font-medium text-right">千張比例</th>
             </tr>
           </thead>
           <tbody>
-            {current.picks.map((p) => (
-              <tr
-                key={p.ticker}
-                className="border-b border-border/50 hover:bg-surface-hover"
-              >
-                <td className="py-2 pr-4 text-text-secondary">{p.rank}</td>
-                <td className="py-2 pr-4 font-medium">{p.ticker}</td>
-                <td className="py-2 pr-4">{p.name ?? "—"}</td>
-                <td className="py-2 pr-4 text-text-secondary">{p.market ?? "—"}</td>
-                <td className="py-2 pr-4 text-right">{p.d_big.toFixed(2)}</td>
-                <td className="py-2 pr-4 text-right">{p.d_retail.toFixed(2)}</td>
-                <td className="py-2 pr-4 text-right">{p.d_holders}</td>
-                <td className="py-2 pr-4 text-right">{p.ratio.toFixed(2)}%</td>
-              </tr>
-            ))}
+            {picks.map((p) => {
+              const url = tvUrl(p.market, p.ticker);
+              return (
+                <tr
+                  key={p.ticker}
+                  className="border-b border-border/50 hover:bg-surface-hover"
+                >
+                  <td className="py-2 pr-4 text-text-secondary">{p.rank}</td>
+                  <td className="py-2 pr-4 font-medium">
+                    {url ? (
+                      <a
+                        href={url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-accent hover:underline"
+                      >
+                        {p.ticker}
+                      </a>
+                    ) : (
+                      p.ticker
+                    )}
+                  </td>
+                  <td className="py-2 pr-4">{p.name ?? "—"}</td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>

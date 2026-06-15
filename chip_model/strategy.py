@@ -25,18 +25,23 @@ class Rule:
     top_n: int = 20   # 每週取籌碼集中度前 N 名
 
 
-def generate_signals(metrics: pd.DataFrame, rule: Rule, universe: set[str]) -> pd.DataFrame:
+def generate_signals(metrics: pd.DataFrame, rule: Rule, universe: set[str],
+                     side: str = "long") -> pd.DataFrame:
     """All (stock_id, data_date) rows picked by the consensus rank.
+
+    side="long"  : 籌碼集中 (大戶增 / 散戶減 / 人數增) — 做多標的。
+    side="short" : 籌碼擴散 (大戶減 / 散戶增 / 人數減) — 做空標的（鏡像，較弱且不對稱）。
 
     Ranking is cross-sectional within the common-stock universe per week.
     Same input -> same output (sorted by date, then score desc).
     """
     m = metrics[metrics["stock_id"].isin(universe)].copy()
     m = m.dropna(subset=DIMENSIONS)
-    # Consensus: sum of per-week descending ranks across the 3 dimensions
-    # (lower rank-sum = stronger). Negate so higher score = better.
+    # Consensus: sum of per-week ranks across the 3 dimensions (lower = stronger).
+    # long ranks descending (highest dim value = rank 1); short ranks ascending.
+    rank_asc = side == "short"
     rank_sum = sum(
-        m.groupby("data_date")[d].rank(ascending=False, method="average")
+        m.groupby("data_date")[d].rank(ascending=rank_asc, method="average")
         for d in DIMENSIONS
     )
     m["score"] = -rank_sum
