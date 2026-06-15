@@ -819,6 +819,10 @@ def buy_condition(data: "StockData") -> BoolArray:
     rule_turn = (turn[5] == 2)
 
     close_b = data.close_result.bs.close_b
+    # v343 試驗封存 (2026-06-02): rule_break 視窗 8→5 預期提早進場
+    #   實機：廣達瓶頸不在 break (在 rule_long_pct_gate)，廣達 0 改善
+    #   universe: +117 trades 但 PF 持平 +0.0003 (noise), DDnet +29 微差
+    #   結論：break loosen 對廣達 case 無效；其他股 PF 無感，revert 保 v336b 乾淨
     prev_h8 = _shift(close_b[8], 1)
     rule_break = close > prev_h8
 
@@ -847,13 +851,24 @@ def buy_condition(data: "StockData") -> BoolArray:
     long_pct = _long_pct_array(data)
     strongly_bear = _market_strongly_bearish(data)
     moderate_bear_only = _market_any_bear(data) & ~strongly_bear
+    # v346: 3-tier gate +3 (強空45/偏空40/default35 → 48/43/38)。sweep +2..+10 選 +3:
+    #   合池 PF +0.0326 (1.6648→1.6975)、回撤 -334、賺賠比持平 3.083、總獲利 -1888
+    #   regime+時間雙驗證: bull +0.020 / bear +0.052; 四時段全正且分布均勻 (overfit 防禦強)
+    #   v304 反向 (gate -5) 曾 -0.0258, 本版鏡像正向確認現行 gate 偏鬆
+    #   +5 PF 更高 (+0.0518) 但增益重壓近期 (2025-26 +0.11) overfit 風險高, 故停 +3
     rule_long_pct_tier = np.where(
-        strongly_bear, long_pct >= 45,
-        np.where(moderate_bear_only, long_pct >= 40, long_pct >= 35),
+        strongly_bear, long_pct >= 48,
+        np.where(moderate_bear_only, long_pct >= 43, long_pct >= 38),
     )
-    # v243: 強反轉 override = 5 日升幅>=20 AND lp>=15 AND 連 5 天上升
-    #   2327 4/13: delta_5=+23.57, lp=15.02, d1 連 5 升 (4/7+9.42/4/8+11.49/4/9+7.51/4/10+8.39/4/13+7.67) ✓
+    # v243: 強反轉 override = 5 日升幅>=20 AND lp>=N AND 連 5 天上升
     #   v244-v247 sweep 驗證 Path B (連3升+delta3>20 任何變體) 均淨負，不採用
+    # v345: lp floor 15→25 (sweep 15/20/22/25/30, 天數固定連5)
+    #   合池 PF +0.0083 (1.6566→1.6648), 賺賠 +0.017, buy 交易 -773, DDnet -258
+    #   收緊濾掉 lp 15-25 弱反轉稀釋單 (移除集 PF<1.5)；lp>=30 PF 再 +0.003 但
+    #   多丟鼎元/南電/尖點/玉晶光 (進場 lp 25-28, 報酬 150-237%), 故停在 25 保住右尾
+    #   注意：最大的反轉怪物 (國巨/聯發科/力積電, 進場 lp 15-17) 落在垃圾稀釋帶底層,
+    #     任何 >15 門檻都救不回 — 進場當下與失敗反轉同形, 差別只在事後 follow-through
+    #   放寬連續天數 (連4/連3) 反向 destructive -0.019/-0.007, 故不動天數
     lp_delta_5 = long_pct - _shift(long_pct, 5)
     lp_d1 = long_pct - _shift(long_pct, 1)
     consec_up_5 = ((lp_d1 > 0)
@@ -861,7 +876,13 @@ def buy_condition(data: "StockData") -> BoolArray:
                    & (_shift(lp_d1, 2) > 0)
                    & (_shift(lp_d1, 3) > 0)
                    & (_shift(lp_d1, 4) > 0))
-    strong_reversal = (lp_delta_5 >= 20.0) & (long_pct >= 15.0) & consec_up_5
+    strong_reversal = (lp_delta_5 >= 20.0) & (long_pct >= 25.0) & consec_up_5
+    # v344 試驗封存 (2026-06-02): pullback_setup 路徑失敗
+    #   設計：trend_up (sma8>sma21 + lp>0) + recent_dip (前 1-2 日跌) + today_up
+    #     + above_ma21，作 lp_g 第 4 條 path 繞過 lp_tier
+    #   結果：unified_long PF 1.6848 → 1.5354 (-0.149!!)，buy +10,367 trades (+52%)
+    #     廣達確實多賺 +23.2% (10 extra trades) 但 universe 大量 noise dilution
+    #   失敗原因：條件太鬆，多頭中「小回再漲」過於頻繁；同 mo_override pattern
     # v338-v342 試驗封存 (2026-06-01): single_day_explosion override 5 變體全失敗
     #   lp_d1>=30 AND lp>=30 AND (vol_burst | OBV.short.signal_up | turn_all_up
     #     | OBV.short.trend==1 | OBV.long.trend==1) 任一變體
