@@ -546,9 +546,12 @@ def pick_condition(data: "StockData") -> BoolArray:
     long_pct = _long_pct_array(data)
     strongly_bear = _market_strongly_bearish(data)
     moderate_bear_only = _market_any_bear(data) & ~strongly_bear
+    # v348: pick lp gate +5 (強空0/偏空-5/default-10 → 5/0/-5). gate-tightening 系列 (mirror buy/sell):
+    #   pick+5 單獨 +0.0034, 與 touch+3 組合 +0.0059; pick 三贏 (PF+總獲利+回撤), 移除的是真虧損單
+    #   regime+時間雙驗證通過 (組合 bull+0.0032/bear+0.0091, 四時段全正)
     rule_long_pct_tier = np.where(
-        strongly_bear, long_pct >= 0,
-        np.where(moderate_bear_only, long_pct >= -5, long_pct >= -10),
+        strongly_bear, long_pct >= 5,
+        np.where(moderate_bear_only, long_pct >= 0, long_pct >= -5),
     )
 
     # 2. v83 補 Go G22: 扣抵翻轉(3日內) OR 中峰任一[0..2] OR 長峰任一[0..4]
@@ -722,9 +725,11 @@ def touch_condition(data: "StockData") -> BoolArray:
     strongly_bull = _market_strongly_bullish(data)
     any_bull = (ms.short_trend >= 1) | (ms.medium_trend >= 1) | (ms.long_trend >= 1)
     moderate_bull_only = any_bull & ~strongly_bull
+    # v348: touch sp gate +3 (強多0/偏多-5/default-10 → 3/-2/-7). gate-tightening 系列:
+    #   touch+3 單獨 +0.0025, 與 pick+5 組合 +0.0059; touch PF 1.42→1.46; touch+3 為平衡點 (再高總獲利退太多)
     rule_short_pct_tier = np.where(
-        strongly_bull, short_pct >= 0,
-        np.where(moderate_bull_only, short_pct >= -5, short_pct >= -10),
+        strongly_bull, short_pct >= 3,
+        np.where(moderate_bull_only, short_pct >= -2, short_pct >= -7),
     )
 
     # 8. v126: 鏡像 pick v123 — pte 2 日窗口 AND ~weak_down1 AND ~carryover_strong_rise
