@@ -1000,12 +1000,16 @@ def sell_condition(data: "StockData") -> BoolArray:
     moderate_bull_only = any_bull & ~strongly_bull
     strongly_bear = _market_strongly_bearish(data)
     moderate_bear_only = _market_any_bear(data) & ~strongly_bear
+    # v347: 5-tier sp gate 全 tier +5 (50/40/35/30/25 → 55/45/40/35/30)。mirror v346 buy gate:
+    #   合池 PF +0.0077 (1.7167→1.7245)、回撤 -185、賺賠持平、sell PF 1.44→1.51、uS +0.033
+    #   regime+時間雙驗證: bull +0.0028 / bear +0.0205; 四時段全正且均勻 (比 buy +5 更無近期偏斜)
+    #   sweep +2..+8 單調正向; sell 部位小故增益小但體質全面改善, 對稱完成 v346
     rule_short_pct_gate = np.where(
-        strongly_bull, short_pct >= 50,
-        np.where(moderate_bull_only, short_pct >= 40,
-                 np.where(strongly_bear, short_pct >= 25,
-                          np.where(moderate_bear_only, short_pct >= 30,
-                                   short_pct >= 35))),
+        strongly_bull, short_pct >= 55,
+        np.where(moderate_bull_only, short_pct >= 45,
+                 np.where(strongly_bear, short_pct >= 30,
+                          np.where(moderate_bear_only, short_pct >= 35,
+                                   short_pct >= 40))),
     )
 
     # 12. v130 port Go GS11：~nte (不在底背離 — 排除「死叉但動能轉強」的反彈段)
