@@ -861,10 +861,24 @@ def buy_condition(data: "StockData") -> BoolArray:
     #   regime+時間雙驗證: bull +0.020 / bear +0.052; 四時段全正且分布均勻 (overfit 防禦強)
     #   v304 反向 (gate -5) 曾 -0.0258, 本版鏡像正向確認現行 gate 偏鬆
     #   +5 PF 更高 (+0.0518) 但增益重壓近期 (2025-26 +0.11) overfit 風險高, 故停 +3
-    rule_long_pct_tier = np.where(
-        strongly_bear, long_pct >= 48,
-        np.where(moderate_bear_only, long_pct >= 43, long_pct >= 38),
-    )
+    _tier = np.where(strongly_bear, 48.0, np.where(moderate_bear_only, 43.0, 38.0))
+    # v349: 過長期新高 → 降 buy 門檻 (長結構轉強的直接確認, 評分長回顧 cell under-weight)
+    #   近3日過144日新高 -2 / 近5日過233日新高 -5 / 近8日過377日新高 -8 (取最深一階)
+    #   強空除外 (強空裡的新高是假突破陷阱; 排掉後 bear 拖累 -0.0139→-0.0003)
+    #   合池 PF +0.0160 (v346 以來最大單一增益)、新增進場 PF 2.086 (>>池子, 非稀釋)
+    #   relief sweep: 2/5/8 為甜蜜點 (越輕新增股品質越高); 5/10/15 太重稀釋 → +0.0086
+    #   regime+時間雙驗證: bull +0.030 / bear -0.0003; 四時段全正 (2017-19 +0.0145 起)
+    #   起源: 國巨診斷 — lp 牛步因長扣抵/Donchian233/長距離未觸發(沒收復崩盤前高); 過新高=該轉正
+    from analysis.indicators import rolling_highest as _rh
+    _nh144 = (data.high >= _rh(data.high, 144)).astype(np.float32)
+    _nh233 = (data.high >= _rh(data.high, 233)).astype(np.float32)
+    _nh377 = (data.high >= _rh(data.high, 377)).astype(np.float32)
+    _relief = np.where(_rh(_nh377, 8) > 0.5, 8.0,
+              np.where(_rh(_nh233, 5) > 0.5, 5.0,
+              np.where(_rh(_nh144, 3) > 0.5, 2.0, 0.0)))
+    _relief = np.where(strongly_bear, 0.0, _relief)   # 強空除外
+    _tier = _tier - _relief
+    rule_long_pct_tier = long_pct >= _tier
     # v243: 強反轉 override = 5 日升幅>=20 AND lp>=N AND 連 5 天上升
     #   v244-v247 sweep 驗證 Path B (連3升+delta3>20 任何變體) 均淨負，不採用
     # v345: lp floor 15→25 (sweep 15/20/22/25/30, 天數固定連5)
