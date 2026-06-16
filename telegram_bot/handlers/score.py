@@ -559,7 +559,7 @@ def _get_disposal_status(
         for window, need in _COUNT_DISPOSAL_RULES:
             cnt = len(agg_days & set(recent[:window]))
             if cnt >= need:
-                return f"{_ORANGE} 可能進處置（近{window}日已{cnt}次注意）"
+                return f"{_ORANGE} 明日恐進處置（近{window}日已{cnt}次注意）"
 
     # Past 10 trading days clean across all buckets → omit
     look10 = set(recent[: min(10, len(recent))])
