@@ -63,9 +63,19 @@ _DIFF_LOOKBACK_DAYS = 14
 _KUAN_DISPOSAL_RULES: dict[int, int] = {
     1: 3,
 }
-# Lookback window for the consecutive scan — must be >= max(consec_req)
-# but kept tight so we don't scan needless history.
-_CONSEC_LOOKBACK_TD = 10
+# Escalated re-disposal: a run of N CONSECUTIVE trading days of attention
+# (ANY 款 pooled, counter reset after the prior disposal's period_end)
+# triggers a heightened/2nd disposal ("連續五次"). Validated on the
+# disposal_prediction_audit replay: +6 TP (incl. 8021 6/16 連續五次),
+# 4 FP → precision 0.970 vs 1.000 baseline. Hard-tier (🔴).
+_CONSEC_DISPOSAL_AGG = 5
+# Soft (🟠) cumulative-count triggers: ≥need attention days within the last
+# `window` trading days (TWSE 最近十個營業日六次 / 三十個營業日十二次). Noisier
+# (precision ~0.89) so surfaced as a hedge, never a definitive 明日進處置.
+_COUNT_DISPOSAL_RULES: list[tuple[int, int]] = [(10, 6), (30, 12)]
+# Lookback window for the attention scans — wide enough for the widest rule
+# (the 30個營業日十二次 count rule); the consecutive scans use only its head.
+_CONSEC_LOOKBACK_TD = 30
 
 # Maps 第一款 / 第十一款 etc. to int.
 _CN_NUMERAL = {
@@ -395,6 +405,15 @@ def _get_disposal_status(
     max_window = _CONSEC_LOOKBACK_TD
     state = freshness.state if freshness else None
 
+    # Convertible bond → mirror its underlying stock's disposal status first;
+    # only if the underlying is clean do we fall through to the CB's own
+    # attention-based rules (a CB can also be disposed on its own pattern).
+    cb_und = _cb_underlying(ticker)
+    if cb_und is not None:
+        und_status = _get_disposal_status(cb_und, freshness, allow_refresh)
+        if und_status:
+            return f"{und_status}（連動標的 {cb_und}）"
+
     # Try to fetch yesterday+today's stock_alerts before checking ongoing
     # disposal — TWSE often publishes disposal batches (alert_date = yesterday,
     # period_start = today) after daily_update at 9:30pm. Cooldown internally
@@ -441,6 +460,7 @@ def _get_disposal_status(
         # previous disposal ended 5/25 and the new consec run started
         # exactly that day. So no "post-disposal filter" here.
         buckets = _attention_kuan_buckets(cur, ticker, recent[-1], today)
+        last_disp_end = _last_disposal_end(cur, ticker, today)
 
         # Throttle: if TWSE just announced a disposal in the past 3 td
         # (strictly before today — today's announcement is the one
@@ -484,13 +504,21 @@ def _get_disposal_status(
     # Per-款 rule check. Only 款項 listed in _KUAN_DISPOSAL_RULES warn;
     # the rest stay audit-only. Trigger requires N CONSECUTIVE trading
     # days of 第N款 attention (TWSE 「連續 N 日」 rule).
-    triggered: list[tuple[int, int, int]] = []  # (kuan, consec_run, threshold)
+    # `kuan=None` marks the pooled-款 escalated 連續5 rule.
+    triggered: list[tuple[int | None, int, int]] = []  # (kuan, run, threshold)
     consec_runs: dict[int, int] = {}
     for kuan, consec_req in _KUAN_DISPOSAL_RULES.items():
         run = _consec_run_ending_at(inflated.get(kuan, set()), recent)
         consec_runs[kuan] = run
         if run >= consec_req and not recently_announced:
             triggered.append((kuan, run, consec_req))
+
+    # Escalated re-disposal: pooled-款 consecutive run (counter reset after
+    # the prior disposal) ≥ 5. Catches 「連續五次」 repeat offenders like 8021.
+    agg_days = _aggregate_attention_days(inflated, after=last_disp_end)
+    agg_run = _consec_run_ending_at(agg_days, recent)
+    if agg_run >= _CONSEC_DISPOSAL_AGG and not recently_announced:
+        triggered.append((None, agg_run, _CONSEC_DISPOSAL_AGG))
 
     # ── Already in disposal: bare ongoing message, no upgrade prediction ───
     # Per TWSE 作業要點 第6條第7項: attention days BEFORE + DURING disposal
@@ -509,8 +537,12 @@ def _get_disposal_status(
         return f"{_RED} 處置中 {interval} → {end_str} 止（{resume_str} 起恢復）"
 
     if triggered:
-        # Triggered 款項 string (e.g. "第1款 連3日").
-        parts = [f"第{k}款 連{c}日" for k, c, _ in triggered]
+        # Triggered string: "第1款 連3日" for 款 rules, "連續5日（加重）" for the
+        # pooled-款 escalated rule (kuan=None).
+        parts = [
+            f"連續{c}日（加重）" if k is None else f"第{k}款 連{c}日"
+            for k, c, _ in triggered
+        ]
         thresh_str = ""
         if predicted:
             try:
@@ -520,6 +552,14 @@ def _get_disposal_status(
                 thresh_str = ""
         head = thresh_str + " → " if thresh_str else ""
         return f"{_RED} {head}明日進處置（{'｜'.join(parts)}）"
+
+    # Soft (🟠) cumulative-count hint: noisier than the consecutive rules
+    # (precision ~0.89), so hedged wording rather than a definitive call.
+    if not recently_announced:
+        for window, need in _COUNT_DISPOSAL_RULES:
+            cnt = len(agg_days & set(recent[:window]))
+            if cnt >= need:
+                return f"{_ORANGE} 可能進處置（近{window}日已{cnt}次注意）"
 
     # Past 10 trading days clean across all buckets → omit
     look10 = set(recent[: min(10, len(recent))])
@@ -578,6 +618,47 @@ def _attention_kuan_buckets(
         for k in _extract_kuan_codes(r["reason"]):
             buckets.setdefault(k, set()).add(r["alert_date"])
     return buckets
+
+
+def _cb_underlying(ticker: str) -> str | None:
+    """If `ticker` is a 上市/上櫃 convertible-bond code (5 digits = 4-digit
+    underlying stock + 1 sequence digit, e.g. 80212 → 8021), return the
+    underlying stock code, else None. A CB is auto-disposed on the exact same
+    day/period as its underlying (TWSE 「轉(交)換公司債之標的證券…發布處置」), so
+    we mirror the underlying's disposal status rather than tracking the CB."""
+    if len(ticker) == 5 and ticker.isdigit() and ticker[0] != "0":
+        return ticker[:4]
+    return None
+
+
+def _last_disposal_end(cur, ticker: str, before: date) -> date | None:
+    """Most recent disposal period_end strictly before `before` (None if the
+    stock has never been disposed). Used to reset the attention counters
+    after a disposal — TWSE 作業要點 第6條第7項: attention days on/before a
+    prior disposal don't count toward the next disposal trigger."""
+    cur.execute(
+        """
+        SELECT MAX(period_end) AS e FROM tw.stock_alerts
+        WHERE stock_id = %s AND alert_type = 'disposal' AND period_end < %s
+        """,
+        (ticker, before),
+    )
+    r = cur.fetchone()
+    return r["e"] if r and r["e"] else None
+
+
+def _aggregate_attention_days(
+    buckets: dict[int, set[date]], after: date | None = None
+) -> set[date]:
+    """Union of attention days across all 款 buckets, dropping days on/before
+    `after` (the prior disposal's period_end) so the count/consecutive
+    triggers reset after each disposal."""
+    days: set[date] = set()
+    for s in buckets.values():
+        days |= s
+    if after is not None:
+        days = {d for d in days if d > after}
+    return days
 
 
 def predict_disposal_trigger(
@@ -648,6 +729,20 @@ def predict_disposal_trigger(
         counts[kuan] = run
         if run >= consec_req and not recently_announced:
             triggered = True
+    # Escalated re-disposal: pooled-款 consecutive run (counter reset after the
+    # prior disposal) ≥ 5. Mirrors the live bot's 連續5（加重）hard trigger.
+    if not in_disposal:
+        agg = _aggregate_attention_days(
+            buckets, after=_last_disposal_end(cur, ticker, as_of)
+        )
+        if _consec_run_ending_at(agg, recent) >= _CONSEC_DISPOSAL_AGG:
+            triggered = True
+    # Convertible bond → also fires when its underlying stock enters disposal
+    # (mirror), on top of the CB's own attention-based rules above.
+    if not triggered:
+        cb_und = _cb_underlying(ticker)
+        if cb_und is not None:
+            triggered = predict_disposal_trigger(cur, cb_und, as_of, recent)[0]
     # Also report consec runs for non-rule 款 so the audit can see what's
     # building up even when no rule fires.
     for kuan, dates in buckets.items():
@@ -1013,29 +1108,28 @@ def _format_one_line(ticker: str, ctx: dict, side_pos: dict[str, dict | None]) -
     for p, side_zh in ((long_p, "多"), (short_p, "空")):
         if p is None:
             continue
-        pnl = float(p["pnl_pct"])
         defense = p.get("defense_price")
         current = p.get("current_close")
         def_part = f" 防{float(defense):.2f}" if defense is not None else ""
         if p["_is_exited"]:
             this_state = 3
-            pos_segments.append(f"{side_zh}出場 {pnl:+.2f}%{def_part}")
+            pos_segments.append(f"{side_zh}出場{def_part}")
         else:
             within_5pct = (
                 defense is not None and current is not None and float(defense) != 0
                 and abs(float(current) - float(defense)) / float(defense) < 0.05
             )
             this_state = 2 if within_5pct else 1
-            pos_segments.append(f"持{side_zh} {pnl:+.2f}%{def_part}")
+            pos_segments.append(f"持{side_zh}{def_part}")
         if this_state > state_priority:
             state_priority = this_state
     head_emoji = state_emoji[state_priority]
     pos_str = " ".join(pos_segments) if pos_segments else "—"
 
-    # Score ranks
+    # Long-side rank only — short rank elided by user preference
+    # (short_pct is the mirror of long_pct so it adds no extra info).
     long_rank = long_e["rank"] if long_e else "—"
-    short_rank = short_e["rank"] if short_e else "—"
-    score_str = f"多#{long_rank} 空#{short_rank}"
+    score_str = f"多#{long_rank}"
 
     # Price sits next to the name; turnover rank takes the final segment.
     price_str = f"{last_price:.2f}" if last_price is not None else "—"
