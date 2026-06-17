@@ -592,6 +592,19 @@ def update_date(trade_date: date):
             _capture_trace(failure_traces, "多空評比 + 操作訊號 + 策略持倉快照")
             results.append(("多空評比 + 操作訊號 + 策略持倉快照", "failed"))
 
+    # Pull the next-trading-day disposal batch (announced this evening,
+    # period_start = today+1) BEFORE the export so positions.json's
+    # disposal_status reflects the DEFINITIVE announcement rather than a
+    # prediction. Keyed on date.today() to match _get_disposal_status's own
+    # "next trading day" lookup. Best-effort; non-critical.
+    print(f"\n--- 明日處置名單抓取 ---")
+    try:
+        from scrapers.stock_alerts import scrape_date as _scrape_alerts
+        from telegram_bot.handlers.score import _next_trading_day
+        _scrape_alerts(_next_trading_day(date.today()))
+    except Exception:
+        print("  [WARN] next-day disposal scrape failed (non-critical).")
+
     # Export JSON + git push for Vercel auto-deploy
     print(f"\n--- Frontend export + deploy ---")
     if critical_failed:

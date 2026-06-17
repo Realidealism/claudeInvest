@@ -359,13 +359,16 @@ _last_alert_refresh: dict[date, datetime] = {}
 
 
 def _maybe_refresh_alerts(today: date) -> None:
-    """Best-effort re-scrape of yesterday + today stock_alerts.
+    """Best-effort re-scrape of yesterday + today + next-trading-day alerts.
 
-    Scrapes BOTH days because TWSE's disposal batch often has alert_date =
-    yesterday with period_start = today (announced previous evening,
-    effective today). Yesterday's batch might also have been published
-    AFTER daily_update ran. Cooldown prevents thrashing; failures are
-    swallowed silently.
+    Scrapes yesterday/today because TWSE's disposal batch often has
+    alert_date = yesterday with period_start = today (announced previous
+    evening, effective today), and yesterday's batch might have been
+    published AFTER daily_update ran. ALSO scrapes the next trading day so
+    the disposal endpoint's forward batch (period_start = tomorrow, announced
+    this evening) lands — that's what lets the bot give a DEFINITIVE post-
+    close answer instead of a prediction. Cooldown prevents thrashing;
+    failures are swallowed silently.
     """
     now = datetime.now(_TPE_TZ)
     last = _last_alert_refresh.get(today)
@@ -378,7 +381,8 @@ def _maybe_refresh_alerts(today: date) -> None:
         from scrapers.stock_alerts import scrape_date as _scrape_alerts
         _scrape_alerts(yesterday)
         _scrape_alerts(today)
-        logger.info("stock_alerts refreshed for %s, %s", yesterday, today)
+        _scrape_alerts(_next_trading_day(today))
+        logger.info("stock_alerts refreshed for %s, %s, +next td", yesterday, today)
     except Exception as exc:
         logger.warning("stock_alerts refresh failed: %s", exc)
 
@@ -462,6 +466,27 @@ def _get_disposal_status(
         buckets = _attention_kuan_buckets(cur, ticker, recent[-1], today)
         last_disp_end = _last_disposal_end(cur, ticker, today)
 
+        # Has TWSE already published the disposal batch effective the next
+        # trading day? Once it's out (evening after close) the answer is
+        # DEFINITIVE — prefer it over the probabilistic prediction, which is
+        # only meaningful intraday / before the announcement lands.
+        next_td = _next_trading_day(today)
+        cur.execute(
+            """
+            SELECT measure, period_end FROM tw.stock_alerts
+            WHERE stock_id = %s AND alert_type = 'disposal' AND period_start = %s
+            LIMIT 1
+            """,
+            (ticker, next_td),
+        )
+        confirmed_next = cur.fetchone()
+        cur.execute(
+            "SELECT 1 FROM tw.stock_alerts WHERE alert_type = 'disposal' "
+            "AND period_start = %s LIMIT 1",
+            (next_td,),
+        )
+        next_batch_published = cur.fetchone() is not None
+
         # Throttle: if TWSE just announced a disposal in the past 3 td
         # (strictly before today — today's announcement is the one
         # we're predicting), suppress this repeat. Mirrors the
@@ -535,6 +560,16 @@ def _get_disposal_status(
         if end == today:
             return f"{_GREEN} 處置中 {interval} → 今日最後一天，{resume_str} 起恢復"
         return f"{_RED} 處置中 {interval} → {end_str} 止（{resume_str} 起恢復）"
+
+    # ── Official next-day announcement is out → definitive, beats prediction ─
+    if confirmed_next:
+        interval = _parse_auction_interval(confirmed_next.get("measure")) or "5分盤"
+        end_str = confirmed_next["period_end"].strftime("%m/%d")
+        return f"{_RED} 明日進處置 {interval}（至 {end_str}）"
+    # Batch is out and this stock isn't in it → confirmed NOT entering next
+    # trading day; drop the now-falsified 明日(恐)進處置 prediction entirely.
+    if next_batch_published:
+        return None
 
     if triggered:
         # Triggered string: "第1款 連3日" for 款 rules, "連續5日（加重）" for the
