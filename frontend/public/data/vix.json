@@ -1029,14 +1029,14 @@
     "label": "台指 VIX",
     "source": "TAIFEX",
     "latest": {
-      "close": 38.42,
-      "rating": "elevated",
-      "intraday_time": "125500"
+      "close": 38.63,
+      "rating": "panic",
+      "intraday_time": "130645"
     },
     "thresholds": {
       "p20": 32.76,
       "p50": 36.28,
-      "p80": 38.43
+      "p80": 38.49
     },
     "series": [
       {
@@ -1337,7 +1337,7 @@
       },
       {
         "date": "2026-06-17",
-        "close": 38.42
+        "close": 38.63
       }
     ]
   }
