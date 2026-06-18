@@ -1199,10 +1199,19 @@ def sell_flee_signal(data: "StockData") -> BoolArray:
     prev2_lp = _shift(long_pct, 2)
     min_prev2 = np.minimum(prev1_lp, prev2_lp)
     delta_from_min2 = long_pct - min_prev2
+    # v350: 糾結+突破波浪前高 → 降 post_strength 門檻 5 (mirror v349 buy 新高 gate-relief)
+    #   近8日曾長均糾結 AND tip_breakout_up(突破波浪前高) → main path 的 lp 門檻降 5
+    #   合池 PF +0.0009 (邊際/量小; 新增 74 筆 PF 2.405)、總獲利 +332、回撤持平、賺賠持平
+    #   設計關鍵: 降門檻而非新 path (裸 path 會 22x 灌爆 -0.25); 信號稀疏故增益小但乾淨零傷害
+    #   保留理由: 多一個反轉確認管道 (壓縮後突破前高 = 結構轉強), 結構同 v349
+    from analysis.indicators import rolling_highest as _rh
+    _recent_knot_sf = _rh(data.close_result.knot["long"].flag.astype(np.float32), 8) > 0.5
+    _kwbo_sf = _recent_knot_sf & data.wave_result.tip_breakout_up
+    _sfr = np.where(_rh(_kwbo_sf.astype(np.float32), 5) > 0.5, 5.0, 0.0)
     rule_post_strength = (
-        (long_pct >= 35)
-        | ((delta_from_min2 >= 40) & (long_pct >= 30))
-        | ((delta_from_min2 >= 50) & (long_pct >= 25))
+        (long_pct >= 35 - _sfr)
+        | ((delta_from_min2 >= 40) & (long_pct >= 30 - _sfr))
+        | ((delta_from_min2 >= 50) & (long_pct >= 25 - _sfr))
     )
     # v195b: SB stairstep gate AND above_prev (站上前次洪量 high) — 強化既有 path
     # v195 OR 路徑 +4689 trades / -0.092 PF 失敗，改用 AND 收緊
