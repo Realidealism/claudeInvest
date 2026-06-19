@@ -1,36 +1,36 @@
 {
-  "latest_date": "2026-06-18",
+  "latest_date": "2026-06-19",
   "latest": {
-    "score": 37.51,
+    "score": 37.26,
     "rating": "fear",
     "sub": {
       "momentum": {
-        "score": 7500.58,
-        "rating": "extreme greed"
+        "score": null,
+        "rating": null
       },
       "strength": {
-        "score": 1.9462,
+        "score": 1.9639,
         "rating": "extreme fear"
       },
       "breadth": {
-        "score": 949.5701,
+        "score": 931.0741,
         "rating": "extreme greed"
       },
       "put_call": {
-        "score": 0.7394,
-        "rating": "extreme fear"
+        "score": null,
+        "rating": null
       },
       "safe_haven": {
-        "score": -0.0248,
-        "rating": "extreme fear"
+        "score": null,
+        "rating": null
       },
       "junk_bond": {
         "score": 1.3451,
         "rating": "extreme fear"
       },
       "volatility": {
-        "score": 16.4,
-        "rating": "extreme fear"
+        "score": null,
+        "rating": null
       }
     }
   },
@@ -1065,7 +1065,11 @@
     },
     {
       "date": "2026-06-18",
-      "score": 37.51
+      "score": 37.26
+    },
+    {
+      "date": "2026-06-19",
+      "score": 37.26
     }
   ]
 }
