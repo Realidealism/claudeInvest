@@ -52,6 +52,11 @@ SCRAPERS = [
     ("SBL (借券賣出)",           "scrapers.securities_lending", "scrape_date"),
     # Day trading
     ("Day trading (當沖)",       "scrapers.day_trading",        "scrape_date"),
+    # TAIFEX futures/options (期貨/選擇權) — non-critical; after-hours session
+    # for the same day may be incomplete and self-corrects on the next run.
+    ("TAIFEX futures",          "scrapers.taifex_futures",       "scrape_date"),
+    ("TAIFEX institutional",    "scrapers.taifex_institutional", "scrape_date"),
+    ("TAIFEX P/C ratio",        "scrapers.taifex_pc_ratio",      "scrape_date"),
     # Alerts
     ("Stock alerts (注意/處置)", "scrapers.stock_alerts",       "scrape_date"),
     # Weekly/monthly (idempotent, run once per period)
@@ -255,10 +260,20 @@ def detect_delisted(trade_date: date):
             print(f"  Marked {len(delisted)} stock(s) as delisted.")
 
 
-def _git_push_frontend():
-    """Commit updated JSON data and push to trigger Vercel deploy."""
+def _git_push_frontend(target_branch: str = "main"):
+    """Publish the exported JSON to `target_branch` (main) and push for Vercel.
+
+    Data is always committed onto main regardless of which branch this checkout
+    is on. 00631L / other feature work leaves the repo on a non-main branch, and
+    a plain `git commit` there strands the daily data off main — which is what
+    Vercel deploys. We publish through a throwaway worktree pinned to
+    origin/<target>, so the current branch and working tree are never touched.
+    The retry re-bases onto a freshly fetched origin/<target>, covering the race
+    with intraday_publish (which also pushes data to main)."""
     import subprocess
     import sys
+    import shutil
+
     # PyInstaller exe: __file__ points to temp dir; exe lives in dist/
     if getattr(sys, 'frozen', False):
         repo = Path(sys.executable).parent.parent
@@ -269,21 +284,40 @@ def _git_push_frontend():
         print("  [SKIP] No frontend/public/data/ directory.")
         return
 
-    result = subprocess.run(
-        ["git", "status", "--porcelain", str(data_dir)],
-        capture_output=True, text=True, cwd=repo,
-    )
-    if not result.stdout.strip():
-        print("  No JSON changes to deploy.")
-        return
+    rel = "frontend/public/data"
+    wt = repo.parent / "_invest_publish_main"
 
-    subprocess.run(["git", "add", str(data_dir)], cwd=repo, check=True)
-    subprocess.run(
-        ["git", "commit", "-m", f"Update frontend data ({date.today().isoformat()})"],
-        cwd=repo, check=True,
-    )
-    subprocess.run(["git", "push"], cwd=repo, check=True)
-    print("  Pushed to GitHub — Vercel will auto-deploy.")
+    def git(*args, cwd, check=True):
+        return subprocess.run(["git", *args], cwd=cwd, check=check)
+
+    for attempt in range(2):
+        if wt.exists():  # clean a leftover from a previously crashed run
+            subprocess.run(["git", "worktree", "remove", "--force", str(wt)],
+                           cwd=repo, check=False)
+            subprocess.run(["git", "worktree", "prune"], cwd=repo, check=False)
+        git("fetch", "origin", target_branch, cwd=repo)
+        git("worktree", "add", "--force", "--detach", str(wt),
+            f"origin/{target_branch}", cwd=repo)
+        try:
+            shutil.copytree(data_dir, wt / "frontend" / "public" / "data",
+                            dirs_exist_ok=True)
+            git("add", rel, cwd=wt)
+            if subprocess.run(["git", "diff", "--cached", "--quiet", "--", rel],
+                              cwd=wt).returncode == 0:
+                print("  No JSON changes to deploy.")
+                return
+            git("commit", "-m",
+                f"Update frontend data ({date.today().isoformat()})", cwd=wt)
+            if subprocess.run(["git", "push", "origin", f"HEAD:{target_branch}"],
+                              cwd=wt).returncode == 0:
+                print(f"  Pushed to GitHub {target_branch} — Vercel will auto-deploy.")
+                return
+            print(f"  push to {target_branch} rejected (attempt {attempt + 1}); "
+                  f"refetching and retrying ...")
+        finally:
+            subprocess.run(["git", "worktree", "remove", "--force", str(wt)],
+                           cwd=repo, check=False)
+    print(f"  [WARN] frontend data push to {target_branch} failed after retries.")
 
 
 def update_date(trade_date: date):
