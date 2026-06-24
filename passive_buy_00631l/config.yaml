@@ -1,0 +1,49 @@
+# 00631L 長期被動買進模型設定（只買不賣，現金池便宜訊號加碼）
+# 所有可調參數集中於此；訊號母體一律用 TAIEX，禁止用 00631L 自身價。
+
+target: "00631L"            # 標的：元大台灣50正2（追蹤台灣50指數×2 日報酬）
+signal_proxy: "TAIEX"       # 便宜訊號判斷母體（不可用槓桿標的自身價）
+baseline_c_symbol: "0050"   # Baseline-C 純 DCA 對照標的（1 倍，未槓桿）
+
+backtest:
+  start: "2016-01-04"       # 00631L 最早資料（見 DATA_MAP.md）
+  end: null                 # null = 用到最新一筆
+
+capital:
+  monthly_input: 10000      # M：每月固定投入
+  base_ratio: 0.6           # B = M*base_ratio 固定買進；R = M*(1-base_ratio) 注入現金池
+  pool_cap_months: 12       # 現金池上限 = pool_cap_months * R（約 12 個月保留額）
+                            # 溢出時當月 R 直接買進 00631L，避免無限堆積
+  stale_deploy_months: 6    # 連續 N 個月未觸發加碼 → 強制部署池中一部分
+  stale_deploy_frac: 0.5    # 強制部署比例（抑制 cash drag）
+
+signal:
+  lookback_years: 3         # rolling percentile 標準化窗口
+  min_periods: 120          # 暖機：百分位至少需此筆數才計（早期用可得窗口）
+  dim_weights:
+    technical: 0.55
+    market: 0.45
+    # index_valuation: 停用 — DB 無 PE/PB/殖利率與巴菲特指標（見 DATA_MAP.md）
+  trigger_threshold: 0.70   # cheapness_score 觸發加碼門檻
+  add_tiers:                # [score 下限, 部署「池中現金」比例]
+    - [0.70, 0.25]
+    - [0.80, 0.50]
+    - [0.90, 1.00]
+  decay_guard:              # 波動衰減防護：高波動但無實質回撤 → is_choppy → 抑制加碼
+    enabled: true
+    vol_high_pct: 0.70      # 已實現波動百分位高於此
+    shallow_dd: 0.10        # 且距 240 日高點回撤淺於此（10%）→ 視為震盪洗價
+
+disabled_dims:              # M0 標記：DB 無資料或不適用，停用
+  - index_valuation_pe_pb_yield
+  - buffett_indicator
+  - chip_holder_valuation
+
+baseline_c:
+  div_yield_annual: 0.03    # 0050 近似年配息率（DB 無配息資料）；用於總報酬近似軌
+
+report:
+  font: "Microsoft JhengHei"
+  outdir: "reports"
+  cnn_overlay: true         # 報表疊近 1 年 CNN F&G 作對照
+  forward_days: [60, 120, 240]  # 加碼點事後報酬檢驗視窗
