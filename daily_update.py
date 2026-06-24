@@ -52,6 +52,11 @@ SCRAPERS = [
     ("SBL (借券賣出)",           "scrapers.securities_lending", "scrape_date"),
     # Day trading
     ("Day trading (當沖)",       "scrapers.day_trading",        "scrape_date"),
+    # TAIFEX futures/options (期貨/選擇權) — non-critical; after-hours session
+    # for the same day may be incomplete and self-corrects on the next run.
+    ("TAIFEX futures",          "scrapers.taifex_futures",       "scrape_date"),
+    ("TAIFEX institutional",    "scrapers.taifex_institutional", "scrape_date"),
+    ("TAIFEX P/C ratio",        "scrapers.taifex_pc_ratio",      "scrape_date"),
     # Alerts
     ("Stock alerts (注意/處置)", "scrapers.stock_alerts",       "scrape_date"),
     # Weekly/monthly (idempotent, run once per period)
