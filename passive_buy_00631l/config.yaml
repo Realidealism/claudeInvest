@@ -42,6 +42,11 @@ disabled_dims:              # M0 標記：DB 無資料或不適用，停用
 baseline_c:
   div_yield_annual: 0.03    # 0050 近似年配息率（DB 無配息資料）；用於總報酬近似軌
 
+# 再平衡實驗（跨 SPEC 只買不賣，研究組）。波動率目標為最佳風險調整方案。
+rebalance:
+  voltarget_band: 0.20      # 波動目標偏離帶 ±pp；±20pp+每月強制 調整次數最省、Calmar 最佳
+  fixed_band: 0.05          # 固定比例再平衡偏離帶
+
 report:
   font: "Microsoft JhengHei"
   outdir: "reports"

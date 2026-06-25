@@ -241,7 +241,8 @@ def run_voltarget_experiments(frame, signals, cfg) -> str:
     leg0050 = frame["c_close"].to_numpy(dtype=np.float64)
     rv = signals["realized_vol"].to_numpy(dtype=np.float64)
     Min = cfg["capital"]["monthly_input"]
-    band = 0.05
+    rb = cfg.get("rebalance", {})
+    band = rb.get("voltarget_band", 0.20)  # ±20pp + monthly: fewest trades, best Calmar
 
     vref = _causal_median(rv, 252, 60)
 
