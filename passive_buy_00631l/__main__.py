@@ -55,12 +55,18 @@ def cmd_run(cfg):
 
 
 def cmd_experiments(cfg):
-    from .experiments import run_experiments, run_rebalance_experiments
+    from .experiments import (run_experiments, run_rebalance_experiments,
+                              run_signal_rebalance_experiments, run_hybrid_experiments,
+                              run_voltarget_experiments, run_cost_experiments)
     print("載入資料與訊號 ...")
     frame = load_market_frame(cfg)
     signals = build_signals(frame, cfg)
     report = run_experiments(frame, signals, cfg)
     report += "\n" + run_rebalance_experiments(frame, cfg)
+    report += "\n" + run_signal_rebalance_experiments(frame, signals, cfg)
+    report += "\n" + run_hybrid_experiments(frame, signals, cfg)
+    report += "\n" + run_voltarget_experiments(frame, signals, cfg)
+    report += "\n" + run_cost_experiments(frame, signals, cfg)
     print(report)
     outdir = os.path.join(os.path.dirname(__file__), cfg["report"]["outdir"])
     os.makedirs(outdir, exist_ok=True)
