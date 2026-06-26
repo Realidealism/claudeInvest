@@ -1132,13 +1132,14 @@ def _format_one_line(ticker: str, ctx: dict, side_pos: dict[str, dict | None]) -
     tv_total = ctx.get("tv_total")
 
     # Position segment (leading emoji + pnl + defense). The lead emoji is
-    # state-based, not side-based: 🔴 already exited, 🟡 within 5% of defense
-    # (caution), 🟢 safe margin, ⚪ no position. Worst state across both
-    # sides wins.
+    # state-based, not side-based, and the holding tiers mirror the defense-
+    # proximity alert's distance bands: ⚪ no position, 🟢 safe (>5% from
+    # defense), 🟡 ≤5%, 🟠 ≤3%, 🔴 ≤1%, ❌ already exited. Worst (highest)
+    # state across both sides wins.
     long_p = side_pos.get("long")
     short_p = side_pos.get("short")
     pos_segments = []
-    state_emoji = {0: "⚪", 1: _GREEN, 2: _YELLOW, 3: _RED}
+    state_emoji = {0: "⚪", 1: _GREEN, 2: _YELLOW, 3: _ORANGE, 4: _RED, 5: "❌"}
     state_priority = 0
     for p, side_zh in ((long_p, "多"), (short_p, "空")):
         if p is None:
@@ -1147,14 +1148,18 @@ def _format_one_line(ticker: str, ctx: dict, side_pos: dict[str, dict | None]) -
         current = p.get("current_close")
         def_part = f" 防{float(defense):.2f}" if defense is not None else ""
         if p["_is_exited"]:
-            this_state = 3
+            this_state = 5
             pos_segments.append(f"{side_zh}出場{def_part}")
         else:
-            within_5pct = (
-                defense is not None and current is not None and float(defense) != 0
-                and abs(float(current) - float(defense)) / float(defense) < 0.05
-            )
-            this_state = 2 if within_5pct else 1
+            this_state = 1
+            if defense is not None and current is not None and float(defense) != 0:
+                dist = abs(float(current) - float(defense)) / float(defense)
+                if dist <= 0.01:
+                    this_state = 4
+                elif dist <= 0.03:
+                    this_state = 3
+                elif dist <= 0.05:
+                    this_state = 2
             pos_segments.append(f"持{side_zh}{def_part}")
         if this_state > state_priority:
             state_priority = this_state

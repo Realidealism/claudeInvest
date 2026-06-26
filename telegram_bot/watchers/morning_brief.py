@@ -185,14 +185,15 @@ def _build_section_disposal(watchlist: set[str]) -> list[str] | None:
             )
             for r in cur.fetchall():
                 names[r["stock_id"]] = r["name"] or ""
-    except Exception:
-        pass
+    except Exception as e:
+        logger.warning("morning_brief: stock name lookup failed: %s", e)
 
     lines: list[str] = []
     for t in sorted(watchlist):
         try:
             status = _get_disposal_status(t, freshness, allow_refresh=False)
-        except Exception:
+        except Exception as e:
+            logger.warning("morning_brief: disposal status failed for %s: %s", t, e)
             continue
         if not status:
             continue
