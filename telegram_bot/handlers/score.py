@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import json
 import logging
+import math
 import re
 from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
@@ -1096,6 +1097,18 @@ def _batch_fetch_sides_and_quotes(tickers: list[str]) -> dict[str, dict]:
         for r in cur.fetchall():
             if r["last_price"] is not None:
                 out[r["stock_id"]]["last_price"] = float(r["last_price"])
+
+        # Reference close (latest settled daily close) for exact 漲跌停 detection.
+        # The intraday_quotes ref_price/limit_up/limit_down columns are unreliable.
+        cur.execute("""
+            SELECT DISTINCT ON (stock_id) stock_id, close_price
+            FROM tw.daily_prices
+            WHERE stock_id = ANY(%s)
+            ORDER BY stock_id, trade_date DESC
+        """, (list(tickers),))
+        for r in cur.fetchall():
+            if r["close_price"] is not None:
+                out[r["stock_id"]]["ref_close"] = float(r["close_price"])
     return out
 
 
@@ -1119,6 +1132,30 @@ def _watchlist_sort_key(ticker: str, side_pos: dict[str, dict | None]) -> tuple:
         return raw if p["_side"] == "long" else -raw
 
     return (0, min(_signed_dist_pct(p) for p in positions), ticker)
+
+
+def _price_tick(price: float) -> float:
+    """TWSE common-stock tick size by price band."""
+    if price < 10:
+        return 0.01
+    if price < 50:
+        return 0.05
+    if price < 100:
+        return 0.1
+    if price < 500:
+        return 0.5
+    if price < 1000:
+        return 1.0
+    return 5.0
+
+
+def _limit_prices(ref: float) -> tuple[float, float]:
+    """(漲停, 跌停) from the reference close: ±10% bound rounded inward to the
+    tick of the limit-price band (漲停 floors, 跌停 ceils)."""
+    up_raw, dn_raw = ref * 1.10, ref * 0.90
+    t_up, t_dn = _price_tick(up_raw), _price_tick(dn_raw)
+    return (math.floor(round(up_raw / t_up, 6)) * t_up,
+            math.ceil(round(dn_raw / t_dn, 6)) * t_dn)
 
 
 def _format_one_line(ticker: str, ctx: dict, side_pos: dict[str, dict | None]) -> str:
@@ -1173,7 +1210,16 @@ def _format_one_line(ticker: str, ctx: dict, side_pos: dict[str, dict | None]) -
 
     # Price sits next to the name; turnover rank takes the final segment.
     price_str = f"{last_price:.2f}" if last_price is not None else "—"
-    name_with_price = f"{name} {price_str}"
+    # 漲跌停標示：精確比對 last_price 是否等於前收經 tick 進位算出的漲/跌停價。
+    ref_close = ctx.get("ref_close")
+    limit_tag = ""
+    if last_price is not None and ref_close:
+        up, dn = _limit_prices(ref_close)
+        if abs(last_price - up) < 1e-4:
+            limit_tag = " 🔒漲停"
+        elif abs(last_price - dn) < 1e-4:
+            limit_tag = " 🔒跌停"
+    name_with_price = f"{name} {price_str}{limit_tag}"
     tv_str = f"排#{tv_rank}" if tv_rank else "—"
 
     return f"{head_emoji} {ticker} {name_with_price}  ｜{pos_str}  ｜{score_str}  ｜{tv_str}"
