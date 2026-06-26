@@ -68,14 +68,33 @@ if not errorlevel 1 goto :nothing_to_commit
 git commit -m "Update intraday data" >> logs\intraday_publish.log 2>&1
 if errorlevel 1 goto :git_failed
 git push origin main >> logs\intraday_publish.log 2>&1
+if not errorlevel 1 goto :pushed
+
+REM Push rejected -- origin advanced since our last sync (e.g. the nightly
+REM EOD push). Replay our commit onto the latest remote and retry once.
+REM -X theirs keeps our fresh intraday JSONs on conflict (breadth / vix /
+REM fear_greed overlap the EOD commit); --autostash sets aside the unrelated
+REM dirty worktree (code edits, EOD files already matching remote).
+echo [%DATE% %TIME%] push rejected, rebasing onto origin/main >> logs\intraday_publish.log
+git fetch origin >> logs\intraday_publish.log 2>&1
+if errorlevel 1 goto :git_failed
+git rebase --autostash -X theirs origin/main >> logs\intraday_publish.log 2>&1
+if errorlevel 1 goto :rebase_failed
+git push origin main >> logs\intraday_publish.log 2>&1
 if errorlevel 1 goto :git_failed
 
+:pushed
 echo [%DATE% %TIME%] pushed              >> logs\intraday_publish.log
 goto :done
 
 :nothing_to_commit
 echo [%DATE% %TIME%] no changes to commit >> logs\intraday_publish.log
 goto :done
+
+:rebase_failed
+echo [%DATE% %TIME%] rebase failed, aborting >> logs\intraday_publish.log
+git rebase --abort >> logs\intraday_publish.log 2>&1
+goto :git_failed
 
 :git_failed
 echo [%DATE% %TIME%] git step FAILED >> logs\intraday_publish.log
