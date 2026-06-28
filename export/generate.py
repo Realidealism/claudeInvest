@@ -1872,6 +1872,48 @@ def export_vix(cur, out: Path):
     }, out / "vix.json")
 
 
+def export_ftse_taiwan(cur, out: Path):
+    """ftse_taiwan.json — 富台指數 (SGX FTSE Taiwan future) 換算的理論 TAIEX。
+
+    Owned by daily_update's update_ftse_taiwan() (and pushed on TW holidays
+    too), NOT by export_all — analogous to the intraday JSONs. Latest snapshot
+    only; the holiday reference is a single point-in-time number."""
+    cur.execute(
+        """
+        SELECT trade_date, front_contract, ftse_now, ftse_base,
+               pct_change, taiex_ref_date, taiex_ref_close,
+               theoretical_taiex, captured_at,
+               txf_now, txf_pct_change, txf_captured_at
+        FROM tw.ftse_taiwan
+        ORDER BY trade_date DESC
+        LIMIT 1
+        """
+    )
+    r = cur.fetchone()
+    latest = None
+    if r:
+        latest = {
+            "front_contract":    r["front_contract"],
+            "ftse_now":          round(float(r["ftse_now"]), 2) if r["ftse_now"] is not None else None,
+            "ftse_base":         round(float(r["ftse_base"]), 2) if r["ftse_base"] is not None else None,
+            "pct_change":        round(float(r["pct_change"]), 6) if r["pct_change"] is not None else None,
+            "taiex_ref_date":    r["taiex_ref_date"],
+            "taiex_ref_close":   round(float(r["taiex_ref_close"]), 2) if r["taiex_ref_close"] is not None else None,
+            "theoretical_taiex": round(float(r["theoretical_taiex"]), 2) if r["theoretical_taiex"] is not None else None,
+            "captured_at":       r["captured_at"],
+            "txf": {
+                "txf_now":         round(float(r["txf_now"]), 2) if r["txf_now"] is not None else None,
+                "txf_pct_change":  round(float(r["txf_pct_change"]), 6) if r["txf_pct_change"] is not None else None,
+                "txf_captured_at": r["txf_captured_at"],
+            },
+        }
+
+    _write({
+        "latest_date": r["trade_date"] if r else None,
+        "latest":      latest,
+    }, out / "ftse_taiwan.json")
+
+
 def export_chip_picks(cur, out: Path):
     """chip_picks.json — 集保大戶選股 (chip_model) 最近 5 週、做多/做空各 top-30。
 

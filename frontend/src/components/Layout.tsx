@@ -11,6 +11,7 @@ const NAV_GROUPS = [
       { to: "/vix",         label: "VIX 波動率指數" },
       { to: "/fear-greed",  label: "CNN 恐懼貪婪指數" },
       { to: "/yield-curve", label: "美債殖利率曲線" },
+      { to: "/ftse-taiwan", label: "夜盤參考" },
     ],
   },
   {
