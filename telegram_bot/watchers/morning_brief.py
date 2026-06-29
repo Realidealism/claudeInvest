@@ -204,6 +204,70 @@ def _build_section_disposal(watchlist: set[str]) -> list[str] | None:
     return lines or None
 
 
+def _load_ftse_latest() -> dict | None:
+    """Live-refresh 富台/台指期夜盤 then read the latest row.
+
+    Done inline (not via the scheduled FtseTxfUpdate job) so the 08:00 brief
+    never races that job — the digest fetches its own fresh quote. Best-effort:
+    if the live fetch fails we still read whatever is already in the DB so the
+    section degrades to the last known value instead of vanishing."""
+    try:
+        from scrapers.ftse_taiwan import scrape_date as _scrape_ftse
+        _scrape_ftse(_now_tpe().date())
+    except Exception as e:
+        logger.warning("morning_brief: ftse live refresh failed: %s", e)
+    try:
+        from db.connection import get_cursor
+        with get_cursor(commit=False) as cur:
+            cur.execute(
+                """
+                SELECT ftse_now, ftse_base, pct_change, taiex_ref_date,
+                       taiex_ref_close, theoretical_taiex, captured_at,
+                       txf_now, txf_pct_change, txf_captured_at
+                FROM tw.ftse_taiwan
+                ORDER BY trade_date DESC
+                LIMIT 1
+                """
+            )
+            return cur.fetchone()
+    except Exception as e:
+        logger.warning("morning_brief: ftse DB read failed: %s", e)
+        return None
+
+
+def _build_section_ftse_taiwan(row: dict | None) -> list[str] | None:
+    """富台(SGX)換算理論 TAIEX + 台指期(TXF)夜盤,估今日開盤落點。"""
+    if not row or row.get("theoretical_taiex") is None:
+        return None
+
+    def _pct(v) -> str:
+        return f"{float(v) * 100:+.2f}%" if v is not None else "—"
+
+    def _num(v) -> str:
+        return f"{float(v):,.2f}" if v is not None else "—"
+
+    lines = [
+        f"  富台 → 理論 TAIEX：{_num(row.get('theoretical_taiex'))}"
+        f"（{_pct(row.get('pct_change'))}）"
+    ]
+    if row.get("txf_now") is not None:
+        lines.append(
+            f"  台指期夜盤：{_num(row.get('txf_now'))}（{_pct(row.get('txf_pct_change'))}）"
+        )
+    if row.get("taiex_ref_close") is not None:
+        lines.append(
+            f"  台股收盤：{_num(row.get('taiex_ref_close'))}"
+            f"（{row.get('taiex_ref_date')}）"
+        )
+    captured = row.get("captured_at")
+    if captured is not None:
+        try:
+            lines.append(f"  夜盤資料：{captured.astimezone(_TPE_TZ):%m/%d %H:%M}")
+        except Exception:
+            pass
+    return lines
+
+
 # ── Composer ──────────────────────────────────────────────────────────────
 
 
@@ -214,6 +278,7 @@ def _build_message(today: date, snapshot_date: str, sections: dict) -> str:
     )
     parts = [header]
     section_titles = (
+        ("ftse_taiwan", "🌏 夜盤估開盤"),
         ("scores", "📊 評分變動"),
         ("signals", "📈 昨日訊號（追蹤股）"),
         ("positions", "🔄 昨日部位進出（追蹤股）"),
@@ -246,6 +311,7 @@ def _run_check(*, respect_gates: bool) -> tuple[str | None, str]:
     )
 
     sections = {
+        "ftse_taiwan": _build_section_ftse_taiwan(_load_ftse_latest()),
         "scores": _build_section_score_changes(scores, watchlist),
         "signals": _build_section_signals(operations, watchlist),
         "positions": _build_section_positions(positions, watchlist, snapshot_date),

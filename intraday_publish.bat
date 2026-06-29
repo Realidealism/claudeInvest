@@ -8,11 +8,11 @@ REM daemon during the trading session) so the snapshot loop's DB updates
 REM don't bloat git history with 30+ commits per day. This .bat is what
 REM bridges DB state to Vercel + Telegram on its own cadence.
 REM
-REM Scheduled by Task Scheduler (Mon-Fri, 09:00-15:00, every 15 min):
+REM Scheduled by Task Scheduler (Mon-Fri, 09:00-15:00, every 10 min):
 REM   schtasks /Create /SC WEEKLY /D MON,TUE,WED,THU,FRI ^
 REM     /TN "Invest\IntradayPublish" ^
 REM     /TR "C:\Claude\Invest\intraday_publish.bat" ^
-REM     /ST 09:00 /DU 06:00 /RI 15 /F
+REM     /ST 09:00 /DU 06:00 /RI 10 /F
 REM
 REM Window extended from 05:00 -> 06:00 (last fire at ~15:00) so the
 REM cycles past 14:30 can pull the TAIFEX official daily VIX file --
