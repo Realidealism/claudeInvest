@@ -111,102 +111,6 @@ def export_signals(cur, out: Path):
 
 
 # -----------------------------------------------------------------------
-# 2. backtest.json — metrics + trade list
-# -----------------------------------------------------------------------
-
-def export_backtest(cur, out: Path):
-    cur.execute("""
-        SELECT ticker, ticker_name, entry_signal, entry_period,
-               entry_date, entry_price, exit_signal, exit_period,
-               exit_date, exit_price, return_pct, holding_days
-        FROM tw.signal_backtest_results
-        ORDER BY entry_date
-    """)
-    trades = [dict(r) for r in cur.fetchall()]
-
-    # Compute summary metrics
-    closed = [t for t in trades if t["return_pct"] is not None]
-    returns = [float(t["return_pct"]) for t in closed]
-    wins = [r for r in returns if r > 0]
-    losses = [r for r in returns if r < 0]
-
-    import numpy as np
-    metrics = {}
-    if returns:
-        metrics = {
-            "total_trades": len(closed),
-            "win_count": len(wins),
-            "loss_count": len(losses),
-            "win_rate": len(wins) / len(returns),
-            "avg_return": float(np.mean(returns)),
-            "avg_holding_days": float(np.mean([t["holding_days"] for t in closed if t["holding_days"]])),
-            "max_drawdown": float(np.min(
-                (lambda eq: eq / np.maximum.accumulate(eq) - 1)(np.cumprod([1 + r for r in returns]))
-            )),
-        }
-
-    # By entry signal breakdown
-    by_entry = {}
-    for t in closed:
-        sig = t["entry_signal"]
-        by_entry.setdefault(sig, []).append(float(t["return_pct"]))
-    entry_breakdown = {}
-    for sig, rets in by_entry.items():
-        w = [r for r in rets if r > 0]
-        entry_breakdown[sig] = {
-            "trades": len(rets),
-            "win_rate": len(w) / len(rets),
-            "avg_return": float(np.mean(rets)),
-        }
-
-    # Equity curve: cumulative return by exit date (simple sum, trades overlap)
-    # Aggregate by date and sort ascending (lightweight-charts requires unique ascending dates)
-    daily_returns: dict[str, float] = {}
-    for t in closed:
-        if t["exit_date"] and t["return_pct"] is not None:
-            d = str(t["exit_date"])
-            daily_returns[d] = daily_returns.get(d, 0) + float(t["return_pct"])
-    equity_curve = []
-    cum = 0.0
-    for d in sorted(daily_returns):
-        cum += daily_returns[d]
-        equity_curve.append({"date": d, "value": round(1.0 + cum, 4)})
-
-    # Per-fund performance: join backtest with signals to get fund attribution
-    cur.execute("""
-        SELECT s.funds, b.return_pct, b.entry_signal, b.ticker
-        FROM tw.signal_backtest_results b
-        JOIN tw.signals s ON b.ticker = s.ticker
-            AND b.entry_signal = s.signal_type
-            AND b.entry_period = s.trigger_period
-        WHERE b.return_pct IS NOT NULL
-    """)
-    fund_trades: dict[str, list[float]] = {}
-    for r in cur.fetchall():
-        ret = float(r["return_pct"])
-        for fund_name in r["funds"]:
-            fund_trades.setdefault(fund_name, []).append(ret)
-
-    fund_performance = {}
-    for fname, rets in sorted(fund_trades.items(), key=lambda x: -len(x[1])):
-        w = [r for r in rets if r > 0]
-        fund_performance[fname] = {
-            "trades": len(rets),
-            "win_rate": len(w) / len(rets),
-            "avg_return": float(np.mean(rets)),
-            "total_return": float(np.sum(rets)),
-        }
-
-    _write({
-        "metrics": metrics,
-        "entry_breakdown": entry_breakdown,
-        "trades": trades,
-        "equity_curve": equity_curve,
-        "fund_performance": fund_performance,
-    }, out / "backtest.json")
-
-
-# -----------------------------------------------------------------------
 # 3. funds.json — fund list + per-fund holdings
 # -----------------------------------------------------------------------
 
@@ -413,69 +317,6 @@ def export_timeline(cur, out: Path):
         "quarterly_periods": quarterly_periods,
         "trajectories": trajectories,
     }, out / "timeline.json")
-
-
-# -----------------------------------------------------------------------
-# 7. dna.json — manager style metrics
-# -----------------------------------------------------------------------
-
-def export_dna(cur, out: Path):
-    cur.execute("""
-        SELECT f.code, f.name, f.company, fm.name AS manager,
-               f.fund_type
-        FROM tw.funds f
-        JOIN tw.fund_managers fm ON f.manager_id = fm.id
-        WHERE f.fund_type = 'fund'
-        ORDER BY f.company
-    """)
-    funds = [dict(r) for r in cur.fetchall()]
-
-    cur.execute("""
-        SELECT DISTINCT period FROM tw.fund_holdings_monthly ORDER BY period
-    """)
-    periods = [r["period"] for r in cur.fetchall()]
-
-    for f in funds:
-        # Concentration: avg weight of top-3 holdings across periods
-        cur.execute("""
-            SELECT period,
-                   SUM(weight) AS top3_weight
-            FROM (
-                SELECT period, weight,
-                       ROW_NUMBER() OVER (PARTITION BY period ORDER BY weight DESC) AS rn
-                FROM tw.fund_holdings_monthly m
-                JOIN tw.funds fu ON m.fund_id = fu.id
-                WHERE fu.code = %s
-            ) sub
-            WHERE rn <= 3
-            GROUP BY period
-        """, (f["code"],))
-        conc_rows = cur.fetchall()
-        f["avg_concentration"] = float(sum(r["top3_weight"] for r in conc_rows) / len(conc_rows)) if conc_rows else 0
-
-        # Turnover: fraction of top-10 that changed between consecutive periods
-        cur.execute("""
-            SELECT period, ARRAY_AGG(ticker ORDER BY rank) AS tickers
-            FROM tw.fund_holdings_monthly m
-            JOIN tw.funds fu ON m.fund_id = fu.id
-            WHERE fu.code = %s
-            GROUP BY period
-            ORDER BY period
-        """, (f["code"],))
-        period_tickers = cur.fetchall()
-        turnovers = []
-        for i in range(1, len(period_tickers)):
-            prev = set(period_tickers[i - 1]["tickers"])
-            curr = set(period_tickers[i]["tickers"])
-            if prev:
-                changed = len(prev.symmetric_difference(curr))
-                turnovers.append(changed / max(len(prev), len(curr)))
-        f["avg_turnover"] = float(sum(turnovers) / len(turnovers)) if turnovers else 0
-
-    _write({
-        "funds": funds,
-        "periods": periods,
-    }, out / "dna.json")
 
 
 # -----------------------------------------------------------------------
@@ -1978,11 +1819,9 @@ def export_all(out_dir: str | None = None):
 
     with get_cursor(commit=False) as cur:
         export_signals(cur, out)
-        export_backtest(cur, out)
         export_funds(cur, out)
         export_dual_track(cur, out)
         export_timeline(cur, out)
-        export_dna(cur, out)
         export_flow(cur, out)
         export_hermit(cur, out)
         export_revenue_screens(cur, out)

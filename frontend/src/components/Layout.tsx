@@ -19,11 +19,9 @@ const NAV_GROUPS = [
     label: "籌碼面",
     items: [
       { to: "/signals",    label: "訊號總覽" },
-      { to: "/backtest",   label: "策略績效" },
       { to: "/funds",      label: "基金分析" },
       { to: "/dual-track", label: "雙軌比對" },
       { to: "/timeline",   label: "月季交叉" },
-      { to: "/dna",        label: "經理人DNA" },
       { to: "/flow",       label: "資金流向" },
       { to: "/search",     label: "訊號查詢" },
       { to: "/chip-picks", label: "集保選股" },
