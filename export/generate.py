@@ -327,15 +327,16 @@ def export_flow(cur, out: Path):
     cur.execute("""
         SELECT DISTINCT period FROM tw.fund_holdings_monthly ORDER BY period
     """)
-    periods = [r["period"] for r in cur.fetchall()]
-    if len(periods) < 2:
-        _write({"periods": periods, "changes": {}}, out / "flow.json")
+    all_periods = [r["period"] for r in cur.fetchall()]
+    if len(all_periods) < 2:
+        _write({"periods": all_periods, "fund_columns": [], "changes": {}}, out / "flow.json")
         return
 
-    latest = periods[-1]
-    prev = periods[-2]
+    # Last up to 6 month-ends → up to 5 monthly transitions.
+    periods = all_periods[-6:]
+    latest, prev = periods[-1], periods[-2]
 
-    # Get month-end closing prices for share estimation
+    # Month-end closing prices per period, for share estimation from holding amount.
     def _month_prices(period):
         y, m = int(period[:4]), int(period[4:])
         start = f"{y}-{m:02d}-01"
@@ -349,58 +350,86 @@ def export_flow(cur, out: Path):
         """, (start, end))
         return {r["stock_id"]: float(r["close_price"]) for r in cur.fetchall()}
 
-    curr_prices = _month_prices(latest)
-    prev_prices = _month_prices(prev)
+    prices = {p: _month_prices(p) for p in periods}
 
-    # Weight and amount for both periods
+    # All 'fund'-type holdings across the selected periods.
     cur.execute("""
-        SELECT c.ticker, c.ticker_name, st.market,
-               f.code AS fund_code, f.name AS fund_name,
-               c.weight AS curr_weight, c.amount AS curr_amount,
-               p.weight AS prev_weight, p.amount AS prev_amount
+        SELECT c.ticker, c.ticker_name, st.market, c.period,
+               f.code AS fund_code, c.amount, c.weight
         FROM tw.fund_holdings_monthly c
-        JOIN tw.funds f ON c.fund_id = f.id
+        JOIN tw.funds f ON c.fund_id = f.id AND f.fund_type = 'fund'
         LEFT JOIN tw.stocks st ON st.stock_id = c.ticker
-        LEFT JOIN tw.fund_holdings_monthly p
-            ON c.fund_id = p.fund_id AND c.ticker = p.ticker AND p.period = %s
-        WHERE c.period = %s
-        ORDER BY c.ticker, f.code
-    """, (prev, latest))
+        WHERE c.period = ANY(%s)
+        ORDER BY c.ticker, f.code, c.period
+    """, (periods,))
 
-    changes = {}
+    # ticker -> fund -> period -> {shares, weight}
+    info: dict[str, dict] = {}
+    holds: dict[str, dict[str, dict[str, dict]]] = {}
     for r in cur.fetchall():
-        ticker = r["ticker"]
-        if ticker not in changes:
-            changes[ticker] = {
-                "ticker_name": r["ticker_name"],
-                "market": r["market"],
-                "funds": {},
-            }
-
-        cp = curr_prices.get(ticker)
-        pp = prev_prices.get(ticker)
-        curr_shares = round(r["curr_amount"] / cp) if r["curr_amount"] and cp else None
-        prev_shares = round(r["prev_amount"] / pp) if r["prev_amount"] and pp else None
-
-        if curr_shares is not None and prev_shares is not None:
-            share_diff = curr_shares - prev_shares
-        elif curr_shares is not None:
-            share_diff = curr_shares  # new position
-        else:
-            share_diff = None
-
-        changes[ticker]["funds"][r["fund_code"]] = {
-            "curr": float(r["curr_weight"]) if r["curr_weight"] else None,
-            "prev": float(r["prev_weight"]) if r["prev_weight"] else None,
-            "diff": share_diff,
+        t = r["ticker"]
+        info.setdefault(t, {"ticker_name": r["ticker_name"], "market": r["market"]})
+        price = prices.get(r["period"], {}).get(t)
+        shares = round(r["amount"] / price) if r["amount"] and price else None
+        holds.setdefault(t, {}).setdefault(r["fund_code"], {})[r["period"]] = {
+            "shares": shares,
+            "weight": float(r["weight"]) if r["weight"] else None,
         }
 
-    # Fund list for column headers
+    def _share_delta(s0, s1):
+        if s1 is not None and s0 is not None:
+            return s1 - s0
+        if s1 is not None:
+            return s1   # new position
+        if s0 is not None:
+            return -s0  # full exit
+        return None
+
+    changes = {}
+    for t, fundmap in holds.items():
+        # Net shares across all funds for each month transition.
+        monthly_net = []
+        for i in range(1, len(periods)):
+            p0, p1 = periods[i - 1], periods[i]
+            net = 0
+            for pmap in fundmap.values():
+                d = _share_delta(
+                    (pmap.get(p0) or {}).get("shares"),
+                    (pmap.get(p1) or {}).get("shares"),
+                )
+                if d is not None:
+                    net += d
+            monthly_net.append(net)
+
+        # Latest-transition per-fund detail for the breakdown table.
+        funds_detail = {}
+        for fc, pmap in fundmap.items():
+            cur_h, prev_h = pmap.get(latest), pmap.get(prev)
+            if not cur_h and not prev_h:
+                continue
+            diff = _share_delta(
+                (prev_h or {}).get("shares"),
+                (cur_h or {}).get("shares"),
+            )
+            funds_detail[fc] = {
+                "curr": (cur_h or {}).get("weight"),
+                "prev": (prev_h or {}).get("weight"),
+                "diff": diff,
+            }
+
+        changes[t] = {
+            "ticker_name": info[t]["ticker_name"],
+            "market": info[t]["market"],
+            "monthly_net": monthly_net,      # net shares per transition
+            "total_net": sum(monthly_net),   # cumulative net shares
+            "funds": funds_detail,
+        }
+
     cur.execute("SELECT code, name FROM tw.funds WHERE fund_type='fund' ORDER BY company")
     fund_cols = [dict(r) for r in cur.fetchall()]
 
     _write({
-        "periods": [prev, latest],
+        "periods": periods,
         "fund_columns": fund_cols,
         "changes": changes,
     }, out / "flow.json")
