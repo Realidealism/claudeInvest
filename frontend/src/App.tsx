@@ -4,7 +4,6 @@ import SignalsPage from "./pages/SignalsPage";
 import FundsPage from "./pages/FundsPage";
 import FundDetailPage from "./pages/FundDetailPage";
 import DualTrackPage from "./pages/DualTrackPage";
-import TimelinePage from "./pages/TimelinePage";
 import FlowPage from "./pages/FlowPage";
 import SearchPage from "./pages/SearchPage";
 import ChipPicksPage from "./pages/ChipPicksPage";
@@ -29,7 +28,6 @@ export default function App() {
         <Route path="/funds" element={<FundsPage />} />
         <Route path="/fund/:code" element={<FundDetailPage />} />
         <Route path="/dual-track" element={<DualTrackPage />} />
-        <Route path="/timeline" element={<TimelinePage />} />
         <Route path="/flow" element={<FlowPage />} />
         <Route path="/search" element={<SearchPage />} />
         <Route path="/chip-picks" element={<ChipPicksPage />} />

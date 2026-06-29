@@ -268,58 +268,6 @@ def export_dual_track(cur, out: Path):
 
 
 # -----------------------------------------------------------------------
-# 5. timeline.json — per-fund holdings across periods
-# -----------------------------------------------------------------------
-
-def export_timeline(cur, out: Path):
-    cur.execute("""
-        SELECT DISTINCT period FROM tw.fund_holdings_monthly ORDER BY period
-    """)
-    monthly_periods = [r["period"] for r in cur.fetchall()]
-
-    cur.execute("""
-        SELECT DISTINCT period FROM tw.fund_holdings_quarterly ORDER BY period
-    """)
-    quarterly_periods = [r["period"] for r in cur.fetchall()]
-
-    # Per fund: ticker trajectory across periods
-    cur.execute("SELECT id, code, name FROM tw.funds WHERE fund_type='fund' ORDER BY company")
-    funds = cur.fetchall()
-
-    trajectories = {}
-    for f in funds:
-        cur.execute("""
-            SELECT h.period, h.ticker, h.ticker_name, st.market,
-                   h.rank, h.weight
-            FROM tw.fund_holdings_monthly h
-            LEFT JOIN tw.stocks st ON st.stock_id = h.ticker
-            WHERE h.fund_id = %s
-            ORDER BY h.period, h.rank
-        """, (f["id"],))
-
-        by_period = {}
-        for r in cur.fetchall():
-            by_period.setdefault(r["period"], []).append({
-                "ticker": r["ticker"],
-                "ticker_name": r["ticker_name"],
-                "market": r["market"],
-                "rank": r["rank"],
-                "weight": float(r["weight"]) if r["weight"] else None,
-            })
-
-        trajectories[f["code"]] = {
-            "name": f["name"],
-            "periods": by_period,
-        }
-
-    _write({
-        "monthly_periods": monthly_periods,
-        "quarterly_periods": quarterly_periods,
-        "trajectories": trajectories,
-    }, out / "timeline.json")
-
-
-# -----------------------------------------------------------------------
 # 8. flow.json — cross-fund weight changes heatmap
 # -----------------------------------------------------------------------
 
@@ -1850,7 +1798,6 @@ def export_all(out_dir: str | None = None):
         export_signals(cur, out)
         export_funds(cur, out)
         export_dual_track(cur, out)
-        export_timeline(cur, out)
         export_flow(cur, out)
         export_hermit(cur, out)
         export_revenue_screens(cur, out)

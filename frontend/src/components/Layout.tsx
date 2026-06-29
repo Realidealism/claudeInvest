@@ -21,7 +21,6 @@ const NAV_GROUPS = [
       { to: "/signals",    label: "訊號總覽" },
       { to: "/funds",      label: "基金分析" },
       { to: "/dual-track", label: "雙軌比對" },
-      { to: "/timeline",   label: "月季交叉" },
       { to: "/flow",       label: "資金流向" },
       { to: "/search",     label: "訊號查詢" },
       { to: "/chip-picks", label: "集保選股" },
