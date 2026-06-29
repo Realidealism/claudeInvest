@@ -5,7 +5,6 @@ import FundsPage from "./pages/FundsPage";
 import FundDetailPage from "./pages/FundDetailPage";
 import DualTrackPage from "./pages/DualTrackPage";
 import FlowPage from "./pages/FlowPage";
-import SearchPage from "./pages/SearchPage";
 import ChipPicksPage from "./pages/ChipPicksPage";
 import HermitPage from "./pages/HermitPage";
 import RevenueScreensPage from "./pages/RevenueScreensPage";
@@ -29,7 +28,6 @@ export default function App() {
         <Route path="/fund/:code" element={<FundDetailPage />} />
         <Route path="/dual-track" element={<DualTrackPage />} />
         <Route path="/flow" element={<FlowPage />} />
-        <Route path="/search" element={<SearchPage />} />
         <Route path="/chip-picks" element={<ChipPicksPage />} />
         <Route path="/hermit" element={<HermitPage />} />
         <Route path="/revenue" element={<RevenueScreensPage />} />
