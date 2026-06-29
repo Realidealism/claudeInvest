@@ -205,17 +205,12 @@ def _build_section_disposal(watchlist: set[str]) -> list[str] | None:
 
 
 def _load_ftse_latest() -> dict | None:
-    """Live-refresh 富台/台指期夜盤 then read the latest row.
+    """Read the latest 富台/台指期夜盤 row from tw.ftse_taiwan.
 
-    Done inline (not via the scheduled FtseTxfUpdate job) so the 08:00 brief
-    never races that job — the digest fetches its own fresh quote. Best-effort:
-    if the live fetch fails we still read whatever is already in the DB so the
-    section degrades to the last known value instead of vanishing."""
-    try:
-        from scrapers.ftse_taiwan import scrape_date as _scrape_ftse
-        _scrape_ftse(_now_tpe().date())
-    except Exception as e:
-        logger.warning("morning_brief: ftse live refresh failed: %s", e)
+    The row is refreshed at 07:55 TPE by the scheduled FtseTxfUpdate job, 5
+    minutes before this 08:00 brief, so we just read it (no second fetch). If
+    that job didn't run or failed, this returns the last stored row — the
+    section's 夜盤資料 timestamp then reveals the data is not from today."""
     try:
         from db.connection import get_cursor
         with get_cursor(commit=False) as cur:
