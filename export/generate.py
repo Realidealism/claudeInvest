@@ -617,18 +617,21 @@ def export_revenue_screens(cur, out: Path, n_months: int = 4):
     """Run all 8 monthly-revenue screeners for the most recent n_months and
     bundle results into a single JSON for the frontend. Each screen() opens
     its own cursor via get_cursor(), so the cur argument here is only used to
-    discover the latest months that have revenue data.
+    discover which months have revenue data.
 
-    Tracks first_seen date per (year_month, strategy, stock_id) in a state
-    file so each row carries an is_new flag (true iff first_seen == today).
+    Each row carries an is_new flag: true iff the stock is in this month's
+    screen but was NOT in the previous month's screen for the same strategy
+    (a new entrant vs last month). Stateless — derived purely from the screen
+    membership of consecutive months.
     """
     import importlib
 
     cur.execute("""
         SELECT DISTINCT year_month FROM tw.monthly_revenue
-        ORDER BY year_month DESC LIMIT %s
-    """, (n_months,))
-    months = [r["year_month"] for r in cur.fetchall()]
+        ORDER BY year_month DESC
+    """)
+    avail_months = [r["year_month"] for r in cur.fetchall()]
+    months = avail_months[:n_months]
 
     if not months:
         _write({
@@ -639,20 +642,11 @@ def export_revenue_screens(cur, out: Path, n_months: int = 4):
         }, out / "revenue_screens.json")
         return
 
-    # Load first_seen state. Schema: { year_month: { strategy_key: { stock_id: date_str } } }.
-    state_path = Path(__file__).parent.parent / "data" / "revenue_screens_first_seen.json"
-    if state_path.exists():
-        with open(state_path, encoding="utf-8") as f:
-            first_seen = json.load(f)
-    else:
-        first_seen = {}
+    avail_set = set(avail_months)
 
-    today_str = date.today().isoformat()
-
-    # Drop months that are no longer in the window so the state file stays bounded.
-    for ym in list(first_seen.keys()):
-        if ym not in months:
-            del first_seen[ym]
+    def _prev_month(ym: str) -> str:
+        y, m = int(ym[:4]), int(ym[5:])
+        return f"{y - 1}-12" if m == 1 else f"{y}-{m - 1:02d}"
 
     strategies_meta = []
     for s in _REVENUE_STRATEGIES:
@@ -667,51 +661,50 @@ def export_revenue_screens(cur, out: Path, n_months: int = 4):
             ],
         })
 
+    # Cache screen() results so a prev-month baseline is not recomputed.
+    screen_cache: dict[tuple[str, str], list] = {}
+
+    def _screen(ym: str, s: dict) -> list:
+        cache_key = (ym, s["key"])
+        if cache_key not in screen_cache:
+            mod = importlib.import_module(s["module"])
+            try:
+                screen_cache[cache_key] = mod.screen(ym)
+            except Exception as e:
+                print(f"  [WARN] {s['key']} {ym} failed: {e}")
+                screen_cache[cache_key] = []
+        return screen_cache[cache_key]
+
     data = {}
     for ym in months:
         data[ym] = {}
-        ym_state = first_seen.setdefault(ym, {})
+        prev_ym = _prev_month(ym)
+        # If the previous month has no revenue data we cannot judge new-ness.
+        prev_known = prev_ym in avail_set
         for s in _REVENUE_STRATEGIES:
-            mod = importlib.import_module(s["module"])
-            try:
-                results = mod.screen(ym)
-            except Exception as e:
-                print(f"  [WARN] {s['key']} {ym} failed: {e}")
-                results = []
             keys = [k for (k, _, _) in s["columns"]]
-            strat_state = ym_state.setdefault(s["key"], {})
+            prev_ids = (
+                {r.get("stock_id") for r in _screen(prev_ym, s)}
+                if prev_known else None
+            )
 
-            current_ids = set()
             rows = []
-            for r in results:
+            for r in _screen(ym, s):
                 stock_id = r.get("stock_id")
                 if stock_id is None:
                     continue
-                current_ids.add(stock_id)
-                if stock_id not in strat_state:
-                    strat_state[stock_id] = today_str
                 row = {k: r.get(k) for k in keys}
                 # Always carry market for the TradingView link, even if not
                 # displayed as a column.
                 row["market"] = r.get("market")
-                row["is_new"] = strat_state[stock_id] == today_str
+                row["is_new"] = bool(prev_ids is not None and stock_id not in prev_ids)
                 rows.append(row)
-
-            # Forget stocks that left the screen — if they come back later they
-            # should re-trigger NEW.
-            for sid in list(strat_state.keys()):
-                if sid not in current_ids:
-                    del strat_state[sid]
 
             data[ym][s["key"]] = rows
 
-    state_path.parent.mkdir(parents=True, exist_ok=True)
-    with open(state_path, "w", encoding="utf-8") as f:
-        json.dump(first_seen, f, ensure_ascii=False, indent=2)
-
     _write({
         "generated_at": datetime.now().isoformat(timespec="seconds"),
-        "export_date": today_str,
+        "export_date": date.today().isoformat(),
         "available_months": months,
         "strategies": strategies_meta,
         "data": data,

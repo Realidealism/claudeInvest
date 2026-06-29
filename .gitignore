@@ -34,9 +34,6 @@ node_modules/
 # Claude Code internal
 .claude/
 
-# Local state for export pipeline
-data/revenue_screens_first_seen.json
-
 # Pickled StockData cache for signal_backtest --cache mode (multi-GB)
 data/stock_cache/
 
