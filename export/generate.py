@@ -332,8 +332,8 @@ def export_flow(cur, out: Path):
         _write({"periods": all_periods, "fund_columns": [], "changes": {}}, out / "flow.json")
         return
 
-    # Last up to 6 month-ends → up to 5 monthly transitions.
-    periods = all_periods[-6:]
+    # Last up to 4 month-ends → up to 3 monthly transitions.
+    periods = all_periods[-4:]
     latest, prev = periods[-1], periods[-2]
 
     # Month-end closing prices per period, for share estimation from holding amount.

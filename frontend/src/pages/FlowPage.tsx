@@ -58,7 +58,7 @@ export default function FlowPage() {
     }));
     rows.sort((a, b) =>
       sortBy === "activity"
-        ? Math.abs(b.totalLots) - Math.abs(a.totalLots)
+        ? b.totalLots - a.totalLots // most cumulative net buying on top
         : a.ticker.localeCompare(b.ticker),
     );
     return rows;
@@ -93,7 +93,7 @@ export default function FlowPage() {
             sortBy === "activity" ? "bg-accent text-white" : "bg-surface-alt text-text-secondary border border-border"
           }`}
         >
-          依淨流向排序
+          依累計買超排序
         </button>
         <button
           onClick={() => setSortBy("ticker")}
@@ -111,7 +111,7 @@ export default function FlowPage() {
         <div className="flex items-center gap-2 text-[11px] text-text-secondary pb-1 border-b border-border">
           <div className="w-14 shrink-0">代號</div>
           <div className="w-20 shrink-0">名稱</div>
-          <div className="flex-1 min-w-[120px] text-center">近5月累計淨流向（張）</div>
+          <div className="flex-1 min-w-[120px] text-center">近3月累計淨流向（張）</div>
           <div className="w-16 shrink-0 text-right">累計</div>
           <div className="w-28 shrink-0 text-center">月變化</div>
         </div>
