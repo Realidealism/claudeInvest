@@ -39,3 +39,8 @@ data/stock_cache/
 
 # TypeScript incremental build state
 *.tsbuildinfo
+
+# 大台期貨統一狀態 — Telegram-only, read locally by the bot. Kept out of git
+# so the EOD whole-dir frontend push never sweeps it onto origin (an untracked
+# copy that origin tracks would block the intraday worktree checkout).
+frontend/public/data/futures_tx.json
