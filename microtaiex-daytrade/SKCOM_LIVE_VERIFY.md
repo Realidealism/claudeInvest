@@ -89,3 +89,34 @@ python -c "import sys,os; sys.path.insert(0,'src'); from broker.factory import m
 | 微台代碼 | 近月代碼（暫定 `TMF00`，小台為 `MTX00`） | 訂閱與下單 |
 
 **核對方法**：跑階段 D 模擬單成交後，在 LOG 找 `OnNewData split:` 那行（會印 `[(0,'...'),(1,'TF'),(2,'D'),...]`），對照確認 price/qty 的索引；若不是 15/24，改 `capital_skcom.py` 頂部的 `_RPT_PRICE/_RPT_QTY` 常數即可。`OnOpenInterest split:` 同理。把那兩行 LOG 貼回來，我直接幫你鎖定索引並補完 `list_positions`。
+
+---
+
+## 5. 自動化捕捉腳本 `verify_fill.py`（推薦，取代上方手動 step D）
+
+> 上方 step D 的一行指令已過時：代碼應為 `TM0000`（非 TMF00），且現行 `place_order`
+> 強制限價（`price=None` 會 ValueError）。改用 `verify_fill.py`：已處理限價、DEBUG log、
+> 1 口 IOC 往返與 `split:` 行捕捉（split 行在索引解析「之前」就印出原始欄位，索引猜錯也照樣抓得到）。
+
+**前置**
+1. 真實成交要正式環境：`--real`（內部 `test_env=false`）。UAT 因帳號未開(1097)拿不到成交。
+2. 憑證放本資料夾 `.env` 或設環境變數：`BROKER_ID` / `BROKER_PWD` / `FUT_ACCOUNT` / `CERT_ID`(可省, 預設=BROKER_ID)。
+3. **先停掉 paper 服務**（同帳號雙登入會衝突，需系統管理員）：
+   ```powershell
+   nssm stop InvestMicroPaper
+   ```
+
+**步驟（交易時段內）**
+```powershell
+cd C:\Claude\Invest\microtaiex-daytrade
+python verify_fill.py            # 先 dry: 只登入+讀價, 零風險, 確認 creds/連線
+python verify_fill.py --real     # 正式: 真錢 1 口往返 (BUY 開 + best-effort SELL 平)
+```
+
+**安全**
+- 1 口、IOC（不掛單）；下單瞬間盯著券商 App。
+- 自動平倉是 best-effort，**不保證**——務必在券商 App 確認最終**無部位**，必要時手動平倉。
+- 跑完用 `nssm start InvestMicroPaper` 把 paper 服務開回來。
+
+**回報**：把 `reports/verify_fill.log` 裡的 `OnNewData split: [...]` 與
+`OnOpenInterest split: [...]` 兩行貼回來，即可鎖定 `_RPT_PRICE/_RPT_QTY` 與補完 `list_positions`。
