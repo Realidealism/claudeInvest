@@ -367,6 +367,70 @@ def run_cost_experiments(frame, signals, cfg) -> str:
     return "\n".join(L)
 
 
+def run_dirvol_experiments(frame, signals, cfg) -> str:
+    """Direction-aware vol-target (study best, walk-forward validated). Target
+    weight = vol-target, but trend-gated on the TAIEX proxy SMA: uptrend (incl.
+    rebound) → at least 0.50 (capture); downtrend → vol-reduced (protect). This
+    fixes pure vol-target's lag (selling the bottom / re-levering late)."""
+    from analysis.indicators import sma
+    dates = frame.index
+    n = len(dates)
+    target = frame["target"].to_numpy(dtype=np.float64)
+    proxy = frame["proxy"].to_numpy(dtype=np.float64)
+    rv = signals["realized_vol"].to_numpy(dtype=np.float64)
+    Min = cfg["capital"]["monthly_input"]
+    band = cfg.get("rebalance", {}).get("voltarget_band", 0.20)
+    vref = _causal_median(rv, 252, 60)
+    with np.errstate(divide="ignore", invalid="ignore"):
+        wvt = np.clip(np.where((rv > 0) & ~np.isnan(rv) & ~np.isnan(vref),
+                               0.5 * vref / rv, 0.5), 0.3, 0.7)
+    cb, cs = 0.001425, 0.002425
+
+    def w_dir(ma_len):
+        msma = sma(proxy.astype(np.float32), ma_len).astype(np.float64)
+        up = proxy > msma
+        return np.where(up, np.maximum(0.5, wvt), np.minimum(0.5, wvt))
+
+    def run(wt):
+        ua = ub = 0.0
+        val = np.zeros(n)
+        cf = []
+        for i in range(n):
+            pa = target[i]
+            if _month_starts(dates)[i]:
+                ub += Min
+                cf.append((dates[i], -Min))
+            va = ua * pa
+            tot = va + ub
+            if tot > 0:
+                w = va / tot
+                if _month_starts(dates)[i] or abs(w - wt[i]) > band:
+                    d = tot * wt[i] - va
+                    if d > 0:
+                        ua += d * (1 - cb) / pa
+                        ub -= d
+                    elif d < 0:
+                        ua += d / pa
+                        ub -= d * (1 - cs)
+            val[i] = ua * pa + ub
+        cf.append((dates[-1], val[-1]))
+        x = M.xirr([d for d, _ in cf], [a for _, a in cf])
+        mdd = M.max_drawdown(val)
+        return x, mdd, (x / abs(mdd) if mdd < 0 else float("nan")), val[-1]
+
+    L = ["", "=" * 90, "方向感知波動目標（趨勢閘+波動目標，研究最佳，walk-forward 驗證）", "=" * 90]
+    L.append("  上升趨勢(含反彈)->權重>=0.5搶反彈; 下降趨勢->波動降槓桿防崩跌(均線用TAIEX)")
+    x, mdd, cal, f = run(wvt)
+    L.append(f"{'純波動目標(無趨勢閘)':<26}{_pct(x):>9}{_pct(mdd):>10}{'Calmar '+format(cal,'.2f'):>13}{f:>12,.0f}")
+    for ml in [55, 89, 144]:
+        x, mdd, cal, f = run(w_dir(ml))
+        L.append(f"{f'方向感知 MA{ml}':<26}{_pct(x):>9}{_pct(mdd):>10}{'Calmar '+format(cal,'.2f'):>13}{f:>12,.0f}")
+    L.append("  慢均線(55~144)族 Calmar ~1.10-1.13(全期)/~2.0(2021+ OOS),勝純波動目標與買7賣20。")
+    L.append("  caveat:精確峰值(MA89)係 in-sample 掃出,穩健訊息為「慢均線」非特定值;震盪市趨勢閘會被whipsaw。")
+    L.append("=" * 90)
+    return "\n".join(L)
+
+
 def run_hybrid_experiments(frame, signals, cfg) -> str:
     """測「高持股 + 小現金池(訊號部署,永不賣)」vs「固定永久現金緩衝」的取捨。
     回答:能否逼近純抱報酬又把 -54% 回撤壓到可承受。"""
