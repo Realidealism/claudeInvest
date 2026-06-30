@@ -1,0 +1,47 @@
+# Micro-Taiex daytrading system config.
+# Live secrets come from environment variables; do not hardcode here.
+
+broker:
+  name: capital_skcom        # capital_skcom | yuanta_com | fubon_neo | sim
+  user_id: ${BROKER_ID}
+  password: ${BROKER_PWD}
+  full_account: ${FUT_ACCOUNT}   # broker_code-account
+  cert_id: ${CERT_ID}            # Capital signing cert, defaults to user_id
+  skcom_dll_path: 'C:\SKCOM\x64\SKCOM.dll'   # 64-bit SKCOM.dll (or 'SKCOM.dll' if registered)
+  test_env: true                 # true => SetAuthority(2) 測試環境(UAT); false => 正式環境
+
+contract:
+  product: TMF                 # micro-Taiex (TAIFEX code)
+  skcom_symbol: TM0000         # Capital SKCOM near-month code (微台近); 全盤. AM-only = TM0000AM
+  point_value: 10              # NT$ per index point (micro = 1/20 of TX large)
+  tick_size: 1
+  # Capital near-month codes: 大台 TX00, 小台 MTX00, 微台 TM0000 (all decimal=2, price x100)
+
+session:
+  day_open: "08:45"
+  day_close: "13:45"
+  night_open: "15:00"
+  night_close: "05:00"
+  force_close_buffer_min: 1    # force-close N minutes before each session close
+
+strategy:
+  name: engulfing              # engulfing reversal + relative-position filter
+  timeframe: "5m"              # main timeframe; 1m kept as detail layer
+  lookback: 10                 # bars for the relative low/high filter
+
+risk_stop:
+  atr_period: 21               # ATR period for the Chandelier trailing stop
+  atr_mult: 2.0                # trailing-stop distance in ATRs (sweep 1.5~3.0)
+
+risk:
+  max_lots: 1                  # fixed 1 lot; optimize strategy first
+  stop_loss_atr_mult: 2.0
+  max_daily_loss_points: 10    # halt session if loss reaches this (cost-floor guard)
+
+# Cost model (backtest only; per-lot fixed fee + tax, NOT stock percentage fee).
+cost:
+  fee_per_lot: 20              # NT$ per lot per side (negotiable with broker)
+  tax_rate: 0.00002           # contract notional * rate, charged on buy and sell
+
+store:
+  db_path: "reports/market.db"

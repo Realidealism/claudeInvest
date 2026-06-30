@@ -1,0 +1,21 @@
+[project]
+name = "microtaiex-daytrade"
+version = "0.1.0"
+description = "Event-driven micro-Taiex (TMF) futures daytrading system"
+requires-python = ">=3.11"
+dependencies = [
+    "pydantic>=2.0",
+    "pyyaml>=6.0",
+    "pandas>=2.0",
+    "numpy>=1.24",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8.0"]
+
+# Live Capital SKCOM integration additionally needs 32-bit Python + comtypes;
+# the testable core/backtest runs on regular 64-bit Python.
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]
