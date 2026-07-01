@@ -175,6 +175,16 @@ class TradingEngine:
                             self._pos.entry_price, self._pos.symbol))
             self._last_defense = cur
 
+    def preload(self, bars) -> None:
+        """Seed ctx.bars with historical closed bars for warmup (ATR / 軌道 channel
+        armed immediately after a restart). Pure state fill — no stop/strategy/order
+        runs, so it never trades the past. Skips bars not newer than the last seen."""
+        last_ts = self._ctx.bars[-1].ts if self._ctx.bars else None
+        for b in bars:
+            if last_ts is None or b.ts > last_ts:
+                self._ctx.bars.append(b)
+                last_ts = b.ts
+
     def flatten(self, price: float, ts: datetime) -> None:
         """Force-close any open position (e.g. at end of replay / session)."""
         fc = self._risk.force_close(self._pos, price)

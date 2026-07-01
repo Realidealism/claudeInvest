@@ -143,7 +143,8 @@ class CapitalSKCOMAdapter(BrokerAdapter, ReconnectMixin):
             self._pump.join(timeout=2.0)
         self._emit_connection(ConnectionStatus.DISCONNECTED)
 
-    def serve(self, symbols, periodic=None, period: float = 1.0, with_orders: bool = True) -> None:
+    def serve(self, symbols, periodic=None, period: float = 1.0, with_orders: bool = True,
+              on_ready=None) -> None:
         """Run the live loop on THE CALLING THREAD: connect, subscribe, pump forever.
 
         All four COM objects are created AND message-pumped on this one thread
@@ -154,6 +155,10 @@ class CapitalSKCOMAdapter(BrokerAdapter, ReconnectMixin):
         symbols: contract codes to subscribe (e.g. ["TM0000"]).
         periodic: optional callable invoked roughly every ``period`` seconds
             (for heartbeat / session checks). No auto-reconnect in this mode.
+        on_ready: optional callable invoked ONCE after the quote server is ready
+            but before tick subscription — the place to fetch history via
+            get_kbars on THIS single login (no second login). Its failure is
+            logged and swallowed so warmup never kills the live loop.
         """
         import time as _time
 
@@ -168,6 +173,11 @@ class CapitalSKCOMAdapter(BrokerAdapter, ReconnectMixin):
             self._connect_reply()
         if not self._pump_wait(self._quote_ready, 20.0):
             raise RuntimeError("quote server not ready (no OnConnection 3003)")
+        if on_ready is not None:
+            try:
+                on_ready()
+            except Exception:  # noqa: BLE001 - warmup must never kill the live loop
+                log.exception("on_ready hook failed (continuing without warmup)")
         for sym in symbols:
             self.subscribe(sym)
 

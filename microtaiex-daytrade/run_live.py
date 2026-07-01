@@ -103,6 +103,9 @@ def main(argv) -> int:
     # --masha: run the 麻紗 軌道 rail strategy as a parallel shadow engine in the
     # same --paper process (one COM login, own SimBroker/risk/log/TG-prefix).
     masha = "--masha" in argv
+    # --warmup: before serve(), seed engines with recent closed 5m bars (fetch via
+    # a throwaway quote connection) so ATR/軌道 are armed immediately after restart.
+    warmup = "--warmup" in argv
     logging.basicConfig(level=logging.INFO, format="%(message)s")
 
     if trade and not test_env and not real:
@@ -117,7 +120,7 @@ def main(argv) -> int:
     if trade and not full_account:
         print("REFUSING --trade: FUT_ACCOUNT not set (needed for real orders).")
         return 2
-    broker = make_broker({
+    broker_cfg = {
         "name": "capital_skcom",
         "user_id": os.environ["BROKER_ID"],
         "password": os.environ["BROKER_PWD"],
@@ -125,7 +128,8 @@ def main(argv) -> int:
         "cert_id": os.environ.get("CERT_ID", os.environ.get("BROKER_ID", "")),
         "skcom_dll_path": os.environ.get("SKCOM_DLL", r"C:\SKCOM\x64\SKCOM.dll"),
         "test_env": test_env,   # observe defaults to 正式 (no orders); trade gated above
-    })
+    }
+    broker = make_broker(broker_cfg)
 
     agg = BarAggregator(timeframes=("1m", STRAT_TF))
     if gated:
@@ -241,12 +245,29 @@ def main(argv) -> int:
                                 for eng, _, lbl in engines)
             print(f"[hb] {now:%H:%M:%S} {market_status(now)} ticks={stats['ticks']} "
                   f"last={stats['last_price']}  {pos_str}")
+        # warmup (single login): serve() calls this AFTER the quote server is ready
+        # (before tick subscription), so we fetch recent closed 5m bars on THE SAME
+        # login — no second login — and seed every engine, arming ATR(21)/軌道(40)
+        # immediately after a restart. serve() swallows any failure of this hook.
+        def _do_warmup():
+            from datetime import timedelta
+            _now = datetime.now()
+            warm = broker.get_kbars(
+                SYMBOL, (_now - timedelta(days=3)).strftime("%Y%m%d"),
+                _now.strftime("%Y%m%d"), minute=5)
+            warm = warm[-120:] if warm else []
+            for eng, _, _ in engines:
+                eng.preload(warm)
+            print(f"[preload] seeded {len(warm)} bars"
+                  + (f" up to {warm[-1].ts:%m-%d %H:%M}" if warm else ""))
+
         variant = "gated p+sf (daily-state)" if gated else "ungated all-6"
         shadow = " + 麻紗軌道 shadow" if masha else ""
         print(f"--- LIVE PAPER (real ticks + simulated fills, NO real orders) "
               f"{SYMBOL} composite [{variant}]{shadow} lb={LOOKBACK}/{BREAKOUT_LB}/{FLEE_LB} "
               f"atr({ATR_PERIOD}) mult L={LONG_ATR_MULT}/S={SHORT_ATR_MULT} ---")
-        broker.serve([SYMBOL], periodic=periodic, period=10.0, with_orders=False)
+        broker.serve([SYMBOL], periodic=periodic, period=10.0, with_orders=False,
+                     on_ready=(_do_warmup if warmup else None))
     elif trade:
         risk = RiskManager(RiskConfig(max_lots=1, stop_loss_atr_mult=ATR_MULT,
                                       long_stop_atr_mult=LONG_ATR_MULT,
