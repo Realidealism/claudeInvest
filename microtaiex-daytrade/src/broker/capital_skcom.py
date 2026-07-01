@@ -504,12 +504,12 @@ class CapitalSKCOMAdapter(BrokerAdapter, ReconnectMixin):
 
     # ---- history (history-only; needs a futures account for TF/TO products) ----
     def get_kbars(self, symbol: str, start: str, end: str, *,
-                  minute: int = 5, session: int = 0) -> List[Bar]:
+                  minute: int = 5, session: int = 0, kline_type: int = 0) -> List[Bar]:
         """Fetch historical K bars. start/end are 'YYYYMMDD'.
 
-        minute = N-minute K (sKLineType=0 分線). session: 0=全盤(含日夜盤), 1=AM盤.
-        Prices come decimal-scaled (新版輸出); rows arrive via OnNotifyKLineData,
-        OnKLineComplete signals the end.
+        kline_type: 0 = 分線 (minute), 4 = 日線 (daily). minute = N-minute K when
+        kline_type=0. session: 0=全盤(含日夜盤), 1=AM盤. Prices come decimal-scaled;
+        rows arrive via OnNotifyKLineData, OnKLineComplete signals the end.
         """
         inline = self._pump is None   # no background pump -> pump on this thread
         ready = (self._pump_wait(self._quote_ready, 20.0) if inline
@@ -519,9 +519,9 @@ class CapitalSKCOMAdapter(BrokerAdapter, ReconnectMixin):
                                "check EnterMonitorLONG / network / market hours")
         self._kbar_buffer.clear()
         self._kbar_done.clear()
-        self._kbar_tf = f"{minute}m"
+        self._kbar_tf = "1d" if kline_type == 4 else f"{minute}m"
         n_code = self._quote.SKQuoteLib_RequestKLineAMByDate(
-            symbol, 0, 1, session, start, end, minute,
+            symbol, kline_type, 1, session, start, end, minute,
         )
         if n_code != 0:
             raise RuntimeError(f"RequestKLineAMByDate failed: {n_code} {self._msg(n_code)}")

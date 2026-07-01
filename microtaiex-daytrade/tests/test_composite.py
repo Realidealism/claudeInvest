@@ -49,30 +49,37 @@ def test_composite_reversal_only_matches_engulfing():
         assert (cs.type if cs else None) == (es.type if es else None)
 
 
-def test_trade_day_boundary():
-    # night session (>= 15:00) leads the NEXT trading day; earlier bars stay same.
-    comp = CompositeStrategy(daily_self_gate=True)
-    night = _bar(1, 1, 1, 1, datetime(2024, 12, 18, 20, 0))
-    morning = _bar(1, 1, 1, 1, datetime(2024, 12, 19, 2, 0))
-    day = _bar(1, 1, 1, 1, datetime(2024, 12, 19, 10, 0))
-    assert comp._trade_day(night) == datetime(2024, 12, 19).date()
-    assert comp._trade_day(morning) == datetime(2024, 12, 19).date()
-    assert comp._trade_day(day) == datetime(2024, 12, 19).date()
+def test_tx_status_gate(tmp_path):
+    import json
+    p = tmp_path / "futures_tx.json"
+
+    def regime(state):
+        p.write_text(json.dumps({"state": state}), encoding="utf-8")
+        return CompositeStrategy(tx_status_path=str(p))._tx_regime()
+
+    assert regime("long") == 1
+    assert regime("short") == -1
+    assert regime("flat") == 0
+    # missing file -> 0 (fail-safe, no gate)
+    assert CompositeStrategy(tx_status_path=str(tmp_path / "nope.json"))._tx_regime() == 0
+    # no path -> 0
+    assert CompositeStrategy()._tx_regime() == 0
 
 
-def test_daily_self_gate_runs_and_tracks_state():
-    # Feed a multi-day stream; the gated composite must process without error
-    # and advance its internal daily state past the initial neutral 0.
-    comp = CompositeStrategy(lookback=3, breakout_lb=3, flee_lb=3, daily_self_gate=True)
+def test_tx_gate_suppresses_offside(tmp_path):
+    import json
+    p = tmp_path / "futures_tx.json"
+    p.write_text(json.dumps({"state": "short"}), encoding="utf-8")
+    # factory short -> long entries suppressed; a pick (long) must not fire.
+    comp = CompositeStrategy(lookback=3, enable={"pick"}, tx_status_path=str(p))
     ctx = StrategyContext()
-    base = datetime(2024, 12, 1, 9, 0)
-    for i in range(300):
-        c = 100 + (i % 7) - 3
-        b = _bar(c, c + 2, c - 2, c, base + timedelta(hours=2 * i))
+    # a bullish-engulfing-at-low pattern that would normally emit LONG
+    rows = [(10, 11, 8, 9)] * 4 + [(9, 9, 6, 6), (6, 11, 6, 10)]
+    for o, h, l, c in rows:
+        b = _bar(o, h, l, c, datetime(2024, 12, 18, 9, 0))
         ctx.bars.append(b)
-        comp.on_bar_close(b, ctx)
-    assert comp._dstate in (-1, 0, 1)
-    assert len(comp._dctx.bars) > 5   # several trading days were finalized
+        sig = comp.on_bar_close(b, ctx)
+    assert sig is None   # long gated out under a short regime
 
 
 def test_entry_reason_flows_to_round_trip():

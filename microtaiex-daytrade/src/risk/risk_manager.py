@@ -35,15 +35,41 @@ class RiskConfig:
     # Daily loss cap in index points; reset each trading day (RiskManager.reset_session).
     # Default = no cap (inf) so backtests show raw strategy behavior; live sets a real value.
     max_daily_loss_points: float = float("inf")
+    # 麻紗 出村標準 (§9.1) — index points, None = off:
+    #   max_loss_points_per_trade: hard per-trade stop (單筆≤20), ATR-independent.
+    #   daily_profit_target_points: halt new entries once +N reached (單日正≥50 鎖利停手).
+    max_loss_points_per_trade: Optional[float] = None
+    daily_profit_target_points: Optional[float] = None
+    # Stop system: "chandelier" (ATR trailing) or "masha" (entry-bar high/low, §4.7).
+    stop_mode: str = "chandelier"
+    # 麻紗 exit module (§2.4, only when stop_mode="masha"):
+    #   masha_trail_enabled: turn on 移動停利 ratchet (default off — backtest shows
+    #     the tight candle-trail whipsaws winners; plain entry-bar stop rides better).
+    #   masha_trail_mode: 移動停利 line — "low"=紅K底 (looser) / "mid"=紅K一半 (tighter).
+    #   masha_use_target: exit at the 1:1 滿足點 (§7.1) set by the engine at entry.
+    #   masha_use_exhaustion: exit on a 力竭 reversal (engine-checked, §2.4c).
+    masha_trail_enabled: bool = False
+    masha_trail_mode: str = "low"
+    masha_use_target: bool = False
+    masha_use_exhaustion: bool = False
+    # §8.3 時間波 有單/沒單: at a 時間波 point, if holding and the bar shows 沒方向
+    # (doji-like), 先出 (exit) — claims to cut washes ~50%. Engine-checked, opt-in.
+    masha_timewave_exit: bool = False
+    masha_timewave_doji_ratio: float = 0.3
 
 
 class RiskManager:
     def __init__(self, cfg: Optional[RiskConfig] = None) -> None:
         self.cfg = cfg or RiskConfig()
         self.daily_loss_points = 0.0
+        self.daily_profit_points = 0.0
         self.halted = False
         self._trail_extreme: Optional[float] = None  # favorable extreme since entry
         self._trail_stop: Optional[float] = None     # ratcheting protective line
+        self._entry_bar_hi: Optional[float] = None   # 麻紗 entry-bar high (§4.7)
+        self._entry_bar_lo: Optional[float] = None   # 麻紗 entry-bar low
+        self._masha_trail: Optional[float] = None    # 麻紗 移動停利 line (§2.4b)
+        self._target: Optional[float] = None         # 麻紗 1:1 滿足點 (§7.1)
 
     # ---- signal -> order ----
     def evaluate_signal(
@@ -91,7 +117,43 @@ class RiskManager:
         if pos.state is not PosState.HOLDING:
             self._trail_extreme = None
             self._trail_stop = None
+            self._entry_bar_hi = None
+            self._entry_bar_lo = None
+            self._masha_trail = None
+            self._target = None
             return None
+
+        # §9.1 hard per-trade point cap (單筆≤20), ATR-independent backstop
+        if self.cfg.max_loss_points_per_trade is not None and pos.entry_price is not None:
+            loss = (pos.entry_price - bar.close if pos.side is Side.BUY
+                    else bar.close - pos.entry_price)
+            if loss >= self.cfg.max_loss_points_per_trade:
+                return self._exit_order(pos, bar.close)
+
+        # 麻紗 exit (§4.7 進場K高低 seed + §2.4b 移動停利 ratchet + §7.1 滿足點)
+        if self.cfg.stop_mode == "masha":
+            is_long = pos.side is Side.BUY
+            if self._masha_trail is None:
+                self._masha_trail = self._entry_bar_lo if is_long else self._entry_bar_hi
+            if self.cfg.masha_trail_enabled:               # 移動停利 ratchet (opt-in)
+                mid = (bar.high + bar.low) / 2.0
+                if is_long and bar.close > bar.open:       # 紅K → trail up
+                    cand = bar.low if self.cfg.masha_trail_mode == "low" else mid
+                    self._masha_trail = cand if self._masha_trail is None else max(self._masha_trail, cand)
+                elif (not is_long) and bar.close < bar.open:   # 黑K → trail down
+                    cand = bar.high if self.cfg.masha_trail_mode == "low" else mid
+                    self._masha_trail = cand if self._masha_trail is None else min(self._masha_trail, cand)
+            if is_long and self._masha_trail is not None and bar.close < self._masha_trail:
+                return self._exit_order(pos, bar.close)
+            if (not is_long) and self._masha_trail is not None and bar.close > self._masha_trail:
+                return self._exit_order(pos, bar.close)
+            if self.cfg.masha_use_target and self._target is not None:
+                if is_long and bar.high >= self._target:
+                    return self._exit_order(pos, self._target)
+                if (not is_long) and bar.low <= self._target:
+                    return self._exit_order(pos, self._target)
+            return None
+
         # seed from entry price, then track the favorable extreme each bar
         if self._trail_extreme is None:
             self._trail_extreme = pos.entry_price if pos.entry_price is not None else (
@@ -129,19 +191,55 @@ class RiskManager:
     def force_close(self, pos: PositionStateMachine, price: float) -> Optional[OrderRequest]:
         return self._exit_order(pos, price)
 
+    def set_entry_bar(self, high: float, low: float) -> None:
+        """Record the entry bar's high/low for the 麻紗 entry-bar stop (§4.7)."""
+        self._entry_bar_hi = high
+        self._entry_bar_lo = low
+
+    def set_target(self, price: Optional[float]) -> None:
+        """Set the 麻紗 1:1 滿足點 target (§7.1) for this position."""
+        self._target = price
+
+    def initial_defense(self, side: Side, entry_price: float,
+                        atr: Optional[float]) -> Optional[float]:
+        """The Chandelier stop line at entry (entry -/+ mult*ATR), using the
+        same per-side mult as check_stop. None while ATR is warming up."""
+        if atr is None:
+            return None
+        if side is Side.BUY and self.cfg.long_stop_atr_mult is not None:
+            mult = self.cfg.long_stop_atr_mult
+        elif side is Side.SELL and self.cfg.short_stop_atr_mult is not None:
+            mult = self.cfg.short_stop_atr_mult
+        else:
+            mult = self.cfg.stop_loss_atr_mult
+        dist = atr * mult
+        return entry_price - dist if side is Side.BUY else entry_price + dist
+
+    def current_defense(self) -> Optional[float]:
+        """The live ratcheting stop line (None until armed)."""
+        return self._trail_stop
+
     # ---- pnl / halt accounting ----
     def register_trade_pnl_points(self, points: float) -> None:
-        """Record realized PnL (in index points) of a closed round-trip."""
+        """Record realized PnL (points) of a closed round-trip; halt on 出村 caps."""
         if points < 0:
             self.daily_loss_points += -points
             if self.daily_loss_points >= self.cfg.max_daily_loss_points:
-                self.halted = True
+                self.halted = True   # 單日負損益達上限 → 當日停手
+        else:
+            self.daily_profit_points += points
+            tgt = self.cfg.daily_profit_target_points
+            if tgt is not None and self.daily_profit_points >= tgt:
+                self.halted = True   # 單日正損益達標 → 鎖利停手
 
     def reset_session(self) -> None:
         self.daily_loss_points = 0.0
+        self.daily_profit_points = 0.0
         self.halted = False
         self._trail_extreme = None
         self._trail_stop = None
+        self._entry_bar_hi = None
+        self._entry_bar_lo = None
 
     # ---- internals ----
     def _exit_order(self, pos: PositionStateMachine, price: float) -> Optional[OrderRequest]:

@@ -35,6 +35,7 @@ from position.state_machine import PositionStateMachine  # noqa: E402
 from risk.risk_manager import RiskConfig, RiskManager    # noqa: E402
 from strategy.base import StrategyContext         # noqa: E402
 from strategy.strategies.composite import CompositeStrategy  # noqa: E402
+from strategy.strategies.masha import MashaStrategy  # noqa: E402
 from notify import TelegramNotifier                # noqa: E402
 
 _POINT_VALUE = 10   # micro-Taiex NT$ per index point
@@ -44,12 +45,22 @@ def _side_zh(side) -> str:
     return "做多" if side is Side.BUY else "做空"
 
 
-def _fmt_entry(order, reason, ts) -> str:
-    emoji = "🟢" if order.side is Side.BUY else "🔴"
+def _fmt_entry(order, reason, ts, defense=None) -> str:
+    emoji = "🔴" if order.side is Side.BUY else "🟢"   # 台股慣例：紅漲(多)/綠跌(空)
     sig = f"　訊號 {reason}" if reason else ""
     when = f"　{ts:%m-%d %H:%M}" if ts else ""
+    dfn = ""
+    if defense is not None:
+        risk = (defense - order.price) if order.side is Side.BUY else (order.price - defense)
+        dfn = f"\n防守 {defense:.0f}（{risk:+.0f} 點）"
     return (f"{emoji} 進場 {_side_zh(order.side)} {order.symbol}\n"
-            f"價格 {order.price:.0f}{sig}{when}")
+            f"價格 {order.price:.0f}{sig}{when}{dfn}")
+
+
+def _fmt_defense(side, defense, entry_price, symbol) -> str:
+    pts = (defense - entry_price) if side is Side.BUY else (entry_price - defense)
+    tag = "🔼 防守拉高" if side is Side.BUY else "🔽 防守下移"
+    return f"{tag} {_side_zh(side)} {symbol}\n{defense:.0f}（{pts:+.0f} 點）"
 
 
 def _fmt_exit(rt) -> str:
@@ -69,10 +80,10 @@ LOOKBACK = 20           # pick/touch engulfing relative-low/high window
 BREAKOUT_LB = 20        # buy/sell Donchian breakout window
 FLEE_LB = 10            # buy_flee/sell_flee trap window
 ATR_MULT = 2.0          # fallback Chandelier stop distance (both sides)
-# Per-direction stop distance from the TM 2D sweep (robust across both halves):
-# long-side wants room (6), short-side stays tight (2) — matches the daily
-# signal-factory's buy/pick=6, touch/sell=2/1.5 on a different instrument.
-LONG_ATR_MULT = 6.0
+# Day-trade (daily force-close) sweep: with 3 long signals (pick/sell_flee/buy)
+# the sweet spot is a TIGHT long stop (mult 3) + fast re-entry — PF 1.30 stable
+# across both halves, more net + smaller tail than the old wide-stop 6.
+LONG_ATR_MULT = 3.0
 SHORT_ATR_MULT = 2.0
 # Exit handicap: tolerate a breach of up to buffer*ATR before the stop fires
 # (noise filter). Sweep peak at 0.05 across full + both halves.
@@ -89,6 +100,9 @@ def main(argv) -> int:
     # --gated: long-only pick+sell_flee gated by the self-computed daily-state
     # (risk-adjusted variant). Default: ungated all-6 signals.
     gated = "--gated" in argv
+    # --masha: run the 麻紗 軌道 rail strategy as a parallel shadow engine in the
+    # same --paper process (one COM login, own SimBroker/risk/log/TG-prefix).
+    masha = "--masha" in argv
     logging.basicConfig(level=logging.INFO, format="%(message)s")
 
     if trade and not test_env and not real:
@@ -115,21 +129,23 @@ def main(argv) -> int:
 
     agg = BarAggregator(timeframes=("1m", STRAT_TF))
     if gated:
+        # gate by the daily signal factory's TX unified state (the 大台 signal)
+        tx_status = str(_ROOT.parent / "frontend" / "public" / "data" / "futures_tx.json")
         strategy = CompositeStrategy(timeframe=STRAT_TF, lookback=LOOKBACK,
                                      breakout_lb=BREAKOUT_LB, flee_lb=FLEE_LB,
-                                     enable={"pick", "sell_flee"}, daily_self_gate=True)
+                                     enable={"pick", "sell_flee", "buy"}, tx_status_path=tx_status)
     else:
         strategy = CompositeStrategy(timeframe=STRAT_TF, lookback=LOOKBACK,
                                      breakout_lb=BREAKOUT_LB, flee_lb=FLEE_LB)
 
     stats = {"ticks": 0, "last_price": None, "last_date": None, "prev_ticks": 0}
-    paper_sim = {"b": None}   # holds the SimBroker in --paper mode (simulated fills)
+    paper_sims = []   # SimBrokers in --paper mode (one per shadow engine)
 
     def on_tick(t: Tick):
         stats["ticks"] += 1
         stats["last_price"] = t.price
-        if paper_sim["b"] is not None:
-            paper_sim["b"].set_mark_time(t.ts)   # stamp simulated fills with market time
+        for s in paper_sims:
+            s.set_mark_time(t.ts)   # stamp simulated fills with market time
         agg.on_tick(t)
 
     def market_status(now: datetime) -> str:
@@ -155,56 +171,80 @@ def main(argv) -> int:
     notifier = TelegramNotifier()
     if notifier.enabled:
         print("[tg] Telegram notifications ON")
-        notifier.send("🤖 微台當沖通知已啟動")
 
-    def make_on_event(tlog: TradeLog):
+    def make_on_event(tlog: TradeLog, tag: str = ""):
+        pre = f"【{tag}】\n" if tag else ""       # 麻紗 shadow prefixes its messages
         def _ev(ev):
-            print("EVENT", ev[0], ev[1:])
+            print("EVENT", tag or "composite", ev[0], ev[1:])
             if ev[0] == "order":          # ("order", OrderRequest, OrderResult, reason)
                 order = ev[1]
                 if order.open_close is OpenClose.OPEN:
                     reason = ev[3] if len(ev) > 3 else ""
+                    defense = ev[4] if len(ev) > 4 else None
                     raw = getattr(ev[2], "raw", None)
-                    notifier.send(_fmt_entry(order, reason, getattr(raw, "ts", None)))
+                    notifier.send(pre + _fmt_entry(order, reason, getattr(raw, "ts", None), defense))
+            elif ev[0] == "defense":      # ("defense", side, price, entry, symbol)
+                notifier.send(pre + _fmt_defense(ev[1], ev[2], ev[3], ev[4]))
             elif ev[0] == "close":        # ("close", RoundTrip) -> persist + notify
                 tlog.append(ev[1])
-                notifier.send(_fmt_exit(ev[1]))
+                notifier.send(pre + _fmt_exit(ev[1]))
         return _ev
 
     broker.set_on_tick(on_tick)
     broker.set_on_connection(lambda s: print(f"CONN {s.value}"))
 
     if paper:
-        sim = SimBroker(symbol=SYMBOL)
-        paper_sim["b"] = sim
-        risk = RiskManager(RiskConfig(max_lots=1, stop_loss_atr_mult=ATR_MULT,
-                                      long_stop_atr_mult=LONG_ATR_MULT,
-                                      short_stop_atr_mult=SHORT_ATR_MULT,
-                                      stop_buffer_atr=STOP_BUFFER_ATR))
-        engine = TradingEngine(sim, strategy, risk, PositionStateMachine(),
-                               atr_period=ATR_PERIOD,
-                               force_close_fn=clock.should_force_close,
-                               on_event=make_on_event(TradeLog(
-                                   "reports/paper_trades_gated.csv" if gated
-                                   else "reports/paper_trades.csv")))
-        sim.set_on_trade(engine.on_trade)
+        engines = []   # (engine, risk, label) — composite + optional 麻紗 shadow
+
+        def add_paper_engine(strat, risk_cfg, tlog_path, tag, label):
+            sim = SimBroker(symbol=SYMBOL)
+            paper_sims.append(sim)
+            risk = RiskManager(risk_cfg)
+            eng = TradingEngine(sim, strat, risk, PositionStateMachine(),
+                                atr_period=ATR_PERIOD,
+                                force_close_fn=clock.should_force_close,
+                                on_event=make_on_event(TradeLog(tlog_path), tag))
+            sim.set_on_trade(eng.on_trade)
+            engines.append((eng, risk, label))
+            return eng
+
+        add_paper_engine(
+            strategy,
+            RiskConfig(max_lots=1, stop_loss_atr_mult=ATR_MULT,
+                       long_stop_atr_mult=LONG_ATR_MULT, short_stop_atr_mult=SHORT_ATR_MULT,
+                       stop_buffer_atr=STOP_BUFFER_ATR),
+            "reports/paper_trades_gated.csv" if gated else "reports/paper_trades.csv",
+            "", "composite")
+        if masha:
+            # 麻紗 軌道 rail primary (backtest-validated config: track lb40/mt2/rt40
+            # engulf+doji, ungated). 出村 caps + entry-bar/20pt stop + session flat.
+            add_paper_engine(
+                MashaStrategy(timeframe=STRAT_TF, trend_gate=None),
+                RiskConfig(max_lots=1, stop_mode="masha",
+                           max_loss_points_per_trade=20.0, max_daily_loss_points=60.0,
+                           daily_profit_target_points=50.0),
+                "reports/paper_trades_masha.csv", "麻紗", "麻紗")
 
         def on_bar(bar):
             print_bar(bar)
-            engine.on_bar(bar)
+            for eng, _, _ in engines:
+                eng.on_bar(bar)
         agg.set_on_bar_close(on_bar)
 
         def periodic():
             now = datetime.now()
             if stats["last_date"] and now.date() != stats["last_date"]:
-                risk.reset_session()
+                for _, risk, _ in engines:
+                    risk.reset_session()
             stats["last_date"] = now.date()
+            pos_str = "  ".join(f"{lbl}:{eng.position.state.value}/{len(eng.round_trips)}"
+                                for eng, _, lbl in engines)
             print(f"[hb] {now:%H:%M:%S} {market_status(now)} ticks={stats['ticks']} "
-                  f"last={stats['last_price']} pos={engine.position.state.value} "
-                  f"trips={len(engine.round_trips)}")
+                  f"last={stats['last_price']}  {pos_str}")
         variant = "gated p+sf (daily-state)" if gated else "ungated all-6"
+        shadow = " + 麻紗軌道 shadow" if masha else ""
         print(f"--- LIVE PAPER (real ticks + simulated fills, NO real orders) "
-              f"{SYMBOL} composite [{variant}] lb={LOOKBACK}/{BREAKOUT_LB}/{FLEE_LB} "
+              f"{SYMBOL} composite [{variant}]{shadow} lb={LOOKBACK}/{BREAKOUT_LB}/{FLEE_LB} "
               f"atr({ATR_PERIOD}) mult L={LONG_ATR_MULT}/S={SHORT_ATR_MULT} ---")
         broker.serve([SYMBOL], periodic=periodic, period=10.0, with_orders=False)
     elif trade:

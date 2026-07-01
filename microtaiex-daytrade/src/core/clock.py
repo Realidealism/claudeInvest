@@ -56,6 +56,19 @@ def is_settlement_day(d: date) -> bool:
     return d == third_wednesday(d.year, d.month)
 
 
+def third_friday(year: int, month: int) -> date:
+    """Third Friday of the month (quadruple-witching date for quarter months)."""
+    d = date(year, month, 1)
+    offset = (4 - d.weekday()) % 7   # weekday(): Mon=0 .. Fri=4
+    return d + timedelta(days=offset) + timedelta(days=14)
+
+
+def is_quadruple_witching(d: date) -> bool:
+    """四巫日: index+single-stock futures & options all settle — third Friday of
+    Mar/Jun/Sep/Dec."""
+    return d.month in (3, 6, 9, 12) and d == third_friday(d.year, d.month)
+
+
 def front_contract(d: date) -> str:
     """Front-month contract for date ``d``; rolls after settlement day."""
     settle = third_wednesday(d.year, d.month)

@@ -28,9 +28,11 @@ from config_env import load_dotenv       # noqa: E402
 
 def main(argv) -> int:
     if len(argv) < 6:
-        print("usage: fetch_kbars.py SYMBOL START(YYYYMMDD) END(YYYYMMDD) MINUTE OUT.csv")
+        print("usage: fetch_kbars.py SYMBOL START(YYYYMMDD) END(YYYYMMDD) MINUTE|D OUT.csv")
         return 2
-    symbol, start, end, minute, out = argv[1], argv[2], argv[3], int(argv[4]), argv[5]
+    symbol, start, end, period, out = argv[1], argv[2], argv[3], argv[4], argv[5]
+    daily = period.upper() in ("D", "DAY", "1D")   # D -> 日線 (sKLineType=4)
+    minute = 0 if daily else int(period)
 
     logging.basicConfig(level=logging.INFO, format="%(message)s")
     loaded = load_dotenv()
@@ -41,7 +43,8 @@ def main(argv) -> int:
         "name": "capital_skcom",
         "user_id": os.environ["BROKER_ID"],
         "password": os.environ["BROKER_PWD"],
-        "full_account": os.environ["FUT_ACCOUNT"],
+        # history is quote-only -> no futures account needed (that's for orders)
+        "full_account": os.environ.get("FUT_ACCOUNT", "PAPER"),
         "cert_id": os.environ.get("CERT_ID", os.environ["BROKER_ID"]),
         "skcom_dll_path": os.environ.get("SKCOM_DLL", r"C:\SKCOM\x64\SKCOM.dll"),
         "test_env": os.environ.get("SKCOM_TEST_ENV", "0") == "1",
@@ -50,7 +53,8 @@ def main(argv) -> int:
     # background_pump=False: pump COM messages inline on this thread so STA
     # events (OnConnection / OnNotifyKLineData) are actually delivered.
     broker.connect(quote_only=True, background_pump=False)
-    bars = broker.get_kbars(symbol, start, end, minute=minute, session=0)
+    bars = broker.get_kbars(symbol, start, end, minute=minute, session=0,
+                            kline_type=(4 if daily else 0))
     broker.disconnect()
 
     Path(out).parent.mkdir(parents=True, exist_ok=True)

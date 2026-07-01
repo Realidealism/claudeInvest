@@ -21,6 +21,9 @@ from position.state_machine import PositionStateMachine, PosState
 from risk.risk_manager import RiskManager
 from strategy.base import Strategy, StrategyContext
 from strategy.indicators import atr
+from strategy.measured_move import impulse_box, target_1to1
+from strategy.signals_masha import exhaustion
+from strategy.timing import is_timewave_bar, no_direction
 
 ForceCloseFn = Callable[[datetime], bool]
 OnEvent = Callable[[tuple], None]
@@ -68,6 +71,10 @@ class TradingEngine:
         self._entry_trade: Optional[Trade] = None
         self._entry_reason: str = ""          # signal name of the open position
         self._pending_open_reason: str = ""   # reason of the last submitted entry
+        self._pending_open_defense: Optional[float] = None  # entry stop line
+        self._pending_open_bar: Optional[tuple] = None      # (high, low) of entry bar
+        self._pending_open_target: Optional[float] = None   # 麻紗 1:1 滿足點
+        self._last_defense: Optional[float] = None  # last-notified ratchet level
         self.fills: List[Trade] = []
         self.round_trips: List[RoundTrip] = []
 
@@ -89,11 +96,29 @@ class TradingEngine:
                     self._submit(fc)
             return
         self._ctx.bars.append(bar)
+        atr_val = atr(self._ctx.bars, self._atr_period)
 
-        # 1) protective stop
-        stop_order = self._risk.check_stop(bar, self._pos, atr(self._ctx.bars, self._atr_period))
+        # 1) protective stop (Chandelier or 麻紗 exit module)
+        stop_order = self._risk.check_stop(bar, self._pos, atr_val)
         if stop_order is not None:
             self._submit(stop_order)
+            return
+        self._notify_defense_raise()
+
+        # 1b) 麻紗 力竭 exit (§2.4c): bar-pattern reversal against the position
+        cfg = self._risk.cfg
+        if (cfg.stop_mode == "masha" and cfg.masha_use_exhaustion
+                and self._pos.is_holding()):
+            side = "long" if self._pos.side is Side.BUY else "short"
+            if exhaustion(self._ctx.bars, side):
+                self._submit(self._risk.force_close(self._pos, bar.close))
+                return
+
+        # 1c) 麻紗 時間波 exit (§8.3): 時間點到 + 沒方向 → 有單先出
+        if (cfg.stop_mode == "masha" and cfg.masha_timewave_exit
+                and self._pos.is_holding() and is_timewave_bar(bar.ts)
+                and no_direction(self._ctx.bars, cfg.masha_timewave_doji_ratio)):
+            self._submit(self._risk.force_close(self._pos, bar.close))
             return
 
         # 2) session force-close: flatten, no new entries
@@ -111,7 +136,44 @@ class TradingEngine:
         if order is not None:
             if order.open_close is OpenClose.OPEN:
                 self._pending_open_reason = signal.reason
+                self._pending_open_bar = (bar.high, bar.low)   # 麻紗 entry-bar stop
+                self._pending_open_target = None
+                if cfg.stop_mode == "masha":
+                    # §4.7 defense = entry-bar low/high, capped by the 20-pt 出村
+                    # stop (§9.1) — whichever line is closer to entry fires first.
+                    cap = cfg.max_loss_points_per_trade
+                    if order.side is Side.BUY:
+                        self._pending_open_defense = (bar.low if cap is None
+                                                      else max(bar.low, order.price - cap))
+                    else:
+                        self._pending_open_defense = (bar.high if cap is None
+                                                      else min(bar.high, order.price + cap))
+                    if cfg.masha_use_target:
+                        box = impulse_box(self._ctx.bars)
+                        if box is not None:
+                            side = "long" if order.side is Side.BUY else "short"
+                            self._pending_open_target = target_1to1(side, order.price, box)
+                else:
+                    self._pending_open_defense = self._risk.initial_defense(
+                        order.side, order.price, atr_val)
             self._submit(order)
+
+    def _notify_defense_raise(self) -> None:
+        """Emit a ('defense', ...) event when the stop ratchets >= 1 pt favorably."""
+        if not self._on_event or not self._pos.is_holding():
+            return
+        cur = self._risk.current_defense()
+        if cur is None:
+            return
+        if self._last_defense is None:
+            self._last_defense = cur
+            return
+        is_long = self._pos.side is Side.BUY
+        raised = (cur - self._last_defense >= 1.0) if is_long else (self._last_defense - cur >= 1.0)
+        if raised:
+            self._on_event(("defense", self._pos.side, cur,
+                            self._pos.entry_price, self._pos.symbol))
+            self._last_defense = cur
 
     def flatten(self, price: float, ts: datetime) -> None:
         """Force-close any open position (e.g. at end of replay / session)."""
@@ -130,6 +192,10 @@ class TradingEngine:
         if self._pos.is_holding() and not closing:
             self._entry_trade = trade
             self._entry_reason = self._pending_open_reason
+            self._last_defense = self._pending_open_defense
+            if self._pending_open_bar is not None:
+                self._risk.set_entry_bar(*self._pending_open_bar)   # 麻紗 §4.7
+                self._risk.set_target(self._pending_open_target)    # 麻紗 §7.1
         elif closing:
             points = realized_points(entry_side, entry_price, trade.price)
             self.round_trips.append(RoundTrip(
@@ -145,6 +211,7 @@ class TradingEngine:
             ))
             self._risk.register_trade_pnl_points(points)
             self._entry_trade = None
+            self._last_defense = None
             if self._on_event:
                 self._on_event(("close", self.round_trips[-1]))
 
@@ -153,5 +220,8 @@ class TradingEngine:
             return  # rejected: duplicate / wrong state
         result = self._broker.place_order(order)
         if self._on_event:
-            reason = self._pending_open_reason if order.open_close is OpenClose.OPEN else ""
-            self._on_event(("order", order, result, reason))
+            if order.open_close is OpenClose.OPEN:
+                self._on_event(("order", order, result,
+                                self._pending_open_reason, self._pending_open_defense))
+            else:
+                self._on_event(("order", order, result, ""))
