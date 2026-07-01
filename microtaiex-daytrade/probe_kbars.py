@@ -29,8 +29,12 @@ def main(argv) -> int:
     load_dotenv()
 
     now = datetime.now()
-    today = now.strftime("%Y%m%d")
-    yesterday = (now - timedelta(days=1)).strftime("%Y%m%d")
+    # end = current trading day. The night session (15:00→next 05:00) is archived
+    # under the NEXT calendar day's trading day, so in the evening (>=14:00) the
+    # current trading day is tomorrow; after midnight it is already today.
+    cur_td = now.date() + timedelta(days=1) if now.hour >= 14 else now.date()
+    end_day = cur_td.strftime("%Y%m%d")
+    start_day = (now - timedelta(days=3)).strftime("%Y%m%d")
 
     broker = make_broker({
         "name": "capital_skcom",
@@ -42,10 +46,10 @@ def main(argv) -> int:
         "test_env": os.environ.get("SKCOM_TEST_ENV", "0") == "1",
     })
     broker.connect(quote_only=True, background_pump=False)
-    bars = broker.get_kbars(symbol, yesterday, today, minute=5, session=0, kline_type=0)
+    bars = broker.get_kbars(symbol, start_day, end_day, minute=5, session=0, kline_type=0)
     broker.disconnect()
 
-    print(f"\n=== probe get_kbars({symbol}, {yesterday}..{today}, minute=5) ===")
+    print(f"\n=== probe get_kbars({symbol}, {start_day}..{end_day}, minute=5) ===")
     print(f"wall-clock now : {now:%Y-%m-%d %H:%M:%S}")
     print(f"bars returned  : {len(bars)}")
     if not bars:

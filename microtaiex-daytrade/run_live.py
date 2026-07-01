@@ -252,13 +252,18 @@ def main(argv) -> int:
         def _do_warmup():
             from datetime import timedelta
             _now = datetime.now()
-            warm = broker.get_kbars(
-                SYMBOL, (_now - timedelta(days=3)).strftime("%Y%m%d"),
-                _now.strftime("%Y%m%d"), minute=5)
+            # end = current trading day. The night session (15:00→next 05:00) is
+            # archived under the NEXT calendar day's trading day, so in the evening
+            # (>=14:00) the current trading day is tomorrow; after midnight it is
+            # already today. A blind +1 would overshoot past midnight.
+            _cur_td = _now.date() + timedelta(days=1) if _now.hour >= 14 else _now.date()
+            _start = (_now - timedelta(days=3)).strftime("%Y%m%d")
+            _end = _cur_td.strftime("%Y%m%d")
+            warm = broker.get_kbars(SYMBOL, _start, _end, minute=5)
             warm = warm[-120:] if warm else []
             for eng, _, _ in engines:
                 eng.preload(warm)
-            print(f"[preload] seeded {len(warm)} bars"
+            print(f"[preload] {_start}..{_end} → seeded {len(warm)} bars"
                   + (f" up to {warm[-1].ts:%m-%d %H:%M}" if warm else ""))
 
         variant = "gated p+sf (daily-state)" if gated else "ungated all-6"
