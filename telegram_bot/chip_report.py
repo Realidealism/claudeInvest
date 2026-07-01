@@ -33,9 +33,25 @@ def _fmt_rows(rows: list[dict], max_n: int) -> list[str]:
     return lines
 
 
-def build_chip_report(json_path: Path | None = None, max_per_side: int = 10) -> str | None:
+def _full_rows(rows: list[dict], new_set: set[str]) -> list[str]:
+    return [
+        f"  {r['rank']} {'★' if r['ticker'] in new_set else ''}{r['ticker']} "
+        f"{r.get('name') or ''}".rstrip()
+        for r in rows
+    ]
+
+
+def build_chip_report(
+    json_path: Path | None = None, max_per_side: int = 10, full: bool = False
+) -> str | None:
     """Compose the weekly chip-pick report, or None if there is no data
-    (callers fall back to a plain 'updated' notice)."""
+    (callers fall back to a plain 'updated' notice).
+
+    full=False (default, Saturday push): concise -- this week's NEW entrants
+        only, capped at max_per_side.
+    full=True (/chip on demand): the complete current-week top lists, with new
+        entrants starred.
+    """
     path = Path(json_path) if json_path else _default_json_path()
     try:
         data = json.loads(path.read_text(encoding="utf-8"))
@@ -49,11 +65,31 @@ def build_chip_report(json_path: Path | None = None, max_per_side: int = 10) -> 
     header = f"[集保大戶選股週報] {latest}"
     cur = weeks[0]
 
+    # New entrants: in this week's list but not last week's (empty on week 1).
+    new_long_set: set[str] = set()
+    new_short_set: set[str] = set()
     if len(weeks) >= 2:
         prev_long = {r["ticker"] for r in weeks[1].get("long", [])}
         prev_short = {r["ticker"] for r in weeks[1].get("short", [])}
-        new_long = [r for r in cur.get("long", []) if r["ticker"] not in prev_long]
-        new_short = [r for r in cur.get("short", []) if r["ticker"] not in prev_short]
+        new_long_set = {r["ticker"] for r in cur.get("long", []) if r["ticker"] not in prev_long}
+        new_short_set = {r["ticker"] for r in cur.get("short", []) if r["ticker"] not in prev_short}
+
+    if full:
+        parts = [header]
+        for emoji, side_zh, rows, new_set in (
+            ("📈", "做多", cur.get("long", []), new_long_set),
+            ("📉", "做空", cur.get("short", []), new_short_set),
+        ):
+            if rows:
+                parts.append(f"{emoji} {side_zh} top{len(rows)}（★=本週新進）")
+                parts.extend(_full_rows(rows, new_set))
+        parts.append("（完整名單見前端 集保精選）")
+        return "\n".join(parts)
+
+    # Concise new-entrants mode (Saturday push / default).
+    if len(weeks) >= 2:
+        new_long = [r for r in cur.get("long", []) if r["ticker"] in new_long_set]
+        new_short = [r for r in cur.get("short", []) if r["ticker"] in new_short_set]
         long_title = f"📈 做多新進榜（{len(new_long)}）"
         short_title = f"📉 做空新進榜（{len(new_short)}）"
         if not new_long and not new_short:
@@ -82,7 +118,7 @@ def main(argv: list[str] | None = None) -> int:
         sys.stdout.reconfigure(encoding="utf-8")  # console may be cp950 on Windows
     except (AttributeError, ValueError):
         pass
-    report = build_chip_report()
+    report = build_chip_report(full="--full" in argv)
     if report is None:
         print("no chip_picks data", file=sys.stderr)
         return 1

@@ -11,6 +11,7 @@ from telegram import BotCommand
 from telegram.ext import Application, ApplicationBuilder
 
 from telegram_bot.config import require_token
+from telegram_bot.handlers import chip as chip_handlers
 from telegram_bot.handlers import help as help_handlers
 from telegram_bot.handlers import keyboard_router as keyboard_handlers
 from telegram_bot.handlers import market as market_handlers
@@ -61,6 +62,7 @@ async def _post_init(app: Application) -> None:
             BotCommand("market", "市場概況"),
             BotCommand("watch", "追蹤清單"),
             BotCommand("signals", "進出場建議"),
+            BotCommand("chip", "集保大戶選股週報"),
             BotCommand("help", "完整指令說明"),
             BotCommand("status", "服務狀態"),
         ]
@@ -77,6 +79,7 @@ def build_application() -> Application:
     market_handlers.register(app)
     signals_handlers.register(app)
     social_handlers.register(app)
+    chip_handlers.register(app)
     keyboard_handlers.register(app)  # MUST register after slash CommandHandlers
     volume_alert_watcher.register(app)
     defense_proximity_watcher.register(app)
