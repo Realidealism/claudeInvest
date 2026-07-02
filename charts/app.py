@@ -288,6 +288,11 @@ class _ConditionDataView:
     """Minimal StockData-shaped wrapper for SignalDef.compute callbacks
     and for run_side_backtest (engine treats dates opaquely, so chart's
     string dates flow through to DefenseEvent.date unchanged).
+
+    Cache slots (_*_cache) are written lazily by signal_backtest.factories
+    helpers (_eval_pct_arrays, _eval_overheat_pct_arrays, _eval_pre_pct_arrays,
+    _lohas computations). They must stay in __slots__ or every cond_* factory
+    silently fails with AttributeError when the cache write hits the slot wall.
     """
     __slots__ = ("stock_id", "stock_name",
                  "open", "high", "low", "close", "volume",
@@ -295,7 +300,11 @@ class _ConditionDataView:
                  "close_result", "volume_result", "candle_result",
                  "over_breakout", "market_state", "macd",
                  "wave_result", "sort_forming", "donchian",
-                 "money_result", "obv")
+                 "money_result", "obv",
+                 "_long_pct_cache", "_short_pct_cache",
+                 "_overheat_long_pct_cache", "_overheat_short_pct_cache",
+                 "_pre_long_pct_cache", "_pre_short_pct_cache",
+                 "_lohas_cache")
 
     def __init__(self, data: dict, ar: dict, stock_id: str = "", stock_name: str = ""):
         self.stock_id = stock_id
@@ -358,13 +367,16 @@ def _compute_defense_lines(
         "unified_short_entry": unified_short_factory,
     }
 
+    import sys
     lines: dict[str, dict] = {}
     entries: dict[str, list[str]] = {}
     exits: dict[str, list[tuple]] = {}
     for key, factory in factories.items():
         try:
             spec = factory(view)
-        except Exception:
+        except Exception as e:
+            print(f"[chart] {key} factory failed: {type(e).__name__}: {e}",
+                  file=sys.stderr)
             lines[key] = {"xs": [], "ys": []}
             entries[key] = []
             exits[key] = []
@@ -1267,9 +1279,24 @@ def update_chart(n_clicks, stock_id, start_date, end_date, obv_select,
         analysis_results["sort_forming"] = calc_sort_forming(
             analysis_results["close"], analysis_results["volume"].volume_status,
         )
+        # ScoreBoard expects DonchianMulti with .short/.medium/.long (entry
+        # lengths 21/55/233) — single-scope DonchianResult makes board.evaluate
+        # raise AttributeError on every bar, silently zeroing long_pct.
         from analysis.donchian import calculate_donchian
-        analysis_results["donchian"] = calculate_donchian(
-            data["high"], data["low"], data["close"],
+        from backtest.data import DonchianMulti
+        analysis_results["donchian"] = DonchianMulti(
+            short=calculate_donchian(
+                data["high"], data["low"], data["close"],
+                entry_length=21, exit_length=8,
+            ),
+            medium=calculate_donchian(
+                data["high"], data["low"], data["close"],
+                entry_length=55, exit_length=21,
+            ),
+            long=calculate_donchian(
+                data["high"], data["low"], data["close"],
+                entry_length=233, exit_length=144,
+            ),
         )
         from analysis.wave import calculate_wave
         analysis_results["wave_result"] = calculate_wave(
