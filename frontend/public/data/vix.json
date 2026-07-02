@@ -5,7 +5,7 @@
     "label": "美股 VIX",
     "source": "CBOE (via CNN F&G)",
     "latest": {
-      "close": 16.59,
+      "close": 16.23,
       "rating": "low"
     },
     "thresholds": {
@@ -14,10 +14,6 @@
       "p80": 19.79
     },
     "series": [
-      {
-        "date": "2025-06-30",
-        "close": 16.73
-      },
       {
         "date": "2025-07-01",
         "close": 16.83
@@ -1021,6 +1017,10 @@
       {
         "date": "2026-07-01",
         "close": 16.59
+      },
+      {
+        "date": "2026-07-02",
+        "close": 16.23
       }
     ]
   },

@@ -1,7 +1,7 @@
 {
   "latest_date": "2026-07-02",
   "latest": {
-    "score": 32.09,
+    "score": 30.34,
     "rating": "fear",
     "sub": {
       "momentum": {
@@ -21,16 +21,16 @@
         "rating": null
       },
       "safe_haven": {
-        "score": null,
-        "rating": null
+        "score": -1.2869,
+        "rating": "extreme fear"
       },
       "junk_bond": {
         "score": 1.3506,
         "rating": "extreme fear"
       },
       "volatility": {
-        "score": null,
-        "rating": null
+        "score": 16.23,
+        "rating": "extreme fear"
       }
     }
   },
@@ -1101,11 +1101,11 @@
     },
     {
       "date": "2026-07-01",
-      "score": 32.09
+      "score": 30.34
     },
     {
       "date": "2026-07-02",
-      "score": 32.09
+      "score": 30.34
     }
   ]
 }
