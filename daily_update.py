@@ -320,10 +320,57 @@ def _git_push_frontend(target_branch: str = "main"):
     print(f"  [WARN] frontend data push to {target_branch} failed after retries.")
 
 
+def update_chip_only(trade_date: date):
+    """Weekend-only path: refresh TDCC weekly shareholder distribution
+    (集保戶股權分散表), regenerate chip_picks.json, and push for Vercel.
+
+    The daily price/chip scrapers have no new data on a non-trading day, but
+    TDCC's weekly distribution — the sole input to chip_picks.json (集保大戶
+    選股) — publishes on Saturdays. scrape_date ignores trade_date and always
+    fetches the latest week, so the weekend date is just the trigger."""
+    try:
+        from scrapers.shareholder_distribution import scrape_date as scrape_shareholder
+        from export.generate import export_chip_picks
+
+        print("\n--- Shareholder distribution (集保) ---")
+        scrape_shareholder(trade_date)
+
+        # PyInstaller exe: __file__ is a temp dir; the repo is exe's parent.parent.
+        if getattr(sys, 'frozen', False):
+            repo = Path(sys.executable).parent.parent
+        else:
+            repo = Path(__file__).parent
+        out = repo / "frontend" / "public" / "data"
+        out.mkdir(parents=True, exist_ok=True)
+
+        print("\n--- Export chip_picks ---")
+        with get_cursor(commit=False) as cur:
+            export_chip_picks(cur, out)
+
+        print("\n--- Frontend push ---")
+        _git_push_frontend()
+        from telegram_bot.chip_report import build_chip_report
+        report = build_chip_report(out / "chip_picks.json")
+        msg = report or f"[週六集保更新] {trade_date} chip_picks 已更新"
+    except Exception:
+        traceback.print_exc()
+        msg = f"[週六集保更新] {trade_date} 失敗，見 log"
+
+    try:
+        send_sync(msg)
+    except Exception:
+        traceback.print_exc()
+
+
 def update_date(trade_date: date):
     """Run all scrapers for a single trading date."""
     if trade_date.weekday() >= 5:
-        print(f"[SKIP] {trade_date} is a weekend, no market data.")
+        # Market closed. Skip the daily pipeline but still refresh the one
+        # dataset that updates on a non-trading day: TDCC weekly 集保 →
+        # chip_picks.json. Saturday is when TDCC publishes; Sunday re-runs are
+        # a no-op (already in DB, no JSON diff, nothing pushed).
+        print(f"[{trade_date}] weekend — chip-only update (集保 → chip_picks.json).")
+        update_chip_only(trade_date)
         return
 
     print(f"\n{'='*60}")
@@ -748,12 +795,20 @@ if __name__ == "__main__":
         print(f"\n[ERROR] {e}")
         traceback.print_exc()
 
-    # Wait for Enter only when interactive. Catch EOFError so non-interactive
-    # runs (piped stdin, background tasks, command chaining) exit cleanly
-    # rather than propagating a non-zero exit that breaks shell `&&` chains.
-    # Note: sys.stdin.isatty() is unreliable for Windows subprocesses, so
-    # we rely on EOFError detection instead.
-    try:
-        input("\nPress Enter to exit...")
-    except EOFError:
-        pass
+    # Pause for a double-click user to read the output, but NEVER block
+    # forever. Under Task Scheduler the allocated console's stdin neither
+    # raises EOFError nor receives input, so a bare input() hangs the process
+    # indefinitely — that left daily_update.exe wedged for days, one zombie
+    # per nightly run, locking dist\daily_update.exe against rebuilds. Run the
+    # prompt in a daemon thread and time it out so the process always exits.
+    import threading
+
+    def _wait_enter():
+        try:
+            input("\nPress Enter to exit...")
+        except (EOFError, OSError):
+            pass
+
+    _t = threading.Thread(target=_wait_enter, daemon=True)
+    _t.start()
+    _t.join(timeout=30)

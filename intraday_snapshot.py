@@ -26,7 +26,9 @@ Loop schedule
 Git push and Telegram notifications are NOT performed here — they are
 driven by intraday_publish.bat on its own Task Scheduler cadence so the
 back-to-back snapshot loop doesn't pollute git history with 30+ commits
-per session.
+per session. The one exception is the daily post-close final pass: it
+pushes once, immediately after it runs, so the complete-close data
+reaches Vercel at ~13:45 without waiting for the next publish tick.
 
 Usage:
   intraday_snapshot.exe              # daemon: loop across trading days
@@ -90,6 +92,27 @@ def _run_pass(*, final_pass: bool = False) -> int:
     export_intraday()
     print()
     return summary["stocks_evaluated"]
+
+
+def _push_final() -> None:
+    """Push the just-written complete-close JSON to Vercel immediately after
+    the daily final pass, instead of waiting for the next intraday_publish
+    tick. Non-fatal: a failure only logs + alerts and lets the regular
+    publisher cadence retry the same files."""
+    from intraday_git_push import push as push_intraday
+    try:
+        rc = push_intraday()
+        if rc != 0:
+            raise RuntimeError(f"push returned {rc}")
+    except Exception:
+        print("[LOOP] [WARN] final-pass push failed (non-fatal):")
+        traceback.print_exc()
+        try:
+            import subprocess
+            subprocess.run([sys.executable, "-m", "telegram_bot.cron_alert",
+                            "git_push_failed"], check=False)
+        except Exception:
+            pass
 
 
 def _run_loop(stop_event: threading.Event) -> None:
@@ -164,6 +187,9 @@ def _run_loop(stop_event: threading.Event) -> None:
                 final_done_for = today
                 tag = " (degraded)" if degraded else ""
                 print(f"[LOOP] final pass for {today} complete{tag}")
+                # Push the complete-close data now so Vercel reflects it at
+                # ~13:45 rather than on the next publish tick.
+                _push_final()
             except Exception:
                 print("[LOOP] [ERROR] final pass failed:")
                 traceback.print_exc()
