@@ -21,3 +21,10 @@ ESUN_CONFIG_INI = os.getenv("ESUN_CONFIG_INI", "")
 # place orders. Used by intraday/sinopac_loader.py.
 SINOPAC_API_KEY = os.getenv("SINOPAC_API_KEY", "")
 SINOPAC_SECRET_KEY = os.getenv("SINOPAC_SECRET_KEY", "")
+
+# Telegram bot — remote notification + control. Token from @BotFather,
+# chat_ids is a comma-separated whitelist of allowed Telegram user IDs.
+TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "")
+TELEGRAM_ALLOWED_CHAT_IDS = tuple(
+    int(x) for x in os.getenv("TELEGRAM_ALLOWED_CHAT_IDS", "").split(",") if x.strip()
+)

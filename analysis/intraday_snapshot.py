@@ -534,6 +534,12 @@ def run(*, final_pass: bool = False) -> dict:
           f"medium: {breadth_counts['medium_up']}↑/{breadth_counts['medium_down']}↓  "
           f"long: {breadth_counts['long_up']}↑/{breadth_counts['long_down']}↓")
 
+    # 大台期貨統一狀態 (forming intraday bar from cnyes TXF). Non-fatal.
+    from analysis.tx_status import compute_and_save_tx_status
+    tx = compute_and_save_tx_status(intraday=True, volume_scale=scale, now=now)
+    if tx is not None:
+        print(f"  TX futures unified state: {tx['state']} @ {tx['current_close']:.0f}")
+
     print(f"  Total wall time: {time.time() - t0:.1f}s")
     return {
         "snapshot_date": snapshot_date,

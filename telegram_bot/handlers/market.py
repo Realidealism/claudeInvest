@@ -116,6 +116,93 @@ def _build_chips(base_date: str) -> list[str] | None:
     ]
 
 
+_TX_LABEL = {"long": "做多中", "short": "做空中", "flat": "空手"}
+# entry_tier code → 中文 (mirror unified factory tier names).
+_TX_TIER = {
+    "pick": "抄底", "buy": "波段多", "sell_flee": "空翻多",
+    "touch": "摸頭", "sell": "波段空", "buy_flee": "多翻空",
+}
+
+
+def _defense_emoji(pos: dict | None) -> str:
+    """Defense-proximity bands, mirroring the watchlist one-line lead emoji
+    (telegram_bot.handlers.score): ⚪ no position, 🟢 >5% from defense,
+    🟡 ≤5%, 🟠 ≤3%, 🔴 ≤1%, ❌ already exited."""
+    if pos is None:
+        return "⚪"
+    if pos.get("is_exited"):
+        return "❌"
+    defense = pos.get("defense_price")
+    current = pos.get("current_close")
+    if defense is None or current is None or float(defense) == 0:
+        return "🟢"
+    dist = abs(float(current) - float(defense)) / float(defense)
+    if dist <= 0.01:
+        return "🔴"
+    if dist <= 0.03:
+        return "🟠"
+    if dist <= 0.05:
+        return "🟡"
+    return "🟢"
+
+
+def _build_futures(base_date: str) -> list[str] | None:
+    """大台期貨統一狀態 from futures_tx.json (做多/做空/空手 + 進場/防守)."""
+    d = _load("futures_tx.json")
+    if not d:
+        return None
+    try:
+        state = d["state"]
+        pos = d.get("position")
+        label = _TX_LABEL.get(state, state)
+        emoji = _defense_emoji(pos if state in ("long", "short") else None)
+        td = d.get("trade_date", "")
+        tag = "盤中" if d.get("is_intraday") else "收盤"
+        close = d.get("current_close")
+        suf = _date_suffix(td, base_date)
+        head = f"📈 大台期貨訊號（{tag}{suf}）".rstrip()
+        if close is not None:
+            head += f"　{close:,.0f}"
+        lines = [head]
+
+        if state in ("long", "short") and pos:
+            tier = _TX_TIER.get(pos.get("entry_tier"), pos.get("entry_tier") or "")
+            ep = pos.get("entry_price")
+            pnl = pos.get("pnl_pct")
+            bars = pos.get("bars_held")
+            detail = f"  統一狀態：{label} {emoji}"
+            seg = []
+            if tier:
+                seg.append(f"{tier}進場")
+            if ep is not None:
+                seg.append(f"@{ep:,.0f}")
+            if pnl is not None:
+                seg.append(f"{pnl:+.1f}%")
+            if bars is not None:
+                seg.append(f"持有{bars}日")
+            if seg:
+                detail += "（" + "・".join(seg) + "）"
+            lines.append(detail)
+            dp = pos.get("defense_price")
+            if dp is not None:
+                move = ""
+                if pos.get("defense_moved"):
+                    arrow = "⬆️上移" if pos.get("side") == "long" else "⬇️下移"
+                    prev = pos.get("defense_prev")
+                    delta = f" +{abs(dp - prev):,.0f}" if prev is not None else ""
+                    move = f"　{arrow}{delta}"
+                lines.append(f"  防守價  {dp:,.0f}{move}")
+        else:
+            note = ""
+            if pos and pos.get("is_exited"):
+                emoji = _defense_emoji(pos)  # ❌ 今日出場
+                note = "（今日出場）"
+            lines.append(f"  統一狀態：{label} {emoji}{note}")
+        return lines
+    except (KeyError, TypeError):
+        return None
+
+
 def _build_risk(base_date: str) -> list[str] | None:
     """美股/總經風險情緒：恐懼貪婪 + VIX + 殖利率曲線。"""
     lines: list[str] = []
@@ -216,6 +303,11 @@ def build_market_message() -> str:
             turn = "　⬆️" if trend > prev_t else ("　⬇️" if trend < prev_t else "")
         width_lines.append(f"  {name}  {emoji}　{up_c} {neu_c} {dn_c}{turn}")
     parts.append("\n".join(width_lines))
+
+    # 大台期貨統一狀態
+    futures = _build_futures(base_date)
+    if futures:
+        parts.append("\n".join(futures))
 
     # 台股籌碼 / 風險情緒
     chips = _build_chips(base_date)

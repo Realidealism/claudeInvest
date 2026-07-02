@@ -241,9 +241,26 @@ def _build_section_ftse_taiwan(row: dict | None) -> list[str] | None:
     def _num(v) -> str:
         return f"{float(v):,.2f}" if v is not None else "—"
 
+    # Staleness: the 富台 quote is meant to carry the overnight session, which
+    # opens 15:00 TPE on the TW cash-close day. A captured_at before that means
+    # cnyes froze the quote at the day session (or earlier) and the night data
+    # never arrived — flag it so the value isn't misread as a live estimate.
+    stale = False
+    captured = row.get("captured_at")
+    ref_date = row.get("taiex_ref_date")
+    if captured is not None and ref_date is not None:
+        try:
+            night_start = datetime(
+                ref_date.year, ref_date.month, ref_date.day, 15, 0, tzinfo=_TPE_TZ
+            )
+            stale = captured.astimezone(_TPE_TZ) < night_start
+        except Exception:
+            pass
+
+    warn = " ⚠️ 富台夜盤停更" if stale else ""
     lines = [
         f"  富台 → 理論 TAIEX：{_num(row.get('theoretical_taiex'))}"
-        f"（{_pct(row.get('pct_change'))}）"
+        f"（{_pct(row.get('pct_change'))}）{warn}"
     ]
     if row.get("txf_now") is not None:
         lines.append(
