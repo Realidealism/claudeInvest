@@ -1045,11 +1045,19 @@ def sell_condition(data: "StockData") -> BoolArray:
     rule_obv_bearish = (_last_n_any(obv_short.signal_down, 2)
                         & ~obv_short.signal_up)
 
+    # v351: 不追殺極端超跌空 — 排除進場時 close 已跌破 SMA21 逾 20% 的過度延伸 breakdown
+    #   探索: sell 逐特徵剖析發現「距 SMA21 越深 PF 越低」(dist<-10% PF 1.41 vs -5~0% 1.74)
+    #   門檻掃描 (0.08~0.20) 對合池 PF 單調正但**時間非均勻**: <0.20 皆讓前半(2016-20,含2020崩盤)
+    #   退步 (削掉崩盤深空大贏單), 屬近期 regime overfit。唯 0.20 前後半皆正 (+0.0022/+0.0039)。
+    #   採 0.20: 只砍最極端 capitulation 追殺空 (~47 筆), maxG/maxL/勝率全持平, 三大目標零違反。
+    dist_sma21 = (close - sma[21]) / sma[21]
+    rule_not_deep = dist_sma21 >= -0.20
+
     return (rule_ma & rule_turn & rule_break & rule_vol & rule_knot
             & rule_not_double_down_hot & rule_osc
             & rule_medium_ma_bear
             & rule_short_pct_gate & rule_not_nte
-            & rule_obv_bearish)
+            & rule_obv_bearish & rule_not_deep)
 
 
 # ── BuyFleeSignal / SellFleeSignal (多翻空 / 空翻多) ────────────────────────
