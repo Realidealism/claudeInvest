@@ -23,6 +23,15 @@ import sys
 import threading
 import traceback
 
+# Line-buffer stdout/stderr so NSSM-redirected log files get every print
+# immediately instead of waiting for a 4 KB block to fill (which never
+# happens in the sleep loop). Must run before any print().
+try:
+    sys.stdout.reconfigure(line_buffering=True)
+    sys.stderr.reconfigure(line_buffering=True)
+except (AttributeError, ValueError):
+    pass
+
 from db.connection import init_db
 from intraday import sweeper
 from intraday.sdk_loader import load_sdk

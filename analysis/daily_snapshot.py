@@ -230,20 +230,69 @@ def _eval_stock(args: tuple[str, date, date]) -> dict | None:
 
 # ── Main side ──────────────────────────────────────────────────────────────
 
+# Per-market coverage floor vs the previous trading day. Below this ratio
+# we assume an upstream scraper dropped that whole market and refuse to
+# produce a snapshot — partial snapshots get shipped to Vercel and look
+# correct at a glance (see 2026-06-03 incident: TWSE prices scraper failed,
+# liquidity rows for TWSE went 0, snapshot ran on the surviving 973 / 2220
+# stocks, positions.json was missing 群創 and the rest of TWSE).
+LIQUIDITY_COVERAGE_MIN = 0.90
+
+
 def _check_liquidity_fresh(snapshot_date: date) -> None:
-    """Precondition: stock_liquidity_daily must have rows for snapshot_date.
-    Without it the JOIN below silently returns 0 rows and the snapshot
-    writes nothing."""
+    """Precondition: stock_liquidity_daily must have rows for snapshot_date,
+    AND each of TWSE / TPEx must be >= LIQUIDITY_COVERAGE_MIN of the prior
+    trading day's count. The bare ``COUNT > 0`` check is too weak — one
+    market can go to zero while the other still satisfies it."""
     with get_cursor(commit=False) as cur:
         cur.execute(
             "SELECT COUNT(*) AS n FROM tw.stock_liquidity_daily WHERE trade_date = %s",
             (snapshot_date,),
         )
-        n = cur.fetchone()["n"]
-    if n == 0:
+        n_today = cur.fetchone()["n"]
+        if n_today == 0:
+            raise RuntimeError(
+                f"tw.stock_liquidity_daily empty for {snapshot_date}. "
+                f"Run analysis.daily_liquidity.compute_daily_liquidity({snapshot_date}) first."
+            )
+
+        cur.execute("""
+            SELECT MAX(trade_date) AS d
+            FROM tw.stock_liquidity_daily
+            WHERE trade_date < %s
+        """, (snapshot_date,))
+        prev_date = cur.fetchone()["d"]
+        if prev_date is None:
+            return
+
+        cur.execute("""
+            SELECT s.market, l.trade_date, COUNT(*) AS n
+            FROM tw.stock_liquidity_daily l
+            JOIN tw.stocks s ON s.stock_id = l.stock_id
+            WHERE l.trade_date IN (%s, %s)
+              AND s.market IN ('TWSE', 'TPEx')
+            GROUP BY s.market, l.trade_date
+        """, (prev_date, snapshot_date))
+        counts: dict[tuple[str, date], int] = {
+            (r["market"], r["trade_date"]): r["n"] for r in cur.fetchall()
+        }
+
+    short: list[str] = []
+    for market in ("TWSE", "TPEx"):
+        prev_n = counts.get((market, prev_date), 0)
+        today_n = counts.get((market, snapshot_date), 0)
+        if prev_n == 0:
+            continue
+        if today_n < prev_n * LIQUIDITY_COVERAGE_MIN:
+            ratio = today_n / prev_n if prev_n else 0.0
+            short.append(f"{market} {today_n}/{prev_n} ({ratio:.0%})")
+    if short:
         raise RuntimeError(
-            f"tw.stock_liquidity_daily empty for {snapshot_date}. "
-            f"Run analysis.daily_liquidity.compute_daily_liquidity({snapshot_date}) first."
+            f"tw.stock_liquidity_daily coverage shortfall on {snapshot_date} "
+            f"vs {prev_date}: {', '.join(short)} (min {LIQUIDITY_COVERAGE_MIN:.0%}). "
+            f"Likely an upstream price scraper dropped this market. "
+            f"Re-run scrapers.twse / scrapers.tpex for {snapshot_date}, then "
+            f"compute_daily_liquidity({snapshot_date})."
         )
 
 
@@ -455,6 +504,12 @@ def run(snapshot_date: date) -> dict:
     pos_counts = _save_open_positions(snapshot_date, results)
     print(f"  Open positions long: {pos_counts['long']} / short: {pos_counts['short']}")
     print(f"  Exited today    long: {pos_counts['exited_long']} / short: {pos_counts['exited_short']}")
+
+    # 大台期貨統一狀態 (EOD, pure DB history). Non-fatal.
+    from analysis.tx_status import compute_and_save_tx_status
+    tx = compute_and_save_tx_status(intraday=False)
+    if tx is not None:
+        print(f"  TX futures unified state: {tx['state']} @ {tx['current_close']:.0f}")
 
     print(f"  Total wall time: {time.time() - t0:.1f}s")
     return {

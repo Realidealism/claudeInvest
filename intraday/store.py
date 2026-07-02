@@ -291,8 +291,11 @@ def upsert_stock_halts(codes: list[str], trade_date) -> int:
 def has_close_bucket(trade_date) -> bool:
     """Return True when the 13:30 bucket is already written for trade_date.
 
-    The sweeper uses this to end the day's session early once the closing
-    bucket lands (typically a few seconds past 13:30 via delayed snapshot).
+    Retained for h(t) curve-completeness checks (the EMA needs every
+    bucket from 09:05 to 13:30). The snapshot daemon's "is sweep done
+    post-close?" gate uses post_close_bucket_count instead — bucket
+    '13:30' lands one sweep cycle BEFORE the closing-auction match, so
+    waiting on it alone misses the auction.
     """
     with get_cursor(commit=False) as cur:
         cur.execute(
@@ -305,3 +308,65 @@ def has_close_bucket(trade_date) -> bool:
             (trade_date,),
         )
         return cur.fetchone() is not None
+
+
+def post_close_bucket_count(trade_date) -> int:
+    """Return how many > '13:30' buckets exist for trade_date.
+
+    The snapshot daemon delays its final pass until this count crosses
+    a threshold so each post-close sweep gives E.Sun more time to
+    propagate the closing-auction match for stocks that settle slowly
+    (thin/halted/process-stock special cases).
+    """
+    with get_cursor(commit=False) as cur:
+        cur.execute(
+            """
+            SELECT COUNT(*) AS n
+            FROM tw.intraday_value_profile
+            WHERE trade_date = %s AND time_bucket > '13:30'
+            """,
+            (trade_date,),
+        )
+        row = cur.fetchone()
+    if row is None:
+        return 0
+    n = row["n"] if isinstance(row, dict) else row[0]
+    return int(n or 0)
+
+
+def check_day_completeness(trade_date) -> tuple[bool, list[str]]:
+    """Verify trade_date has every expected 5-min bucket from 09:05 to 13:30.
+
+    Returns (is_complete, missing_buckets). Extra buckets (e.g. 13:35 from a
+    post-close sweep) are intentionally ignored — they don't break the h(t)
+    curve since _all_buckets() bounds the range used by the EMA.
+    """
+    from intraday.estimate import _all_buckets
+    expected = set(_all_buckets())
+    with get_cursor(commit=False) as cur:
+        cur.execute(
+            """
+            SELECT time_bucket
+            FROM tw.intraday_value_profile
+            WHERE trade_date = %s
+            """,
+            (trade_date,),
+        )
+        have = {r["time_bucket"] if isinstance(r, dict) else r[0] for r in cur.fetchall()}
+    missing = sorted(expected - have)
+    return (not missing, missing)
+
+
+def purge_day_profile(trade_date) -> int:
+    """Delete every tw.intraday_value_profile row for trade_date.
+
+    Called when end-of-day integrity check finds missing buckets — partial
+    days poison the h(t) EMA more than dropping them does. Returns deleted
+    row count.
+    """
+    with get_cursor() as cur:
+        cur.execute(
+            "DELETE FROM tw.intraday_value_profile WHERE trade_date = %s",
+            (trade_date,),
+        )
+        return cur.rowcount

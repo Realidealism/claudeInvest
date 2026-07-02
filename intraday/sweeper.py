@@ -13,19 +13,19 @@ Runs in its own thread. Graceful shutdown via a threading.Event.
 
 import threading
 import traceback
-from datetime import datetime, time as dtime, timedelta, timezone
+from datetime import datetime
 
-from intraday import esun_rest, sinopac_snapshot, store
+from intraday import esun_rest, session as _session, sinopac_snapshot, store
 
 
-_TPE_TZ = timezone(timedelta(hours=8))
+_TPE_TZ = _session.TPE_TZ
 
 # TWSE regular session runs 09:00–13:30 local. Keep sweeping until 13:50 as a
 # safety cutoff in case the closing-auction snapshot is slow to land; the main
 # loop exits early as soon as the 13:30 bucket is confirmed in the DB.
-_SESSION_OPEN       = dtime(hour=9,  minute=0)
-_SESSION_CLOSE      = dtime(hour=13, minute=50)
-_CLOSE_BUCKET_TIME  = dtime(hour=13, minute=30)
+_SESSION_OPEN       = _session.SESSION_OPEN
+_SESSION_CLOSE      = _session.SWEEPER_CUTOFF
+_CLOSE_BUCKET_TIME  = _session.SESSION_CLOSE
 
 _MAX_CONSECUTIVE_FAILURES = 3
 
@@ -52,14 +52,11 @@ def _try_relogin(sdk, reason: str) -> bool:
 
 
 def _now_tpe() -> datetime:
-    return datetime.now(_TPE_TZ)
+    return _session.now_tpe()
 
 
 def _in_session(now: datetime) -> bool:
-    if now.weekday() >= 5:
-        return False
-    t = now.time()
-    return _SESSION_OPEN <= t <= _SESSION_CLOSE
+    return _session.in_session(now)
 
 
 def _time_bucket(now: datetime) -> str:
@@ -81,18 +78,23 @@ def _record_value_profile(records: list[dict], trade_date, now: datetime):
     store.upsert_value_profile(trade_date, bucket, total)
 
 
-def _seconds_until_next_open(now: datetime) -> float:
-    today_open = now.replace(
-        hour=_SESSION_OPEN.hour, minute=_SESSION_OPEN.minute, second=0, microsecond=0
-    )
-    if now < today_open and now.weekday() < 5:
-        return (today_open - now).total_seconds()
+def _finalize_day_or_purge(trade_date):
+    """End-of-day integrity check: keep the day only if every 5-min bucket
+    from 09:05 to 13:30 is present. Partial days get purged so the h(t)
+    curve EMA stays uncontaminated.
+    """
+    is_complete, missing = store.check_day_completeness(trade_date)
+    if is_complete:
+        print(f"[SWEEP] {trade_date} bucket coverage complete")
+        return
+    sample = ", ".join(missing[:5]) + ("..." if len(missing) > 5 else "")
+    deleted = store.purge_day_profile(trade_date)
+    print(f"[SWEEP] [WARN] {trade_date} incomplete — missing {len(missing)} buckets "
+          f"({sample}); purged {deleted} rows from intraday_value_profile")
 
-    d = now.date() + timedelta(days=1)
-    while d.weekday() >= 5:
-        d += timedelta(days=1)
-    next_open = datetime.combine(d, _SESSION_OPEN, tzinfo=_TPE_TZ)
-    return (next_open - now).total_seconds()
+
+def _seconds_until_next_open(now: datetime) -> float:
+    return _session.seconds_until_next_open(now)
 
 
 def run(stop_event: threading.Event, sdk, interval_sec: int = 20, force: bool = False,
@@ -139,6 +141,7 @@ def run(stop_event: threading.Event, sdk, interval_sec: int = 20, force: bool = 
                     and now.time() > _SESSION_CLOSE):
                 if not store.has_close_bucket(today):
                     print(f"[SWEEP] [WARN] 13:30 bucket not received by 13:50 for {today}")
+                _finalize_day_or_purge(today)
                 session_done_date = today
 
             sleep_for = min(_seconds_until_next_open(now), 300.0)
@@ -208,15 +211,17 @@ def run(stop_event: threading.Event, sdk, interval_sec: int = 20, force: bool = 
                     using_fallback = False
                     consecutive_failures = 0
                     print("[SWEEP] E.Sun recovered, switching back to primary")
-                except Exception:
-                    pass  # Stay on fallback
+                except Exception as e:
+                    print(f"[SWEEP] E.Sun still failing, staying on fallback: {e}")
 
         # Early session end: once the 13:30 bucket is written, today's work
         # for the h(t) curve is complete — mark done and let the next loop
         # tick fall through to the sleep-until-next-open branch.
-        if now.time() >= _CLOSE_BUCKET_TIME and store.has_close_bucket(today):
-            print(f"[SWEEP] 13:30 bucket confirmed for {today} — ending today's session")
-            session_done_date = today
+        # Keep sweeping until the 13:50 cutoff (handled in the outside-session
+        # branch above). The early-end optimization was removed so that the
+        # snapshot daemon can wait for >=3 post-close buckets (13:35/13:40/13:45)
+        # before its final pass — this gives E.Sun time to propagate the
+        # closing-auction match for slowly-settling stocks.
 
         if stop_event.wait(interval_sec):
             break

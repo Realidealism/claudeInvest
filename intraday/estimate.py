@@ -13,7 +13,7 @@ Usage:
 
 from __future__ import annotations
 
-from datetime import datetime, time as dtime, timedelta, timezone
+from datetime import date as _date, datetime, time as dtime, timedelta, timezone
 from functools import lru_cache
 
 from db.connection import get_cursor
@@ -25,6 +25,20 @@ _BUCKET_MINUTES = 5
 # Session boundaries
 _SESSION_OPEN = dtime(hour=9, minute=0)
 _SESSION_CLOSE = dtime(hour=13, minute=30)
+
+# Snapshot loop waits until the sweep has accumulated at least this many
+# 5-minute buckets in today's intraday_value_profile before attempting the
+# first pass. With only 1–2 buckets the h(t) projection is dominated by
+# noise and produces wildly distorted full-day estimates.
+_MIN_BUCKETS_FOR_SNAPSHOT = 3
+
+
+class HCurveNotReadyError(RuntimeError):
+    """h(t) is unusable right now — caller should sleep + retry, not crash.
+
+    Distinct from a hard configuration error so the snapshot daemon can
+    keep looping during the first 15 minutes of the session while the
+    sweeper accumulates value-profile buckets."""
 
 
 def _time_bucket(t: dtime) -> str:
@@ -51,6 +65,9 @@ def _all_buckets() -> list[str]:
 
 
 _EMA_PERIODS = (21, 34, 55)
+# Periods that should clamp to available history length when data is short,
+# so EMA(34/55) don't stay seed-biased while we accumulate trading days.
+_EMA_CLAMP_PERIODS = frozenset({34, 55})
 
 
 def _ema(values: list[float], period: int) -> float:
@@ -62,6 +79,12 @@ def _ema(values: list[float], period: int) -> float:
     for v in values[1:]:
         ema = v * k + ema * (1 - k)
     return ema
+
+
+def _effective_period(period: int, n: int) -> int:
+    if period in _EMA_CLAMP_PERIODS and n < period:
+        return max(n, 1)
+    return period
 
 
 def _fetch_bucket_data(lookback_days: int) -> tuple[list, dict[str, dict[str, int]]]:
@@ -119,6 +142,41 @@ def _fetch_bucket_data(lookback_days: int) -> tuple[list, dict[str, dict[str, in
     return sorted(by_date.keys()), by_date
 
 
+def today_bucket_count(trade_date: _date) -> int:
+    """Return how many 5-minute buckets have been written for trade_date.
+
+    The snapshot daemon uses this to decide whether the sweeper has
+    accumulated enough warm-up data (>= _MIN_BUCKETS_FOR_SNAPSHOT) for
+    today's h(t) projection to be stable enough to evaluate against.
+    """
+    with get_cursor(commit=False) as cur:
+        cur.execute(
+            """
+            SELECT COUNT(*) AS n
+            FROM tw.intraday_value_profile
+            WHERE trade_date = %s
+            """,
+            (trade_date,),
+        )
+        row = cur.fetchone()
+    if row is None:
+        return 0
+    n = row["n"] if isinstance(row, dict) else row[0]
+    return int(n or 0)
+
+
+def require_today_buckets(trade_date: _date) -> int:
+    """Raise HCurveNotReadyError if the sweeper hasn't accumulated enough
+    today buckets yet. Returns the bucket count when OK."""
+    n = today_bucket_count(trade_date)
+    if n < _MIN_BUCKETS_FOR_SNAPSHOT:
+        raise HCurveNotReadyError(
+            f"sweeper has only {n} bucket(s) for {trade_date}; "
+            f"need >= {_MIN_BUCKETS_FOR_SNAPSHOT} before snapshot can run."
+        )
+    return n
+
+
 def get_h_curve(lookback_days: int = 80) -> dict[str, float]:
     """Build the h(t) curve from recent trading days.
 
@@ -154,7 +212,8 @@ def get_h_curve(lookback_days: int = 80) -> dict[str, float]:
     for b in all_b:
         fracs = bucket_fractions[b]
         if fracs:
-            ema_avg = sum(_ema(fracs, p) for p in _EMA_PERIODS) / len(_EMA_PERIODS)
+            n = len(fracs)
+            ema_avg = sum(_ema(fracs, _effective_period(p, n)) for p in _EMA_PERIODS) / len(_EMA_PERIODS)
             h_curve[b] = ema_avg
 
     # Ensure the last bucket is exactly 1.0
@@ -189,7 +248,8 @@ def get_baseline_curve(lookback_days: int = 80) -> dict[str, float]:
     for b in all_b:
         vals = bucket_values[b]
         if vals:
-            ema_avg = sum(_ema(vals, p) for p in _EMA_PERIODS) / len(_EMA_PERIODS)
+            n = len(vals)
+            ema_avg = sum(_ema(vals, _effective_period(p, n)) for p in _EMA_PERIODS) / len(_EMA_PERIODS)
             baseline[b] = ema_avg
 
     return baseline
