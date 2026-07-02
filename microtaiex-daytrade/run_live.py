@@ -228,7 +228,7 @@ def main(argv) -> int:
                 MashaStrategy(timeframe=STRAT_TF, trend_gate=None),
                 RiskConfig(max_lots=1, stop_mode="masha",
                            max_loss_points_per_trade=20.0, max_daily_loss_points=60.0,
-                           daily_profit_target_points=50.0),
+                           daily_profit_target_points=50.0, masha_loss_atr_mult=0.5),
                 "reports/paper_trades_masha.csv", "麻紗", "麻紗")
 
         def on_bar(bar):

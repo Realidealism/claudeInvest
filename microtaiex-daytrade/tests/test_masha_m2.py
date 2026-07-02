@@ -53,6 +53,24 @@ def test_masha_trailing_stop():
     assert rm.check_stop(_b(105, 105, 101, 102), pos, atr=None) is not None
 
 
+def test_masha_dynamic_atr_cap():
+    # cap = clamp(0.5*ATR, 12, 40); ATR 60 -> 30
+    rm = RiskManager(RiskConfig(stop_mode="masha", masha_loss_atr_mult=0.5,
+                                masha_loss_atr_lo=12.0, masha_loss_atr_hi=40.0,
+                                max_loss_points_per_trade=20.0))
+    pos = _holding(Side.BUY, 100.0)
+    assert rm.check_stop(_b(76, 78, 74, 75), pos, atr=60.0) is None      # loss 25 < 30
+    assert rm.check_stop(_b(72, 73, 68, 69), pos, atr=60.0) is not None  # loss 31 >= 30
+
+
+def test_masha_dynamic_cap_warmup_fallback():
+    # ATR None (warming) -> fixed max_loss_points_per_trade (20)
+    rm = RiskManager(RiskConfig(stop_mode="masha", masha_loss_atr_mult=0.5,
+                                max_loss_points_per_trade=20.0))
+    pos = _holding(Side.BUY, 100.0)
+    assert rm.check_stop(_b(80, 81, 78, 79), pos, atr=None) is not None  # loss 21 >= 20
+
+
 def test_masha_target_exit():
     rm = RiskManager(RiskConfig(stop_mode="masha", masha_use_target=True))
     pos = _holding(Side.BUY, 100.0)

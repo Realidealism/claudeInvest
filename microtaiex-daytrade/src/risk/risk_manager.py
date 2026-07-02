@@ -56,6 +56,14 @@ class RiskConfig:
     # (doji-like), 先出 (exit) — claims to cut washes ~50%. Engine-checked, opt-in.
     masha_timewave_exit: bool = False
     masha_timewave_doji_ratio: float = 0.3
+    # 麻紗 dynamic per-trade stop (§9.1 evolution): when set, the per-trade cap
+    # is clamp(mult*ATR, lo, hi) instead of the fixed max_loss_points_per_trade —
+    # it tightens when calm, widens when volatile. 0.5xATR(21) beats the fixed 20
+    # on the track backtest (PF 2.61 vs 2.31, all segments). None = fixed cap.
+    # Falls back to the fixed cap while ATR is still warming up.
+    masha_loss_atr_mult: Optional[float] = None
+    masha_loss_atr_lo: float = 12.0
+    masha_loss_atr_hi: float = 40.0
 
 
 class RiskManager:
@@ -123,11 +131,17 @@ class RiskManager:
             self._target = None
             return None
 
-        # §9.1 hard per-trade point cap (單筆≤20), ATR-independent backstop
-        if self.cfg.max_loss_points_per_trade is not None and pos.entry_price is not None:
+        # §9.1 per-trade point cap. Dynamic (clamp(mult*ATR, lo, hi)) when
+        # configured — adapts the stop to current volatility — else the fixed cap;
+        # dynamic falls back to the fixed cap while ATR is still warming up.
+        cap = self.cfg.max_loss_points_per_trade
+        if self.cfg.masha_loss_atr_mult is not None and atr is not None:
+            cap = max(self.cfg.masha_loss_atr_lo,
+                      min(self.cfg.masha_loss_atr_hi, self.cfg.masha_loss_atr_mult * atr))
+        if cap is not None and pos.entry_price is not None:
             loss = (pos.entry_price - bar.close if pos.side is Side.BUY
                     else bar.close - pos.entry_price)
-            if loss >= self.cfg.max_loss_points_per_trade:
+            if loss >= cap:
                 return self._exit_order(pos, bar.close)
 
         # 麻紗 exit (§4.7 進場K高低 seed + §2.4b 移動停利 ratchet + §7.1 滿足點)
