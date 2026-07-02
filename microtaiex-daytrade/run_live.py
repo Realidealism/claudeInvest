@@ -36,7 +36,9 @@ from risk.risk_manager import RiskConfig, RiskManager    # noqa: E402
 from strategy.base import StrategyContext         # noqa: E402
 from strategy.strategies.composite import CompositeStrategy  # noqa: E402
 from strategy.strategies.masha import MashaStrategy  # noqa: E402
-from notify import TelegramNotifier                # noqa: E402
+from strategy.timing import in_tradeable_window     # noqa: E402
+from strategy.trendline import channel              # noqa: E402
+from notify import TelegramNotifier, STATUS_KEYBOARD  # noqa: E402
 
 _POINT_VALUE = 10   # micro-Taiex NT$ per index point
 
@@ -235,6 +237,37 @@ def main(argv) -> int:
                 eng.on_bar(bar)
         agg.set_on_bar_close(on_bar)
 
+        def build_status() -> str:
+            """On-demand snapshot for the 🔍 狀態 Telegram button."""
+            now = datetime.now()
+            lines = [f"📊 狀態 {now:%m-%d %H:%M:%S}　{market_status(now)}",
+                     f"最新價 {stats['last_price']}　ticks={stats['ticks']}"]
+            for eng, risk, lbl in engines:
+                pos = eng.position
+                seg = f"〔{lbl}〕{pos.state.value}"
+                if pos.is_holding():
+                    d = "做多" if pos.side is Side.BUY else "做空"
+                    seg += f"　{d} @ {pos.entry_price:.0f}"
+                seg += f"　今日 {len(eng.round_trips)} 筆"
+                if risk.halted:
+                    seg += "（停手）"
+                lines.append(seg)
+                if lbl == "麻紗":
+                    strat, bars = eng._strategy, eng._ctx.bars
+                    inw = "開" if in_tradeable_window(now) else "關"
+                    lines.append(f"　進場窗 {inw}　bars={len(bars)}")
+                    if len(bars) >= 5:
+                        dirn, lo, up = channel(bars, strat.track_k, strat.track_lookback,
+                                               strat.track_tol, strat.track_min_touches)
+                        c = bars[-1].close
+                        if dirn == "up" and lo is not None:
+                            lines.append(f"　軌道 上升｜下軌 {lo:.0f}｜現價 {c:.0f}（距 {c-lo:+.0f}）")
+                        elif dirn == "down" and up is not None:
+                            lines.append(f"　軌道 下降｜上軌 {up:.0f}｜現價 {c:.0f}（距 {c-up:+.0f}）")
+                        else:
+                            lines.append("　軌道 無趨勢（range）")
+            return "\n".join(lines)
+
         def periodic():
             now = datetime.now()
             if stats["last_date"] and now.date() != stats["last_date"]:
@@ -245,6 +278,9 @@ def main(argv) -> int:
                                 for eng, _, lbl in engines)
             print(f"[hb] {now:%H:%M:%S} {market_status(now)} ticks={stats['ticks']} "
                   f"last={stats['last_price']}  {pos_str}")
+            for cmd in notifier.poll_commands():          # 🔍 狀態 button / /status
+                if "狀態" in cmd or cmd.lstrip("/").lower().startswith("status"):
+                    notifier.send(build_status())
         # warmup (single login): serve() calls this AFTER the quote server is ready
         # (before tick subscription), so we fetch recent closed 5m bars on THE SAME
         # login — no second login — and seed every engine, arming ATR(21)/軌道(40)
@@ -271,6 +307,10 @@ def main(argv) -> int:
         print(f"--- LIVE PAPER (real ticks + simulated fills, NO real orders) "
               f"{SYMBOL} composite [{variant}]{shadow} lb={LOOKBACK}/{BREAKOUT_LB}/{FLEE_LB} "
               f"atr({ATR_PERIOD}) mult L={LONG_ATR_MULT}/S={SHORT_ATR_MULT} ---")
+        if notifier.enabled:
+            notifier.send("🤖 微台當沖 paper 已啟動，按下方「🔍 狀態」查詢即時狀態",
+                          reply_markup=STATUS_KEYBOARD)
+            notifier.poll_commands()   # drain pre-restart backlog + prime the offset
         broker.serve([SYMBOL], periodic=periodic, period=10.0, with_orders=False,
                      on_ready=(_do_warmup if warmup else None))
     elif trade:
