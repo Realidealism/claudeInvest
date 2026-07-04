@@ -58,21 +58,28 @@ class CompositeStrategy(Strategy):
         # Daily-trend gate: the daily factory's TX unified state, read from this
         # JSON. None = no gate. long -> longs only, short -> shorts only, flat -> both.
         self.tx_status_path = tx_status_path
-        self._tx_cache: tuple[int, float] = (0, 0.0)   # (regime, file mtime)
+        self._tx_cache: tuple[int, Optional[float], float] = (0, None, 0.0)  # (regime, 多單防守, mtime)
 
-    def _tx_regime(self) -> int:
-        """+1 long / -1 short / 0 flat|missing, from the factory's TX status file.
-        Cached on mtime; unreadable/missing -> 0 (fail-safe, no gate)."""
+    def _load_tx(self) -> tuple[int, Optional[float]]:
+        """(regime, long_defense) from the factory's TX status file. regime:
+        +1 long / -1 short / 0 flat|missing. long_defense: the current 多單
+        protective line (position.defense_price) when state==long, else None.
+        Cached on mtime; unreadable/missing -> (0, None) (fail-safe, no gate)."""
         if not self.tx_status_path:
-            return 0
+            return 0, None
         try:
             mtime = Path(self.tx_status_path).stat().st_mtime
-            if mtime != self._tx_cache[1]:
+            if mtime != self._tx_cache[2]:
                 state = json.loads(Path(self.tx_status_path).read_text(encoding="utf-8"))
-                self._tx_cache = (_REGIME.get(state.get("state"), 0), mtime)
-            return self._tx_cache[0]
-        except (OSError, ValueError):
-            return 0
+                regime = _REGIME.get(state.get("state"), 0)
+                dfn = (state.get("position") or {}).get("defense_price") if regime > 0 else None
+                self._tx_cache = (regime, float(dfn) if dfn is not None else None, mtime)
+            return self._tx_cache[0], self._tx_cache[1]
+        except (OSError, ValueError, TypeError):
+            return 0, None
+
+    def _tx_regime(self) -> int:
+        return self._load_tx()[0]
 
     def _fired(self, bars) -> dict[str, bool]:
         lbmap = {"lookback": self.lookback, "breakout_lb": self.breakout_lb,
@@ -93,9 +100,14 @@ class CompositeStrategy(Strategy):
 
         # daily-trend hard gate: factory long -> longs only, short -> shorts only
         if self.tx_status_path:
-            regime = self._tx_regime()
+            regime, long_defense = self._load_tx()
             if regime > 0:
                 short_hits = []
+                # 多單防守價被跌破 → 當根不做多. Per-bar (re-evaluates every bar,
+                # no latch) and applies day + night: the frozen overnight state
+                # keeps its 多單防守 line, so an intraday breach still blocks longs.
+                if long_defense is not None and bar.close < long_defense:
+                    long_hits = []
             elif regime < 0:
                 long_hits = []
 

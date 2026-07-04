@@ -82,6 +82,26 @@ def test_tx_gate_suppresses_offside(tmp_path):
     assert sig is None   # long gated out under a short regime
 
 
+def test_tx_gate_long_defense_breach_suppresses_long(tmp_path):
+    import json
+    p = tmp_path / "futures_tx.json"
+    # a bear-trap bar (sell_flee -> LONG); close = 11.
+    bars = _series([(10, 10, 9, 10)] * 6 + [(10, 10, 7, 11)])
+
+    def sig_for(defense):
+        p.write_text(json.dumps({"state": "long",
+                                 "position": {"side": "long", "defense_price": defense}}),
+                     encoding="utf-8")
+        comp = CompositeStrategy(breakout_lb=5, flee_lb=5, tx_status_path=str(p))
+        return comp.on_bar_close(bars[-1], StrategyContext(bars=list(bars)))
+
+    # close 11 < defense 100 -> 多單防守跌破, long suppressed
+    assert sig_for(100.0) is None
+    # close 11 >= defense 5 -> long allowed to fire
+    s = sig_for(5.0)
+    assert s is not None and s.type is SignalType.LONG
+
+
 def test_entry_reason_flows_to_round_trip():
     from broker.sim import SimBroker
     from core.engine import TradingEngine
