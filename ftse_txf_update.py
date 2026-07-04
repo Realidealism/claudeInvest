@@ -22,6 +22,7 @@ from __future__ import annotations
 import shutil
 import subprocess
 import sys
+import time
 from datetime import date
 from pathlib import Path
 
@@ -77,11 +78,28 @@ def _git_push(repo: Path, data_file: Path, target_branch: str = "main") -> None:
     print(f"  [WARN] {data_file.name} push to {target_branch} failed after retries.")
 
 
+# When cnyes hasn't posted the latest 富台 settlement yet, scrape_date skips
+# (records=0, no write — see scrapers.ftse_taiwan's missing-timestamp guard).
+# The scheduler fires at 08:40 TPE and the weekday brief reads the row at
+# 08:50, so poll for a bounded window: a run that starts a few minutes before
+# the settlement lands still captures it once it does, instead of leaving the
+# page on the previous row until the next scheduled run. Only a valid quote is
+# ever written, so the page is never updated with a misaligned base.
+_RETRY_WINDOW_S = 8 * 60
+_RETRY_POLL_S = 45
+
+
 def main() -> int:
     init_db()
 
-    result = scrape_date(date.today())
-    print(f"  Scraper records={result.records} api_rows={result.api_rows}")
+    deadline = time.monotonic() + _RETRY_WINDOW_S
+    while True:
+        result = scrape_date(date.today())
+        print(f"  Scraper records={result.records} api_rows={result.api_rows}")
+        if result.records >= 1 or time.monotonic() >= deadline:
+            break
+        print(f"  FTSE-TW: data not in place yet; retrying in {_RETRY_POLL_S}s ...")
+        time.sleep(_RETRY_POLL_S)
 
     repo = Path(__file__).parent
     data_dir = repo / "frontend" / "public" / "data"
