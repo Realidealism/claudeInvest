@@ -1,4 +1,4 @@
-"""Daily 08:00 TPE 早安管家 digest.
+"""Daily 08:50 TPE 早安管家 digest.
 
 Runs once per weekday morning. Builds a watchlist-scoped brief from the
 daily EOD JSON snapshots refreshed by daily_update.exe the previous evening:
@@ -31,7 +31,7 @@ from telegram_bot.push_intraday_signals import _SIGNAL_LABEL, _SIGNAL_ORDER
 logger = logging.getLogger(__name__)
 
 _TPE_TZ = timezone(timedelta(hours=8))
-_PUSH_TIME = dtime(hour=8, minute=0)
+_PUSH_TIME = dtime(hour=8, minute=50)
 
 JOB_NAME = "morning_brief"
 
@@ -207,10 +207,12 @@ def _build_section_disposal(watchlist: set[str]) -> list[str] | None:
 def _load_ftse_latest() -> dict | None:
     """Read the latest 富台/台指期夜盤 row from tw.ftse_taiwan.
 
-    The row is refreshed at 07:55 TPE by the scheduled FtseTxfUpdate job, 5
-    minutes before this 08:00 brief, so we just read it (no second fetch). If
-    that job didn't run or failed, this returns the last stored row — the
-    section's 夜盤資料 timestamp then reveals the data is not from today."""
+    The row is refreshed at 08:47 TPE by the scheduled FtseTxfUpdate job, 3
+    minutes before this 08:50 brief, so we just read it (no second fetch). 08:47
+    is after the 08:45 SGX/TAIFEX day-session open, so both 富台 and TXF carry a
+    live pre-open (09:00) quote rather than an overnight settle. If that job
+    didn't run or failed, this returns the last stored row — the section's
+    報價時間 timestamp then reveals the data is not from today."""
     try:
         from db.connection import get_cursor
         with get_cursor(commit=False) as cur:
@@ -231,7 +233,10 @@ def _load_ftse_latest() -> dict | None:
 
 
 def _build_section_ftse_taiwan(row: dict | None) -> list[str] | None:
-    """富台(SGX)換算理論 TAIEX + 台指期(TXF)夜盤,估今日開盤落點。"""
+    """富台(SGX)換算理論 TAIEX + 台指期(TXF),估今日開盤落點。
+
+    Fetched 08:47 TPE (after the 08:45 SGX/TAIFEX day-session open, before the
+    09:00 cash open), so both legs are a live pre-open quote."""
     if not row or row.get("theoretical_taiex") is None:
         return None
 
@@ -241,10 +246,10 @@ def _build_section_ftse_taiwan(row: dict | None) -> list[str] | None:
     def _num(v) -> str:
         return f"{float(v):,.2f}" if v is not None else "—"
 
-    # Staleness: the 富台 quote is meant to carry the overnight session, which
-    # opens 15:00 TPE on the TW cash-close day. A captured_at before that means
-    # cnyes froze the quote at the day session (or earlier) and the night data
-    # never arrived — flag it so the value isn't misread as a live estimate.
+    # Staleness: a fresh 08:47 fetch is captured on the current day, always
+    # after the TW cash-close day's 15:00. A captured_at before that means the
+    # fetch job didn't run (or cnyes froze the quote) and this is a carried-over
+    # old row — flag it so the value isn't misread as a live estimate.
     stale = False
     captured = row.get("captured_at")
     ref_date = row.get("taiex_ref_date")
@@ -257,14 +262,14 @@ def _build_section_ftse_taiwan(row: dict | None) -> list[str] | None:
         except Exception:
             pass
 
-    warn = " ⚠️ 富台夜盤停更" if stale else ""
+    warn = " ⚠️ 富台報價未更新" if stale else ""
     lines = [
         f"  富台 → 理論 TAIEX：{_num(row.get('theoretical_taiex'))}"
         f"（{_pct(row.get('pct_change'))}）{warn}"
     ]
     if row.get("txf_now") is not None:
         lines.append(
-            f"  台指期夜盤：{_num(row.get('txf_now'))}（{_pct(row.get('txf_pct_change'))}）"
+            f"  台指期：{_num(row.get('txf_now'))}（{_pct(row.get('txf_pct_change'))}）"
         )
     if row.get("taiex_ref_close") is not None:
         lines.append(
@@ -274,7 +279,7 @@ def _build_section_ftse_taiwan(row: dict | None) -> list[str] | None:
     captured = row.get("captured_at")
     if captured is not None:
         try:
-            lines.append(f"  夜盤資料：{captured.astimezone(_TPE_TZ):%m/%d %H:%M}")
+            lines.append(f"  報價時間：{captured.astimezone(_TPE_TZ):%m/%d %H:%M}")
         except Exception:
             pass
     return lines
@@ -290,7 +295,7 @@ def _build_message(today: date, snapshot_date: str, sections: dict) -> str:
     )
     parts = [header]
     section_titles = (
-        ("ftse_taiwan", "🌏 夜盤估開盤"),
+        ("ftse_taiwan", "🌏 開盤前估值"),
         ("scores", "📊 評分變動"),
         ("signals", "📈 昨日訊號（追蹤股）"),
         ("positions", "🔄 昨日部位進出（追蹤股）"),
