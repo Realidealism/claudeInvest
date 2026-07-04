@@ -1,20 +1,25 @@
 @echo off
-REM FTSE Taiwan (SGX) and TXF (TAIFEX) night-session reference updater.
-REM Runs at 07:55 TPE Tue-Sat via Task Scheduler.
+REM FTSE Taiwan (SGX) and TXF (TAIFEX) pre-open reference updater.
+REM Runs at 08:40 TPE Tue-Sat via Task Scheduler.
 REM
-REM Why Tue-Sat 07:55: a TW trading day's night session (15:00-05:00 TPE)
-REM ends ~05:00 the next morning, so an early-morning run captures the
-REM completed overnight action before the 09:00 cash open. 07:55 (not 08:00)
-REM so it lands 5 min before the Telegram 早安管家 brief, which then just
-REM reads the freshly-updated tw.ftse_taiwan row instead of fetching again.
-REM Tue-Sat covers Mon-Fri night sessions (Sat catches the Friday-night
-REM close); no Monday run is needed (weekend has no fresh session).
+REM Why 08:40: the cnyes 富台 (SGX FTSE Taiwan) continuous quote stopped
+REM carrying the overnight (T+1) session ~2026-06-30 — it freezes at the prior
+REM day-session close and only revives when the SGX day session opens 08:45.
+REM Firing at 08:40 (5 min before the open) and polling until the timestamped
+REM quote lands (see ftse_txf_update.py's retry loop) captures a LIVE pre-open
+REM quote for both legs the moment it appears; TXF likewise shows today's
+REM day-session open rather than the 04:59 night settle, which is the better
+REM predictor of the 09:00 open anyway. The row is ready before the Telegram
+REM 早安管家 brief (08:50), which then just reads the freshly-updated
+REM tw.ftse_taiwan row instead of fetching again.
+REM Tue-Sat covers Mon-Fri sessions (Sat catches Friday's); no Monday run is
+REM needed (weekend has no fresh session).
 REM
 REM Schedule:
 REM   schtasks /Create /SC WEEKLY /D TUE,WED,THU,FRI,SAT ^
 REM     /TN "Invest\FtseTxfUpdate" ^
 REM     /TR "C:\Claude\Invest\ftse_txf_update.bat" ^
-REM     /ST 07:55 /F
+REM     /ST 08:40 /F
 REM
 REM Log: logs\ftse_txf_update.log
 

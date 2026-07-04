@@ -207,12 +207,13 @@ def _build_section_disposal(watchlist: set[str]) -> list[str] | None:
 def _load_ftse_latest() -> dict | None:
     """Read the latest 富台/台指期夜盤 row from tw.ftse_taiwan.
 
-    The row is refreshed at 08:47 TPE by the scheduled FtseTxfUpdate job, 3
-    minutes before this 08:50 brief, so we just read it (no second fetch). 08:47
-    is after the 08:45 SGX/TAIFEX day-session open, so both 富台 and TXF carry a
-    live pre-open (09:00) quote rather than an overnight settle. If that job
-    didn't run or failed, this returns the last stored row — the section's
-    報價時間 timestamp then reveals the data is not from today."""
+    The row is refreshed by the FtseTxfUpdate job, which fires 08:40 TPE and
+    polls until the timestamped quote lands (after the 08:45 SGX/TAIFEX day-
+    session open), finishing before this 08:50 brief — so we just read it (no
+    second fetch). Both 富台 and TXF then carry a live pre-open (09:00) quote
+    rather than an overnight settle. If that job didn't run or failed, this
+    returns the last stored row — the section's 報價時間 timestamp then reveals
+    the data is not from today."""
     try:
         from db.connection import get_cursor
         with get_cursor(commit=False) as cur:
@@ -235,8 +236,9 @@ def _load_ftse_latest() -> dict | None:
 def _build_section_ftse_taiwan(row: dict | None) -> list[str] | None:
     """富台(SGX)換算理論 TAIEX + 台指期(TXF),估今日開盤落點。
 
-    Fetched 08:47 TPE (after the 08:45 SGX/TAIFEX day-session open, before the
-    09:00 cash open), so both legs are a live pre-open quote."""
+    Fetched ~08:45 TPE (the FtseTxfUpdate job fires 08:40 and polls until the
+    day-session open quote lands, before the 09:00 cash open), so both legs are
+    a live pre-open quote."""
     if not row or row.get("theoretical_taiex") is None:
         return None
 
