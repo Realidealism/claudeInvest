@@ -174,6 +174,18 @@ def scrape_date(trade_date: date) -> ScrapeResult:
         print("  FTSE-TW: cnyes returned no 富台 quote.")
         return ScrapeResult(records=0, api_rows=0, parse_errors=1)
 
+    # A missing last-quote timestamp (field 200007) means cnyes is serving a
+    # stale/not-yet-settled quote: its change-vs-settlement (field 11) still
+    # references the *previous* trading day's settlement, so seeding
+    # ftse_base = last - change would anchor the base one settlement too early
+    # and inflate the theoretical TAIEX. Skip the run and keep the last good
+    # row rather than store a misaligned base.
+    if q.get(F_TIME) is None:
+        print("  FTSE-TW: 富台 quote has no timestamp (200007 missing) — "
+              "settlement not yet posted / stale feed; skipping to avoid a "
+              "misaligned base.")
+        return ScrapeResult(records=0, api_rows=1, parse_errors=0)
+
     try:
         ftse_now = float(q[F_LAST])
         chg = float(q.get(F_CHG) or 0.0)
