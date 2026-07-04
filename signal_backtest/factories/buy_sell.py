@@ -143,6 +143,9 @@ def buy_signal(data: "StockData") -> SignalSpec:
     #   v4: OverHigh + vol_strong + shadow.lower + 黑K → LL2 — 救 5521 +16.67ppts 但
     #       砍長尾 -1551 ppts (4128 中天 533→27 等)，淨 PF -0.035
     #   結論：buy 對「進場後快崩」型 (5521) 沒有安全的 K 棒/量能-based defense
+    # v352 試驗封存：transient give-back exit 對 buy destructive（合池 -0.002~-0.028）——
+    #   buy 巨尾(+1839%)太極端, mult=4 就踩到暫態線被砍, mult=5 保尾但仍淨負;
+    #   buy give-back 是巨尾燃料, 動不得。pick/sell_flee 尾較溫和故淨正 (見 _transient_giveback_exit)。
 
     return SignalSpec(
         name="buy",

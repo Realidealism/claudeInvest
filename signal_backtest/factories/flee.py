@@ -18,6 +18,7 @@ from signal_backtest.signal import DefenseRule, SignalSet, SignalSpec
 from signal_backtest.factories._conditions import (
     _long_pct_array,
     _shift,
+    _transient_giveback_exit,
     buy_flee_signal,
     sell_flee_signal,
 )
@@ -143,6 +144,9 @@ def sell_flee_factory(data: "StockData") -> SignalSpec:
     #   進場早期「跳空+下影+量+跌破」多為健康回測（如 4128 中天 covid 段被砍 -525 ppts），
     #   非真崩。13:1 受害/受益不對稱。
     #   結論：fake-support pattern 不適用於 sell_flee 長尾形態
+
+    # v352: 暫態 give-back 停損（mirror pick）— sell_flee give-back% 最高故增益最大 (+0.119 PF)
+    long_exit = long_exit | _transient_giveback_exit(data)
 
     return SignalSpec(
         name="sell_flee",

@@ -26,6 +26,7 @@ from typing import TYPE_CHECKING
 import numpy as np
 from numpy.typing import NDArray
 
+from analysis.chandelier import calculate_chandelier
 from analysis.indicators import rolling_highest, rolling_lowest
 
 if TYPE_CHECKING:
@@ -108,6 +109,34 @@ def _hammer_upper_shadow(
     upper_wick = data.high - top
     body = top - bottom
     return (upper_wick / hl >= wick_ratio) & (body / hl <= body_max_ratio)
+
+
+def _transient_giveback_exit(
+    data: "StockData",
+    surge_pct: float = 15.0,
+    mult: float = 4.0,
+) -> BoolArray:
+    """v352: transient give-back exit for long positions.
+
+    Fires when a long has (a) surged >= surge_pct% above its lowest 13-day
+    close, (b) stalled (today's close below the prior 5-day highest close),
+    and (c) broken below a Chandelier(21, mult) stop. OR'd into ``long_exit``
+    as a bar-level signal exit — NOT a ratcheted defense floor. Because it is
+    re-evaluated each bar and lifts once the surge/stall clears, it does not
+    permanently cap a still-running winner (a frozen tight floor would, since
+    one mid-trend stall bar ratchets a high floor that a later normal pullback
+    then hits). Adopted for pick + sell_flee (mult=4); rejected for buy whose
+    right tail is too extreme to survive any mult=4 stop.
+    """
+    lo13 = rolling_lowest(data.close, 13)
+    surge = (data.close - lo13) / lo13 * 100.0 >= surge_pct
+    stall = data.close < _shift(rolling_highest(data.close, 5), 1)
+    chand = calculate_chandelier(
+        data.high.astype(np.float64), data.low.astype(np.float64),
+        data.close.astype(np.float64), length=21, mult=mult, use_close=True,
+    )
+    breach = data.close < chand.long_stop.astype(np.float32)
+    return surge & stall & breach
 
 
 def _market_strongly_bullish(data: "StockData") -> BoolArray:

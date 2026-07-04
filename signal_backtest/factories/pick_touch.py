@@ -23,6 +23,7 @@ from signal_backtest.factories._conditions import (
     _long_pct_array,
     _short_pct_array,
     _shift,
+    _transient_giveback_exit,
     pick_condition,
     touch_condition,
     buy_flee_signal,
@@ -103,6 +104,9 @@ def pick_signal(data: "StockData") -> SignalSpec:
                     trigger=fake_support, source=rolling_lowest(data.low, 3),
                     max_days_after_entry=3),
     ]
+    # v352: 暫態 give-back 停損（近13日大漲後停滯且跌破 Chandelier21x4 → 提早鎖利）
+    #   OR 進 long_exit（bar-level 訊號出場, 不進 ratchet/不凍結, 盤整解除即回鬆, 不砍 runner）
+    long_exit = long_exit | _transient_giveback_exit(data)
 
     return SignalSpec(
         name="pick",
