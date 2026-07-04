@@ -218,7 +218,11 @@ def main(argv) -> int:
             strategy,
             RiskConfig(max_lots=1, stop_loss_atr_mult=ATR_MULT,
                        long_stop_atr_mult=LONG_ATR_MULT, short_stop_atr_mult=SHORT_ATR_MULT,
-                       stop_buffer_atr=STOP_BUFFER_ATR),
+                       stop_buffer_atr=STOP_BUFFER_ATR,
+                       # unified 初始防守: 麻紗 dynamic per-trade stop as the hard
+                       # initial cap (0.5xATR clamp 12..40, warmup fallback 20);
+                       # the Chandelier trail stays as the trailing exit.
+                       max_loss_points_per_trade=20.0, masha_loss_atr_mult=0.5),
             "reports/paper_trades_gated.csv" if gated else "reports/paper_trades.csv",
             "", "composite")
         if masha:
@@ -317,7 +321,11 @@ def main(argv) -> int:
         risk = RiskManager(RiskConfig(max_lots=1, stop_loss_atr_mult=ATR_MULT,
                                       long_stop_atr_mult=LONG_ATR_MULT,
                                       short_stop_atr_mult=SHORT_ATR_MULT,
-                                      stop_buffer_atr=STOP_BUFFER_ATR))
+                                      stop_buffer_atr=STOP_BUFFER_ATR,
+                                      # unified 初始防守: 麻紗 dynamic per-trade stop
+                                      # (0.5xATR clamp 12..40, warmup fallback 20).
+                                      max_loss_points_per_trade=20.0,
+                                      masha_loss_atr_mult=0.5))
         engine = TradingEngine(broker, strategy, risk, PositionStateMachine(),
                                atr_period=ATR_PERIOD,
                                force_close_fn=clock.should_force_close,
