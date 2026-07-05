@@ -34,8 +34,14 @@ node_modules/
 # Claude Code internal
 .claude/
 
+# Rule-file backups (see .claude/rules/04_maintenance.md)
+*.bak-*
+
 # Pickled StockData cache for signal_backtest --cache mode (multi-GB)
 data/stock_cache/
+
+# Binary ops tools (provenance documented in tools/README.md)
+tools/*.exe
 
 # TypeScript incremental build state
 *.tsbuildinfo
