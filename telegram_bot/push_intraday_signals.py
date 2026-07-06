@@ -207,6 +207,11 @@ def main(argv: list[str] | None = None) -> int:
         return 0
 
     with get_cursor() as cur:
+        # Serialize concurrent pushers (the snapshot daemon's per-pass push
+        # vs the 10-min publish tick). The xact-scoped advisory lock is held
+        # until this transaction commits the pushed_at stamps, so a second
+        # pusher then sees nothing pending instead of double-sending.
+        cur.execute("SELECT pg_advisory_xact_lock(771202601)")
         snap_date, snap_time = _latest_snapshot(cur)
         if snap_date is None:
             print("push_intraday_signals: no intraday snapshot found")

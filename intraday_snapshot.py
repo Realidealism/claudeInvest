@@ -23,12 +23,18 @@ Loop schedule
                 marks today done.
   outside       sleeps until the next weekday's 09:00.
 
-Git push and Telegram notifications are NOT performed here — they are
-driven by intraday_publish.bat on its own Task Scheduler cadence so the
-back-to-back snapshot loop doesn't pollute git history with 30+ commits
-per session. The one exception is the daily post-close final pass: it
-pushes once, immediately after it runs, so the complete-close data
-reaches Vercel at ~13:45 without waiting for the next publish tick.
+Git push is NOT performed here — it is driven by intraday_publish.bat on
+its own Task Scheduler cadence so the back-to-back snapshot loop doesn't
+pollute git history with 30+ commits per session. The one exception is
+the daily post-close final pass: it pushes once, immediately after it
+runs, so the complete-close data reaches Vercel at ~13:45 without
+waiting for the next publish tick.
+
+Telegram watchlist-signal pushes DO run here, right after every pass, so
+a fire reaches the user within one pass (~1-3 min) instead of the next
+publish tick (worst case ~10 min). tw.intraday_push_state dedup plus its
+advisory lock make this safe alongside the publish cadence, which stays
+in place as a backstop.
 
 Usage:
   intraday_snapshot.exe              # daemon: loop across trading days
@@ -115,6 +121,22 @@ def _push_final() -> None:
             pass
 
 
+def _push_signals() -> None:
+    """Push any new watchlist signal fires right after a pass instead of
+    waiting up to 10 minutes for the next intraday_publish tick. Exactly-once
+    delivery is guaranteed by tw.intraday_push_state (+ advisory lock), so
+    running this every pass alongside the publish cadence is safe. Non-fatal:
+    on failure the regular publish tick delivers the same fires."""
+    try:
+        from telegram_bot.push_intraday_signals import main as push_signals
+        rc = push_signals([])
+        if rc != 0:
+            print(f"[LOOP] [WARN] signal push returned {rc} (non-fatal)")
+    except Exception:
+        print("[LOOP] [WARN] signal push failed (non-fatal):")
+        traceback.print_exc()
+
+
 def _run_loop(stop_event: threading.Event) -> None:
     """Drive back-to-back snapshot passes across trading sessions."""
     from datetime import time as dtime
@@ -187,8 +209,9 @@ def _run_loop(stop_event: threading.Event) -> None:
                 final_done_for = today
                 tag = " (degraded)" if degraded else ""
                 print(f"[LOOP] final pass for {today} complete{tag}")
-                # Push the complete-close data now so Vercel reflects it at
-                # ~13:45 rather than on the next publish tick.
+                # Deliver close-aligned fires + push the complete-close data
+                # now rather than on the next publish tick.
+                _push_signals()
                 _push_final()
             except Exception:
                 print("[LOOP] [ERROR] final pass failed:")
@@ -216,6 +239,7 @@ def _run_loop(stop_event: threading.Event) -> None:
             continue
         elapsed = time.time() - t0
         print(f"[LOOP] pass done in {elapsed:.1f}s")
+        _push_signals()
         # Yield briefly so signal handlers and stop_event can interrupt
         # before the next heavy pass kicks off.
         if stop_event.wait(1.0):

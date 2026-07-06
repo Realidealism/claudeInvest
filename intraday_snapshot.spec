@@ -28,6 +28,8 @@ a = Analysis(
         'intraday.store',
         'telegram_bot.notify',
         'telegram_bot.config',
+        'telegram_bot.push_intraday_signals',
+        'intraday.watchlist',
         'telegram_bot.handlers.score',
         'telegram_bot.handlers._data_freshness',
         'telegram_bot.handlers._attention_predict_intraday',
