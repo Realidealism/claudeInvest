@@ -9,9 +9,10 @@ Catches the *silent* failures the existing per-scraper Telegram alerts miss:
              previous evening's daily_update must have finished, so this is
              insensitive to whatever time daily_update actually runs.
 
-  intraday — liveness probe for the intraday sweeper daemon. NSSM restarts
-             it on a crash but not on a hang; this alerts when
-             tw.intraday_quotes stops advancing mid-session. Run every
+  intraday — liveness probe for the intraday daemons. NSSM restarts them
+             on a crash but not on a hang; this alerts when
+             tw.intraday_quotes (sweeper) or tw.score_snapshot_intraday
+             (snapshot daemon) stops advancing mid-session. Run every
              ~10 min during the session (self-gates on in_session()).
 
 Messages are composed in Python (no CMD CP950 mangling) and sent via
@@ -30,7 +31,7 @@ import sys
 from datetime import date
 
 from db.connection import get_cursor
-from intraday.session import in_session, now_tpe
+from intraday.session import in_session, in_snapshot_session, now_tpe
 from telegram_bot.notify import send_sync
 
 _TAG = "健康檢查"
@@ -48,13 +49,19 @@ _DAILY_TABLES = [
 # Intraday: alert when tw.intraday_quotes has not advanced for this long.
 _INTRADAY_STALE_MINUTES = 5
 
-# Sentinel file remembering "already alerted today" so the every-10-min
-# intraday probe fires at most one alert per trading day.
-_SENTINEL = os.path.join(
+# Snapshot daemon runs back-to-back passes (roughly one per minute); allow a
+# generous margin for slow passes before calling it hung.
+_SNAPSHOT_STALE_MINUTES = 15
+
+_LOGS_DIR = os.path.join(
     os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
     "logs",
-    ".health_intraday_alerted",
 )
+
+# Sentinel files remembering "already alerted today" so the every-10-min
+# intraday probe fires at most one alert per trading day per component.
+_SENTINEL = os.path.join(_LOGS_DIR, ".health_intraday_alerted")
+_SENTINEL_SNAPSHOT = os.path.join(_LOGS_DIR, ".health_intraday_snapshot_alerted")
 
 
 def _scalar(sql: str, params: tuple = ()):
@@ -104,6 +111,15 @@ def run_intraday() -> int:
         return 0
 
     today = now.date()
+    rc = _check_sweeper(now, today)
+    if in_snapshot_session(now):
+        # The snapshot daemon stops mid-session passes at 13:30 and idles
+        # until the post-close final pass, so only probe it before 13:30.
+        rc = max(rc, _check_snapshot(now, today))
+    return rc
+
+
+def _check_sweeper(now, today: date) -> int:
     traded = _scalar("SELECT MAX(trade_date) AS d FROM tw.intraday_quotes")
     if traded != today:
         # No rows for today yet: either a holiday or the sweeper has not
@@ -129,31 +145,61 @@ def run_intraday() -> int:
     return 0
 
 
+def _check_snapshot(now, today: date) -> int:
+    snapped = _scalar(
+        "SELECT MAX(snapshot_date) AS d FROM tw.score_snapshot_intraday"
+    )
+    if snapped != today:
+        # No rows for today yet: holiday, or the daemon is still in its
+        # h(t)-warm-up window and has not written a first pass. Both are
+        # startup conditions, not a mid-session hang, so stay silent here.
+        return 0
+
+    last_pass = _scalar(
+        "SELECT MAX(snapshot_time) AS t FROM tw.score_snapshot_intraday"
+    )
+    if last_pass is None:
+        return 0
+
+    age_min = (now - last_pass).total_seconds() / 60.0
+    if age_min > _SNAPSHOT_STALE_MINUTES:
+        if not _already_alerted(today, _SENTINEL_SNAPSHOT):
+            send_sync(
+                f"[{_TAG}] 盤中 snapshot daemon 停擺：score_snapshot_intraday "
+                f"已 {int(age_min)} 分鐘未更新"
+            )
+            _mark_alerted(today, _SENTINEL_SNAPSHOT)
+        return 1
+
+    _clear_alerted(_SENTINEL_SNAPSHOT)
+    return 0
+
+
 def run_self_test() -> int:
     ok = send_sync(f"[{_TAG}] 自我測試：投遞鏈路正常")
     return 0 if ok else 1
 
 
-def _already_alerted(today: date) -> bool:
+def _already_alerted(today: date, sentinel: str = _SENTINEL) -> bool:
     try:
-        with open(_SENTINEL, encoding="ascii") as f:
+        with open(sentinel, encoding="ascii") as f:
             return f.read().strip() == today.isoformat()
     except OSError:
         return False
 
 
-def _mark_alerted(today: date) -> None:
+def _mark_alerted(today: date, sentinel: str = _SENTINEL) -> None:
     try:
-        os.makedirs(os.path.dirname(_SENTINEL), exist_ok=True)
-        with open(_SENTINEL, "w", encoding="ascii") as f:
+        os.makedirs(os.path.dirname(sentinel), exist_ok=True)
+        with open(sentinel, "w", encoding="ascii") as f:
             f.write(today.isoformat())
     except OSError:
         pass
 
 
-def _clear_alerted() -> None:
+def _clear_alerted(sentinel: str = _SENTINEL) -> None:
     try:
-        os.remove(_SENTINEL)
+        os.remove(sentinel)
     except OSError:
         pass
 
