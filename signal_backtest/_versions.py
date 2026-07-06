@@ -16,6 +16,7 @@ Usage:
     python -m signal_backtest._versions list
     python -m signal_backtest._versions show v1
     python -m signal_backtest._versions diff v0 v1
+    python -m signal_backtest._versions tdiff v0 v1 --signal pick
 """
 
 from __future__ import annotations
@@ -70,6 +71,33 @@ CREATE TABLE IF NOT EXISTS metrics (
     avg_hold    REAL,
     PRIMARY KEY (version_id, signal),
     FOREIGN KEY (version_id) REFERENCES versions(version_id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS sweeps (
+    sweep_id         INTEGER PRIMARY KEY AUTOINCREMENT,
+    date             TEXT NOT NULL,
+    signal           TEXT NOT NULL,
+    name             TEXT NOT NULL,
+    param_desc       TEXT NOT NULL,
+    baseline_version TEXT,
+    conclusion       TEXT,
+    detail_path      TEXT
+);
+
+CREATE TABLE IF NOT EXISTS sweep_points (
+    sweep_id     INTEGER NOT NULL,
+    grid_idx     INTEGER NOT NULL,
+    params       TEXT NOT NULL,
+    n_trades     INTEGER,
+    win_pct      REAL,
+    pf_net       REAL,
+    max_loss     REAL,
+    avg_net      REAL,
+    pf_net_h1    REAL,
+    pf_net_h2    REAL,
+    uneven_flag  INTEGER,
+    PRIMARY KEY (sweep_id, grid_idx),
+    FOREIGN KEY (sweep_id) REFERENCES sweeps(sweep_id) ON DELETE CASCADE
 );
 """
 
@@ -263,6 +291,36 @@ def cmd_diff(args: argparse.Namespace) -> None:
         conn.close()
 
 
+def cmd_tdiff(args: argparse.Namespace) -> None:
+    """Per-trade diff between two versions (delegates to _trade_diff)."""
+    from signal_backtest._trade_diff import run_tdiff
+
+    conn = _connect()
+    try:
+        cur = conn.cursor()
+        rows = {}
+        for vid in (args.version_a, args.version_b):
+            cur.execute("SELECT snapshot_path, cost_pct FROM versions "
+                        "WHERE version_id = ?", (vid,))
+            r = cur.fetchone()
+            if r is None:
+                print(f"版本 {vid} 不存在", file=sys.stderr)
+                sys.exit(1)
+            if not r["snapshot_path"]:
+                print(f"版本 {vid} 無 snapshot_path，無法讀 trades.parquet",
+                      file=sys.stderr)
+                sys.exit(1)
+            rows[vid] = r
+    finally:
+        conn.close()
+
+    ra, rb = rows[args.version_a], rows[args.version_b]
+    run_tdiff(Path(ra["snapshot_path"]), Path(rb["snapshot_path"]),
+              args.version_a, args.version_b,
+              ra["cost_pct"], rb["cost_pct"],
+              signal=args.signal, all_signals=args.all_signals)
+
+
 def cmd_delete(args: argparse.Namespace) -> None:
     """Remove a version (cascades to its metrics)."""
     conn = _connect()
@@ -273,6 +331,125 @@ def cmd_delete(args: argparse.Namespace) -> None:
         cur.execute("DELETE FROM versions WHERE version_id = ?", (args.version_id,))
         conn.commit()
         print(f"已刪除 {args.version_id}")
+    finally:
+        conn.close()
+
+
+# ── Sweeps sub-commands ───────────────────────────────────────────────────────
+
+
+def cmd_sweeps_list(args: argparse.Namespace) -> None:
+    """List recorded sweep runs, optionally filtered by signal."""
+    conn = _connect()
+    try:
+        cur = conn.cursor()
+        if getattr(args, "signal", None):
+            cur.execute(
+                "SELECT * FROM sweeps WHERE signal = ? ORDER BY sweep_id",
+                (args.signal,),
+            )
+        else:
+            cur.execute("SELECT * FROM sweeps ORDER BY sweep_id")
+        rows = cur.fetchall()
+        if not rows:
+            print("尚無任何 sweep 紀錄")
+            return
+        print(f"{'ID':>4}  {'日期':<12}{'訊號':<10}{'名稱':<28}{'params 描述':<24}  結論")
+        print("-" * 100)
+        for r in rows:
+            conclusion = r["conclusion"] if r["conclusion"] else "⚠未結論"
+            print(
+                f"{r['sweep_id']:>4}  {r['date']:<12}{r['signal']:<10}"
+                f"{r['name']:<28}{r['param_desc']:<24}  {conclusion}"
+            )
+    finally:
+        conn.close()
+
+
+def cmd_sweeps_show(args: argparse.Namespace) -> None:
+    """Show all grid points for one sweep run."""
+    conn = _connect()
+    try:
+        cur = conn.cursor()
+        cur.execute("SELECT * FROM sweeps WHERE sweep_id = ?", (args.sweep_id,))
+        s = cur.fetchone()
+        if s is None:
+            print(f"sweep_id {args.sweep_id} 不存在", file=sys.stderr)
+            sys.exit(1)
+        print(
+            f"sweep_id={s['sweep_id']}  date={s['date']}  signal={s['signal']}"
+            f"  name={s['name']}"
+        )
+        print(f"param_desc: {s['param_desc']}")
+        print(f"baseline_version: {s['baseline_version'] or '(none)'}")
+        print(f"detail_path: {s['detail_path'] or '(none)'}")
+        print(f"conclusion: {s['conclusion'] or '(未結論)'}\n")
+
+        cur.execute(
+            "SELECT * FROM sweep_points WHERE sweep_id = ? ORDER BY grid_idx",
+            (args.sweep_id,),
+        )
+        pts = cur.fetchall()
+        if not pts:
+            print("無 grid 點資料")
+            return
+        pw = max(len(r["params"]) for r in pts) + 1
+        print(
+            f"{'#':>3} {'params':<{pw}} {'交易':>6} {'勝率%':>6} {'PF淨':>8}"
+            f" {'前半PF':>8} {'後半PF':>8} {'淨均%':>7} {'最大虧%':>8}  flag"
+        )
+        for r in pts:
+            if r["n_trades"] == 0 or r["n_trades"] is None:
+                print(f"{r['grid_idx']:>3} {r['params']:<{pw}} {0:>6}  (no trades)")
+                continue
+            flag = "⚠時間不均" if r["uneven_flag"] else ""
+            pf_s = "inf" if r["pf_net"] is None or r["pf_net"] == float("inf") else f"{r['pf_net']:.4f}"
+            h1_s = "inf" if r["pf_net_h1"] is None or r["pf_net_h1"] == float("inf") else (f"{r['pf_net_h1']:.4f}" if r["pf_net_h1"] is not None else "—")
+            h2_s = "inf" if r["pf_net_h2"] is None or r["pf_net_h2"] == float("inf") else (f"{r['pf_net_h2']:.4f}" if r["pf_net_h2"] is not None else "—")
+            ml_s = f"{r['max_loss']:.1f}" if r["max_loss"] is not None else "—"
+            avg_s = f"{r['avg_net']:.3f}" if r["avg_net"] is not None else "—"
+            print(
+                f"{r['grid_idx']:>3} {r['params']:<{pw}} {r['n_trades']:>6}"
+                f" {r['win_pct']:>6.1f} {pf_s:>8}"
+                f" {h1_s:>8} {h2_s:>8} {avg_s:>7} {ml_s:>8}  {flag}"
+            )
+    finally:
+        conn.close()
+
+
+def cmd_sweeps_conclude(args: argparse.Namespace) -> None:
+    """Fill in the conclusion field for a sweep run."""
+    conn = _connect()
+    try:
+        cur = conn.cursor()
+        cur.execute("SELECT sweep_id FROM sweeps WHERE sweep_id = ?", (args.sweep_id,))
+        if cur.fetchone() is None:
+            print(f"sweep_id {args.sweep_id} 不存在", file=sys.stderr)
+            sys.exit(1)
+        cur.execute(
+            "UPDATE sweeps SET conclusion = ? WHERE sweep_id = ?",
+            (args.text, args.sweep_id),
+        )
+        conn.commit()
+        print(f"sweep {args.sweep_id} 結論已更新：{args.text}")
+    finally:
+        conn.close()
+
+
+def cmd_sweeps_delete(args: argparse.Namespace) -> None:
+    """Delete a sweep run and all its grid points (manual double-delete, no CASCADE)."""
+    conn = _connect()
+    try:
+        cur = conn.cursor()
+        cur.execute("SELECT sweep_id FROM sweeps WHERE sweep_id = ?", (args.sweep_id,))
+        if cur.fetchone() is None:
+            print(f"sweep_id {args.sweep_id} 不存在", file=sys.stderr)
+            sys.exit(1)
+        cur.execute("DELETE FROM sweep_points WHERE sweep_id = ?", (args.sweep_id,))
+        pts_deleted = cur.rowcount
+        cur.execute("DELETE FROM sweeps WHERE sweep_id = ?", (args.sweep_id,))
+        conn.commit()
+        print(f"已刪除 sweep {args.sweep_id}（sweep_points {pts_deleted} 列）")
     finally:
         conn.close()
 
@@ -303,9 +480,39 @@ def main() -> None:
     p_diff.add_argument("version_b")
     p_diff.set_defaults(func=cmd_diff)
 
+    p_tdiff = sub.add_parser("tdiff", help="逐筆交易 diff + 受害股報告")
+    p_tdiff.add_argument("version_a")
+    p_tdiff.add_argument("version_b")
+    g = p_tdiff.add_mutually_exclusive_group(required=True)
+    g.add_argument("--signal", help="單一訊號 (e.g. pick)")
+    g.add_argument("--all-signals", action="store_true",
+                   help="兩版皆有 trades.parquet 的訊號逐一輸出")
+    p_tdiff.set_defaults(func=cmd_tdiff)
+
     p_del = sub.add_parser("delete", help="刪除一版")
     p_del.add_argument("version_id")
     p_del.set_defaults(func=cmd_delete)
+
+    # ── sweeps sub-commands ───────────────────────────────────────────────────
+    p_sw = sub.add_parser("sweeps", help="sweep 封存管理（list/show/conclude/delete）")
+    sw_sub = p_sw.add_subparsers(dest="sw_cmd", required=True)
+
+    p_sw_list = sw_sub.add_parser("list", help="列出所有 sweep 紀錄")
+    p_sw_list.add_argument("--signal", help="只顯示此訊號的 sweep")
+    p_sw_list.set_defaults(func=cmd_sweeps_list)
+
+    p_sw_show = sw_sub.add_parser("show", help="顯示單筆 sweep 所有 grid 點")
+    p_sw_show.add_argument("sweep_id", type=int)
+    p_sw_show.set_defaults(func=cmd_sweeps_show)
+
+    p_sw_conclude = sw_sub.add_parser("conclude", help="為 sweep 填寫結論")
+    p_sw_conclude.add_argument("sweep_id", type=int)
+    p_sw_conclude.add_argument("text", help="結論文字")
+    p_sw_conclude.set_defaults(func=cmd_sweeps_conclude)
+
+    p_sw_del = sw_sub.add_parser("delete", help="刪除 sweep（含所有 grid 點）")
+    p_sw_del.add_argument("sweep_id", type=int)
+    p_sw_del.set_defaults(func=cmd_sweeps_delete)
 
     args = p.parse_args()
     args.func(args)
