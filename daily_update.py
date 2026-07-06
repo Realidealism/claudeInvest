@@ -725,6 +725,19 @@ def update_date(trade_date: date):
         _capture_trace(failure_traces, "處置預測 audit")
         results.append(("處置預測 audit", "failed"))
 
+    # Full-market daily signal digest → Telegram. Self-gating: stays silent
+    # on backfill runs (trade_date is not the newest snapshot), on no-fire
+    # days, and on re-runs of an already-pushed date. Non-critical.
+    print(f"\n--- 日線訊號推播 ---")
+    try:
+        from telegram_bot.push_daily_signals import push_daily_signals
+        push_daily_signals(trade_date)
+        results.append(("日線訊號推播", "ok"))
+    except Exception:
+        print("  [ERROR] Daily signal push failed:")
+        _capture_trace(failure_traces, "日線訊號推播")
+        results.append(("日線訊號推播", "failed"))
+
     # -----------------------------------------------------------------------
     # Final summary (Chinese)
     # -----------------------------------------------------------------------
