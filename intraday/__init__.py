@@ -1,10 +1,9 @@
-"""Intraday real-time quote pipeline (Fugle MarketData API).
+"""Intraday real-time quote pipeline (E.Sun / esun_marketdata).
 
 Layers:
   - sweeper: REST snapshot every ~20s, full TSE + OTC market
-  - watcher: WebSocket subscription for watchlist symbols (tick-level)
   - store:   upsert into tw.intraday_quotes (latest snapshot only)
-  - signals: rule engine over the latest snapshot (Phase B skeleton)
 
-Entry point: intraday_update.py at the repo root.
+Entry points: intraday_sweep_update.py (sweeper daemon) and
+intraday_snapshot.py (ScoreBoard + signal snapshot daemon) at the repo root.
 """
