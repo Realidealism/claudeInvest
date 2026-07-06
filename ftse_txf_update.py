@@ -27,6 +27,7 @@ from datetime import date
 from pathlib import Path
 
 from db.connection import init_db, get_cursor
+from publish_lock import publish_lock
 from scrapers.ftse_taiwan import scrape_date
 from export.generate import export_ftse_taiwan
 
@@ -46,35 +47,36 @@ def _git_push(repo: Path, data_file: Path, target_branch: str = "main") -> None:
     def git(*args, cwd, check=True):
         return subprocess.run(["git", *args], cwd=cwd, check=check)
 
-    for attempt in range(2):
-        if wt.exists():  # clean a leftover from a previously crashed run
-            subprocess.run(["git", "worktree", "remove", "--force", str(wt)],
-                           cwd=repo, check=False)
-            subprocess.run(["git", "worktree", "prune"], cwd=repo, check=False)
-        git("fetch", "origin", target_branch, cwd=repo)
-        git("worktree", "add", "--force", "--detach", str(wt),
-            f"origin/{target_branch}", cwd=repo)
-        try:
-            dest = wt / rel
-            dest.parent.mkdir(parents=True, exist_ok=True)
-            shutil.copy2(data_file, dest)
-            git("add", rel, cwd=wt)
-            if subprocess.run(["git", "diff", "--cached", "--quiet", "--", rel],
-                              cwd=wt).returncode == 0:
-                print(f"  No {data_file.name} change to deploy.")
-                return
-            git("commit", "-m",
-                f"Update FTSE Taiwan & TXF night reference ({date.today().isoformat()})",
-                cwd=wt)
-            if subprocess.run(["git", "push", "origin", f"HEAD:{target_branch}"],
-                              cwd=wt).returncode == 0:
-                print(f"  Pushed to GitHub {target_branch} — Vercel will auto-deploy.")
-                return
-            print(f"  push to {target_branch} rejected (attempt {attempt + 1}); "
-                  f"refetching and retrying ...")
-        finally:
-            subprocess.run(["git", "worktree", "remove", "--force", str(wt)],
-                           cwd=repo, check=False)
+    with publish_lock():
+        for attempt in range(2):
+            if wt.exists():  # clean a leftover from a previously crashed run
+                subprocess.run(["git", "worktree", "remove", "--force", str(wt)],
+                               cwd=repo, check=False)
+                subprocess.run(["git", "worktree", "prune"], cwd=repo, check=False)
+            git("fetch", "origin", target_branch, cwd=repo)
+            git("worktree", "add", "--force", "--detach", str(wt),
+                f"origin/{target_branch}", cwd=repo)
+            try:
+                dest = wt / rel
+                dest.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copy2(data_file, dest)
+                git("add", rel, cwd=wt)
+                if subprocess.run(["git", "diff", "--cached", "--quiet", "--", rel],
+                                  cwd=wt).returncode == 0:
+                    print(f"  No {data_file.name} change to deploy.")
+                    return
+                git("commit", "-m",
+                    f"Update FTSE Taiwan & TXF night reference ({date.today().isoformat()})",
+                    cwd=wt)
+                if subprocess.run(["git", "push", "origin", f"HEAD:{target_branch}"],
+                                  cwd=wt).returncode == 0:
+                    print(f"  Pushed to GitHub {target_branch} — Vercel will auto-deploy.")
+                    return
+                print(f"  push to {target_branch} rejected (attempt {attempt + 1}); "
+                      f"refetching and retrying ...")
+            finally:
+                subprocess.run(["git", "worktree", "remove", "--force", str(wt)],
+                               cwd=repo, check=False)
     print(f"  [WARN] {data_file.name} push to {target_branch} failed after retries.")
 
 

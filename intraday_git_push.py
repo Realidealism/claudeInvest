@@ -24,6 +24,8 @@ import sys
 from datetime import date
 from pathlib import Path
 
+from publish_lock import publish_lock
+
 REPO = Path(__file__).resolve().parent
 DATA = REPO / "frontend" / "public" / "data"
 REL = "frontend/public/data"
@@ -45,44 +47,49 @@ def _git(*args, cwd, check=True):
 
 
 def push() -> int:
-    for attempt in range(2):
-        if WT.exists():  # clean a leftover from a previously crashed run
-            subprocess.run(["git", "worktree", "remove", "--force", str(WT)],
-                           cwd=REPO, check=False)
-            subprocess.run(["git", "worktree", "prune"], cwd=REPO, check=False)
-        _git("fetch", "origin", TARGET, cwd=REPO)
-        _git("worktree", "add", "--force", "--detach", str(WT),
-             f"origin/{TARGET}", cwd=REPO)
-        try:
-            dst = WT / "frontend" / "public" / "data"
-            dst.mkdir(parents=True, exist_ok=True)
-            staged = []
-            for name in FILES:
-                src = DATA / name
-                if not src.exists():
-                    continue
-                shutil.copy2(src, dst / name)
-                staged.append(f"{REL}/{name}")
-            if staged:
-                _git("add", *staged, cwd=WT)
-            if subprocess.run(["git", "diff", "--cached", "--quiet"],
-                              cwd=WT).returncode == 0:
-                print("intraday push: no changes to deploy")
-                return 0
-            _git("commit", "-m",
-                 f"Update intraday data ({date.today().isoformat()})", cwd=WT)
-            if subprocess.run(["git", "push", "origin", f"HEAD:{TARGET}"],
-                              cwd=WT).returncode == 0:
-                print("intraday push: pushed - Vercel will auto-deploy")
-                return 0
-            print(f"intraday push: rejected (attempt {attempt + 1}); "
-                  f"refetching and retrying ...")
-        finally:
-            subprocess.run(["git", "worktree", "remove", "--force", str(WT)],
-                           cwd=REPO, check=False)
+    with publish_lock():
+        for attempt in range(2):
+            if WT.exists():  # clean a leftover from a previously crashed run
+                subprocess.run(["git", "worktree", "remove", "--force", str(WT)],
+                               cwd=REPO, check=False)
+                subprocess.run(["git", "worktree", "prune"], cwd=REPO, check=False)
+            _git("fetch", "origin", TARGET, cwd=REPO)
+            _git("worktree", "add", "--force", "--detach", str(WT),
+                 f"origin/{TARGET}", cwd=REPO)
+            try:
+                dst = WT / "frontend" / "public" / "data"
+                dst.mkdir(parents=True, exist_ok=True)
+                staged = []
+                for name in FILES:
+                    src = DATA / name
+                    if not src.exists():
+                        continue
+                    shutil.copy2(src, dst / name)
+                    staged.append(f"{REL}/{name}")
+                if staged:
+                    _git("add", *staged, cwd=WT)
+                if subprocess.run(["git", "diff", "--cached", "--quiet"],
+                                  cwd=WT).returncode == 0:
+                    print("intraday push: no changes to deploy")
+                    return 0
+                _git("commit", "-m",
+                     f"Update intraday data ({date.today().isoformat()})", cwd=WT)
+                if subprocess.run(["git", "push", "origin", f"HEAD:{TARGET}"],
+                                  cwd=WT).returncode == 0:
+                    print("intraday push: pushed - Vercel will auto-deploy")
+                    return 0
+                print(f"intraday push: rejected (attempt {attempt + 1}); "
+                      f"refetching and retrying ...")
+            finally:
+                subprocess.run(["git", "worktree", "remove", "--force", str(WT)],
+                               cwd=REPO, check=False)
     print("intraday push: FAILED after retries")
     return 2
 
 
 if __name__ == "__main__":
-    sys.exit(push())
+    try:
+        sys.exit(push())
+    except TimeoutError as e:
+        print(f"intraday push: {e}", file=sys.stderr)
+        sys.exit(2)
