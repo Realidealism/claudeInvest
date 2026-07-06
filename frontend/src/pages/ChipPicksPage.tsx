@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 
 interface Pick {
   rank: number;
@@ -54,7 +55,9 @@ function PicksTable({ title, picks }: { title: string; picks: Pick[] }) {
                     {p.ticker}
                   </a>
                 </td>
-                <td className="py-2 pr-4">{p.name ?? "—"}</td>
+                <td className="py-2 pr-4">
+                  <Link to={`/stock/${p.ticker}`} className="hover:underline">{p.name ?? "—"}</Link>
+                </td>
               </tr>
             ))}
           </tbody>
@@ -87,10 +90,29 @@ export default function ChipPicksPage() {
   return (
     <div>
       <h2 className="text-lg font-semibold mb-1">集保選股</h2>
-      <p className="text-xs text-text-secondary mb-4">
+      <p className="text-xs text-text-secondary mb-2">
         依集保股權變化選股。做多＝籌碼集中（大戶增、散戶減、千張人數增）；做空＝籌碼擴散（反向）。
         每週各取前 30 名。集保歷史僅約 14 個月、樣本偏小，做空側訊號較弱，僅供方向參考。
       </p>
+      <details className="text-xs text-text-secondary mb-4">
+        <summary className="cursor-pointer hover:text-text-primary">
+          資料說明
+        </summary>
+        <ul className="mt-2 space-y-1 list-disc pl-4">
+          <li>
+            來源：TDCC 集保戶股權分散表，每週發布一次；本頁於每週六自動更新，保留最近 5 週。
+          </li>
+          <li>
+            三維指標皆取近 4 週累積變化：大戶（&gt;800 張）持股比例增幅、散戶（&lt;10
+            張）持股比例減幅、千張大戶人數增量。
+          </li>
+          <li>
+            共識排名：每週對三維各自做橫斷面排名後加總，加總越小共識越強；排名 1
+            代表三維同步最集中。名單不含原始分數，排名即強度順序。
+          </li>
+          <li>做空為鏡像邏輯（大戶減、散戶增、千張人數減），歷史驗證訊號較弱，僅供方向參考。</li>
+        </ul>
+      </details>
 
       <div className="flex flex-wrap gap-1.5 mb-4">
         {data.weeks.map((w) => (

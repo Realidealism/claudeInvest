@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 
 interface ScoreRow {
   rank: number;
@@ -119,11 +120,7 @@ export default function ScoresPage() {
       {!data ? (
         <div className="text-text-secondary text-sm">載入中…</div>
       ) : !data.snapshot_date ? (
-        <div className="text-text-secondary text-sm">
-          {view === "intraday"
-            ? "尚無盤中快照資料。請先在 12:50 後跑 intraday_snapshot。"
-            : "尚無評分快照資料。請先跑 daily_update。"}
-        </div>
+        <div className="text-text-secondary text-sm">尚無資料。</div>
       ) : (
       <>
       <div className="flex gap-2">
@@ -173,7 +170,11 @@ export default function ScoresPage() {
                     {p.ticker}
                   </a>
                 </td>
-                <td className="px-2 py-1.5">{p.name}</td>
+                <td className="px-2 py-1.5">
+                  <Link to={`/stock/${p.ticker}`} className="hover:underline">
+                    {p.name}
+                  </Link>
+                </td>
                 <td className={`px-2 py-1.5 text-right font-mono font-bold ${deltaClass(p.total_pct, p.pct_d1)}`}>
                   {p.total_pct >= 0 ? "+" : ""}
                   {p.total_pct.toFixed(1)}

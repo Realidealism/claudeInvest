@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { Link } from "react-router-dom";
 
 interface SignalRow {
   ticker: string;
@@ -188,11 +189,7 @@ export default function OperationsPage() {
       {!data ? (
         <div className="text-text-secondary text-sm">載入中…</div>
       ) : !data.snapshot_date ? (
-        <div className="text-text-secondary text-sm">
-          {view === "intraday"
-            ? "尚無盤中訊號資料。請先在 12:50 後跑 intraday_snapshot。"
-            : "尚無訊號快照資料。請先跑 daily_update。"}
-        </div>
+        <div className="text-text-secondary text-sm">尚無資料。</div>
       ) : (
       <>
       <div className="flex flex-wrap gap-2">
@@ -285,7 +282,9 @@ export default function OperationsPage() {
                                   {p.ticker}
                                 </a>
                               </td>
-                              <td className="px-2 py-1.5">{p.name}</td>
+                              <td className="px-2 py-1.5">
+                                <Link to={`/stock/${p.ticker}`} className="hover:underline">{p.name}</Link>
+                              </td>
                               <td className="px-2 py-1.5">
                                 {isNewEntry ? (
                                   <span className="inline-block px-1.5 py-0.5 rounded text-[10px] font-bold bg-accent/20 text-accent">

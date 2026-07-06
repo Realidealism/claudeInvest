@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 
 interface Holding {
   ticker: string;
@@ -99,7 +100,9 @@ export default function DualTrackPage() {
                       <span className="ml-1 text-accent">●</span>
                     )}
                   </td>
-                  <td className="py-1 pr-2">{h.ticker_name}</td>
+                  <td className="py-1 pr-2">
+                    <Link to={`/stock/${h.ticker}`} className="hover:underline">{h.ticker_name}</Link>
+                  </td>
                   <td className="py-1 text-right font-mono">{h.weight?.toFixed(1)}%</td>
                 </tr>
               ))}
@@ -137,7 +140,9 @@ export default function DualTrackPage() {
                       <span className="ml-1 text-accent">●</span>
                     )}
                   </td>
-                  <td className="py-1 pr-2">{h.ticker_name}</td>
+                  <td className="py-1 pr-2">
+                    <Link to={`/stock/${h.ticker}`} className="hover:underline">{h.ticker_name}</Link>
+                  </td>
                   <td className="py-1 text-right font-mono">{h.weight?.toFixed(1)}%</td>
                 </tr>
               ))}

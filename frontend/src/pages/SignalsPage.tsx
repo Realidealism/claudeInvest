@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
+import DataTimestamp from "../components/DataTimestamp";
 
 interface Signal {
   ticker: string;
@@ -20,6 +21,7 @@ function tvUrl(ticker: string, market: string | undefined): string {
 
 interface SignalsData {
   by_type: Record<string, Signal[]>;
+  periods?: string[];
 }
 
 interface FundInfo {
@@ -106,9 +108,13 @@ export default function SignalsPage() {
   // Sort: newest date first, then by ticker
   filtered.sort((a, b) => b.trigger_date.localeCompare(a.trigger_date) || a.ticker.localeCompare(b.ticker));
 
+  const latestPeriod = data.periods?.[0] ?? null;
+
   return (
     <div>
-      <h2 className="text-lg font-semibold mb-4">訊號總覽</h2>
+      <h2 className="text-lg font-semibold mb-1">訊號總覽</h2>
+      <DataTimestamp value={latestPeriod} note="每週更新（依基金月/季報與集保發布）" />
+      <div className="mb-4" />
 
       {/* Signal type tabs */}
       <div className="flex flex-wrap gap-1.5 mb-4">
@@ -180,7 +186,9 @@ export default function SignalsPage() {
                     {s.ticker}
                   </a>
                 </td>
-                <td className="py-2 pr-4">{s.ticker_name}</td>
+                <td className="py-2 pr-4">
+                  <Link to={`/stock/${s.ticker}`} className="hover:underline">{s.ticker_name}</Link>
+                </td>
                 <td className={`py-2 pr-4 ${PHASE_COLORS[s._type] || ""}`}>
                   {SIGNAL_LABELS[s._type] || s._type}
                 </td>

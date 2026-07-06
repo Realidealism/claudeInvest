@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { Link } from "react-router-dom";
 
 interface FundColumn {
   code: string;
@@ -131,7 +132,7 @@ export default function FlowPage() {
                 </a>
               </div>
               <div className="w-20 shrink-0 truncate text-xs" title={c.ticker_name}>
-                {c.ticker_name}
+                <Link to={`/stock/${ticker}`} className="hover:underline">{c.ticker_name}</Link>
               </div>
 
               {/* diverging cumulative bar */}

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { Link } from "react-router-dom";
 
 type Side = "long" | "short";
 type Format = "int" | "pct" | "ratio3" | null;
@@ -129,7 +130,7 @@ export default function RevenueScreensPage() {
   if (data.available_months.length === 0) {
     return (
       <div className="text-text-secondary text-sm">
-        尚無月營收選股資料。請先跑 daily_update（月營收公布期間 1–15 日才會更新）。
+        尚無資料。月營收選股於每月 1–15 日營收公布期間更新。
       </div>
     );
   }
@@ -283,6 +284,14 @@ export default function RevenueScreensPage() {
                             NEW
                           </span>
                         )}
+                      </td>
+                    );
+                  }
+                  if (col.key === "name") {
+                    const stockId = String(r.stock_id ?? "");
+                    return (
+                      <td key={col.key} className="px-2 py-1.5">
+                        <Link to={`/stock/${stockId}`} className="hover:underline">{String(v ?? "")}</Link>
                       </td>
                     );
                   }

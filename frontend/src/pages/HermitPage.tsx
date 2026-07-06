@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { Link } from "react-router-dom";
 
 interface Valuation {
   method: string | null;
@@ -96,7 +97,7 @@ export default function HermitPage() {
   if (data.picks.length === 0) {
     return (
       <div className="text-text-secondary text-sm">
-        尚無 hermit_stock 快照資料。請先跑 daily_update。
+        尚無資料。
       </div>
     );
   }
@@ -202,7 +203,9 @@ export default function HermitPage() {
                     {p.ticker}
                   </a>
                 </td>
-                <td className="px-2 py-1.5">{p.name}</td>
+                <td className="px-2 py-1.5">
+                  <Link to={`/stock/${p.ticker}`} className="hover:underline">{p.name}</Link>
+                </td>
                 <td className="px-2 py-1.5 hidden md:table-cell text-text-secondary">
                   {p.industry || "—"}
                 </td>

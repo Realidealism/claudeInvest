@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 
 interface Position {
   ticker: string;
@@ -72,10 +73,39 @@ function disposalClass(s: string | null | undefined): string {
   // ongoing-disposal string still names the auction interval
   if (s.includes("🟢")) return "text-emerald-400 font-semibold";
   if (s.includes("20分盤") || s.includes("20分鐘")) return "text-red-200 font-extrabold bg-red-900/50 px-1.5 rounded";
-  if (s.includes("🚨")) return "text-red-300 font-extrabold bg-red-900/40 px-1.5 rounded";
+  if (s.includes("🔴")) return "text-red-300 font-extrabold bg-red-900/40 px-1.5 rounded";
   if (s.includes("明日進")) return "text-red-400 font-bold";
   if (s.includes("🟠")) return "text-orange-400 font-semibold";
   return "text-text-secondary";
+}
+
+// Compact severity badge next to the stock name, shown only below lg where
+// the full disposal column is hidden. Tiers mirror disposalClass.
+function DisposalBadge({ status }: { status?: string | null }) {
+  if (!status) return null;
+  let label = "警示";
+  let cls = "bg-surface text-text-secondary border border-border";
+  if (status.includes("🟢")) {
+    label = "出處置";
+    cls = "bg-emerald-900/60 text-emerald-300";
+  } else if (status.includes("20分盤") || status.includes("20分鐘")) {
+    label = "20分盤";
+    cls = "bg-red-900/70 text-red-200 font-extrabold";
+  } else if (status.includes("🔴")) {
+    label = "處置";
+    cls = "bg-red-900/60 text-red-300 font-bold";
+  } else if (status.includes("明日進")) {
+    label = "明日處置";
+    cls = "bg-red-900/50 text-red-400 font-bold";
+  } else if (status.includes("🟠")) {
+    label = "注意";
+    cls = "bg-orange-900/60 text-orange-300";
+  }
+  return (
+    <span className={`ml-1 px-1 py-0.5 text-[10px] rounded whitespace-nowrap align-middle lg:hidden ${cls}`}>
+      {label}
+    </span>
+  );
 }
 
 function fmtDate(d: string | null): string {
@@ -157,11 +187,7 @@ export default function PositionsPage() {
       {!data ? (
         <div className="text-text-secondary text-sm">載入中…</div>
       ) : !data.snapshot_date ? (
-        <div className="text-text-secondary text-sm">
-          {view === "intraday"
-            ? "尚無盤中持倉資料。請先跑 intraday_snapshot。"
-            : "尚無持倉快照資料。請先跑 daily_update。"}
-        </div>
+        <div className="text-text-secondary text-sm">尚無資料。</div>
       ) : (
       <>
       <div className="flex flex-wrap gap-2">
@@ -254,7 +280,10 @@ export default function PositionsPage() {
                       {p.ticker}
                     </a>
                   </td>
-                  <td className="px-2 py-1.5">{p.name}</td>
+                  <td className="px-2 py-1.5">
+                    <Link to={`/stock/${p.ticker}`} className="hover:underline">{p.name}</Link>
+                    <DisposalBadge status={p.disposal_status} />
+                  </td>
                   <td className="px-2 py-1.5 text-text-secondary">
                     {TIER_LABEL[p.entry_tier] ?? p.entry_tier}
                   </td>
