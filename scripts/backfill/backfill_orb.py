@@ -5,10 +5,10 @@ the current ORB watchlist, then reconstructs both the opening range (OR)
 and the full sequence of breakout / PT1 / PT2 / reversal events exactly as
 the live intraday.orb.run() thread would have.
 
-Usage:
-  python backfill_orb.py                 # last 60 trading days + today
-  python backfill_orb.py 30              # last 30 trading days + today
-  python backfill_orb.py 2026-02-01 2026-04-22  # explicit inclusive range
+Usage (run from repo root):
+  python -m scripts.backfill.backfill_orb                 # last 60 trading days + today
+  python -m scripts.backfill.backfill_orb 30              # last 30 trading days + today
+  python -m scripts.backfill.backfill_orb 2026-02-01 2026-04-22  # explicit inclusive range
 
 Requires SINOPAC_API_KEY / SINOPAC_SECRET_KEY in .env. No order placing.
 """
@@ -328,7 +328,7 @@ def main(argv: list[str]) -> int:
         end = date.fromisoformat(argv[1])
         dates = _trading_days_in_range(start, end)
     else:
-        print("Usage: python backfill_orb.py [lookback_days | start_date end_date]")
+        print("Usage: python -m scripts.backfill.backfill_orb [lookback_days | start_date end_date]")
         return 1
 
     if not dates:

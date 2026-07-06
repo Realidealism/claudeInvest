@@ -1,6 +1,6 @@
 """
 Daily stock liquidity classification — ran at end-of-day by daily_update.py
-and (one-off) by backfill_liquidity.py.
+and (one-off) by scripts/backfill/backfill_liquidity.py.
 
 For each (trade_date, stock_id) pair we store four flags in
 tw.stock_liquidity_daily:

@@ -6,7 +6,7 @@ Two modes:
                               from TWSE OpenAPI (one shot for all companies).
                               Skips if DB already has that year_month.
   fetch_mops_one(stock_id, year, month) — per-stock POST to MOPS.
-                              Used for historical backfill (see backfill_insider_holdings.py).
+                              Used for historical backfill (see scripts/backfill/backfill_insider_holdings.py).
 
 Aggregation: raw data is per-person; we aggregate by 職稱 into director /
 supervisor / manager. 持股 10% 以上股東 are excluded (not employees).

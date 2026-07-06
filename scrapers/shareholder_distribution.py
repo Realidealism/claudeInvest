@@ -5,7 +5,7 @@ Two modes:
   scrape_date(trade_date)   — daily hook. Fetches the latest week's OpenData CSV
                               (one shot, all stocks). Skips if DB already has that week.
   scrape_week_portal(scaDate, stock_ids) — per-stock POST to the qryStock portal.
-                              Used for historical backfill (see backfill_shareholder.py).
+                              Used for historical backfill (see scripts/backfill/backfill_shareholder.py).
 """
 
 import re

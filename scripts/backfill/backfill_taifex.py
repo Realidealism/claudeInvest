@@ -1,8 +1,8 @@
 """
 Backfill TAIFEX futures/options history into tw.taifex_* tables.
 
-Usage:
-    python backfill_taifex.py [start_date] [end_date] [--only fut,inst,pcr]
+Usage (run from repo root):
+    python -m scripts.backfill.backfill_taifex [start_date] [end_date] [--only fut,inst,pcr]
 
 Defaults: start=2015-01-01, end=today, all three datasets.
 

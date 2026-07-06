@@ -4,10 +4,10 @@ Populates liquidity classification for the last N trading days so the
 intraday ORB pipeline has historical data immediately. Daily runs after
 this point are handled by daily_update.py.
 
-Usage:
-  python backfill_liquidity.py             # last 80 trading days
-  python backfill_liquidity.py 120         # last 120 trading days
-  python backfill_liquidity.py 2026-02-01 2026-04-20   # explicit range
+Usage (run from repo root):
+  python -m scripts.backfill.backfill_liquidity          # last 80 trading days
+  python -m scripts.backfill.backfill_liquidity 120      # last 120 trading days
+  python -m scripts.backfill.backfill_liquidity 2026-02-01 2026-04-20  # explicit range
 
 Trading days are taken from tw.index_prices (TAIEX) so weekends/holidays
 are skipped automatically.
@@ -69,7 +69,7 @@ def main(argv: list[str]) -> int:
         end = date.fromisoformat(argv[1])
         dates = _trading_days_in_range(start, end)
     else:
-        print("Usage: python backfill_liquidity.py [lookback_days | start_date end_date]")
+        print("Usage: python -m scripts.backfill.backfill_liquidity [lookback_days | start_date end_date]")
         return 1
 
     if not dates:

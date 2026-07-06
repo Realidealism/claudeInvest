@@ -3,10 +3,10 @@ Backfill monthly insider holdings (董監經理人持股餘額) via MOPS per-sto
 Iterates (year_month → stock_id). Skips already-saved (stock_id, year_month).
 Default range: 2025-01 to the previous completed month.
 
-Usage:
-  python backfill_insider_holdings.py                         # 2025-01 to last month
-  python backfill_insider_holdings.py 2023-01                 # from 2023-01
-  python backfill_insider_holdings.py 2023-01 2024-12         # specific range
+Usage (run from repo root):
+  python -m scripts.backfill.backfill_insider_holdings              # 2025-01 to last month
+  python -m scripts.backfill.backfill_insider_holdings 2023-01      # from 2023-01
+  python -m scripts.backfill.backfill_insider_holdings 2023-01 2024-12  # specific range
 """
 
 import sys
