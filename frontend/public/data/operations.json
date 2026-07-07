@@ -1,386 +1,178 @@
 {
-  "snapshot_date": "2026-07-06",
+  "snapshot_date": "2026-07-07",
   "signals": {
-    "pick": [],
-    "touch": [],
+    "pick": [
+      {
+        "ticker": "3481",
+        "name": "群創",
+        "market": "TWSE",
+        "turnover": 50029371392.0,
+        "streak": 1
+      }
+    ],
+    "touch": [
+      {
+        "ticker": "1504",
+        "name": "東元",
+        "market": "TWSE",
+        "turnover": 1467075712.0,
+        "streak": 1
+      },
+      {
+        "ticker": "5309",
+        "name": "系統電",
+        "market": "TPEx",
+        "turnover": 566803264.0,
+        "streak": 1
+      },
+      {
+        "ticker": "2354",
+        "name": "鴻準",
+        "market": "TWSE",
+        "turnover": 371250272.0,
+        "streak": 1
+      },
+      {
+        "ticker": "2207",
+        "name": "和泰車",
+        "market": "TWSE",
+        "turnover": 168283456.0,
+        "streak": 1
+      },
+      {
+        "ticker": "3323",
+        "name": "加百裕",
+        "market": "TPEx",
+        "turnover": 167002704.0,
+        "streak": 1
+      },
+      {
+        "ticker": "3047",
+        "name": "訊舟",
+        "market": "TWSE",
+        "turnover": 29551120.0,
+        "streak": 1
+      },
+      {
+        "ticker": "2641",
+        "name": "正德",
+        "market": "TPEx",
+        "turnover": 29004936.0,
+        "streak": 1
+      },
+      {
+        "ticker": "2397",
+        "name": "友通",
+        "market": "TWSE",
+        "turnover": 28743536.0,
+        "streak": 1
+      },
+      {
+        "ticker": "1808",
+        "name": "潤隆",
+        "market": "TWSE",
+        "turnover": 23914142.0,
+        "streak": 1
+      }
+    ],
     "buy": [
       {
-        "ticker": "2449",
-        "name": "京元電子",
+        "ticker": "2059",
+        "name": "川湖",
         "market": "TWSE",
-        "turnover": 18980743168.0,
+        "turnover": 9140813824.0,
         "streak": 1
       },
       {
-        "ticker": "3374",
-        "name": "精材",
-        "market": "TPEx",
-        "turnover": 7184597504.0,
-        "streak": 1
-      },
-      {
-        "ticker": "6257",
-        "name": "矽格",
+        "ticker": "1409",
+        "name": "新纖",
         "market": "TWSE",
-        "turnover": 6060602880.0,
+        "turnover": 6694123008.0,
         "streak": 1
       },
       {
-        "ticker": "8150",
-        "name": "南茂",
+        "ticker": "6446",
+        "name": "藥華藥",
         "market": "TWSE",
-        "turnover": 5950555648.0,
+        "turnover": 5346884096.0,
         "streak": 1
       },
       {
-        "ticker": "5371",
-        "name": "中光電",
-        "market": "TPEx",
-        "turnover": 5514928128.0,
-        "streak": 1
-      },
-      {
-        "ticker": "2441",
-        "name": "超豐",
+        "ticker": "3413",
+        "name": "京鼎",
         "market": "TWSE",
-        "turnover": 5300496384.0,
+        "turnover": 3727124480.0,
         "streak": 1
       },
       {
-        "ticker": "3264",
-        "name": "欣銓",
-        "market": "TPEx",
-        "turnover": 5001406464.0,
-        "streak": 1
-      },
-      {
-        "ticker": "2351",
-        "name": "順德",
+        "ticker": "2887",
+        "name": "台新新光金",
         "market": "TWSE",
-        "turnover": 3455176960.0,
+        "turnover": 2999080192.0,
         "streak": 1
       },
       {
-        "ticker": "2645",
-        "name": "長榮航太",
+        "ticker": "8016",
+        "name": "矽創",
         "market": "TWSE",
-        "turnover": 3205717248.0,
-        "streak": 2
-      },
-      {
-        "ticker": "5425",
-        "name": "台半",
-        "market": "TPEx",
-        "turnover": 3034018560.0,
-        "streak": 1
-      },
-      {
-        "ticker": "6719",
-        "name": "力智",
-        "market": "TWSE",
-        "turnover": 2809892864.0,
-        "streak": 1
-      },
-      {
-        "ticker": "2049",
-        "name": "上銀",
-        "market": "TWSE",
-        "turnover": 1937975424.0,
-        "streak": 1
-      },
-      {
-        "ticker": "2481",
-        "name": "強茂",
-        "market": "TWSE",
-        "turnover": 1923151872.0,
-        "streak": 1
-      },
-      {
-        "ticker": "8131",
-        "name": "福懋科",
-        "market": "TWSE",
-        "turnover": 1802602240.0,
-        "streak": 1
-      },
-      {
-        "ticker": "1216",
-        "name": "統一",
-        "market": "TWSE",
-        "turnover": 1758364544.0,
-        "streak": 1
-      },
-      {
-        "ticker": "6138",
-        "name": "茂達",
-        "market": "TPEx",
-        "turnover": 1401307776.0,
-        "streak": 1
-      },
-      {
-        "ticker": "2399",
-        "name": "映泰",
-        "market": "TWSE",
-        "turnover": 1224177152.0,
-        "streak": 1
-      },
-      {
-        "ticker": "1609",
-        "name": "大亞",
-        "market": "TWSE",
-        "turnover": 1195824768.0,
-        "streak": 1
-      },
-      {
-        "ticker": "8261",
-        "name": "富鼎",
-        "market": "TWSE",
-        "turnover": 1151098368.0,
-        "streak": 1
-      },
-      {
-        "ticker": "8255",
-        "name": "朋程",
-        "market": "TPEx",
-        "turnover": 1066038144.0,
-        "streak": 1
-      },
-      {
-        "ticker": "1727",
-        "name": "中華化",
-        "market": "TWSE",
-        "turnover": 995006720.0,
-        "streak": 1
-      },
-      {
-        "ticker": "4541",
-        "name": "晟田",
-        "market": "TPEx",
-        "turnover": 877100992.0,
-        "streak": 2
-      },
-      {
-        "ticker": "3317",
-        "name": "尼克森",
-        "market": "TPEx",
-        "turnover": 867264512.0,
-        "streak": 1
-      },
-      {
-        "ticker": "6121",
-        "name": "新普",
-        "market": "TPEx",
-        "turnover": 786479488.0,
-        "streak": 1
-      },
-      {
-        "ticker": "8096",
-        "name": "擎亞",
-        "market": "TPEx",
-        "turnover": 647987968.0,
-        "streak": 2
-      },
-      {
-        "ticker": "3015",
-        "name": "全漢",
-        "market": "TWSE",
-        "turnover": 625291328.0,
+        "turnover": 2731850752.0,
         "streak": 1
       },
       {
         "ticker": "6414",
         "name": "樺漢",
         "market": "TWSE",
-        "turnover": 477265760.0,
-        "streak": 1
-      },
-      {
-        "ticker": "6435",
-        "name": "大中",
-        "market": "TPEx",
-        "turnover": 463812512.0,
-        "streak": 1
-      },
-      {
-        "ticker": "5299",
-        "name": "杰力",
-        "market": "TPEx",
-        "turnover": 439502848.0,
-        "streak": 1
-      },
-      {
-        "ticker": "5471",
-        "name": "松翰",
-        "market": "TWSE",
-        "turnover": 434581376.0,
-        "streak": 1
-      },
-      {
-        "ticker": "3675",
-        "name": "德微",
-        "market": "TPEx",
-        "turnover": 355724896.0,
-        "streak": 1
-      },
-      {
-        "ticker": "1721",
-        "name": "三晃",
-        "market": "TWSE",
-        "turnover": 322562208.0,
-        "streak": 1
-      },
-      {
-        "ticker": "1773",
-        "name": "勝一",
-        "market": "TWSE",
-        "turnover": 263138976.0,
-        "streak": 1
-      },
-      {
-        "ticker": "6693",
-        "name": "廣閎科",
-        "market": "TPEx",
-        "turnover": 259832528.0,
-        "streak": 1
-      },
-      {
-        "ticker": "6133",
-        "name": "金橋",
-        "market": "TWSE",
-        "turnover": 252858096.0,
-        "streak": 1
-      },
-      {
-        "ticker": "6651",
-        "name": "全宇昕",
-        "market": "TPEx",
-        "turnover": 203999120.0,
-        "streak": 1
-      },
-      {
-        "ticker": "7712",
-        "name": "博盛半導體",
-        "market": "TPEx",
-        "turnover": 191887520.0,
-        "streak": 1
-      },
-      {
-        "ticker": "8162",
-        "name": "微矽電子-創",
-        "market": "TWSE",
-        "turnover": 176840416.0,
-        "streak": 1
-      },
-      {
-        "ticker": "3066",
-        "name": "李洲",
-        "market": "TPEx",
-        "turnover": 162417152.0,
+        "turnover": 1616993408.0,
         "streak": 2
       },
       {
-        "ticker": "3511",
-        "name": "矽瑪",
-        "market": "TPEx",
-        "turnover": 160291280.0,
-        "streak": 1
-      },
-      {
-        "ticker": "1709",
-        "name": "和益",
+        "ticker": "6579",
+        "name": "研揚",
         "market": "TWSE",
-        "turnover": 148134128.0,
+        "turnover": 921734976.0,
         "streak": 1
       },
       {
-        "ticker": "4534",
-        "name": "慶騰",
+        "ticker": "6712",
+        "name": "長聖",
         "market": "TPEx",
-        "turnover": 148050944.0,
+        "turnover": 770781504.0,
         "streak": 1
       },
       {
-        "ticker": "4127",
-        "name": "天良",
+        "ticker": "3055",
+        "name": "蔚華科",
+        "market": "TWSE",
+        "turnover": 410662880.0,
+        "streak": 1
+      },
+      {
+        "ticker": "6949",
+        "name": "沛爾生醫-創",
+        "market": "TWSE",
+        "turnover": 307222528.0,
+        "streak": 1
+      },
+      {
+        "ticker": "6259",
+        "name": "百徽",
         "market": "TPEx",
-        "turnover": 146997712.0,
+        "turnover": 290786208.0,
         "streak": 1
       },
       {
-        "ticker": "8438",
-        "name": "昶昕",
+        "ticker": "1466",
+        "name": "聚隆",
         "market": "TWSE",
-        "turnover": 122451256.0,
+        "turnover": 172397488.0,
         "streak": 1
-      },
-      {
-        "ticker": "6129",
-        "name": "普誠",
-        "market": "TPEx",
-        "turnover": 121587304.0,
-        "streak": 1
-      },
-      {
-        "ticker": "2480",
-        "name": "敦陽科",
-        "market": "TWSE",
-        "turnover": 121397736.0,
-        "streak": 1
-      },
-      {
-        "ticker": "2305",
-        "name": "全友",
-        "market": "TWSE",
-        "turnover": 121363552.0,
-        "streak": 1
-      },
-      {
-        "ticker": "6573",
-        "name": "虹揚-KY",
-        "market": "TWSE",
-        "turnover": 71426264.0,
-        "streak": 3
-      },
-      {
-        "ticker": "4923",
-        "name": "力士",
-        "market": "TPEx",
-        "turnover": 64965628.0,
-        "streak": 1
-      },
-      {
-        "ticker": "2415",
-        "name": "錩新",
-        "market": "TWSE",
-        "turnover": 57631668.0,
-        "streak": 1
-      },
-      {
-        "ticker": "8109",
-        "name": "博大",
-        "market": "TPEx",
-        "turnover": 56175872.0,
-        "streak": 2
       },
       {
         "ticker": "2838",
         "name": "聯邦銀",
         "market": "TWSE",
-        "turnover": 53924900.0,
-        "streak": 1
-      },
-      {
-        "ticker": "5302",
-        "name": "太欣",
-        "market": "TPEx",
-        "turnover": 53860512.0,
-        "streak": 1
-      },
-      {
-        "ticker": "2527",
-        "name": "宏璟",
-        "market": "TWSE",
-        "turnover": 51180320.0,
-        "streak": 1
+        "turnover": 105227712.0,
+        "streak": 2
       }
     ],
     "sell": [],
