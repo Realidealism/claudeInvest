@@ -54,17 +54,17 @@ if "%2"=="--no-build" goto :skip_build
 
 echo [2/4] rebuilding daily_update.exe...
 echo [%DATE% %TIME%] build daily_update >> logs\rebuild_and_restart.log
-"%PY%" -m PyInstaller --noconfirm daily_update.spec >> logs\rebuild_and_restart.log 2>&1
+"%PY%" -m PyInstaller --noconfirm --clean daily_update.spec >> logs\rebuild_and_restart.log 2>&1
 if errorlevel 1 goto :build_failed
 
 echo [3/4] rebuilding intraday_snapshot.exe...
 echo [%DATE% %TIME%] build intraday_snapshot >> logs\rebuild_and_restart.log
-"%PY%" -m PyInstaller --noconfirm intraday_snapshot.spec >> logs\rebuild_and_restart.log 2>&1
+"%PY%" -m PyInstaller --noconfirm --clean intraday_snapshot.spec >> logs\rebuild_and_restart.log 2>&1
 if errorlevel 1 goto :build_failed
 
 echo [3.5/4] rebuilding feargreed_update.exe...
 echo [%DATE% %TIME%] build feargreed_update >> logs\rebuild_and_restart.log
-"%PY%" -m PyInstaller --noconfirm feargreed_update.spec >> logs\rebuild_and_restart.log 2>&1
+"%PY%" -m PyInstaller --noconfirm --clean feargreed_update.spec >> logs\rebuild_and_restart.log 2>&1
 if errorlevel 1 goto :build_failed
 
 goto :after_build
