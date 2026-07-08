@@ -15,13 +15,12 @@ from pathlib import Path
 
 import pandas as pd
 
+from analysis._score_ablation import regime_from_breadth
+
 PANEL = Path("tmp/score_panel.parquet")
 DEAD = Path("tmp/dead_fish_panel.parquet")
 HORIZONS = (5, 20, 60)
 MIN_DAILY_N = 30
-
-BULL_YEARS = {2017, 2018, 2019, 2020, 2023}
-BEAR_YEARS = {2021, 2022}
 
 EXCLUDE_COLS = {"date", "stock_id", "close", "total_long", "is_dead_fish"}
 
@@ -40,24 +39,40 @@ def regime_mean(spread_series: pd.Series, dates: set) -> float:
     return s.mean()
 
 
-def compute_cell_deltas(df: pd.DataFrame, cells: list[str]) -> dict:
-    """Returns {(cell, h, regime): delta_pp} for every cell + regime."""
+def compute_cell_deltas(df: pd.DataFrame, cells: list[str]) -> tuple[dict, dict, set]:
+    """Returns ({(cell, h, regime): delta_pp}, {(cell, h, year): delta_pp}, full_d)."""
     date_n = df.groupby("date").size()
     valid_dates = date_n[date_n >= MIN_DAILY_N].index
     full_d = set(valid_dates)
-    bull_d = {d for d in valid_dates if d.year in BULL_YEARS}
-    bear_d = {d for d in valid_dates if d.year in BEAR_YEARS}
-    regimes = [("full", full_d), ("bull", bull_d), ("bear", bear_d)]
+
+    rb = regime_from_breadth(valid_dates)
+    bull_L = rb["bull_L"] & full_d
+    bear_L = rb["bear_L"] & full_d
+    neutral_L = rb["neutral_L"] & full_d
+    bull_M = rb["bull_M"] & full_d
+    bear_M = rb["bear_M"] & full_d
+    neutral_M = rb["neutral_M"] & full_d
+
+    regimes = [
+        ("full", full_d),
+        ("bull_L", bull_L), ("bear_L", bear_L), ("neutral_L", neutral_L),
+        ("bull_M", bull_M), ("bear_M", bear_M), ("neutral_M", neutral_M),
+    ]
 
     df = df.copy()
     df["score_base"] = df["total_long"]
     base_cache = {}
+    base_daily = {}
     for h in HORIZONS:
-        s_base = daily_spread_series(df, "score_base", f"fwd_{h}")
+        base_daily[h] = daily_spread_series(df, "score_base", f"fwd_{h}")
         for r_name, r_dates in regimes:
-            base_cache[(h, r_name)] = regime_mean(s_base, r_dates) * 100
+            base_cache[(h, r_name)] = regime_mean(base_daily[h], r_dates) * 100
+
+    all_years = sorted({d.year for d in full_d})
+    year_dates = {yr: {d for d in full_d if d.year == yr} for yr in all_years}
 
     out = {}
+    yearly = {}
     for cell in cells:
         df[f"score_no_{cell}"] = df["total_long"] - df[cell]
         for h in HORIZONS:
@@ -66,8 +81,13 @@ def compute_cell_deltas(df: pd.DataFrame, cells: list[str]) -> dict:
                 m_base = base_cache[(h, r_name)]
                 m_ab = regime_mean(s_ab, r_dates) * 100
                 out[(cell, h, r_name)] = m_base - m_ab
+            for yr in all_years:
+                yearly[(cell, h, yr)] = (
+                    regime_mean(base_daily[h], year_dates[yr])
+                    - regime_mean(s_ab, year_dates[yr])
+                ) * 100
         df.drop(columns=[f"score_no_{cell}"], inplace=True)
-    return out
+    return out, yearly, full_d
 
 
 def main() -> None:
@@ -91,15 +111,16 @@ def main() -> None:
             cells.append(c)
     print(f"Active cells: {len(cells)}", file=sys.stderr)
 
-    full = compute_cell_deltas(merged, cells)
+    full, _, _ = compute_cell_deltas(merged, cells)
     print("Computed FULL universe deltas", file=sys.stderr)
 
-    alive = compute_cell_deltas(merged[~merged["is_dead_fish"]], cells)
+    alive, alive_yearly, alive_full_d = compute_cell_deltas(
+        merged[~merged["is_dead_fish"]], cells)
     print("Computed ~DEAD deltas", file=sys.stderr)
 
     # Side-by-side table per horizon × regime
     for h in HORIZONS:
-        for r in ("full", "bull", "bear"):
+        for r in ("full", "bull_L", "bear_L", "neutral_L", "bull_M", "bear_M", "neutral_M"):
             print(f"\n===  H={h} {r}  (Δspread per cell, pp; +/- pp = sign-flip)  ===")
             print(f"{'cell':<22s}  {'full':>9s}  {'~dead':>9s}  {'Δ':>9s}  flag")
             print("-" * 65)
@@ -119,6 +140,17 @@ def main() -> None:
                 elif abs(a - f) > 0.03:
                     flag = "SHIFT"
                 print(f"{c:<22s}  {f:>+8.4f}  {a:>+8.4f}  {d:>+8.4f}  {flag}")
+
+    # Per-year Δ tables (~dead universe) — normalizes single-year artifacts
+    all_years = sorted({d.year for d in alive_full_d})
+    year_n = {yr: len({d for d in alive_full_d if d.year == yr}) for yr in all_years}
+    print("\n\n=====  Per-year Δspread per cell (~dead universe, pp)  =====")
+    for c in cells:
+        print(f"\n  {c}")
+        print(f"  {'year':>4s}  {'n_days':>6s}" + "".join(f"  {'H' + str(h) + 'Δ':>9s}" for h in HORIZONS))
+        for yr in all_years:
+            vals = "".join(f"  {alive_yearly[(c, h, yr)]:>+8.4f}" for h in HORIZONS)
+            print(f"  {yr:>4d}  {year_n[yr]:>6d}{vals}")
 
 
 if __name__ == "__main__":

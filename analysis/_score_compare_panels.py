@@ -16,13 +16,12 @@ from pathlib import Path
 
 import pandas as pd
 
+from analysis._score_ablation import regime_from_breadth
+
 CURRENT = Path("tmp/score_panel.parquet")
 DEAD = Path("tmp/dead_fish_panel.parquet")
 HORIZONS = (5, 20, 60)
 MIN_DAILY_N = 30
-
-BULL_YEARS = {2017, 2018, 2019, 2020, 2023}
-BEAR_YEARS = {2021, 2022}
 
 
 def daily_spread_series(df: pd.DataFrame, score_col: str, fwd_col: str) -> pd.Series:
@@ -42,16 +41,28 @@ def compute_summary(df: pd.DataFrame, cells_of_interest: list[str]) -> dict:
     date_n = df.groupby("date").size()
     valid = date_n[date_n >= MIN_DAILY_N].index
     full = set(valid)
-    bull = {d for d in valid if d.year in BULL_YEARS}
-    bear = {d for d in valid if d.year in BEAR_YEARS}
-    regimes = [("full", full), ("bull", bull), ("bear", bear)]
+
+    rb = regime_from_breadth(valid)
+    bull_L = rb["bull_L"] & full
+    bear_L = rb["bear_L"] & full
+    neutral_L = rb["neutral_L"] & full
+    bull_M = rb["bull_M"] & full
+    bear_M = rb["bear_M"] & full
+    neutral_M = rb["neutral_M"] & full
+
+    regimes = [
+        ("full", full),
+        ("bull_L", bull_L), ("bear_L", bear_L), ("neutral_L", neutral_L),
+        ("bull_M", bull_M), ("bear_M", bear_M), ("neutral_M", neutral_M),
+    ]
 
     df = df.copy()
     df["score_base"] = df["total_long"]
 
-    out = {"base": {}, "cells": {}}
+    out = {"base": {}, "cells": {}, "base_daily": {}}
     for h in HORIZONS:
         s_base = daily_spread_series(df, "score_base", f"fwd_{h}")
+        out["base_daily"][h] = s_base
         for r_name, r_dates in regimes:
             out["base"][(h, r_name)] = regime_mean(s_base, r_dates) * 100
 
@@ -100,23 +111,40 @@ def main() -> None:
 
     print(f"\n===  {label}  (~dead universe)  ===")
 
+    regime_order = ("full", "bull_L", "bear_L", "neutral_L", "bull_M", "bear_M", "neutral_M")
     print("\n[OVERALL spread H × regime]  baseline → current  Δ pp")
-    print(f"{'H':>3s}  {'regime':>6s}  {'baseline':>10s}  {'current':>10s}  {'Δ pp':>10s}")
+    print(f"{'H':>3s}  {'regime':>9s}  {'baseline':>10s}  {'current':>10s}  {'Δ pp':>10s}")
     for h in HORIZONS:
-        for r in ("full", "bull", "bear"):
+        for r in regime_order:
             b = summaries["baseline"]["base"][(h, r)]
             c = summaries["current"]["base"][(h, r)]
-            print(f"{h:>3d}  {r:>6s}  {b:>+9.4f}%  {c:>+9.4f}%  {c-b:>+9.4f}pp")
+            print(f"{h:>3d}  {r:>9s}  {b:>+9.4f}%  {c:>+9.4f}%  {c-b:>+9.4f}pp")
+
+    print("\n[PER-YEAR OVERALL Δ]  current − baseline (pp; dates aligned by intersection)")
+    diff_by_h = {
+        h: (summaries["current"]["base_daily"][h]
+            - summaries["baseline"]["base_daily"][h]).dropna() * 100
+        for h in HORIZONS
+    }
+    all_years = sorted({d.year for s in diff_by_h.values() for d in s.index})
+    print(f"{'year':>4s}  {'n_days':>6s}" + "".join(f"  {'H' + str(h) + 'Δ':>9s}" for h in HORIZONS))
+    for yr in all_years:
+        n_yr = int((diff_by_h[HORIZONS[0]].index.year == yr).sum())
+        vals = ""
+        for h in HORIZONS:
+            s_yr = diff_by_h[h][diff_by_h[h].index.year == yr]
+            vals += f"  {s_yr.mean():>+8.4f}" if len(s_yr) else f"  {'n/a':>8s}"
+        print(f"{yr:>4d}  {n_yr:>6d}{vals}")
 
     print("\n[PER-CELL Δ]  baseline → current  ΔΔ pp")
     for cell in cells:
         print(f"\n  {cell}")
-        print(f"  {'H':>3s}  {'regime':>6s}  {'baseline':>10s}  {'current':>10s}  {'ΔΔ pp':>10s}")
+        print(f"  {'H':>3s}  {'regime':>9s}  {'baseline':>10s}  {'current':>10s}  {'ΔΔ pp':>10s}")
         for h in HORIZONS:
-            for r in ("full", "bull", "bear"):
+            for r in regime_order:
                 b = summaries["baseline"]["cells"].get((cell, h, r), 0.0)
                 c = summaries["current"]["cells"].get((cell, h, r), 0.0)
-                print(f"  {h:>3d}  {r:>6s}  {b:>+9.4f}pp  {c:>+9.4f}pp  {c-b:>+9.4f}pp")
+                print(f"  {h:>3d}  {r:>9s}  {b:>+9.4f}pp  {c:>+9.4f}pp  {c-b:>+9.4f}pp")
 
 
 if __name__ == "__main__":
