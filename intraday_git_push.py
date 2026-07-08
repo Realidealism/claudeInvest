@@ -26,7 +26,13 @@ from pathlib import Path
 
 from publish_lock import publish_lock
 
-REPO = Path(__file__).resolve().parent
+# PyInstaller exe: __file__ points to the temp _MEIxxxx extract dir (no .git);
+# the exe lives in dist/, so the repo is its parent.parent. Matches the
+# frozen-safe pattern in daily_update.py.
+if getattr(sys, "frozen", False):
+    REPO = Path(sys.executable).resolve().parent.parent
+else:
+    REPO = Path(__file__).resolve().parent
 DATA = REPO / "frontend" / "public" / "data"
 REL = "frontend/public/data"
 TARGET = "main"
