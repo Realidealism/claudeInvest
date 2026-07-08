@@ -113,7 +113,7 @@ export default function SignalsPage() {
   return (
     <div>
       <h2 className="text-lg font-semibold mb-1">訊號總覽</h2>
-      <DataTimestamp value={latestPeriod} note="每週更新（依基金月/季報與集保發布）" />
+      <DataTimestamp value={latestPeriod} note="每交易日更新（ETF 每日、基金月/季報發布時補入）" />
       <div className="mb-4" />
 
       {/* Signal type tabs */}
