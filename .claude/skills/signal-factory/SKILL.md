@@ -22,7 +22,7 @@ python -m signal_backtest._versions list  # → 抓最大 v{N}，下一版 v{N+1
 python -m signal_backtest --signals pick,touch,buy,sell,buy_flee,sell_flee,unified_long,unified_short \
     --output tmp/sb_compare --cache --workers 16
 # MUST 跑 8 個（6 基本 + 2 unified）
-# MUST 加 --cache 跟 --workers 16（細節見 §1c）
+# MUST 加 --cache 跟 --workers 16（細節見 §1b）
 
 # Step 4: 歸檔
 cp -r tmp/sb_compare/* tmp/sb_versions/v{N}_{slug}/
@@ -98,7 +98,7 @@ signal  code  name  entry_date  days  net  exit_reason
 
 詳見 [feedback_signal_version_workflow.md](C:\Users\Real\.claude\projects\c--Claude-Invest\memory\feedback_signal_version_workflow.md)。
 
-### 1c. Cache 與 workers 規則
+### 1b. Cache 與 workers 規則
 
 | 項目 | 規則 |
 |---|---|
@@ -410,6 +410,6 @@ python -m signal_backtest._versions sweeps conclude {id} "結論一句話"
 - **MUST NOT** 只看 proxy（offline forward-return）就採用閾值改動 — 系統性低估 real PF，**MUST** real backtest 驗證（§11b）
 
 ### 流程 / 維運
-- **MUST NOT** 改 dataclass schema 後忘記 `rm -rf data/stock_cache/` — 舊 pickle 反序列化 AttributeError（§1c）
+- **MUST NOT** 改 dataclass schema 後忘記 `rm -rf data/stock_cache/` — 舊 pickle 反序列化 AttributeError（§1b）
 - **MUST NOT** 把 flee 訊號當成普通做多/做空訊號優化（§5）— flee 本質是 force-exit trigger，自身 PF 升但觸發崩 = 設計失敗，不是優化成功
 - **MUST NOT** 自動 commit / push / 跳下個改動（§1）
