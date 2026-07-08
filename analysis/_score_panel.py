@@ -31,6 +31,9 @@ CATEGORIES = [
     "距離_p55", "距離_p89", "距離_p144", "距離_p233", "距離_p377",
 ]
 TIMEFRAMES = ["short", "medium", "long"]
+# Cells dropped from score.py 2026-07-07 (breadth-regime re-review):
+# MACD_medium / 大盤_long — exclude their columns from the panel schema.
+DROPPED_CELLS = {"MACD_medium", "大盤_long"}
 OUTPUT = Path("tmp/score_panel.parquet")
 
 
@@ -57,7 +60,10 @@ def main():
     board = build_scoreboard()
     print("Built scoreboard", file=sys.stderr)
 
-    cat_tf_cols = [f"{c}_{tf}" for c in CATEGORIES for tf in TIMEFRAMES]
+    cat_tf_cols = [
+        f"{c}_{tf}" for c in CATEGORIES for tf in TIMEFRAMES
+        if f"{c}_{tf}" not in DROPPED_CELLS
+    ]
 
     rows: list[dict] = []
     t0 = time.time()

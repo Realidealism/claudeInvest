@@ -407,10 +407,12 @@ def build_scoreboard() -> ScoreBoard:
     Turn (扣抵):     per-MA ±5, fuzzy conditions when neutral (medium + long)
     Sort (排列):     sort_normal ±10 (medium + long)
     Forming (成形):  sort_forming ±5 (medium + long)
-    Breadth (大盤):  market trend vs stock sort alignment (medium + long)
+    Breadth (大盤):  market trend vs stock sort alignment (medium only;
+                     long dropped 2026-07-07)
     Flood (洪量):    ±15 per timeframe — tier 1 / 2 / 3 (all three)
     MACD:            Two-tier post-cross window ±5 (fresh 0-1d) / ±3 (carry 2-5d)
-                     for both gold and death events, all three timeframes
+                     for both gold and death events, short + long
+                     (medium dropped 2026-07-07)
     OBV:             Two-tier post-cross window ±5 (fresh 0-1d) / ±3 (carry 2-5d)
                      for staircase signal_up / signal_down events, all three
     Wave:            Event ±5/±3 on tip_breakout_up/down, wave_d4_gold/death,
@@ -654,9 +656,11 @@ BREADTH_LONG_RULES: list[tuple[set[int], str, float]] = [
     ({-2}, "none", 5),            # strong_bear + no alignment
 ]
 
+# 大盤_long dropped 2026-07-07 (breadth-regime re-review, ~dead): contribution
+# negative across all 9 grids (H60 full -0.026 / bull_L -0.025 / bear_L
+# -0.036pp), uniformly negative per-year except 2020; removal is a clean win.
 BREADTH_SCOPES = (
     ("medium", "medium_trend"),
-    ("long", "long_trend"),
 )
 
 
@@ -888,8 +892,12 @@ def _death_within(d: "StockData", i: int, scope: str, n: int) -> bool:
 
 
 def _add_macd_event_rules(board: ScoreBoard) -> None:
-    """Add MACD gold/death event-window rules to all three timeframes."""
-    cards = {"short": board.short, "medium": board.medium, "long": board.long}
+    """Add MACD gold/death event-window rules to short/long timeframes."""
+    # MACD_medium dropped 2026-07-07 (breadth-regime re-review, ~dead):
+    # contribution negative across all 9 grids (H60 full -0.019 / bull_L
+    # -0.012 / bear_L -0.038pp), removal is a clean win; the old bear-hedge
+    # rationale was a year-split regime artifact (2021 counted as bear).
+    cards = {"short": board.short, "long": board.long}
     for scope, card in cards.items():
         _add_macd_event_scope(card, scope)
 
