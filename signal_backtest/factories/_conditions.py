@@ -890,7 +890,11 @@ def buy_condition(data: "StockData") -> BoolArray:
     #   regime+時間雙驗證: bull +0.020 / bear +0.052; 四時段全正且分布均勻 (overfit 防禦強)
     #   v304 反向 (gate -5) 曾 -0.0258, 本版鏡像正向確認現行 gate 偏鬆
     #   +5 PF 更高 (+0.0518) 但增益重壓近期 (2025-26 +0.11) overfit 風險高, 故停 +3
-    _tier = np.where(strongly_bear, 48.0, np.where(moderate_bear_only, 43.0, 38.0))
+    # v355 (2026-07-07): gate recalibration after ScoreBoard 2-cell drop
+    #   (MACD_medium + 大盤_long removed → long_pct median shifted +3.1, P90 +5.1)
+    #   3-tier +4 (48/43/38 → 52/47/42). Sweep id 3 (buy_lp_gate): +4 sits on the
+    #   +3~+5 calibration plateau, PF 1.6947→1.7534, ratio flat 3.02, time-even.
+    _tier = np.where(strongly_bear, 52.0, np.where(moderate_bear_only, 47.0, 42.0))
     # v349: 過長期新高 → 降 buy 門檻 (長結構轉強的直接確認, 評分長回顧 cell under-weight)
     #   近3日過144日新高 -2 / 近5日過233日新高 -5 / 近8日過377日新高 -8 (取最深一階)
     #   強空除外 (強空裡的新高是假突破陷阱; 排掉後 bear 拖累 -0.0139→-0.0003)
@@ -1210,7 +1214,13 @@ def buy_flee_signal(data: "StockData") -> BoolArray:
     #   證實 short side 反轉是 event-driven 非 slow accumulation，mirror 概念不適用
     main = _buy_flee_main(data)
     short_pct = _short_pct_array(data)
-    rule_post_strength = short_pct >= 30  # v160: gate 35→30 after v159 dropped rise3 (3D sweep PF 1.55 vs gate35 PF 1.44)
+    # v160: gate 35→30 after v159 dropped rise3 (3D sweep PF 1.55 vs gate35 PF 1.44)
+    # v356 (2026-07-08): 30 → 32, recalibration after ScoreBoard 2-cell drop.
+    #   Sweep id 6 (buy_flee_post_gate): 32 is peak (PF 1.681→2.094, ratio 2.62,
+    #   both halves improve, trades 250 = 1.04x of v352's 241 force-exit density).
+    #   Sweep id 5: prev1 anchor tightening rejected (monotonic degradation);
+    #   anchor (<=0) and _PCT_DELTA1_THRESHOLD stay unchanged.
+    rule_post_strength = short_pct >= 32
     rule_knot = ~(data.close_result.knot["long"].flag
                   | data.close_result.knot["medium"].flag)
     return main & rule_post_strength & rule_knot
@@ -1245,10 +1255,16 @@ def sell_flee_signal(data: "StockData") -> BoolArray:
     _recent_knot_sf = _rh(data.close_result.knot["long"].flag.astype(np.float32), 8) > 0.5
     _kwbo_sf = _recent_knot_sf & data.wave_result.tip_breakout_up
     _sfr = np.where(_rh(_kwbo_sf.astype(np.float32), 5) > 0.5, 5.0, 0.0)
+    # v355 (2026-07-07): gate recalibration after ScoreBoard 2-cell drop
+    #   (MACD_medium + 大盤_long removed → long_pct median shifted +3.1).
+    #   Stairstep lp levels +5 (35/30/25 → 40/35/30); delta thresholds 40/50
+    #   unchanged. Sweep id 4 (sell_flee_post_strength): +5 has best first-half
+    #   PF 1.7006 (only point clearly above baseline both halves), ratio 4.00,
+    #   trigger density -7.5% (force-exit role preserved). +10 was time-uneven.
     rule_post_strength = (
-        (long_pct >= 35 - _sfr)
-        | ((delta_from_min2 >= 40) & (long_pct >= 30 - _sfr))
-        | ((delta_from_min2 >= 50) & (long_pct >= 25 - _sfr))
+        (long_pct >= 40 - _sfr)
+        | ((delta_from_min2 >= 40) & (long_pct >= 35 - _sfr))
+        | ((delta_from_min2 >= 50) & (long_pct >= 30 - _sfr))
     )
     # v195b: SB stairstep gate AND above_prev (站上前次洪量 high) — 強化既有 path
     # v195 OR 路徑 +4689 trades / -0.092 PF 失敗，改用 AND 收緊
