@@ -134,10 +134,7 @@ class RiskManager:
         # §9.1 per-trade point cap. Dynamic (clamp(mult*ATR, lo, hi)) when
         # configured — adapts the stop to current volatility — else the fixed cap;
         # dynamic falls back to the fixed cap while ATR is still warming up.
-        cap = self.cfg.max_loss_points_per_trade
-        if self.cfg.masha_loss_atr_mult is not None and atr is not None:
-            cap = max(self.cfg.masha_loss_atr_lo,
-                      min(self.cfg.masha_loss_atr_hi, self.cfg.masha_loss_atr_mult * atr))
+        cap = self._trade_cap(atr)
         if cap is not None and pos.entry_price is not None:
             loss = (pos.entry_price - bar.close if pos.side is Side.BUY
                     else bar.close - pos.entry_price)
@@ -230,8 +227,60 @@ class RiskManager:
         return entry_price - dist if side is Side.BUY else entry_price + dist
 
     def current_defense(self) -> Optional[float]:
-        """The live ratcheting stop line (None until armed)."""
+        """The live ratcheting Chandelier stop line (None until armed). NOTE: this
+        is only the loose trailing backstop — for the line that actually fires,
+        use effective_stop (the per-trade point cap usually dominates it)."""
         return self._trail_stop
+
+    def _trade_cap(self, atr: Optional[float]) -> Optional[float]:
+        """Per-trade point cap in force: dynamic clamp(mult*ATR, lo, hi) when
+        configured, else the fixed cap; falls back to the fixed cap while ATR is
+        still warming up. Single source of truth shared by check_stop and the
+        reported effective stop so they can never diverge. None if no cap set."""
+        cap = self.cfg.max_loss_points_per_trade
+        if self.cfg.masha_loss_atr_mult is not None and atr is not None:
+            cap = max(self.cfg.masha_loss_atr_lo,
+                      min(self.cfg.masha_loss_atr_hi, self.cfg.masha_loss_atr_mult * atr))
+        return cap
+
+    def effective_stop(self, pos: PositionStateMachine, atr: Optional[float]) -> Optional[float]:
+        """The price a holding would actually exit on: the tighter (closer to
+        price) of the per-trade cap line (entry -/+ cap) and the Chandelier
+        trailing line. Reporting the bare Chandelier line is misleading when a
+        tight per-trade cap dominates it. Chandelier mode only; None when flat or
+        unarmed. (麻紗 mode keeps its own entry-bar defense — reports nothing here.)"""
+        if self.cfg.stop_mode == "masha":
+            return None
+        if pos.state is not PosState.HOLDING or pos.entry_price is None:
+            return None
+        is_long = pos.side is Side.BUY
+        lines = []
+        cap = self._trade_cap(atr)
+        if cap is not None:
+            lines.append(pos.entry_price - cap if is_long else pos.entry_price + cap)
+        if self._trail_stop is not None:
+            buf = atr * self.cfg.stop_buffer_atr if (self.cfg.stop_buffer_atr and atr) else 0.0
+            lines.append(self._trail_stop - buf if is_long else self._trail_stop + buf)
+        if not lines:
+            return None
+        return max(lines) if is_long else min(lines)
+
+    def initial_effective_stop(self, side: Side, entry_price: float,
+                               atr: Optional[float]) -> Optional[float]:
+        """The binding stop at entry (before the trail arms): tighter of the
+        per-trade cap line and the initial Chandelier line. Matches what check_stop
+        will fire on for the first bars of the trade."""
+        is_long = side is Side.BUY
+        lines = []
+        cap = self._trade_cap(atr)
+        if cap is not None:
+            lines.append(entry_price - cap if is_long else entry_price + cap)
+        ch = self.initial_defense(side, entry_price, atr)
+        if ch is not None:
+            lines.append(ch)
+        if not lines:
+            return None
+        return max(lines) if is_long else min(lines)
 
     # ---- pnl / halt accounting ----
     def register_trade_pnl_points(self, points: float) -> None:

@@ -95,6 +95,18 @@ class TradingEngine:
                 if fc is not None:
                     self._submit(fc)
             return
+        # Zero-volume bars are gap-fill placeholders (無量補空) or genuine no-trade
+        # buckets: no trade happened, so they carry no price action and must not
+        # feed ATR, ratchet the trailing stop, or drive strategy signals. Letting
+        # them through walks the Chandelier stop up on phantom bars (a run of flat
+        # fillers collapses ATR -> stop distance shrinks -> line ratchets up). They
+        # are still allowed to trigger the session force-close (their one legit use).
+        if bar.volume == 0:
+            if force_close:
+                fc = self._risk.force_close(self._pos, bar.close)
+                if fc is not None:
+                    self._submit(fc)
+            return
         self._ctx.bars.append(bar)
         atr_val = atr(self._ctx.bars, self._atr_period)
 
@@ -103,7 +115,7 @@ class TradingEngine:
         if stop_order is not None:
             self._submit(stop_order)
             return
-        self._notify_defense_raise()
+        self._notify_defense_raise(atr_val)
 
         # 1b) 麻紗 力竭 exit (§2.4c): bar-pattern reversal against the position
         cfg = self._risk.cfg
@@ -154,15 +166,18 @@ class TradingEngine:
                             side = "long" if order.side is Side.BUY else "short"
                             self._pending_open_target = target_1to1(side, order.price, box)
                 else:
-                    self._pending_open_defense = self._risk.initial_defense(
+                    self._pending_open_defense = self._risk.initial_effective_stop(
                         order.side, order.price, atr_val)
             self._submit(order)
 
-    def _notify_defense_raise(self) -> None:
-        """Emit a ('defense', ...) event when the stop ratchets >= 1 pt favorably."""
+    def _notify_defense_raise(self, atr_val) -> None:
+        """Emit a ('defense', ...) event when the *binding* stop (effective_stop:
+        tighter of per-trade cap and Chandelier) ratchets >= 1 pt favorably. Using
+        the effective stop, not the bare Chandelier line, keeps the notification on
+        the line that actually protects the trade."""
         if not self._on_event or not self._pos.is_holding():
             return
-        cur = self._risk.current_defense()
+        cur = self._risk.effective_stop(self._pos, atr_val)
         if cur is None:
             return
         if self._last_defense is None:
