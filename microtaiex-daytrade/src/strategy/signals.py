@@ -25,6 +25,7 @@ from datetime import datetime, time, timedelta
 from typing import Sequence
 
 from broker.types import Bar
+from strategy.indicators import atr
 
 _DAY_OPEN = time(8, 45)
 _DAY_CLOSE = time(13, 45)
@@ -63,11 +64,20 @@ def touch(bars: Sequence[Bar], lookback: int = 20) -> bool:
 
 
 def buy(bars: Sequence[Bar], breakout_lb: int = 20) -> bool:
-    """長 順勢: close breaks above the highest high of the prior N bars."""
+    """長 順勢: close breaks above the prior-N-bar high by a real margin (>=
+    0.75*ATR21). The margin rejects marginal pokes just above the Donchian line —
+    the fake-breakout traps that reverse at once — while keeping breakouts with
+    genuine thrust. Threshold from an 8-file sweep (0.5-1.5*ATR all beat the
+    unfiltered breakout; 0.75 = pool-net peak). ATR warmup -> no margin (base only)."""
     if len(bars) < breakout_lb + 1:
         return False
     prior = bars[-(breakout_lb + 1):-1]
-    return bars[-1].close > max(b.high for b in prior)
+    prior_high = max(b.high for b in prior)
+    curr = bars[-1]
+    if curr.close <= prior_high:
+        return False
+    a = atr(bars, 21)
+    return a is None or curr.close >= prior_high + 0.75 * a
 
 
 def sell(bars: Sequence[Bar], breakout_lb: int = 20) -> bool:
@@ -90,12 +100,18 @@ def buy_flee(bars: Sequence[Bar], flee_lb: int = 10) -> bool:
 
 def sell_flee(bars: Sequence[Bar], flee_lb: int = 10) -> bool:
     """上拉反轉 (bear trap): new prior-N-bar low intrabar, then closes above the
-    previous close. Shorts flee, longs enter."""
+    previous close AND in the upper 40% of its own range. Shorts flee, longs enter.
+
+    The range-position filter (close >= low + 0.6*range) rejects weak fake
+    rebounds — a bar that plunges to a new low but only edges a point or two above
+    the prior close on a soft finish is not a real reversal and gets skipped in a
+    sustained sell-off. Threshold from an 8-file sweep (0.6 = robust ridge centre)."""
     if len(bars) < flee_lb + 1:
         return False
     prev, curr = bars[-2], bars[-1]
     prior = bars[-(flee_lb + 1):-1]
-    return curr.low < min(b.low for b in prior) and curr.close > prev.close
+    return (curr.low < min(b.low for b in prior) and curr.close > prev.close
+            and curr.close >= curr.low + 0.6 * (curr.high - curr.low))
 
 
 # ── session-anchored helpers ─────────────────────────────────────────────
