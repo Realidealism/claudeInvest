@@ -82,7 +82,7 @@ def _git_push(repo: Path, data_file: Path, target_branch: str = "main") -> None:
 
 # When cnyes hasn't posted the latest 富台 settlement yet, scrape_date skips
 # (records=0, no write — see scrapers.ftse_taiwan's missing-timestamp guard).
-# The scheduler fires at 08:40 TPE and the weekday brief reads the row at
+# The scheduler fires at 08:47 TPE and the weekday brief reads the row at
 # 08:50, so poll for a bounded window: a run that starts a few minutes before
 # the settlement lands still captures it once it does, instead of leaving the
 # page on the previous row until the next scheduled run. Only a valid quote is
