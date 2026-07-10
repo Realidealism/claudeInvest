@@ -15,6 +15,8 @@ interface FtseLatest {
   taiex_ref_close:   number | null;
   theoretical_taiex: number | null;
   captured_at:       string | null;
+  ftse_bar_date:     string | null;
+  ftse_closed:       boolean;
   txf:               TxfBlock | null;
 }
 
@@ -99,7 +101,15 @@ export default function FtseTaiwanPage() {
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         {/* 富台 → 理論 TAIEX */}
-        {l ? (
+        {l && l.ftse_closed ? (
+          <div className="bg-surface-alt border border-border rounded p-3 space-y-2">
+            <h2 className="text-sm font-bold text-text-primary">理論 TAIEX（富台 SGX）</h2>
+            <div className="text-sm text-orange-400">富台未開盤（新加坡休市，無新報價）</div>
+            <div className="text-[10px] text-text-secondary">
+              最後交易日 K：{l.ftse_bar_date ?? "—"}
+            </div>
+          </div>
+        ) : l && l.theoretical_taiex != null ? (
           <div className="bg-surface-alt border border-border rounded p-3 space-y-3">
             <div className="flex flex-wrap items-baseline gap-2">
               <h2 className="text-sm font-bold text-text-primary">理論 TAIEX（富台 SGX）</h2>
