@@ -1,4 +1,4 @@
-"""Daily 08:50 TPE 早安管家 digest.
+"""Daily 08:30 TPE 早安管家 digest.
 
 Runs once per weekday morning. Builds a watchlist-scoped brief from the
 daily EOD JSON snapshots refreshed by daily_update.exe the previous evening:
@@ -31,7 +31,7 @@ from telegram_bot.push_intraday_signals import _SIGNAL_LABEL, _SIGNAL_ORDER
 logger = logging.getLogger(__name__)
 
 _TPE_TZ = timezone(timedelta(hours=8))
-_PUSH_TIME = dtime(hour=8, minute=50)
+_PUSH_TIME = dtime(hour=8, minute=30)
 
 JOB_NAME = "morning_brief"
 
@@ -207,13 +207,12 @@ def _build_section_disposal(watchlist: set[str]) -> list[str] | None:
 def _load_ftse_latest() -> dict | None:
     """Read the latest 富台/台指期夜盤 row from tw.ftse_taiwan.
 
-    The row is refreshed by the FtseTxfUpdate job, which fires 08:40 TPE and
-    polls until the timestamped quote lands (after the 08:45 SGX/TAIFEX day-
-    session open), finishing before this 08:50 brief — so we just read it (no
-    second fetch). Both 富台 and TXF then carry a live pre-open (09:00) quote
-    rather than an overnight settle. If that job didn't run or failed, this
-    returns the last stored row — the section's 報價時間 timestamp then reveals
-    the data is not from today."""
+    The row is refreshed by the FtseTxfUpdate job (fires 08:00 TPE, single
+    pass — 富台 via Capital 海期, TXF via cnyes, both carrying the just-settled
+    night session), finishing well before this 08:30 brief, so we just read it
+    (no second fetch). If that job didn't run or failed, this returns the last
+    stored row — the section's 報價時間 timestamp then reveals the data is not
+    from today."""
     try:
         from db.connection import get_cursor
         with get_cursor(commit=False) as cur:
@@ -221,6 +220,7 @@ def _load_ftse_latest() -> dict | None:
                 """
                 SELECT ftse_now, ftse_base, pct_change, taiex_ref_date,
                        taiex_ref_close, theoretical_taiex, captured_at,
+                       ftse_bar_date,
                        txf_now, txf_pct_change, txf_captured_at
                 FROM tw.ftse_taiwan
                 ORDER BY trade_date DESC
@@ -236,10 +236,16 @@ def _load_ftse_latest() -> dict | None:
 def _build_section_ftse_taiwan(row: dict | None) -> list[str] | None:
     """富台(SGX)換算理論 TAIEX + 台指期(TXF),估今日開盤落點。
 
-    Fetched ~08:45 TPE (the FtseTxfUpdate job fires 08:40 and polls until the
-    day-session open quote lands, before the 09:00 cash open), so both legs are
-    a live pre-open quote."""
-    if not row or row.get("theoretical_taiex") is None:
+    Fetched ~08:00 TPE (the FtseTxfUpdate job, single pass), so both legs are
+    the just-settled 夜盤 quote — a pre-open (09:00) estimate."""
+    # Show the section if either leg has a value. 富台 (SGX) and TXF (TAIFEX)
+    # are decoupled upstream, so a 富台 outage still leaves a live TXF night
+    # estimate worth showing rather than blanking the whole section.
+    if not row or (
+        row.get("theoretical_taiex") is None
+        and row.get("txf_now") is None
+        and row.get("ftse_bar_date") is None
+    ):
         return None
 
     def _pct(v) -> str:
@@ -248,10 +254,10 @@ def _build_section_ftse_taiwan(row: dict | None) -> list[str] | None:
     def _num(v) -> str:
         return f"{float(v):,.2f}" if v is not None else "—"
 
-    # Staleness: a fresh 08:47 fetch is captured on the current day, always
+    # Staleness: a fresh 08:00 fetch is captured on the current day, always
     # after the TW cash-close day's 15:00. A captured_at before that means the
-    # fetch job didn't run (or cnyes froze the quote) and this is a carried-over
-    # old row — flag it so the value isn't misread as a live estimate.
+    # fetch job didn't run and this is a carried-over old row — flag it so the
+    # value isn't misread as a live estimate.
     stale = False
     captured = row.get("captured_at")
     ref_date = row.get("taiex_ref_date")
@@ -264,11 +270,17 @@ def _build_section_ftse_taiwan(row: dict | None) -> list[str] | None:
         except Exception:
             pass
 
-    warn = " ⚠️ 富台報價未更新" if stale else ""
-    lines = [
-        f"  富台 → 理論 TAIEX：{_num(row.get('theoretical_taiex'))}"
-        f"（{_pct(row.get('pct_change'))}）{warn}"
-    ]
+    lines = []
+    if row.get("theoretical_taiex") is not None:
+        warn = " ⚠️ 富台報價未更新" if stale else ""
+        lines.append(
+            f"  富台 → 理論 TAIEX：{_num(row.get('theoretical_taiex'))}"
+            f"（{_pct(row.get('pct_change'))}）{warn}"
+        )
+    elif row.get("ftse_bar_date") is not None:
+        lines.append("  富台 → 未開盤（新加坡休市）")
+    else:
+        lines.append("  富台 → 暫無（SGX 盤前未更新）")
     if row.get("txf_now") is not None:
         lines.append(
             f"  台指期：{_num(row.get('txf_now'))}（{_pct(row.get('txf_pct_change'))}）"
@@ -278,7 +290,8 @@ def _build_section_ftse_taiwan(row: dict | None) -> list[str] | None:
             f"  台股收盤：{_num(row.get('taiex_ref_close'))}"
             f"（{row.get('taiex_ref_date')}）"
         )
-    captured = row.get("captured_at")
+    # Prefer 富台's timestamp; fall back to TXF's when the 富台 leg is absent.
+    captured = row.get("captured_at") or row.get("txf_captured_at")
     if captured is not None:
         try:
             lines.append(f"  報價時間：{captured.astimezone(_TPE_TZ):%m/%d %H:%M}")

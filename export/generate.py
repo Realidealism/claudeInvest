@@ -1693,7 +1693,7 @@ def export_ftse_taiwan(cur, out: Path):
         """
         SELECT trade_date, front_contract, ftse_now, ftse_base,
                pct_change, taiex_ref_date, taiex_ref_close,
-               theoretical_taiex, captured_at,
+               theoretical_taiex, captured_at, ftse_bar_date,
                txf_now, txf_pct_change, txf_captured_at
         FROM tw.ftse_taiwan
         ORDER BY trade_date DESC
@@ -1712,6 +1712,10 @@ def export_ftse_taiwan(cur, out: Path):
             "taiex_ref_close":   round(float(r["taiex_ref_close"]), 2) if r["taiex_ref_close"] is not None else None,
             "theoretical_taiex": round(float(r["theoretical_taiex"]), 2) if r["theoretical_taiex"] is not None else None,
             "captured_at":       r["captured_at"],
+            # 富台 未開盤: a stored bar date but no theoretical means SGX did not
+            # open a new session, so the 富台 leg is null-but-not-a-failure.
+            "ftse_bar_date":     r["ftse_bar_date"],
+            "ftse_closed":       r["theoretical_taiex"] is None and r["ftse_bar_date"] is not None,
             "txf": {
                 "txf_now":         round(float(r["txf_now"]), 2) if r["txf_now"] is not None else None,
                 "txf_pct_change":  round(float(r["txf_pct_change"]), 6) if r["txf_pct_change"] is not None else None,
