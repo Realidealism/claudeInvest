@@ -129,18 +129,22 @@ def _carried_base(taiex_ref_date: date) -> float | None:
     return float(row["ftse_base"]) if row else None
 
 
-def _last_ftse_bar_date() -> date | None:
-    """The most recent 富台 daily-K bar date we stored, for 未開盤 detection.
-    A new fetch whose newest bar date does not advance past this means SGX did
-    not open a new trading day."""
+def _last_ftse_bar_state() -> tuple[date | None, date | None]:
+    """(ftse_bar_date, trade_date) of the latest stored row, for 未開盤 detection.
+
+    ftse_bar_date is the last settled 富台 K date; trade_date is the calendar day
+    that run happened on — used to tell a same-day rerun (bar can't advance yet)
+    from a genuine no-advance across days (SGX holiday)."""
     with get_cursor(commit=False) as cur:
         cur.execute(
-            "SELECT ftse_bar_date FROM tw.ftse_taiwan "
+            "SELECT ftse_bar_date, trade_date FROM tw.ftse_taiwan "
             "WHERE ftse_bar_date IS NOT NULL "
             "ORDER BY trade_date DESC LIMIT 1"
         )
         row = cur.fetchone()
-    return row["ftse_bar_date"] if row else None
+    if not row:
+        return None, None
+    return row["ftse_bar_date"], row["trade_date"]
 
 
 def _save(record: dict[str, Any]) -> None:
@@ -204,7 +208,7 @@ def scrape_date(trade_date: date) -> tuple[ScrapeResult, bool]:
     }
     ftse_ok = False
     ftse_log = "富台 → 暫無"
-    last_bar = _last_ftse_bar_date()
+    last_bar, last_run = _last_ftse_bar_state()
     fq = fetch_ftse(trade_date)
     if fq is None:
         print("  FTSE-TW: Capital 富台 quote unavailable (富台 leg skipped).")
@@ -213,14 +217,17 @@ def scrape_date(trade_date: date) -> tuple[ScrapeResult, bool]:
         # it points at a settled contract, skip rather than publish a stale base.
         print(f"  FTSE-TW: TWN0000 contract {fq.contract_month} past expiry — "
               f"continuous roll may have failed; 富台 leg skipped.")
-    elif last_bar is not None and fq.bar_date <= last_bar:
-        # No new daily-K bar since last run → SGX did not open a new trading day
-        # (holiday). Mark 未開盤: 富台 columns stay null but record the
-        # (unchanged) bar_date so the frontend shows 未開盤, not a stale price.
+    elif (last_bar is not None and fq.bar_date <= last_bar
+          and last_run is not None and last_run < trade_date):
+        # No newer settled K AND a new calendar day since the last run → SGX did
+        # not open (holiday). A same-day rerun (last_run == trade_date) is NOT
+        # 未開盤 — it just re-sees the same settled bar. Mark 未開盤: 富台 columns
+        # stay null but record the (unchanged) bar_date so the frontend shows
+        # 未開盤, not a stale price.
         ftse_fields["ftse_bar_date"] = fq.bar_date
         ftse_log = f"富台 → 未開盤 (K-line still {fq.bar_date})"
-        print(f"  FTSE-TW: 富台 未開盤 — newest K-line {fq.bar_date} "
-              f"<= last {last_bar}; SGX did not open.")
+        print(f"  FTSE-TW: 富台 未開盤 — newest settled K-line {fq.bar_date} "
+              f"<= last {last_bar} across days; SGX did not open.")
     else:
         ftse_now = fq.now
         # Anchor base to the last TW close; carry it forward through a closed
