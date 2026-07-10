@@ -30,7 +30,7 @@ import os
 import re
 import time
 from dataclasses import dataclass
-from datetime import date, datetime
+from datetime import date, datetime, time as dt_time, timedelta, timezone
 from typing import Optional
 
 log = logging.getLogger(__name__)
@@ -40,6 +40,9 @@ _OS_READY_KIND = 3001      # overseas OnConnect ready code (國內 SKQuoteLib is
 _CONNECT_TIMEOUT_S = 20.0
 _QUOTE_SETTLE_S = 5.0      # pump window after RequestStocks for the snapshot to fill
 _KLINE_SETTLE_S = 6.0      # pump window after RequestKLine for OnKLineData to arrive
+_TPE_TZ = timezone(timedelta(hours=8))
+_SETTLE_GUARD_H = 6        # a 富台 day D's night closes D+1 05:00 TPE; treat a bar
+                           # as settled only past D+1 06:00 TPE (skip the live bar)
 
 
 @dataclass
@@ -184,11 +187,7 @@ def fetch_ftse(today: Optional[date] = None) -> Optional[FtseQuote]:
 
         dec = stock.sDecimal or 0
         scale = 10 ** dec
-        now = stock.nClose / scale
         ref = stock.nRef / scale
-        if now <= 0:
-            log.warning("ftse_capital: no price (nClose=0)")
-            return None
 
         name = stock.bstrStockName or ""
         month = _parse_month(name)
@@ -197,8 +196,12 @@ def fetch_ftse(today: Optional[date] = None) -> Optional[FtseQuote]:
             log.warning("ftse_capital: TWN0000 points at %s past expiry — "
                         "continuous roll may have failed", month)
 
-        # Newest daily-K bar date/close — drives the upstream 未開盤 detection.
-        # KType=1 = daily; OnKLineData rows are "code, 'YYYY/MM/DD, O,H,L,C,V'".
+        # Daily K-line — use the newest *settled* bar, never the in-progress one.
+        # A 富台 trading day D's night session closes at D+1 05:00 TPE; a bar only
+        # counts once now is past D+1 06:00 TPE. So a mid-session run uses the
+        # prior settled night close instead of a half-formed current-day bar —
+        # no pollution, no manual seeding. KType=1 = daily; OnKLineData rows are
+        # "code, 'YYYY/MM/DD, O,H,L,C,V'".
         klines.clear()
         krc = osq.SKOSQuoteLib_RequestKLine(SYMBOL, 1)
         if krc != 0:
@@ -208,12 +211,27 @@ def fetch_ftse(today: Optional[date] = None) -> Optional[FtseQuote]:
         if not klines:
             log.warning("ftse_capital: no K-line data returned")
             return None
-        try:
-            parts = [p.strip() for p in str(klines[-1][1]).split(",")]
-            bar_date = datetime.strptime(parts[0], "%Y/%m/%d").date()
-            bar_close = float(parts[4])
-        except (IndexError, ValueError) as e:
-            log.warning("ftse_capital: bad K-line row %r: %s", klines[-1], e)
+        now_tpe = datetime.now(_TPE_TZ)
+        settled = None
+        for krow in reversed(klines):
+            try:
+                parts = [p.strip() for p in str(krow[1]).split(",")]
+                bd = datetime.strptime(parts[0], "%Y/%m/%d").date()
+                bc = float(parts[4])
+            except (IndexError, ValueError):
+                continue
+            settle_after = datetime.combine(
+                bd + timedelta(days=1), dt_time(_SETTLE_GUARD_H, 0), _TPE_TZ)
+            if now_tpe >= settle_after:
+                settled = (bd, bc)
+                break
+        if settled is None:
+            log.warning("ftse_capital: no settled daily K yet")
+            return None
+        bar_date, bar_close = settled
+        now = bar_close  # settled night-session close, not the live in-day price
+        if now <= 0:
+            log.warning("ftse_capital: no price (K close=0)")
             return None
 
         return FtseQuote(
