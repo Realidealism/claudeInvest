@@ -10,24 +10,28 @@ Sources:
   台指期夜盤 (TXF): 鉅亨網 (cnyes) public quote API, symbol TWF:TXF:FUTURES.
 
 富台 is the SGX FTSE Taiwan Index Futures (the contract was the MSCI Taiwan /
-摩台 future before SGX switched the index licence to FTSE in 2020); its quote
-includes the night session (15:00–05:00 TPE, tracking US hours) — exactly when
-a TW holiday's biggest moves happen.
+摩台 future before SGX switched the index licence to FTSE in 2020); its T+1
+session (14:15–05:15 TPE, tracking US hours) is the 夜盤 — exactly when a TW
+holiday's biggest moves happen. SGX books that night under the NEXT trading day,
+so the 富台 daily K closes at the T-session close (in step with the TW cash
+close) and never contains the night that follows it: the night settle lives only
+in the snapshot's last-trade price (see scrapers.ftse_capital).
 
 We convert the future's % move since the last TW cash close onto TAIEX:
 
     theoretical_taiex = taiex_ref_close * (ftse_now / ftse_base)
 
-  ftse_now  : current 富台 price (cnyes field "6"), incl. night session
+  ftse_now  : latest 富台 trade — the 夜盤 settle when read in the 05:20–08:40
+              TPE quiet gap between the T+1 close and the T open
   ftse_base : 富台 close on the last TW cash trading day
   taiex_ref : latest TAIEX close from tw.index_prices
 
 ftse_base is anchored to the last TW close and CARRIED FORWARD across a
 holiday/weekend stretch: on the first run after a TW close, base = the
-future's previous settlement (field "6" − field "11", which equals that
-day's close); on later days of the same closed stretch (same taiex_ref_date)
-we reuse the stored base so a multi-day holiday stays cumulative-since-TW-
-close rather than resetting to each night session's daily settlement.
+future's previous settlement (Capital's nRef, which equals that day's close);
+on later days of the same closed stretch (same taiex_ref_date) we reuse the
+stored base so a multi-day holiday stays cumulative-since-TW-close rather than
+resetting to each night session's daily settlement.
 """
 
 from __future__ import annotations
@@ -36,7 +40,7 @@ from datetime import date, datetime, timezone
 from typing import Any
 
 from db.connection import get_cursor
-from scrapers.ftse_capital import fetch_ftse
+from scrapers.ftse_capital import fetch_ftse, in_quiet_gap
 from utils.format_shift import ScrapeResult
 from utils.http_client import fetch_json_retry
 
@@ -129,22 +133,22 @@ def _carried_base(taiex_ref_date: date) -> float | None:
     return float(row["ftse_base"]) if row else None
 
 
-def _last_ftse_bar_state() -> tuple[date | None, date | None]:
-    """(ftse_bar_date, trade_date) of the latest stored row, for 未開盤 detection.
+def _last_ftse_state() -> tuple[float | None, date | None]:
+    """(ftse_now, trade_date) of the latest stored 富台 price, for 未開盤 detection.
 
-    ftse_bar_date is the last settled 富台 K date; trade_date is the calendar day
-    that run happened on — used to tell a same-day rerun (bar can't advance yet)
-    from a genuine no-advance across days (SGX holiday)."""
+    When SGX is shut the last trade never moves, so an unchanged ftse_now across
+    a calendar day means no session happened. trade_date tells a same-day rerun
+    (price legitimately identical) from a genuine stall across days."""
     with get_cursor(commit=False) as cur:
         cur.execute(
-            "SELECT ftse_bar_date, trade_date FROM tw.ftse_taiwan "
-            "WHERE ftse_bar_date IS NOT NULL "
+            "SELECT ftse_now, trade_date FROM tw.ftse_taiwan "
+            "WHERE ftse_now IS NOT NULL "
             "ORDER BY trade_date DESC LIMIT 1"
         )
         row = cur.fetchone()
     if not row:
         return None, None
-    return row["ftse_bar_date"], row["trade_date"]
+    return float(row["ftse_now"]), row["trade_date"]
 
 
 def _save(record: dict[str, Any]) -> None:
@@ -180,12 +184,18 @@ def _save(record: dict[str, Any]) -> None:
                     (record["trade_date"],))
 
 
-def scrape_date(trade_date: date) -> tuple[ScrapeResult, bool]:
+def scrape_date(trade_date: date, force: bool = False) -> tuple[ScrapeResult, bool]:
     """Fetch 富台 + TXF night quotes, convert to theoretical TAIEX, upsert.
 
     trade_date is the calendar day this snapshot belongs to (the row key);
     the conversion always uses the latest available 富台 price and the
     latest TAIEX close, regardless of trade_date.
+
+    Both quotes are only 夜盤 settles inside the SGX quiet gap (05:20–08:40 TPE,
+    between the T+1 close and the T open) — where the scheduled 08:00 run sits.
+    Outside it they are live in-session prices, so nothing is written at all and
+    the stored pre-open estimate survives untouched; force=True overrides (manual
+    backfill over a weekend, when the last trade can no longer move).
 
     The two legs are DECOUPLED: a 富台 outage (cnyes stopped carrying the SGX
     overnight session ~2026-06-30, so the quote freezes pre-open and only
@@ -195,6 +205,14 @@ def scrape_date(trade_date: date) -> tuple[ScrapeResult, bool]:
     section is never fully blank. Returns (result, ftse_ok) where ftse_ok is
     True only when a valid, timestamped 富台 quote produced a theoretical TAIEX;
     the caller uses it to decide whether to keep retrying for a late 富台."""
+    if not force and not in_quiet_gap():
+        # Mid-session: both quotes would be live in-session prices, not the 夜盤
+        # settle. Write nothing — the stored pre-open estimate is still the right
+        # answer and must not be overwritten with intraday noise.
+        print("  FTSE-TW: outside the 05:20–08:40 TPE quiet gap — nothing written "
+              "(quotes would be in-session prices; use --force to override).")
+        return ScrapeResult(records=0, api_rows=0, parse_errors=0), False
+
     taiex = _latest_taiex()
     if taiex is None:
         print("  FTSE-TW: no TAIEX reference in tw.index_prices — skipping.")
@@ -208,7 +226,7 @@ def scrape_date(trade_date: date) -> tuple[ScrapeResult, bool]:
     }
     ftse_ok = False
     ftse_log = "富台 → 暫無"
-    last_bar, last_run = _last_ftse_bar_state()
+    last_now, last_run = _last_ftse_state()
     fq = fetch_ftse(trade_date)
     if fq is None:
         print("  FTSE-TW: Capital 富台 quote unavailable (富台 leg skipped).")
@@ -217,23 +235,30 @@ def scrape_date(trade_date: date) -> tuple[ScrapeResult, bool]:
         # it points at a settled contract, skip rather than publish a stale base.
         print(f"  FTSE-TW: TWN0000 contract {fq.contract_month} past expiry — "
               f"continuous roll may have failed; 富台 leg skipped.")
-    elif (last_bar is not None and fq.bar_date <= last_bar
+    elif (last_now is not None and fq.now == last_now
           and last_run is not None and last_run < trade_date):
-        # No newer settled K AND a new calendar day since the last run → SGX did
-        # not open (holiday). A same-day rerun (last_run == trade_date) is NOT
-        # 未開盤 — it just re-sees the same settled bar. Mark 未開盤: 富台 columns
-        # stay null but record the (unchanged) bar_date so the frontend shows
-        # 未開盤, not a stale price.
+        # The last trade did not move despite a new calendar day → no SGX session
+        # happened (holiday). Mark 未開盤: the derived columns (base/pct/
+        # theoretical) stay null so the frontend shows 未開盤 rather than a stale
+        # estimate, but ftse_now keeps the unmoved last trade — the table is
+        # latest-only, and dropping it here would erase the very reference the
+        # next run compares against (a second holiday day would then be missed).
+        ftse_fields["ftse_now"] = round(fq.now, 2)
         ftse_fields["ftse_bar_date"] = fq.bar_date
-        ftse_log = f"富台 → 未開盤 (K-line still {fq.bar_date})"
-        print(f"  FTSE-TW: 富台 未開盤 — newest settled K-line {fq.bar_date} "
-              f"<= last {last_bar} across days; SGX did not open.")
+        ftse_log = f"富台 → 未開盤 (last trade still {fq.now:.2f})"
+        print(f"  FTSE-TW: 富台 未開盤 — last trade unchanged at {fq.now:.2f} "
+              f"since {last_run}; SGX did not open.")
     else:
         ftse_now = fq.now
-        # Anchor base to the last TW close; carry it forward through a closed
-        # stretch (same taiex_ref_date), else seed from Capital's prior settle
-        # (nRef == the last TW trading day's settlement == cnyes last-change).
-        ftse_base = _carried_base(taiex_ref_date)
+        # Anchor base to the 富台 price at the last TW close. The daily K's close
+        # IS that instant (T session ends with the TW cash session), so read it
+        # straight off the K series — that stays right through a multi-day TW
+        # holiday, where SGX keeps trading and only the TW-close anchor holds
+        # still. Fall back to the stored base, then to Capital's prior settle
+        # (nRef, correct only when SGX and TW last traded on the same day).
+        ftse_base = fq.recent_closes.get(taiex_ref_date)
+        if ftse_base is None:
+            ftse_base = _carried_base(taiex_ref_date)
         if ftse_base is None:
             ftse_base = fq.ref
         if not ftse_base:
@@ -251,9 +276,10 @@ def scrape_date(trade_date: date) -> tuple[ScrapeResult, bool]:
             }
             ftse_ok = True
             ftse_log = (
-                f"TWN0000({fq.contract_month}) bar {fq.bar_date} now={ftse_now:.2f} "
+                f"TWN0000({fq.contract_month}) 夜盤={ftse_now:.2f} "
                 f"base={ftse_base:.2f} ({pct:+.2%}) → theoretical TAIEX "
-                f"{theoretical:.2f} (ref {taiex_ref_close:.2f} @ {taiex_ref_date})"
+                f"{theoretical:.2f} (ref {taiex_ref_close:.2f} @ {taiex_ref_date}"
+                f", last K {fq.bar_date})"
             )
 
     # ── TXF night leg (best-effort) ─────────────────────────────────────────
