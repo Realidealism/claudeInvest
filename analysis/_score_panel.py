@@ -29,6 +29,7 @@ HORIZONS = (5, 20, 60)
 CATEGORIES = [
     "扣抵", "排列", "大盤", "波浪", "洪量", "OBV", "MACD", "Donchian",
     "距離_p55", "距離_p89", "距離_p144", "距離_p233", "距離_p377",
+    "波動",
 ]
 TIMEFRAMES = ["short", "medium", "long"]
 # Cells dropped from score.py 2026-07-07 (breadth-regime re-review):

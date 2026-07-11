@@ -60,6 +60,24 @@ forward horizons {5, 20, 60} × regimes {full, bull_L, bear_L, neutral_L, bull_M
 
 **逐年 Δ 表必看（與 regime 格同等地位）**：三個現役工具已標配輸出。增益集中單一年份、或最近兩個完整年轉負 → 不採用，不管 regime 格多漂亮（排列拔除案例：九格近全綠，逐年拆解揭穿增益全在 2021+薄樣本 2026、2024/2025 皆負）。
 
+## ★ 偏態閘門：decile spread 是平均數，會獎勵「加載變異數」（2026-07-11 新增，必跑）
+
+**現象（實測）**：在 ~dead panel 上，把當日截面按波動率切五分位，對「同日同 total_long decile 同儕」的超額——**平均數單調上升**（vol60/fwd_60：Q1 -1.33 → Q5 +0.97）但**中位數與勝率完全反向**（中位數 Q1 +0.87 → Q5 -2.05；贏過同儕比例 Q1 54.4% → Q5 45.1%），每格 n≈35 萬。典型高波動股其實輸給同分同儕，平均數靠少數暴衝贏家撐起。
+
+**含義**：decile spread（歷來每一個採用決策的唯一依據）是**平均數**，因此任何偏向高波動股的 cell 都能靠右尾把它做好看，代價是勝率下降＋最大虧損加深——**直接違反三大目標前兩項**。現行 board 已被此偏差滲透：Spearman(total_long, vol) = +0.226（94.5% 交易日為正），D10 落在波動率第 62 百分位、D1 在第 37；**H=20 的 median decile spread 是 -0.057%（負的）**，即該尺度的 mean spread 幾乎全部是右尾。
+
+**閘門（新 cell / weight 改動一律適用）**：mean spread 之外，**必須同時回報**
+1. **median decile spread**（D10 中位數 − D1 中位數）
+2. **D10 勝率**（top decile 中贏過當日全市場中位數的比例）
+3. **D10 最慘 5%**（top decile 報酬的 5% 分位，尾部風險）
+
+判準：
+- **mean 為正、但 median 反向或勝率 < 50%** → **偏態假象，不採用**（不管 mean spread 多漂亮）
+- mean 微降、但 median / 勝率 / 尾部三者同時改善 → **可採用**，但必須在 memory 明記「這是一筆用 mean spread 換勝率與 maxL 的交易」並附 tradeoff 表交使用者裁決（不得自行拍板）
+- 三個新指標的計算範本：`analysis/_score_skew_audit.py`（逐 cell 的 mean/median/勝率對照）與 `analysis/_score_vol_neutral_sim.py`（board 層級 tradeoff 曲線），皆為凍結 panel 欄位算術、零 rebuild
+
+**cell 性格體檢（已跑，2026-07-11）**：載波動率最重的正是史上兩大改良——扣抵_long（rho +0.362）與 距離 cells（p233 +0.342 / p377 +0.331 / p144 +0.310）；它們的多方 cohort 平均數是中位數的 4~6 倍、勝率僅 50.6~50.9%。**最誠實的 cell 是洪量家族**（洪量_long 平均 +2.37 / 中位數 +1.34 / 勝率 53.5%，且唯一負向載波動率 rho -0.128）。紅旗：**大盤_medium 多方 cohort 中位數 -0.10、勝率 49.6%**（純右尾）；OBV 三 scope 的空方 cohort 平均數全為正（符號反向）。註：cohort 性格 ≠ 邊際貢獻，此表**不構成拔除依據**，只說明「那個 Δ 是用什麼買來的」。
+
 ## Rebuild 漂移底線（2026-07-07 null rebuild 實測，判讀 rebuild 對照的前提）
 
 程式碼零改動、只隔兩個月資料的 null rebuild，row-aligned 對照出的「純漂移」：**64.8% rows 的 total 變了**；Δspread 底線 H5/H20/H60 full = -0.013/-0.027/-0.020，bear_L 到 -0.077，**逐年格可達 ±0.27**（2020 H60 -0.269）。含義：
@@ -149,6 +167,7 @@ Event form 標準設計：±5 fresh (0-1d 窗口) / ±3 carry (2-5d 窗口) / 6d
 
 ## Anti-patterns
 
+- **只看 mean decile spread**，跳過 median / 勝率 / 尾部（偏態閘門）——mean 是右尾可以偽造的
 - **只看 H=60 full**，跳過 bear regime 檢查
 - **跳過 ~dead filter** 想「看更多 data」
 - **同失敗模式換 cosmetic 參數重試**（trend form 換不同 magnitude）

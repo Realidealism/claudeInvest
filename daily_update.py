@@ -598,6 +598,7 @@ def update_date(trade_date: date):
     # Market breadth aggregate (depends on close/money/volume per stock).
     breadth_days = 0
     breadth_ok = False
+    market_vol_ok = False
     print(f"\n--- Market breadth ---")
     if critical_failed:
         print(f"  [SKIP] critical scraper(s) failed: {', '.join(critical_failed)}; "
@@ -660,16 +661,39 @@ def update_date(trade_date: date):
             _capture_trace(failure_traces, "每日流動性")
             results.append(("每日流動性", "failed"))
 
+    # Market volatility baseline: the daily cross-sectional median Parkinson-233 vol.
+    # The ScoreBoard 波動 cell divides each stock's volatility by this to get its relative
+    # volatility, so a stale row scores the whole universe against the wrong market level.
+    print(f"\n--- Market volatility baseline ---")
+    if critical_failed:
+        print(f"  [SKIP] critical scraper(s) failed: {', '.join(critical_failed)}; "
+              f"the median would be taken over half the universe.")
+        results.append(("市場波動基準", "skip"))
+    else:
+        try:
+            from analysis.build_market_vol import main as build_market_vol
+            build_market_vol()
+            results.append(("市場波動基準", "ok"))
+            market_vol_ok = True
+        except Exception:
+            print("  [ERROR] Market volatility computation failed:")
+            _capture_trace(failure_traces, "市場波動基準")
+            results.append(("市場波動基準", "failed"))
+
     # Combined daily snapshot — score top-300 long/short + 6 signal-factory
     # fires + unified-strategy open positions, all in one per-stock pass.
     # Skip if market_breadth failed: load_stock_data pulls market_state from
     # tw.market_breadth, and stale rows would silently degrade every output.
+    # Same for market_vol, which the 波動 cell divides by.
     print(f"\n--- Daily snapshot (score + signal + positions) ---")
     if critical_failed:
         print(f"  [SKIP] critical scraper(s) failed: {', '.join(critical_failed)}.")
         results.append(("多空評比 + 操作訊號 + 策略持倉快照", "skip"))
     elif not breadth_ok:
         print("  [SKIP] market_breadth failed; daily_snapshot needs fresh market_state.")
+        results.append(("多空評比 + 操作訊號 + 策略持倉快照", "skip"))
+    elif not market_vol_ok:
+        print("  [SKIP] market_vol failed; the 波動 cell needs a fresh market baseline.")
         results.append(("多空評比 + 操作訊號 + 策略持倉快照", "skip"))
     else:
         try:

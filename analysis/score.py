@@ -23,6 +23,7 @@ Usage:
 
 from __future__ import annotations
 
+from bisect import bisect_right
 from dataclasses import dataclass
 from datetime import date
 from typing import Callable, TYPE_CHECKING
@@ -421,6 +422,8 @@ def build_scoreboard() -> ScoreBoard:
                      windows 18/47/123 (mid-gap between SMA periods)
     Distance:        Continuous z-score of (close - SMA(N)) / rolling_std,
                      ±10 cap, breaks bottom-cluster ties (medium SMA34, long SMA144)
+    Volatility (波動): Continuous z-score of log(Parkinson-233 / market median vol),
+                     low vol scores long, ±37.5 cap (long card only, added 2026-07-11)
     """
     board = ScoreBoard("技術評分")
     _add_turn_rules(board)
@@ -433,6 +436,7 @@ def build_scoreboard() -> ScoreBoard:
     _add_wave_event_rules(board)
     _add_donchian_event_rules(board)
     _add_distance_rules(board)
+    _add_volatility_rules(board, _load_market_vol())
     return board
 
 
@@ -1205,6 +1209,109 @@ def _add_distance_scope(card: ScoreCard, sma_period: int, category: str,
     card.add_short(ScoreItem(
         name=name, points=cap,
         evaluate=short_eval, category=category, continuous=True,
+    ))
+
+
+# ── Volatility (波動) — the low-vol cell, added 2026-07-11 ────────────────
+#
+# Why this cell exists.  Decile spread -- the metric every adoption decision in this
+# project has been made on -- is a MEAN.  Sorting each day's cross-section by volatility
+# and measuring excess against same-decile peers shows the mean rising monotonically with
+# volatility (Q1 -1.33 -> Q5 +0.97 at H=60) while the MEDIAN and the win rate move the
+# other way (median Q1 +0.87 -> Q5 -2.05; beat-peer 54.4% -> 45.1%, n~350k per cell).  The
+# typical high-vol stock loses to its same-score peers; a handful of exploders carry the
+# mean.  So the metric quietly pays for variance, and it was already being paid: D10 sat
+# at the 62nd percentile of short-run volatility, and the board's median decile spread was
+# NEGATIVE in 4 of 10 years (2017/2018/2021/2022) -- in those years the typical top-decile
+# stock lost to the typical bottom-decile stock and only the right tail hid it.
+#
+# This cell hands points to the low-volatility side of the cross-section.  It costs mean
+# spread and buys back the three things the project actually optimises for (see the
+# 偏態閘門 section of the cross-sectional-scoring skill):
+#
+#   H=60   mean spread 6.451% -> 5.852%   (-9.3%)
+#          median      0.865% -> 1.775%   (+105%)
+#          D10 win     51.8%  -> 53.8%
+#          D10 worst-5% -29.3% -> -27.0%
+#   and the median decile spread turns positive in EVERY year (2022: -1.74 -> +0.40).
+#
+# k=15 is exactly that anchor: the smallest multiplier at which no year is left negative.
+# It is not an optimum -- the mean/median exchange rate is ~1.6 and flat across k, so k is
+# a preference dial, and 15 is where the "reliable in every regime" goal is met.  Adopted
+# by the user 2026-07-11 as an explicit trade of mean spread for win rate and max loss.
+#
+# Parkinson-233, not close-to-close-60: earned by sweep, not borrowed.  See
+# analysis/volatility.py.  MU/SIGMA measured against tw.market_vol (the production
+# denominator) in analysis/_score_vol_calibrate.py; yearly MU drift is 0.07 sigma.
+_VOL_MU = 0.0306      # mean of log(park233 / market median vol), ~dead universe
+_VOL_SIGMA = 0.3929   # its std
+_VOL_K = 15.0         # points multiplier
+_VOL_CLIP = 2.5 * _VOL_K   # ±37.5; binds on 1.68% of rows
+
+
+class MarketVolSeries:
+    """As-of lookup of the daily cross-sectional median Parkinson vol.
+
+    As-of, not exact-match, because tw.market_vol is written by daily_update after the
+    close, while intraday_snapshot scores the *current* bar during the session. An exact
+    lookup would miss, the cell would silently return 0 for every stock while
+    max_possible still counted its ±37.5, and every intraday long_pct would be quietly
+    depressed relative to the evening's. The median of a 233-day volatility moves
+    negligibly day to day, so the previous close's value is the right stand-in.
+    """
+
+    def __init__(self, rows: list[tuple[date, float]]):
+        rows = sorted(rows)
+        self._dates = [d for d, _ in rows]
+        self._vals = [v for _, v in rows]
+
+    def as_of(self, day: date) -> float:
+        """Median vol on `day`, or the most recent prior day. 0.0 if before the series."""
+        i = bisect_right(self._dates, day)
+        return self._vals[i - 1] if i else 0.0
+
+
+def _load_market_vol() -> MarketVolSeries:
+    """Load the market volatility baseline. Built by analysis/build_market_vol.py.
+
+    A cell sees one stock at a time (ScoreBoard.evaluate takes a single StockData), so it
+    cannot rank against peers. Dividing by this same-day constant preserves the
+    cross-sectional order, which is all a ranking needs.
+    """
+    from db.connection import get_cursor
+    with get_cursor(commit=False) as cur:
+        cur.execute("SELECT trade_date, median_vol FROM tw.market_vol")
+        return MarketVolSeries([(r["trade_date"], float(r["median_vol"]))
+                                for r in cur.fetchall()])
+
+
+def _vol_zscore(d: "StockData", i: int, market_vol: MarketVolSeries) -> float:
+    """Signed points for the long side: positive when the stock is calmer than the market."""
+    v = float(d.park_vol[i])
+    if not np.isfinite(v) or v <= 0.0:
+        return 0.0
+    mv = market_vol.as_of(d.dates[i])
+    if mv <= 0.0:
+        return 0.0
+    z = -(float(np.log(v / mv)) - _VOL_MU) / _VOL_SIGMA
+    return float(np.clip(z * _VOL_K, -_VOL_CLIP, _VOL_CLIP))
+
+
+def _add_volatility_rules(board: ScoreBoard, market_vol: MarketVolSeries) -> None:
+    """Add the continuous low-volatility cell to the long ScoreCard."""
+    def long_eval(d, i, mv=market_vol):
+        return _vol_zscore(d, i, mv)
+
+    def short_eval(d, i, mv=market_vol):
+        return -_vol_zscore(d, i, mv)
+
+    board.long.add_long(ScoreItem(
+        name="低波動", points=_VOL_CLIP,
+        evaluate=long_eval, category="波動", continuous=True,
+    ))
+    board.long.add_short(ScoreItem(
+        name="低波動", points=_VOL_CLIP,
+        evaluate=short_eval, category="波動", continuous=True,
     ))
 
 

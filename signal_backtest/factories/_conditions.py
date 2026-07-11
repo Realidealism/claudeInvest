@@ -29,6 +29,15 @@ from numpy.typing import NDArray
 from analysis.chandelier import calculate_chandelier
 from analysis.indicators import rolling_highest, rolling_lowest
 
+# ── ScoreBoard pct gates ──────────────────────────────────────────────────
+# Module-level so signal_backtest/sweep.py specs can scan them without editing
+# rules. Every ScoreBoard change moves the pct distribution and these have to be
+# re-tuned against it (skill §6) -- v355/v356 raised them after two cells were
+# dropped, and the 2026-07-11 波動 cell moves the distribution the other way.
+BUY_LP_TIERS = (49.0, 44.0, 39.0)        # 強空 / 偏空 / default  (v358)
+SELL_FLEE_LP_LEVELS = (30.0, 25.0, 20.0)  # stairstep, before the knot relief _sfr (v358)
+BUY_FLEE_POST_GATE = 28.0                 # post_strength short_pct floor (v358)
+
 if TYPE_CHECKING:
     from backtest.data import StockData
 
@@ -894,7 +903,10 @@ def buy_condition(data: "StockData") -> BoolArray:
     #   (MACD_medium + 大盤_long removed → long_pct median shifted +3.1, P90 +5.1)
     #   3-tier +4 (48/43/38 → 52/47/42). Sweep id 3 (buy_lp_gate): +4 sits on the
     #   +3~+5 calibration plateau, PF 1.6947→1.7534, ratio flat 3.02, time-even.
-    _tier = np.where(strongly_bear, 52.0, np.where(moderate_bear_only, 47.0, 42.0))
+    # v358 (2026-07-11): lowered to 49/44/39 after the 波動 cell shifted long_pct down;
+    #   sweep 9 peak PF 1.7904. Live values in BUY_LP_TIERS at the top of this file.
+    _tier = np.where(strongly_bear, BUY_LP_TIERS[0],
+                     np.where(moderate_bear_only, BUY_LP_TIERS[1], BUY_LP_TIERS[2]))
     # v349: 過長期新高 → 降 buy 門檻 (長結構轉強的直接確認, 評分長回顧 cell under-weight)
     #   近3日過144日新高 -2 / 近5日過233日新高 -5 / 近8日過377日新高 -8 (取最深一階)
     #   強空除外 (強空裡的新高是假突破陷阱; 排掉後 bear 拖累 -0.0139→-0.0003)
@@ -1220,7 +1232,9 @@ def buy_flee_signal(data: "StockData") -> BoolArray:
     #   both halves improve, trades 250 = 1.04x of v352's 241 force-exit density).
     #   Sweep id 5: prev1 anchor tightening rejected (monotonic degradation);
     #   anchor (<=0) and _PCT_DELTA1_THRESHOLD stay unchanged.
-    rule_post_strength = short_pct >= 32
+    # v358 (2026-07-11): lowered 32 → 28 after the 波動 cell; at 32 the new-board 2nd-half
+    #   PF was 0.63 (no edge). Live value in BUY_FLEE_POST_GATE at the top of this file.
+    rule_post_strength = short_pct >= BUY_FLEE_POST_GATE
     rule_knot = ~(data.close_result.knot["long"].flag
                   | data.close_result.knot["medium"].flag)
     return main & rule_post_strength & rule_knot
@@ -1261,10 +1275,12 @@ def sell_flee_signal(data: "StockData") -> BoolArray:
     #   unchanged. Sweep id 4 (sell_flee_post_strength): +5 has best first-half
     #   PF 1.7006 (only point clearly above baseline both halves), ratio 4.00,
     #   trigger density -7.5% (force-exit role preserved). +10 was time-uneven.
+    # v358 (2026-07-11): lowered to 30/25/20 after the 波動 cell; sweep 8 plateau, chose the
+    #   density end. Live values in SELL_FLEE_LP_LEVELS at the top of this file.
     rule_post_strength = (
-        (long_pct >= 40 - _sfr)
-        | ((delta_from_min2 >= 40) & (long_pct >= 35 - _sfr))
-        | ((delta_from_min2 >= 50) & (long_pct >= 30 - _sfr))
+        (long_pct >= SELL_FLEE_LP_LEVELS[0] - _sfr)
+        | ((delta_from_min2 >= 40) & (long_pct >= SELL_FLEE_LP_LEVELS[1] - _sfr))
+        | ((delta_from_min2 >= 50) & (long_pct >= SELL_FLEE_LP_LEVELS[2] - _sfr))
     )
     # v195b: SB stairstep gate AND above_prev (站上前次洪量 high) — 強化既有 path
     # v195 OR 路徑 +4689 trades / -0.092 PF 失敗，改用 AND 收緊

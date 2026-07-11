@@ -28,6 +28,7 @@ from analysis.over_breakout import calculate_over_breakout, OverBreakoutResult
 from analysis.market_state import calculate_market_state, MarketState
 from analysis.macd import calculate_macd, MACDResult
 from analysis.donchian import calculate_donchian, DonchianResult
+from analysis.volatility import calculate_parkinson_vol
 from analysis.chandelier import calculate_chandelier, ChandelierResult
 
 
@@ -86,6 +87,7 @@ class StockData:
     macd: MACDResult
     donchian: DonchianMulti
     chandelier: ChandelierResult
+    park_vol: F32Array          # Parkinson-233 volatility (ScoreBoard 波動 cell)
 
     # Forming sort alignment (depends on close + volume)
     sort_forming: dict[str, SortResult]
@@ -335,6 +337,7 @@ def build_stock_data(
         long=calculate_donchian(high, low, close, entry_length=233, exit_length=144),
     )
     chandelier = calculate_chandelier(high, low, close, length=21, mult=3.0, use_close=True)
+    park_vol = calculate_parkinson_vol(high, low)
     sort_forming = calc_sort_forming(close_result, volume_result.volume_status)
 
     return StockData(
@@ -359,6 +362,7 @@ def build_stock_data(
         macd=macd,
         donchian=donchian,
         chandelier=chandelier,
+        park_vol=park_vol,
         sort_forming=sort_forming,
         dividends=dividends,
     )

@@ -467,10 +467,29 @@ def _check_market_breadth_fresh(snapshot_date: date) -> None:
         )
 
 
+def _check_market_vol_fresh(snapshot_date: date) -> None:
+    """Precondition: tw.market_vol must reach snapshot_date.
+
+    The ScoreBoard 波動 cell divides each stock's Parkinson-233 volatility by this
+    day's cross-sectional median. A missing row makes the cell score 0 for every
+    stock — silently dropping a ±37.5-point cell rather than failing — which would
+    shift every long_pct and quietly move the signal-factory gates.
+    """
+    with get_cursor(commit=False) as cur:
+        cur.execute("SELECT MAX(trade_date) AS d FROM tw.market_vol")
+        latest = cur.fetchone()["d"]
+    if latest is None or latest < snapshot_date:
+        raise RuntimeError(
+            f"tw.market_vol latest = {latest}, snapshot_date = {snapshot_date}. "
+            f"Run python -m analysis.build_market_vol first."
+        )
+
+
 def run(snapshot_date: date) -> dict:
     """Main entry. Parallelizes per-stock evaluation across N_WORKERS,
     then writes both score and signal snapshots."""
     _check_market_breadth_fresh(snapshot_date)
+    _check_market_vol_fresh(snapshot_date)
     _check_liquidity_fresh(snapshot_date)
 
     t0 = time.time()
