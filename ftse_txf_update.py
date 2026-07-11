@@ -7,14 +7,17 @@ tw.ftse_taiwan, regenerates ftse_taiwan.json, and pushes to GitHub for Vercel
 auto-deploy.
 
 Both legs are live quotes carrying the 夜盤 settle before the 09:00 cash open,
-so a single pass suffices — no polling. Run via Task Scheduler Tue-Sat (covers
-Mon-Fri night sessions; Sat catches Friday's; the weekend has no fresh
-session): a pre-dawn run rebuilds the pre-open estimate from the just-settled
-night session, and a later run refreshes it after the SGX 08:45 day open.
+so a single pass suffices — no polling. Run via Task Scheduler Tue-Sat at 08:00
+(covers Mon-Fri night sessions; Sat catches Friday's, which is also what Monday
+morning shows since the weekend has no fresh session). 08:00 sits inside the SGX
+quiet gap (T+1 closed 05:15, T opens 08:45), where the 富台 last trade IS the
+night settle — outside that gap the 富台 leg refuses to write (see
+scrapers.ftse_taiwan.scrape_date).
 
 Usage:
   python ftse_txf_update.py            # fetch + export + git push
   python ftse_txf_update.py --no-push  # local only, skip git
+  python ftse_txf_update.py --force    # write 富台 outside the quiet gap
 """
 
 from __future__ import annotations
@@ -86,7 +89,7 @@ def main() -> int:
     # run, no polling. 富台 carries the 夜盤 settle pre-open (unlike the old
     # cnyes 富台 that froze until the 08:45 day open), so there is nothing to
     # wait for; each leg is written best-effort and decoupled in scrape_date.
-    result, ftse_ok = scrape_date(date.today())
+    result, ftse_ok = scrape_date(date.today(), force="--force" in sys.argv)
     print(f"  Scraper records={result.records} api_rows={result.api_rows} "
           f"ftse_ok={ftse_ok}")
 

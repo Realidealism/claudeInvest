@@ -19,9 +19,18 @@ Sequence (all verified live 2026-07-10 against TWN0000):
   RequestStocks(0, "SGX,TWN0000")             # 必帶交易所前綴, else rc=3023
   GetStockByNoLONG("SGX,TWN0000", SKFOREIGNLONG())  # price = field / 10**sDecimal
 
+SGX sessions and what carries the night move (verified 2026-07-11):
+  T   session 08:45–13:45 TPE — in step with the TW cash session
+  T+1 session 14:15–05:15 TPE (next morning) — the 夜盤, tracking US hours;
+      SGX books it under the NEXT trading day (so Fri night is part of Mon).
+  The daily K's close is therefore the T-session close (== that day's settlement
+  == nRef the next trading day) and does NOT contain the night that follows it.
+  The night settle only ever shows up in the snapshot's nClose (last trade).
+
 Field mapping vs the old cnyes quote:
-  nClose (即時價)  -> ftse_now
-  nRef   (前結算)  -> base seed  (== cnyes  last - change  == last TW settlement)
+  nClose (最後成交)  -> ftse_now   (between 05:15 and 08:45 this IS the 夜盤 close)
+  nRef   (前結算)    -> base seed  (== cnyes  last - change  == last TW settlement)
+  daily K            -> bar_date/bar_close, recorded for 未開盤 diagnosis only
 """
 from __future__ import annotations
 
@@ -40,21 +49,36 @@ _OS_READY_KIND = 3001      # overseas OnConnect ready code (國內 SKQuoteLib is
 _CONNECT_TIMEOUT_S = 20.0
 _QUOTE_SETTLE_S = 5.0      # pump window after RequestStocks for the snapshot to fill
 _KLINE_SETTLE_S = 6.0      # pump window after RequestKLine for OnKLineData to arrive
+_KLINE_KEEP = 30           # recent daily bars kept — covers the longest TW holiday
 _TPE_TZ = timezone(timedelta(hours=8))
-_SETTLE_GUARD_H = 6        # a 富台 day D's night closes D+1 05:00 TPE; treat a bar
-                           # as settled only past D+1 06:00 TPE (skip the live bar)
+# Between the T+1 close (05:15) and the T open (08:45) nothing trades, so nClose
+# is exactly the 夜盤 settle. Outside that gap nClose is a live in-session price
+# and must not be persisted (it would pollute the pre-open estimate). Margins
+# keep the scheduled 08:00 run comfortably inside.
+_NIGHT_WIN_START = dt_time(5, 20)
+_NIGHT_WIN_END = dt_time(8, 40)
 
 
 @dataclass
 class FtseQuote:
-    now: float             # 即時價 (nClose)
-    ref: float             # 前結算 (nRef) — base anchor when no carried base exists
-    name: str              # e.g. 富時台指2607
-    contract_month: str    # parsed "2607"
-    trading_day: int       # nTradingDay, e.g. 20260713
-    stale_contract: bool   # True if the continuous alias failed to roll (past expiry)
-    bar_date: date         # newest daily-K bar date — drives 未開盤 detection
-    bar_close: float       # newest daily-K close (夜盤 settle pre-open)
+    now: float                  # 最後成交 (nClose) — 夜盤 settle inside the gap
+    ref: float                  # 前結算 (nRef) — base anchor when no carried base
+    name: str                   # e.g. 富時台指2607
+    contract_month: str         # parsed "2607"
+    trading_day: int            # nTradingDay (SGX trading day, night → next day)
+    stale_contract: bool        # True if the continuous alias failed to roll
+    bar_date: Optional[date]    # newest daily-K date (T-session close, no night)
+    bar_close: Optional[float]  # newest daily-K close
+    recent_closes: dict         # {date: close} for the last _KLINE_KEEP days —
+                                # a K close IS that day's T-session/TW-cash close,
+                                # so it is the exact base for any TAIEX ref date
+
+
+def in_quiet_gap(now: Optional[datetime] = None) -> bool:
+    """True inside the 05:20–08:40 TPE gap where no SGX session is running, so a
+    last-trade price is the settled 夜盤 rather than a live in-session tick."""
+    t = (now or datetime.now(_TPE_TZ)).time()
+    return _NIGHT_WIN_START <= t <= _NIGHT_WIN_END
 
 
 def _parse_month(name: str) -> str:
@@ -188,6 +212,10 @@ def fetch_ftse(today: Optional[date] = None) -> Optional[FtseQuote]:
         dec = stock.sDecimal or 0
         scale = 10 ** dec
         ref = stock.nRef / scale
+        now = stock.nClose / scale
+        if now <= 0:
+            log.warning("ftse_capital: no last price (nClose=0)")
+            return None
 
         name = stock.bstrStockName or ""
         month = _parse_month(name)
@@ -196,48 +224,35 @@ def fetch_ftse(today: Optional[date] = None) -> Optional[FtseQuote]:
             log.warning("ftse_capital: TWN0000 points at %s past expiry — "
                         "continuous roll may have failed", month)
 
-        # Daily K-line — use the newest *settled* bar, never the in-progress one.
-        # A 富台 trading day D's night session closes at D+1 05:00 TPE; a bar only
-        # counts once now is past D+1 06:00 TPE. So a mid-session run uses the
-        # prior settled night close instead of a half-formed current-day bar —
-        # no pollution, no manual seeding. KType=1 = daily; OnKLineData rows are
+        # Daily K. A bar's close is the T-session close — the same instant as the
+        # TW cash close — so it is the base 富台 price for that trading day; the
+        # night that follows is booked into the NEXT bar. Best-effort: a K failure
+        # must not sink the quote. KType=1 = daily; OnKLineData rows are
         # "code, 'YYYY/MM/DD, O,H,L,C,V'".
+        closes: dict = {}
         klines.clear()
         krc = osq.SKOSQuoteLib_RequestKLine(SYMBOL, 1)
         if krc != 0:
             log.warning("ftse_capital: RequestKLine rc=%s", krc)
-            return None
-        pump(_KLINE_SETTLE_S)
-        if not klines:
-            log.warning("ftse_capital: no K-line data returned")
-            return None
-        now_tpe = datetime.now(_TPE_TZ)
-        settled = None
-        for krow in reversed(klines):
-            try:
-                parts = [p.strip() for p in str(krow[1]).split(",")]
-                bd = datetime.strptime(parts[0], "%Y/%m/%d").date()
-                bc = float(parts[4])
-            except (IndexError, ValueError):
-                continue
-            settle_after = datetime.combine(
-                bd + timedelta(days=1), dt_time(_SETTLE_GUARD_H, 0), _TPE_TZ)
-            if now_tpe >= settle_after:
-                settled = (bd, bc)
-                break
-        if settled is None:
-            log.warning("ftse_capital: no settled daily K yet")
-            return None
-        bar_date, bar_close = settled
-        now = bar_close  # settled night-session close, not the live in-day price
-        if now <= 0:
-            log.warning("ftse_capital: no price (K close=0)")
-            return None
+        else:
+            pump(_KLINE_SETTLE_S)
+            for krow in klines[-_KLINE_KEEP:]:
+                try:
+                    parts = [p.strip() for p in str(krow[1]).split(",")]
+                    closes[datetime.strptime(parts[0], "%Y/%m/%d").date()] = round(
+                        float(parts[4]), 2)
+                except (IndexError, ValueError):
+                    continue
+            if not closes:
+                log.warning("ftse_capital: no usable K-line rows")
 
+        bar_date = max(closes) if closes else None
         return FtseQuote(
             now=round(now, 2), ref=round(ref, 2), name=name,
             contract_month=month, trading_day=int(stock.nTradingDay or 0),
-            stale_contract=stale, bar_date=bar_date, bar_close=round(bar_close, 2),
+            stale_contract=stale, bar_date=bar_date,
+            bar_close=closes.get(bar_date) if bar_date else None,
+            recent_closes=closes,
         )
     finally:
         try:
