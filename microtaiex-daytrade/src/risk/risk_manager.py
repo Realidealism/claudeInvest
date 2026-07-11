@@ -64,6 +64,15 @@ class RiskConfig:
     masha_loss_atr_mult: Optional[float] = None
     masha_loss_atr_lo: float = 12.0
     masha_loss_atr_hi: float = 40.0
+    # Ceiling as a fraction of the index level instead of a fixed point count.
+    # A fixed 40-pt ceiling loses its meaning as the index rises (40pt was 0.18%
+    # of the index at 22000, only 0.087% at 46000), so the guard silently tightens
+    # over time. When set, hi = masha_loss_atr_hi_pct * entry_price; the fixed
+    # masha_loss_atr_hi is then unused. Anchored so that 0.00087 == 40pt @ 46000.
+    # Note lo stays a fixed point value on purpose: the noise floor that lo guards
+    # against does not scale with the index level (scaling it costs -390 pts on the
+    # 8-file backtest by tightening low-price-era stops into the noise).
+    masha_loss_atr_hi_pct: Optional[float] = None
 
 
 class RiskManager:
@@ -134,7 +143,7 @@ class RiskManager:
         # §9.1 per-trade point cap. Dynamic (clamp(mult*ATR, lo, hi)) when
         # configured — adapts the stop to current volatility — else the fixed cap;
         # dynamic falls back to the fixed cap while ATR is still warming up.
-        cap = self._trade_cap(atr)
+        cap = self._trade_cap(atr, pos.entry_price)
         if cap is not None and pos.entry_price is not None:
             loss = (pos.entry_price - bar.close if pos.side is Side.BUY
                     else bar.close - pos.entry_price)
@@ -232,15 +241,25 @@ class RiskManager:
         use effective_stop (the per-trade point cap usually dominates it)."""
         return self._trail_stop
 
-    def _trade_cap(self, atr: Optional[float]) -> Optional[float]:
+    def _trade_cap(self, atr: Optional[float],
+                   price: Optional[float] = None) -> Optional[float]:
         """Per-trade point cap in force: dynamic clamp(mult*ATR, lo, hi) when
         configured, else the fixed cap; falls back to the fixed cap while ATR is
         still warming up. Single source of truth shared by check_stop and the
-        reported effective stop so they can never diverge. None if no cap set."""
+        reported effective stop so they can never diverge. None if no cap set.
+
+        ``price`` is the position's entry price: with masha_loss_atr_hi_pct set the
+        ceiling scales with the index level (hi = pct * price) instead of being a
+        fixed point count. Anchoring on entry_price (not the live bar) keeps the
+        ceiling stable for the life of the trade.
+        """
         cap = self.cfg.max_loss_points_per_trade
         if self.cfg.masha_loss_atr_mult is not None and atr is not None:
+            hi = self.cfg.masha_loss_atr_hi
+            if self.cfg.masha_loss_atr_hi_pct is not None and price is not None:
+                hi = self.cfg.masha_loss_atr_hi_pct * price
             cap = max(self.cfg.masha_loss_atr_lo,
-                      min(self.cfg.masha_loss_atr_hi, self.cfg.masha_loss_atr_mult * atr))
+                      min(hi, self.cfg.masha_loss_atr_mult * atr))
         return cap
 
     def effective_stop(self, pos: PositionStateMachine, atr: Optional[float]) -> Optional[float]:
@@ -255,7 +274,7 @@ class RiskManager:
             return None
         is_long = pos.side is Side.BUY
         lines = []
-        cap = self._trade_cap(atr)
+        cap = self._trade_cap(atr, pos.entry_price)
         if cap is not None:
             lines.append(pos.entry_price - cap if is_long else pos.entry_price + cap)
         if self._trail_stop is not None:
@@ -272,7 +291,7 @@ class RiskManager:
         will fire on for the first bars of the trade."""
         is_long = side is Side.BUY
         lines = []
-        cap = self._trade_cap(atr)
+        cap = self._trade_cap(atr, entry_price)
         if cap is not None:
             lines.append(entry_price - cap if is_long else entry_price + cap)
         ch = self.initial_defense(side, entry_price, atr)

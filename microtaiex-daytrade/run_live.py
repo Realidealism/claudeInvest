@@ -91,6 +91,12 @@ SHORT_ATR_MULT = 2.0
 # (noise filter). Sweep peak at 0.05 across full + both halves.
 STOP_BUFFER_ATR = 0.05
 ATR_PERIOD = 21
+# Per-trade stop ceiling as a fraction of the index, not a fixed point count: a
+# fixed 40pt was 0.18% of the index at 22000 but only 0.087% at 46000, so it kept
+# silently tightening as the index rose. Anchored at today's level (0.00087 * 46000
+# = 40pt), so it is equivalent now and scales from here. Costs -168 pts on the
+# 8-file backtest (PF 1.063 -> 1.061); accepted as the price of scale-invariance.
+STOP_HI_PCT = 0.00087
 STRAT_TF = "5m"
 
 
@@ -220,9 +226,11 @@ def main(argv) -> int:
                        long_stop_atr_mult=LONG_ATR_MULT, short_stop_atr_mult=SHORT_ATR_MULT,
                        stop_buffer_atr=STOP_BUFFER_ATR,
                        # unified 初始防守: 麻紗 dynamic per-trade stop as the hard
-                       # initial cap (0.5xATR clamp 12..40, warmup fallback 20);
-                       # the Chandelier trail stays as the trailing exit.
-                       max_loss_points_per_trade=20.0, masha_loss_atr_mult=0.5),
+                       # initial cap (0.5xATR, floor 12pt, ceiling = STOP_HI_PCT of
+                       # the index; warmup fallback 20); the Chandelier trail stays
+                       # as the trailing exit.
+                       max_loss_points_per_trade=20.0, masha_loss_atr_mult=0.5,
+                       masha_loss_atr_hi_pct=STOP_HI_PCT),
             "reports/paper_trades_gated.csv" if gated else "reports/paper_trades.csv",
             "", "composite")
         if masha:
@@ -323,9 +331,11 @@ def main(argv) -> int:
                                       short_stop_atr_mult=SHORT_ATR_MULT,
                                       stop_buffer_atr=STOP_BUFFER_ATR,
                                       # unified 初始防守: 麻紗 dynamic per-trade stop
-                                      # (0.5xATR clamp 12..40, warmup fallback 20).
+                                      # (0.5xATR, floor 12pt, ceiling = STOP_HI_PCT
+                                      # of the index; warmup fallback 20).
                                       max_loss_points_per_trade=20.0,
-                                      masha_loss_atr_mult=0.5))
+                                      masha_loss_atr_mult=0.5,
+                                      masha_loss_atr_hi_pct=STOP_HI_PCT))
         engine = TradingEngine(broker, strategy, risk, PositionStateMachine(),
                                atr_period=ATR_PERIOD,
                                force_close_fn=clock.should_force_close,
