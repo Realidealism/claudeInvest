@@ -10,6 +10,7 @@ import json
 import os
 import sys
 import tempfile
+from collections import Counter
 from datetime import date, datetime
 from decimal import Decimal
 from pathlib import Path
@@ -1781,23 +1782,41 @@ def export_chip_picks(cur, out: Path):
 # stamps on its symbols; a category with no live symbol is dropped.
 COMMODITY_CATEGORIES = [
     ("memory",   "記憶體"),
+    ("panel",    "面板"),
     ("energy",   "能源"),
+    ("petro",    "石化"),
     ("metal",    "金屬"),
+    ("agri",     "農產"),
     ("fx",       "匯率"),
+    ("crypto",   "加密貨幣"),
     ("shipping", "海運"),
 ]
 
-COMMODITY_SERIES_DAYS = 252  # points kept per symbol for the card's chart
+# Mid/long lookback in DATA POINTS, per series frequency — a point is a day,
+# a week or a month depending on the source. Reading 20/60 points back on a
+# monthly panel series would reach into 2021; the frontend renders the counts
+# alongside the freq's unit ("3月" / "12月").
+COMMODITY_LOOKBACK = {
+    "daily":   (20, 60),
+    "weekly":  (4, 13),
+    "monthly": (3, 12),
+}
+
+COMMODITY_WINDOW_DAYS = 252  # rows read per symbol — the 52-week lookback
 
 
 def export_market_quote(cur, out: Path):
     """commodities.json — 大宗行情 page.
 
     The two scrapers' symbol tables are the single source of truth for both
-    the instrument list and its display metadata (name/unit/dp/freq); this
+    the instrument list and its display metadata (name/unit/dp/freq/tv); this
     only reads them. Everything derived — period changes, 52-week range — is
     computed here rather than stored, so a revised upstream close propagates
     without a backfill (see db/migrations/063_add_market_quote.sql).
+
+    No price series is emitted: the cards are numbers only and link out to
+    TradingView for the chart, which keeps this file a few KB instead of the
+    ~200KB a year of daily closes for every symbol would cost on each push.
     """
     from scrapers.market_html import HTML_SYMBOLS
     from scrapers.market_quote import SYMBOLS
@@ -1821,17 +1840,18 @@ def export_market_quote(cur, out: Path):
 
     def chg(pts, n):
         """% move over n data points back. A "point" is whatever the series'
-        freq is — a week for FBX — which is why the frontend labels these off
-        `freq` instead of calling them days."""
+        freq is — a week for FBX, a month for the panel quote — which is why
+        the frontend labels these off `freq` instead of calling them days."""
         if len(pts) <= n or not pts[-1 - n][1]:
             return None
         return round((pts[-1][1] / pts[-1 - n][1] - 1) * 100, 2)
 
     quotes = []
     for symbol, m in meta.items():
-        pts = by_symbol.get(symbol, [])[-COMMODITY_SERIES_DAYS:]
+        pts = by_symbol.get(symbol, [])[-COMMODITY_WINDOW_DAYS:]
         if not pts:
             continue
+        n_mid, n_long = COMMODITY_LOOKBACK[m["freq"]]
         latest_date, latest = pts[-1]
         # 52-week range runs off the calendar year up to this symbol's own
         # last print, not the last N points: BDI and the memory spots only
@@ -1846,20 +1866,29 @@ def export_market_quote(cur, out: Path):
             "unit":        m["unit"],
             "dp":          m["dp"],
             "freq":        m["freq"],
+            "tv":          m.get("tv"),
             "latest":      latest,
             "latest_date": latest_date,
-            "chg_1d":      chg(pts, 1),
-            "chg_20d":     chg(pts, 20),
-            "chg_60d":     chg(pts, 60),
+            "chg_1":       chg(pts, 1),
+            "chg_mid":     chg(pts, n_mid),
+            "chg_long":    chg(pts, n_long),
+            "n_mid":       n_mid,
+            "n_long":      n_long,
             "w52_high":    hi,
             "w52_low":     lo,
             "w52_pct":     round((latest - lo) / (hi - lo) * 100, 1) if hi > lo else None,
-            "series":      [{"date": d, "close": v} for d, v in pts],
         })
+
+    # The page's date is the one MOST symbols last printed, not the newest of
+    # them: bitcoin trades on Sundays and Yahoo's FX tickers carry a Sunday
+    # open tick, so a max() here would drag the page into the weekend and
+    # leave every exchange-traded card looking a day or two stale.
+    counts = Counter(q["latest_date"] for q in quotes)
+    page_date = max(counts, key=lambda d: (counts[d], d)) if counts else None
 
     live = {q["category"] for q in quotes}
     _write({
-        "latest_date": max((q["latest_date"] for q in quotes), default=None),
+        "latest_date": page_date,
         "categories":  [{"key": k, "label": lb}
                         for k, lb in COMMODITY_CATEGORIES if k in live],
         "quotes":      quotes,

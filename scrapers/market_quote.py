@@ -39,21 +39,34 @@ CHART_URL = "https://query1.finance.yahoo.com/v8/finance/chart/{ticker}"
 # formatting there. `dp` is the decimal precision to display. Everything from
 # this source is a daily bar — `freq` exists because market_html.py carries
 # weekly series (FBX) and the frontend labels moves off it.
+#
+# `tv` is the TradingView symbol the card links out to for the chart — we
+# store closes only, so the K-bars live over there. It is picked to match the
+# instrument we actually quote (continuous front-month futures for `X=F`
+# tickers, not the spot index of the same name).
 SYMBOLS: dict[str, dict[str, Any]] = {
     # 能源
-    "wti":     {"ticker": "CL=F",      "name": "西德州原油", "category": "energy",   "unit": "USD/桶",  "dp": 2, "freq": "daily"},
-    "brent":   {"ticker": "BZ=F",      "name": "布蘭特原油", "category": "energy",   "unit": "USD/桶",  "dp": 2, "freq": "daily"},
-    "natgas":  {"ticker": "NG=F",      "name": "天然氣",     "category": "energy",   "unit": "USD/MMBtu", "dp": 3, "freq": "daily"},
-    # 金屬
-    "copper":  {"ticker": "HG=F",      "name": "銅",         "category": "metal",    "unit": "USD/磅",  "dp": 4, "freq": "daily"},
-    "gold":    {"ticker": "GC=F",      "name": "黃金",       "category": "metal",    "unit": "USD/盎司", "dp": 2, "freq": "daily"},
-    "silver":  {"ticker": "SI=F",      "name": "白銀",       "category": "metal",    "unit": "USD/盎司", "dp": 3, "freq": "daily"},
+    "wti":     {"ticker": "CL=F",      "name": "西德州原油", "category": "energy",   "unit": "USD/桶",  "dp": 2, "freq": "daily", "tv": "NYMEX:CL1!"},
+    "brent":   {"ticker": "BZ=F",      "name": "布蘭特原油", "category": "energy",   "unit": "USD/桶",  "dp": 2, "freq": "daily", "tv": "NYMEX:BZ1!"},
+    "natgas":  {"ticker": "NG=F",      "name": "天然氣",     "category": "energy",   "unit": "USD/MMBtu", "dp": 3, "freq": "daily", "tv": "NYMEX:NG1!"},
+    # 金屬 (熱軋鋼捲 = 中鋼/豐興/燁輝 這條鋼鐵族群的報價錨)
+    "copper":  {"ticker": "HG=F",      "name": "銅",         "category": "metal",    "unit": "USD/磅",  "dp": 4, "freq": "daily", "tv": "COMEX:HG1!"},
+    "gold":    {"ticker": "GC=F",      "name": "黃金",       "category": "metal",    "unit": "USD/盎司", "dp": 2, "freq": "daily", "tv": "COMEX:GC1!"},
+    "silver":  {"ticker": "SI=F",      "name": "白銀",       "category": "metal",    "unit": "USD/盎司", "dp": 3, "freq": "daily", "tv": "COMEX:SI1!"},
+    "hrc":     {"ticker": "HRC=F",     "name": "熱軋鋼捲",   "category": "metal",    "unit": "USD/短噸", "dp": 0, "freq": "daily", "tv": "COMEX:HRC1!"},
+    # 農產 (飼料成本端 — 大成/卜蜂/福壽)。CBOT 穀物報價單位是美分/英斗。
+    "soybean": {"ticker": "ZS=F",      "name": "黃豆",       "category": "agri",     "unit": "美分/英斗", "dp": 2, "freq": "daily", "tv": "CBOT:ZS1!"},
+    "corn":    {"ticker": "ZC=F",      "name": "玉米",       "category": "agri",     "unit": "美分/英斗", "dp": 2, "freq": "daily", "tv": "CBOT:ZC1!"},
+    "wheat":   {"ticker": "ZW=F",      "name": "小麥",       "category": "agri",     "unit": "美分/英斗", "dp": 2, "freq": "daily", "tv": "CBOT:ZW1!"},
     # 匯率 / 資金
-    "dxy":     {"ticker": "DX-Y.NYB",  "name": "美元指數",   "category": "fx",       "unit": "點",      "dp": 3, "freq": "daily"},
-    "usdtwd":  {"ticker": "TWD=X",     "name": "美元/台幣",  "category": "fx",       "unit": "TWD",     "dp": 3, "freq": "daily"},
+    "dxy":     {"ticker": "DX-Y.NYB",  "name": "美元指數",   "category": "fx",       "unit": "點",      "dp": 3, "freq": "daily", "tv": "TVC:DXY"},
+    "usdtwd":  {"ticker": "TWD=X",     "name": "美元/台幣",  "category": "fx",       "unit": "TWD",     "dp": 3, "freq": "daily", "tv": "FX_IDC:USDTWD"},
+    # 加密 (風險胃納代理)。它週末照樣有報價，比其餘卡片新——export 端的
+    # latest_date 取眾數就是為了讓這種市場不去污染全頁的「最新交易日」。
+    "btc":     {"ticker": "BTC-USD",   "name": "比特幣",     "category": "crypto",   "unit": "USD",     "dp": 0, "freq": "daily", "tv": "CRYPTO:BTCUSD"},
     # 航運 (BDI itself has no free history; this ETF is the tradeable proxy
     # and carries the long series the BDI card charts against)
-    "bdry":    {"ticker": "BDRY",      "name": "乾散貨 ETF", "category": "shipping", "unit": "USD",     "dp": 2, "freq": "daily"},
+    "bdry":    {"ticker": "BDRY",      "name": "乾散貨 ETF", "category": "shipping", "unit": "USD",     "dp": 2, "freq": "daily", "tv": "AMEX:BDRY"},
 }
 
 
