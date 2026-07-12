@@ -1777,6 +1777,95 @@ def export_chip_picks(cur, out: Path):
     _write({"latest_date": recent[-1], "weeks": weeks}, out / "chip_picks.json")
 
 
+# 大宗行情 card walls, in page order. Keyed off the `category` each scraper
+# stamps on its symbols; a category with no live symbol is dropped.
+COMMODITY_CATEGORIES = [
+    ("memory",   "記憶體"),
+    ("energy",   "能源"),
+    ("metal",    "金屬"),
+    ("fx",       "匯率"),
+    ("shipping", "海運"),
+]
+
+COMMODITY_SERIES_DAYS = 252  # points kept per symbol for the card's chart
+
+
+def export_market_quote(cur, out: Path):
+    """commodities.json — 大宗行情 page.
+
+    The two scrapers' symbol tables are the single source of truth for both
+    the instrument list and its display metadata (name/unit/dp/freq); this
+    only reads them. Everything derived — period changes, 52-week range — is
+    computed here rather than stored, so a revised upstream close propagates
+    without a backfill (see db/migrations/063_add_market_quote.sql).
+    """
+    from scrapers.market_html import HTML_SYMBOLS
+    from scrapers.market_quote import SYMBOLS
+
+    meta = {**SYMBOLS, **HTML_SYMBOLS}
+
+    cur.execute(
+        """
+        SELECT symbol, trade_date, close
+        FROM tw.market_quote
+        WHERE symbol = ANY(%s) AND close IS NOT NULL
+        ORDER BY symbol, trade_date
+        """,
+        (list(meta),),
+    )
+    by_symbol: dict[str, list[tuple[date, float]]] = {}
+    for r in cur.fetchall():
+        by_symbol.setdefault(r["symbol"], []).append(
+            (r["trade_date"], float(r["close"]))
+        )
+
+    def chg(pts, n):
+        """% move over n data points back. A "point" is whatever the series'
+        freq is — a week for FBX — which is why the frontend labels these off
+        `freq` instead of calling them days."""
+        if len(pts) <= n or not pts[-1 - n][1]:
+            return None
+        return round((pts[-1][1] / pts[-1 - n][1] - 1) * 100, 2)
+
+    quotes = []
+    for symbol, m in meta.items():
+        pts = by_symbol.get(symbol, [])[-COMMODITY_SERIES_DAYS:]
+        if not pts:
+            continue
+        latest_date, latest = pts[-1]
+        # 52-week range runs off the calendar year up to this symbol's own
+        # last print, not the last N points: BDI and the memory spots only
+        # accumulate a row per run, so a point-count window would reach back
+        # arbitrarily far.
+        window = [v for d, v in pts if (latest_date - d).days <= 365]
+        hi, lo = max(window), min(window)
+        quotes.append({
+            "symbol":      symbol,
+            "name":        m["name"],
+            "category":    m["category"],
+            "unit":        m["unit"],
+            "dp":          m["dp"],
+            "freq":        m["freq"],
+            "latest":      latest,
+            "latest_date": latest_date,
+            "chg_1d":      chg(pts, 1),
+            "chg_20d":     chg(pts, 20),
+            "chg_60d":     chg(pts, 60),
+            "w52_high":    hi,
+            "w52_low":     lo,
+            "w52_pct":     round((latest - lo) / (hi - lo) * 100, 1) if hi > lo else None,
+            "series":      [{"date": d, "close": v} for d, v in pts],
+        })
+
+    live = {q["category"] for q in quotes}
+    _write({
+        "latest_date": max((q["latest_date"] for q in quotes), default=None),
+        "categories":  [{"key": k, "label": lb}
+                        for k, lb in COMMODITY_CATEGORIES if k in live],
+        "quotes":      quotes,
+    }, out / "commodities.json")
+
+
 def export_all(out_dir: str | None = None):
     if out_dir is None:
         import sys
@@ -1807,6 +1896,7 @@ def export_all(out_dir: str | None = None):
         export_vix(cur, out)
         export_yield_curve(cur, out)
         export_chip_picks(cur, out)
+        export_market_quote(cur, out)
         # intraday JSONs (scores/operations/positions) are intentionally
         # NOT refreshed here — they are owned by intraday_snapshot.exe
         # which writes them at 12:50 with h(t)-projected bars. Daily

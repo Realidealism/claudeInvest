@@ -44,6 +44,8 @@ SCRAPERS = [
     ("Odd-lot (all sessions)",  "scrapers.odd_lot",          "scrape_date"),
     ("Margin trading",          "scrapers.margin",           "scrape_date"),
     ("CNN Fear & Greed",        "scrapers.cnn_feargreed",    "scrape_date"),
+    ("Market quotes (大宗行情)", "scrapers.market_quote",     "scrape_date"),
+    ("Shipping/memory quotes",  "scrapers.market_html",      "scrape_date"),
     ("Price limits",            "scrapers.price_limits",     "scrape_date"),
     ("Institutional investors", "scrapers.institutional",    "scrape_date"),
     # ETF holdings

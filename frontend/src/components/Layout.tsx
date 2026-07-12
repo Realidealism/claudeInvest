@@ -12,6 +12,7 @@ const NAV_GROUPS = [
       { to: "/fear-greed",  label: "CNN 恐懼貪婪指數" },
       { to: "/yield-curve", label: "美債殖利率曲線" },
       { to: "/ftse-taiwan", label: "夜盤參考" },
+      { to: "/commodities", label: "大宗行情" },
     ],
   },
   {
