@@ -37,11 +37,17 @@ def _msg_backfill_hermit_failed(extra: str) -> str:
     return f"hermit 快照 backfill 失敗（exit {exit_code}）"
 
 
+def _msg_microtaiex_report_failed(extra: str) -> str:
+    session = {"day": "日盤", "night": "夜盤"}.get(extra, extra or "?")
+    return f"微台當沖{session}結算推播失敗"
+
+
 _EVENTS = {
     "snapshot_failed": _msg_snapshot_failed,
     "git_push_failed": _msg_git_push_failed,
     "backfill_financials_failed": _msg_backfill_financials_failed,
     "backfill_hermit_failed": _msg_backfill_hermit_failed,
+    "microtaiex_report_failed": _msg_microtaiex_report_failed,
 }
 
 
