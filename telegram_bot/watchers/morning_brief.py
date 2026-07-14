@@ -3,6 +3,7 @@
 Runs once per weekday morning. Builds a watchlist-scoped brief from the
 daily EOD JSON snapshots refreshed by daily_update.exe the previous evening:
 
+  💰 除息預告    tw.dividend_calendar events ∩ watchlist, daily from D-3 to D-day
   📊 評分變動    notable rank movements in tw.score_snapshot (top-300)
   📈 訊號命中    6-signal hits ∩ watchlist
   🔄 部位進出    yesterday's strategy entries + exits ∩ watchlist
@@ -38,6 +39,9 @@ JOB_NAME = "morning_brief"
 # Rank-change event thresholds
 _ENTER_TOP_RANK = 50
 _RANK_DELTA_NOTABLE = 30
+
+# Ex-dividend alert lead time, in trading days
+_DIVIDEND_LEAD_DAYS = 3
 
 _REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 _SCORES_JSON = _REPO_ROOT / "frontend" / "public" / "data" / "scores.json"
@@ -204,6 +208,100 @@ def _build_section_disposal(watchlist: set[str]) -> list[str] | None:
     return lines or None
 
 
+def _nth_trading_day(start: date, n: int) -> date:
+    """The nth trading day strictly after `start`. Weekend-only calendar —
+    a national holiday inside the window shifts the alert one day earlier,
+    which is harmless (early beats missed)."""
+    d = start
+    seen = 0
+    while seen < n:
+        d += timedelta(days=1)
+        if _is_trading_day(d):
+            seen += 1
+    return d
+
+
+def _trading_days_until(today: date, target: date) -> int:
+    d, n = today, 0
+    while d < target:
+        d += timedelta(days=1)
+        if _is_trading_day(d):
+            n += 1
+    return n
+
+
+def _build_section_dividend(watchlist: set[str], today: date) -> list[str] | None:
+    """Watchlist tickers going ex-dividend within the next 3 trading days.
+
+    Repeats every morning from D-3 through the ex-date itself (which reads
+    "今日"), so the event stays in front of the reader until it happens rather
+    than being announced once and forgotten. A missed run therefore self-heals
+    on the next brief with no dedup state to keep.
+    """
+    if not watchlist:
+        return None
+
+    horizon = _nth_trading_day(today, _DIVIDEND_LEAD_DAYS)
+    try:
+        from db.connection import get_cursor
+        with get_cursor(commit=False) as cur:
+            cur.execute(
+                """
+                SELECT stock_id, name, ex_date, kind, cash_dividend, stock_ratio
+                FROM tw.dividend_calendar
+                WHERE stock_id = ANY(%s)
+                  AND ex_date >= %s AND ex_date <= %s
+                ORDER BY ex_date, stock_id
+                """,
+                (sorted(watchlist), today, horizon),
+            )
+            rows = cur.fetchall()
+            if not rows:
+                return None
+            # Latest close per ticker — the yield denominator.
+            cur.execute(
+                """
+                SELECT DISTINCT ON (stock_id) stock_id, close_price
+                FROM tw.daily_prices
+                WHERE stock_id = ANY(%s)
+                ORDER BY stock_id, trade_date DESC
+                """,
+                ([r["stock_id"] for r in rows],),
+            )
+            closes = {r["stock_id"]: r["close_price"] for r in cur.fetchall()}
+    except Exception as e:
+        logger.warning("morning_brief: dividend calendar read failed: %s", e)
+        return None
+
+    lines: list[str] = []
+    for r in rows:
+        ex_date = r["ex_date"]
+        left = _trading_days_until(today, ex_date)
+        when = "今日" if left == 0 else f"{left} 個交易日後"
+        head = (
+            f"  {r['stock_id']} {r.get('name') or ''} 除{r.get('kind') or '息'}"
+            f"  {ex_date:%m/%d}（{_weekday_zh(ex_date)}，{when}）"
+        )
+
+        detail: list[str] = []
+        cash = r["cash_dividend"]
+        if cash:
+            close = closes.get(r["stock_id"])
+            yield_part = ""
+            if close:
+                yield_part = f"・殖利率 {float(cash) / float(close) * 100:.2f}%（昨收 {float(close):g}）"
+            detail.append(f"現金 {float(cash):g} 元{yield_part}")
+        else:
+            detail.append("現金股利未公告")
+        ratio = r["stock_ratio"]
+        if ratio:
+            detail.append(f"配股 {float(ratio):g}")
+
+        lines.append(head + "\n    " + "・".join(detail))
+
+    return lines
+
+
 def _load_ftse_latest() -> dict | None:
     """Read the latest 富台/台指期夜盤 row from tw.ftse_taiwan.
 
@@ -311,6 +409,7 @@ def _build_message(today: date, snapshot_date: str, sections: dict) -> str:
     parts = [header]
     section_titles = (
         ("ftse_taiwan", "🌏 開盤前估值"),
+        ("dividend", "💰 除息預告（追蹤股）"),
         ("scores", "📊 評分變動"),
         ("signals", "📈 昨日訊號（追蹤股）"),
         ("positions", "🔄 昨日部位進出（追蹤股）"),
@@ -344,6 +443,7 @@ def _run_check(*, respect_gates: bool) -> tuple[str | None, str]:
 
     sections = {
         "ftse_taiwan": _build_section_ftse_taiwan(_load_ftse_latest()),
+        "dividend": _build_section_dividend(watchlist, today),
         "scores": _build_section_score_changes(scores, watchlist),
         "signals": _build_section_signals(operations, watchlist),
         "positions": _build_section_positions(positions, watchlist, snapshot_date),
