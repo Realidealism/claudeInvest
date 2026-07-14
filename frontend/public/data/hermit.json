@@ -1,5 +1,5 @@
 {
-  "snapshot_date": "2026-07-13",
+  "snapshot_date": "2026-07-14",
   "picks": [
     {
       "rank": 1,
@@ -21,9 +21,9 @@
       },
       "valuation": {
         "method": "PE",
-        "multiple": 110.1,
+        "multiple": 106.77,
         "band": "> +2σ",
-        "upside_pct": -74.92,
+        "upside_pct": -74.07,
         "decision": "SELL"
       },
       "is_new": false,
@@ -50,14 +50,14 @@
       },
       "valuation": {
         "method": "PB",
-        "multiple": 5.21,
-        "band": "> +2σ",
-        "upside_pct": -48.54,
+        "multiple": 4.97,
+        "band": "+1σ ~ +2σ",
+        "upside_pct": -46.06,
         "decision": "SELL"
       },
-      "is_new": true,
-      "prev_rank": null,
-      "rank_delta": null
+      "is_new": false,
+      "prev_rank": 2,
+      "rank_delta": 0
     },
     {
       "rank": 3,
@@ -79,14 +79,14 @@
       },
       "valuation": {
         "method": "PE",
-        "multiple": 20.68,
+        "multiple": 20.71,
         "band": "mean ~ +1σ",
-        "upside_pct": -1.98,
+        "upside_pct": -2.08,
         "decision": "SELL"
       },
-      "is_new": true,
-      "prev_rank": null,
-      "rank_delta": null
+      "is_new": false,
+      "prev_rank": 3,
+      "rank_delta": 0
     },
     {
       "rank": 4,
@@ -108,14 +108,14 @@
       },
       "valuation": {
         "method": "PE",
-        "multiple": 82.81,
+        "multiple": 80.04,
         "band": "−1σ ~ mean",
-        "upside_pct": 95.32,
+        "upside_pct": 102.07,
         "decision": "BUY"
       },
-      "is_new": true,
-      "prev_rank": null,
-      "rank_delta": null
+      "is_new": false,
+      "prev_rank": 4,
+      "rank_delta": 0
     },
     {
       "rank": 5,
@@ -137,14 +137,14 @@
       },
       "valuation": {
         "method": "PE",
-        "multiple": 32.05,
+        "multiple": 31.41,
         "band": "> +2σ",
-        "upside_pct": -43.92,
+        "upside_pct": -42.74,
         "decision": "SELL"
       },
       "is_new": false,
-      "prev_rank": 2,
-      "rank_delta": -3
+      "prev_rank": 5,
+      "rank_delta": 0
     },
     {
       "rank": 6,
@@ -166,14 +166,14 @@
       },
       "valuation": {
         "method": "PE",
-        "multiple": 87.68,
+        "multiple": 85.0,
         "band": "> +2σ",
-        "upside_pct": -66.44,
+        "upside_pct": -65.31,
         "decision": "SELL"
       },
       "is_new": false,
-      "prev_rank": 3,
-      "rank_delta": -3
+      "prev_rank": 6,
+      "rank_delta": 0
     },
     {
       "rank": 7,
@@ -195,14 +195,14 @@
       },
       "valuation": {
         "method": "PE",
-        "multiple": 65.16,
+        "multiple": 62.69,
         "band": "+1σ ~ +2σ",
-        "upside_pct": -36.31,
+        "upside_pct": -33.79,
         "decision": "SELL"
       },
       "is_new": false,
-      "prev_rank": 4,
-      "rank_delta": -3
+      "prev_rank": 7,
+      "rank_delta": 0
     },
     {
       "rank": 8,
@@ -226,12 +226,12 @@
         "method": "PE",
         "multiple": 14.97,
         "band": "−1σ ~ mean",
-        "upside_pct": 283.25,
+        "upside_pct": 283.16,
         "decision": "BUY"
       },
-      "is_new": true,
-      "prev_rank": null,
-      "rank_delta": null
+      "is_new": false,
+      "prev_rank": 8,
+      "rank_delta": 0
     },
     {
       "rank": 9,
@@ -253,14 +253,14 @@
       },
       "valuation": {
         "method": "PE",
-        "multiple": 24.38,
-        "band": "+1σ ~ +2σ",
-        "upside_pct": -16.73,
+        "multiple": 24.03,
+        "band": "mean ~ +1σ",
+        "upside_pct": -15.51,
         "decision": "SELL"
       },
-      "is_new": true,
-      "prev_rank": null,
-      "rank_delta": null
+      "is_new": false,
+      "prev_rank": 9,
+      "rank_delta": 0
     },
     {
       "rank": 10,
@@ -282,14 +282,14 @@
       },
       "valuation": {
         "method": "PE",
-        "multiple": 146.67,
+        "multiple": 136.85,
         "band": "mean ~ +1σ",
-        "upside_pct": -112.17,
+        "upside_pct": -112.99,
         "decision": "SELL"
       },
-      "is_new": true,
-      "prev_rank": null,
-      "rank_delta": null
+      "is_new": false,
+      "prev_rank": 10,
+      "rank_delta": 0
     },
     {
       "rank": 11,
@@ -311,14 +311,14 @@
       },
       "valuation": {
         "method": "PE",
-        "multiple": 40.74,
+        "multiple": 38.84,
         "band": "> +2σ",
-        "upside_pct": -69.9,
+        "upside_pct": -68.39,
         "decision": "SELL"
       },
       "is_new": false,
-      "prev_rank": 6,
-      "rank_delta": -5
+      "prev_rank": 11,
+      "rank_delta": 0
     },
     {
       "rank": 12,
@@ -340,14 +340,14 @@
       },
       "valuation": {
         "method": "PE",
-        "multiple": 32.8,
+        "multiple": 32.53,
         "band": "+1σ ~ +2σ",
-        "upside_pct": -31.21,
+        "upside_pct": -30.64,
         "decision": "SELL"
       },
       "is_new": false,
-      "prev_rank": 7,
-      "rank_delta": -5
+      "prev_rank": 12,
+      "rank_delta": 0
     },
     {
       "rank": 13,
@@ -369,14 +369,14 @@
       },
       "valuation": {
         "method": "PE",
-        "multiple": 61.15,
+        "multiple": 56.05,
         "band": "> +2σ",
-        "upside_pct": -62.15,
+        "upside_pct": -58.68,
         "decision": "SELL"
       },
-      "is_new": true,
-      "prev_rank": null,
-      "rank_delta": null
+      "is_new": false,
+      "prev_rank": 13,
+      "rank_delta": 0
     },
     {
       "rank": 14,
@@ -398,14 +398,14 @@
       },
       "valuation": {
         "method": "PE",
-        "multiple": 482.69,
+        "multiple": 450.0,
         "band": "mean ~ +1σ",
-        "upside_pct": -58.93,
+        "upside_pct": -56.09,
         "decision": "SELL"
       },
       "is_new": false,
-      "prev_rank": 9,
-      "rank_delta": -5
+      "prev_rank": 14,
+      "rank_delta": 0
     },
     {
       "rank": 15,
@@ -427,14 +427,14 @@
       },
       "valuation": {
         "method": "PE",
-        "multiple": 16.77,
+        "multiple": 16.58,
         "band": "mean ~ +1σ",
-        "upside_pct": -595.18,
+        "upside_pct": -601.06,
         "decision": "SELL"
       },
-      "is_new": true,
-      "prev_rank": null,
-      "rank_delta": null
+      "is_new": false,
+      "prev_rank": 15,
+      "rank_delta": 0
     },
     {
       "rank": 16,
@@ -456,14 +456,14 @@
       },
       "valuation": {
         "method": "PE",
-        "multiple": 17.78,
+        "multiple": 17.8,
         "band": "mean ~ +1σ",
-        "upside_pct": -6.43,
+        "upside_pct": -6.54,
         "decision": "SELL"
       },
-      "is_new": true,
-      "prev_rank": null,
-      "rank_delta": null
+      "is_new": false,
+      "prev_rank": 16,
+      "rank_delta": 0
     },
     {
       "rank": 17,
@@ -485,14 +485,14 @@
       },
       "valuation": {
         "method": "PE",
-        "multiple": 80.19,
+        "multiple": 84.47,
         "band": "mean ~ +1σ",
-        "upside_pct": -65.06,
+        "upside_pct": -66.76,
         "decision": "SELL"
       },
-      "is_new": true,
-      "prev_rank": null,
-      "rank_delta": null
+      "is_new": false,
+      "prev_rank": 17,
+      "rank_delta": 0
     },
     {
       "rank": 18,
@@ -514,14 +514,14 @@
       },
       "valuation": {
         "method": "PE",
-        "multiple": 7.87,
+        "multiple": 7.83,
         "band": "−1σ ~ mean",
-        "upside_pct": 143.23,
+        "upside_pct": 144.34,
         "decision": "BUY"
       },
       "is_new": false,
-      "prev_rank": 12,
-      "rank_delta": -6
+      "prev_rank": 18,
+      "rank_delta": 0
     },
     {
       "rank": 19,
@@ -545,12 +545,12 @@
         "method": "PB",
         "multiple": 1.16,
         "band": "mean ~ +1σ",
-        "upside_pct": -16.02,
+        "upside_pct": -15.47,
         "decision": "SELL"
       },
-      "is_new": true,
-      "prev_rank": null,
-      "rank_delta": null
+      "is_new": false,
+      "prev_rank": 19,
+      "rank_delta": 0
     },
     {
       "rank": 20,
@@ -572,14 +572,14 @@
       },
       "valuation": {
         "method": "PB",
-        "multiple": 2.18,
+        "multiple": 2.23,
         "band": "> +2σ",
-        "upside_pct": -25.93,
+        "upside_pct": -27.43,
         "decision": "SELL"
       },
-      "is_new": true,
-      "prev_rank": null,
-      "rank_delta": null
+      "is_new": false,
+      "prev_rank": 20,
+      "rank_delta": 0
     },
     {
       "rank": 21,
@@ -601,14 +601,14 @@
       },
       "valuation": {
         "method": "PE",
-        "multiple": 75.77,
+        "multiple": 72.88,
         "band": "+1σ ~ +2σ",
-        "upside_pct": -54.98,
+        "upside_pct": -53.08,
         "decision": "SELL"
       },
-      "is_new": true,
-      "prev_rank": null,
-      "rank_delta": null
+      "is_new": false,
+      "prev_rank": 21,
+      "rank_delta": 0
     },
     {
       "rank": 22,
@@ -630,14 +630,14 @@
       },
       "valuation": {
         "method": "PE",
-        "multiple": 114.7,
+        "multiple": 110.16,
         "band": "+1σ ~ +2σ",
-        "upside_pct": -31.94,
+        "upside_pct": -29.11,
         "decision": "SELL"
       },
       "is_new": false,
-      "prev_rank": 14,
-      "rank_delta": -8
+      "prev_rank": 22,
+      "rank_delta": 0
     },
     {
       "rank": 23,
@@ -659,14 +659,14 @@
       },
       "valuation": {
         "method": "PE",
-        "multiple": 20.03,
+        "multiple": 19.1,
         "band": "−1σ ~ mean",
-        "upside_pct": 0.42,
+        "upside_pct": 5.29,
         "decision": "HOLD"
       },
       "is_new": false,
-      "prev_rank": 15,
-      "rank_delta": -8
+      "prev_rank": 23,
+      "rank_delta": 0
     },
     {
       "rank": 24,
@@ -688,14 +688,14 @@
       },
       "valuation": {
         "method": "PE",
-        "multiple": 58.2,
+        "multiple": 55.68,
         "band": "−1σ ~ mean",
-        "upside_pct": 213.09,
+        "upside_pct": 227.21,
         "decision": "BUY"
       },
       "is_new": false,
-      "prev_rank": 16,
-      "rank_delta": -8
+      "prev_rank": 24,
+      "rank_delta": 0
     },
     {
       "rank": 25,
@@ -717,14 +717,14 @@
       },
       "valuation": {
         "method": "PE",
-        "multiple": 23.54,
+        "multiple": 23.16,
         "band": "> +2σ",
-        "upside_pct": -41.83,
+        "upside_pct": -40.83,
         "decision": "SELL"
       },
-      "is_new": true,
-      "prev_rank": null,
-      "rank_delta": null
+      "is_new": false,
+      "prev_rank": 25,
+      "rank_delta": 0
     },
     {
       "rank": 26,
@@ -746,14 +746,14 @@
       },
       "valuation": {
         "method": "PE",
-        "multiple": 44.76,
+        "multiple": 44.64,
         "band": "−1σ ~ mean",
-        "upside_pct": 36.99,
+        "upside_pct": 37.39,
         "decision": "BUY"
       },
-      "is_new": true,
-      "prev_rank": null,
-      "rank_delta": null
+      "is_new": false,
+      "prev_rank": 26,
+      "rank_delta": 0
     },
     {
       "rank": 27,
@@ -775,14 +775,14 @@
       },
       "valuation": {
         "method": "PB",
-        "multiple": 3.9,
+        "multiple": 3.72,
         "band": "> +2σ",
-        "upside_pct": -66.81,
+        "upside_pct": -65.14,
         "decision": "SELL"
       },
       "is_new": false,
-      "prev_rank": 19,
-      "rank_delta": -8
+      "prev_rank": 27,
+      "rank_delta": 0
     },
     {
       "rank": 28,
@@ -804,14 +804,14 @@
       },
       "valuation": {
         "method": "PE",
-        "multiple": 81.4,
+        "multiple": 79.2,
         "band": "mean ~ +1σ",
-        "upside_pct": -7.58,
+        "upside_pct": -4.95,
         "decision": "SELL"
       },
       "is_new": false,
-      "prev_rank": 20,
-      "rank_delta": -8
+      "prev_rank": 28,
+      "rank_delta": 0
     },
     {
       "rank": 29,
@@ -833,14 +833,14 @@
       },
       "valuation": {
         "method": "PE",
-        "multiple": 26.85,
+        "multiple": 26.11,
         "band": "+1σ ~ +2σ",
-        "upside_pct": -40.3,
+        "upside_pct": -38.58,
         "decision": "SELL"
       },
       "is_new": false,
-      "prev_rank": 21,
-      "rank_delta": -8
+      "prev_rank": 29,
+      "rank_delta": 0
     },
     {
       "rank": 30,
@@ -862,14 +862,14 @@
       },
       "valuation": {
         "method": "PE",
-        "multiple": 51.11,
+        "multiple": 48.41,
         "band": "−1σ ~ mean",
-        "upside_pct": 100.12,
+        "upside_pct": 111.23,
         "decision": "BUY"
       },
-      "is_new": true,
-      "prev_rank": null,
-      "rank_delta": null
+      "is_new": false,
+      "prev_rank": 30,
+      "rank_delta": 0
     },
     {
       "rank": 31,
@@ -891,14 +891,14 @@
       },
       "valuation": {
         "method": "PE",
-        "multiple": 38.17,
+        "multiple": 37.83,
         "band": "> +2σ",
-        "upside_pct": -55.94,
+        "upside_pct": -55.49,
         "decision": "SELL"
       },
       "is_new": false,
-      "prev_rank": 22,
-      "rank_delta": -9
+      "prev_rank": 31,
+      "rank_delta": 0
     },
     {
       "rank": 32,
@@ -920,14 +920,14 @@
       },
       "valuation": {
         "method": "PE",
-        "multiple": 95.4,
+        "multiple": 88.12,
         "band": "> +2σ",
-        "upside_pct": -68.66,
+        "upside_pct": -66.02,
         "decision": "SELL"
       },
-      "is_new": true,
-      "prev_rank": null,
-      "rank_delta": null
+      "is_new": false,
+      "prev_rank": 32,
+      "rank_delta": 0
     },
     {
       "rank": 33,
@@ -949,14 +949,14 @@
       },
       "valuation": {
         "method": "PE",
-        "multiple": 147.86,
+        "multiple": 155.0,
         "band": "+1σ ~ +2σ",
-        "upside_pct": -53.12,
+        "upside_pct": -55.19,
         "decision": "SELL"
       },
-      "is_new": true,
-      "prev_rank": null,
-      "rank_delta": null
+      "is_new": false,
+      "prev_rank": 33,
+      "rank_delta": 0
     },
     {
       "rank": 34,
@@ -980,12 +980,12 @@
         "method": "PB",
         "multiple": 0.65,
         "band": "−1σ ~ mean",
-        "upside_pct": 6.82,
+        "upside_pct": 7.21,
         "decision": "HOLD"
       },
-      "is_new": true,
-      "prev_rank": null,
-      "rank_delta": null
+      "is_new": false,
+      "prev_rank": 34,
+      "rank_delta": 0
     },
     {
       "rank": 35,
@@ -1007,14 +1007,14 @@
       },
       "valuation": {
         "method": "PB",
-        "multiple": 4.05,
+        "multiple": 3.98,
         "band": "> +2σ",
-        "upside_pct": -54.54,
+        "upside_pct": -53.59,
         "decision": "SELL"
       },
-      "is_new": true,
-      "prev_rank": null,
-      "rank_delta": null
+      "is_new": false,
+      "prev_rank": 35,
+      "rank_delta": 0
     },
     {
       "rank": 36,
@@ -1036,14 +1036,14 @@
       },
       "valuation": {
         "method": "PE",
-        "multiple": 27.56,
+        "multiple": 26.73,
         "band": "> +2σ",
-        "upside_pct": -44.75,
+        "upside_pct": -42.98,
         "decision": "SELL"
       },
-      "is_new": true,
-      "prev_rank": null,
-      "rank_delta": null
+      "is_new": false,
+      "prev_rank": 36,
+      "rank_delta": 0
     },
     {
       "rank": 37,
@@ -1065,14 +1065,14 @@
       },
       "valuation": {
         "method": "PB",
-        "multiple": 5.4,
+        "multiple": 5.46,
         "band": "> +2σ",
-        "upside_pct": -69.47,
+        "upside_pct": -69.75,
         "decision": "SELL"
       },
       "is_new": false,
-      "prev_rank": 24,
-      "rank_delta": -13
+      "prev_rank": 37,
+      "rank_delta": 0
     },
     {
       "rank": 38,
@@ -1094,14 +1094,14 @@
       },
       "valuation": {
         "method": "PE",
-        "multiple": 49.55,
+        "multiple": 48.81,
         "band": "mean ~ +1σ",
-        "upside_pct": -506.08,
+        "upside_pct": -512.26,
         "decision": "SELL"
       },
       "is_new": false,
-      "prev_rank": 25,
-      "rank_delta": -13
+      "prev_rank": 38,
+      "rank_delta": 0
     },
     {
       "rank": 39,
@@ -1123,14 +1123,14 @@
       },
       "valuation": {
         "method": "PE",
-        "multiple": 24.69,
+        "multiple": 24.31,
         "band": "mean ~ +1σ",
-        "upside_pct": -12.55,
+        "upside_pct": -11.15,
         "decision": "SELL"
       },
-      "is_new": true,
-      "prev_rank": null,
-      "rank_delta": null
+      "is_new": false,
+      "prev_rank": 39,
+      "rank_delta": 0
     },
     {
       "rank": 40,
@@ -1152,14 +1152,14 @@
       },
       "valuation": {
         "method": "PE",
-        "multiple": 56.4,
+        "multiple": 52.44,
         "band": "> +2σ",
-        "upside_pct": -67.92,
+        "upside_pct": -65.45,
         "decision": "SELL"
       },
-      "is_new": true,
-      "prev_rank": null,
-      "rank_delta": null
+      "is_new": false,
+      "prev_rank": 40,
+      "rank_delta": 0
     },
     {
       "rank": 41,
@@ -1181,14 +1181,14 @@
       },
       "valuation": {
         "method": "PE",
-        "multiple": 19.01,
+        "multiple": 19.11,
         "band": "mean ~ +1σ",
-        "upside_pct": -13.85,
+        "upside_pct": -14.27,
         "decision": "SELL"
       },
-      "is_new": true,
-      "prev_rank": null,
-      "rank_delta": null
+      "is_new": false,
+      "prev_rank": 41,
+      "rank_delta": 0
     },
     {
       "rank": 42,
@@ -1210,14 +1210,14 @@
       },
       "valuation": {
         "method": "PE",
-        "multiple": 16.49,
+        "multiple": 16.13,
         "band": "mean ~ +1σ",
-        "upside_pct": -16.51,
+        "upside_pct": -14.65,
         "decision": "SELL"
       },
-      "is_new": true,
-      "prev_rank": null,
-      "rank_delta": null
+      "is_new": false,
+      "prev_rank": 42,
+      "rank_delta": 0
     },
     {
       "rank": 43,
@@ -1239,14 +1239,14 @@
       },
       "valuation": {
         "method": "PE",
-        "multiple": 41.45,
+        "multiple": 40.91,
         "band": "> +2σ",
-        "upside_pct": -26.45,
+        "upside_pct": -25.47,
         "decision": "SELL"
       },
-      "is_new": true,
-      "prev_rank": null,
-      "rank_delta": null
+      "is_new": false,
+      "prev_rank": 43,
+      "rank_delta": 0
     },
     {
       "rank": 44,
@@ -1268,14 +1268,14 @@
       },
       "valuation": {
         "method": "PE",
-        "multiple": 18.12,
+        "multiple": 18.07,
         "band": "> +2σ",
-        "upside_pct": -28.28,
+        "upside_pct": -28.02,
         "decision": "SELL"
       },
       "is_new": false,
-      "prev_rank": 27,
-      "rank_delta": -17
+      "prev_rank": 44,
+      "rank_delta": 0
     },
     {
       "rank": 45,
@@ -1297,14 +1297,14 @@
       },
       "valuation": {
         "method": "PB",
-        "multiple": 6.82,
+        "multiple": 6.53,
         "band": "> +2σ",
-        "upside_pct": -63.08,
+        "upside_pct": -61.4,
         "decision": "SELL"
       },
       "is_new": false,
-      "prev_rank": 28,
-      "rank_delta": -17
+      "prev_rank": 45,
+      "rank_delta": 0
     },
     {
       "rank": 46,
@@ -1326,14 +1326,14 @@
       },
       "valuation": {
         "method": "PB",
-        "multiple": 5.88,
+        "multiple": 5.5,
         "band": "> +2σ",
-        "upside_pct": -61.61,
+        "upside_pct": -58.86,
         "decision": "SELL"
       },
       "is_new": false,
-      "prev_rank": 29,
-      "rank_delta": -17
+      "prev_rank": 46,
+      "rank_delta": 0
     },
     {
       "rank": 47,
@@ -1355,14 +1355,14 @@
       },
       "valuation": {
         "method": "PB",
-        "multiple": 2.97,
+        "multiple": 2.87,
         "band": "+1σ ~ +2σ",
-        "upside_pct": -27.16,
+        "upside_pct": -24.44,
         "decision": "SELL"
       },
-      "is_new": true,
-      "prev_rank": null,
-      "rank_delta": null
+      "is_new": false,
+      "prev_rank": 47,
+      "rank_delta": 0
     },
     {
       "rank": 48,
@@ -1384,14 +1384,14 @@
       },
       "valuation": {
         "method": "PE",
-        "multiple": 8.16,
+        "multiple": 7.91,
         "band": "−1σ ~ mean",
-        "upside_pct": 705.91,
+        "upside_pct": 731.32,
         "decision": "BUY"
       },
       "is_new": false,
-      "prev_rank": 30,
-      "rank_delta": -18
+      "prev_rank": 48,
+      "rank_delta": 0
     },
     {
       "rank": 49,
@@ -1413,14 +1413,14 @@
       },
       "valuation": {
         "method": "PE",
-        "multiple": 26.73,
+        "multiple": 26.56,
         "band": "mean ~ +1σ",
-        "upside_pct": -499.54,
+        "upside_pct": -501.81,
         "decision": "SELL"
       },
       "is_new": false,
-      "prev_rank": 32,
-      "rank_delta": -17
+      "prev_rank": 49,
+      "rank_delta": 0
     },
     {
       "rank": 50,
@@ -1442,14 +1442,14 @@
       },
       "valuation": {
         "method": "PE",
-        "multiple": 19.21,
+        "multiple": 19.09,
         "band": "+1σ ~ +2σ",
-        "upside_pct": -35.29,
+        "upside_pct": -34.87,
         "decision": "SELL"
       },
-      "is_new": true,
-      "prev_rank": null,
-      "rank_delta": null
+      "is_new": false,
+      "prev_rank": 50,
+      "rank_delta": 0
     },
     {
       "rank": 51,
@@ -1471,14 +1471,14 @@
       },
       "valuation": {
         "method": "PE",
-        "multiple": 127.9,
+        "multiple": 123.8,
         "band": "+1σ ~ +2σ",
-        "upside_pct": -66.56,
+        "upside_pct": -65.39,
         "decision": "SELL"
       },
       "is_new": false,
-      "prev_rank": 33,
-      "rank_delta": -18
+      "prev_rank": 51,
+      "rank_delta": 0
     },
     {
       "rank": 52,
@@ -1500,14 +1500,14 @@
       },
       "valuation": {
         "method": "PE",
-        "multiple": 28.02,
+        "multiple": 27.59,
         "band": "−1σ ~ mean",
-        "upside_pct": 16.23,
+        "upside_pct": 18.0,
         "decision": "HOLD"
       },
       "is_new": false,
-      "prev_rank": 35,
-      "rank_delta": -17
+      "prev_rank": 52,
+      "rank_delta": 0
     },
     {
       "rank": 53,
@@ -1529,14 +1529,14 @@
       },
       "valuation": {
         "method": "PE",
-        "multiple": 33.68,
+        "multiple": 32.56,
         "band": "> +2σ",
-        "upside_pct": -59.87,
+        "upside_pct": -58.43,
         "decision": "SELL"
       },
       "is_new": false,
-      "prev_rank": 36,
-      "rank_delta": -17
+      "prev_rank": 53,
+      "rank_delta": 0
     },
     {
       "rank": 54,
@@ -1558,14 +1558,14 @@
       },
       "valuation": {
         "method": "PE",
-        "multiple": 20.19,
-        "band": "> +2σ",
-        "upside_pct": -32.8,
+        "multiple": 19.85,
+        "band": "+1σ ~ +2σ",
+        "upside_pct": -31.62,
         "decision": "SELL"
       },
       "is_new": false,
-      "prev_rank": 38,
-      "rank_delta": -16
+      "prev_rank": 54,
+      "rank_delta": 0
     },
     {
       "rank": 55,
@@ -1587,14 +1587,14 @@
       },
       "valuation": {
         "method": "PE",
-        "multiple": 16.97,
+        "multiple": 16.77,
         "band": "mean ~ +1σ",
-        "upside_pct": -11.47,
+        "upside_pct": -10.36,
         "decision": "SELL"
       },
       "is_new": false,
-      "prev_rank": 39,
-      "rank_delta": -16
+      "prev_rank": 55,
+      "rank_delta": 0
     },
     {
       "rank": 56,
@@ -1616,14 +1616,14 @@
       },
       "valuation": {
         "method": "PS",
-        "multiple": 0.23,
+        "multiple": 0.22,
         "band": "+1σ ~ +2σ",
-        "upside_pct": -22.78,
+        "upside_pct": -19.76,
         "decision": "SELL"
       },
-      "is_new": true,
-      "prev_rank": null,
-      "rank_delta": null
+      "is_new": false,
+      "prev_rank": 56,
+      "rank_delta": 0
     },
     {
       "rank": 57,
@@ -1645,14 +1645,14 @@
       },
       "valuation": {
         "method": "PE",
-        "multiple": 14.88,
+        "multiple": 15.01,
         "band": "−1σ ~ mean",
-        "upside_pct": 11.73,
+        "upside_pct": 10.79,
         "decision": "HOLD"
       },
-      "is_new": true,
-      "prev_rank": null,
-      "rank_delta": null
+      "is_new": false,
+      "prev_rank": 57,
+      "rank_delta": 0
     },
     {
       "rank": 58,
@@ -1674,14 +1674,14 @@
       },
       "valuation": {
         "method": "PB",
-        "multiple": 1.84,
+        "multiple": 2.02,
         "band": "−1σ ~ mean",
-        "upside_pct": 13.48,
+        "upside_pct": 3.2,
         "decision": "HOLD"
       },
-      "is_new": true,
-      "prev_rank": null,
-      "rank_delta": null
+      "is_new": false,
+      "prev_rank": 58,
+      "rank_delta": 0
     },
     {
       "rank": 59,
@@ -1703,14 +1703,14 @@
       },
       "valuation": {
         "method": "PE",
-        "multiple": 38.98,
-        "band": "> +2σ",
-        "upside_pct": -45.08,
+        "multiple": 37.09,
+        "band": "+1σ ~ +2σ",
+        "upside_pct": -42.26,
         "decision": "SELL"
       },
-      "is_new": true,
-      "prev_rank": null,
-      "rank_delta": null
+      "is_new": false,
+      "prev_rank": 59,
+      "rank_delta": 0
     },
     {
       "rank": 60,
@@ -1737,9 +1737,9 @@
         "upside_pct": null,
         "decision": "HOLD"
       },
-      "is_new": true,
-      "prev_rank": null,
-      "rank_delta": null
+      "is_new": false,
+      "prev_rank": 60,
+      "rank_delta": 0
     },
     {
       "rank": 61,
@@ -1761,14 +1761,14 @@
       },
       "valuation": {
         "method": "PS",
-        "multiple": 5.47,
+        "multiple": 5.32,
         "band": "−1σ ~ mean",
-        "upside_pct": 7.5,
+        "upside_pct": 10.39,
         "decision": "HOLD"
       },
-      "is_new": true,
-      "prev_rank": null,
-      "rank_delta": null
+      "is_new": false,
+      "prev_rank": 61,
+      "rank_delta": 0
     },
     {
       "rank": 62,
@@ -1790,14 +1790,14 @@
       },
       "valuation": {
         "method": "PS",
-        "multiple": 0.66,
+        "multiple": 0.65,
         "band": "−2σ ~ −1σ",
-        "upside_pct": 8.54,
+        "upside_pct": 10.32,
         "decision": "HOLD"
       },
-      "is_new": true,
-      "prev_rank": null,
-      "rank_delta": null
+      "is_new": false,
+      "prev_rank": 62,
+      "rank_delta": 0
     },
     {
       "rank": 63,
@@ -1819,14 +1819,14 @@
       },
       "valuation": {
         "method": "PE",
-        "multiple": 15.77,
+        "multiple": 15.34,
         "band": "−1σ ~ mean",
-        "upside_pct": 17.66,
-        "decision": "HOLD"
+        "upside_pct": 20.97,
+        "decision": "BUY"
       },
       "is_new": false,
-      "prev_rank": 42,
-      "rank_delta": -21
+      "prev_rank": 63,
+      "rank_delta": 0
     },
     {
       "rank": 64,
@@ -1848,14 +1848,14 @@
       },
       "valuation": {
         "method": "PB",
-        "multiple": 2.56,
+        "multiple": 2.46,
         "band": "+1σ ~ +2σ",
-        "upside_pct": -25.88,
+        "upside_pct": -22.78,
         "decision": "SELL"
       },
-      "is_new": true,
-      "prev_rank": null,
-      "rank_delta": null
+      "is_new": false,
+      "prev_rank": 64,
+      "rank_delta": 0
     },
     {
       "rank": 65,
@@ -1877,14 +1877,14 @@
       },
       "valuation": {
         "method": "PE",
-        "multiple": 40.48,
+        "multiple": 39.16,
         "band": "+1σ ~ +2σ",
-        "upside_pct": -47.58,
+        "upside_pct": -45.75,
         "decision": "SELL"
       },
       "is_new": false,
-      "prev_rank": 43,
-      "rank_delta": -22
+      "prev_rank": 65,
+      "rank_delta": 0
     },
     {
       "rank": 66,
@@ -1906,14 +1906,14 @@
       },
       "valuation": {
         "method": "PS",
-        "multiple": 7.46,
+        "multiple": 8.21,
         "band": "−1σ ~ mean",
-        "upside_pct": 34.65,
+        "upside_pct": 22.43,
         "decision": "BUY"
       },
       "is_new": false,
-      "prev_rank": 44,
-      "rank_delta": -22
+      "prev_rank": 66,
+      "rank_delta": 0
     },
     {
       "rank": 67,
@@ -1935,14 +1935,14 @@
       },
       "valuation": {
         "method": "PB",
-        "multiple": 4.01,
+        "multiple": 3.87,
         "band": "mean ~ +1σ",
-        "upside_pct": -13.28,
+        "upside_pct": -10.12,
         "decision": "SELL"
       },
-      "is_new": true,
-      "prev_rank": null,
-      "rank_delta": null
+      "is_new": false,
+      "prev_rank": 67,
+      "rank_delta": 0
     },
     {
       "rank": 68,
@@ -1964,14 +1964,14 @@
       },
       "valuation": {
         "method": "PE",
-        "multiple": 14.78,
+        "multiple": 14.73,
         "band": "−2σ ~ −1σ",
-        "upside_pct": 18.93,
+        "upside_pct": 19.38,
         "decision": "HOLD"
       },
-      "is_new": true,
-      "prev_rank": null,
-      "rank_delta": null
+      "is_new": false,
+      "prev_rank": 68,
+      "rank_delta": 0
     },
     {
       "rank": 69,
@@ -1993,14 +1993,14 @@
       },
       "valuation": {
         "method": "PE",
-        "multiple": 10.49,
+        "multiple": 10.38,
         "band": "−1σ ~ mean",
-        "upside_pct": 38.19,
+        "upside_pct": 39.7,
         "decision": "BUY"
       },
-      "is_new": true,
-      "prev_rank": null,
-      "rank_delta": null
+      "is_new": false,
+      "prev_rank": 69,
+      "rank_delta": 0
     },
     {
       "rank": 70,
@@ -2022,14 +2022,14 @@
       },
       "valuation": {
         "method": "PE",
-        "multiple": 11.61,
+        "multiple": 11.13,
         "band": "−1σ ~ mean",
-        "upside_pct": 12.17,
+        "upside_pct": 17.19,
         "decision": "HOLD"
       },
       "is_new": false,
-      "prev_rank": 46,
-      "rank_delta": -24
+      "prev_rank": 70,
+      "rank_delta": 0
     },
     {
       "rank": 71,
@@ -2051,14 +2051,14 @@
       },
       "valuation": {
         "method": "PB",
-        "multiple": 7.51,
+        "multiple": 7.2,
         "band": "> +2σ",
-        "upside_pct": -60.86,
+        "upside_pct": -59.12,
         "decision": "SELL"
       },
-      "is_new": true,
-      "prev_rank": null,
-      "rank_delta": null
+      "is_new": false,
+      "prev_rank": 71,
+      "rank_delta": 0
     },
     {
       "rank": 72,
@@ -2080,14 +2080,14 @@
       },
       "valuation": {
         "method": "PE",
-        "multiple": 20.59,
+        "multiple": 20.3,
         "band": "−2σ ~ −1σ",
-        "upside_pct": 40.62,
+        "upside_pct": 42.53,
         "decision": "BUY"
       },
-      "is_new": true,
-      "prev_rank": null,
-      "rank_delta": null
+      "is_new": false,
+      "prev_rank": 72,
+      "rank_delta": 0
     },
     {
       "rank": 73,
@@ -2109,14 +2109,14 @@
       },
       "valuation": {
         "method": "PB",
-        "multiple": 3.19,
+        "multiple": 3.23,
         "band": "> +2σ",
-        "upside_pct": -37.05,
+        "upside_pct": -37.73,
         "decision": "SELL"
       },
-      "is_new": true,
-      "prev_rank": null,
-      "rank_delta": null
+      "is_new": false,
+      "prev_rank": 73,
+      "rank_delta": 0
     },
     {
       "rank": 74,
@@ -2138,14 +2138,14 @@
       },
       "valuation": {
         "method": "PB",
-        "multiple": 9.35,
+        "multiple": 8.79,
         "band": "> +2σ",
-        "upside_pct": -63.8,
+        "upside_pct": -61.42,
         "decision": "SELL"
       },
       "is_new": false,
-      "prev_rank": 47,
-      "rank_delta": -27
+      "prev_rank": 74,
+      "rank_delta": 0
     },
     {
       "rank": 75,
@@ -2167,14 +2167,14 @@
       },
       "valuation": {
         "method": "PB",
-        "multiple": 7.81,
+        "multiple": 7.15,
         "band": "> +2σ",
-        "upside_pct": -75.0,
+        "upside_pct": -72.59,
         "decision": "SELL"
       },
       "is_new": false,
-      "prev_rank": 48,
-      "rank_delta": -27
+      "prev_rank": 75,
+      "rank_delta": 0
     },
     {
       "rank": 76,
@@ -2196,14 +2196,14 @@
       },
       "valuation": {
         "method": "PS",
-        "multiple": 4.26,
+        "multiple": 4.13,
         "band": "−1σ ~ mean",
-        "upside_pct": 1.8,
+        "upside_pct": 4.93,
         "decision": "HOLD"
       },
-      "is_new": true,
-      "prev_rank": null,
-      "rank_delta": null
+      "is_new": false,
+      "prev_rank": 76,
+      "rank_delta": 0
     },
     {
       "rank": 77,
@@ -2225,14 +2225,14 @@
       },
       "valuation": {
         "method": "PB",
-        "multiple": 4.91,
+        "multiple": 4.84,
         "band": "−1σ ~ mean",
-        "upside_pct": 1.68,
+        "upside_pct": 3.11,
         "decision": "HOLD"
       },
       "is_new": false,
-      "prev_rank": 49,
-      "rank_delta": -28
+      "prev_rank": 77,
+      "rank_delta": 0
     },
     {
       "rank": 78,
@@ -2259,9 +2259,9 @@
         "upside_pct": null,
         "decision": "HOLD"
       },
-      "is_new": true,
-      "prev_rank": null,
-      "rank_delta": null
+      "is_new": false,
+      "prev_rank": 78,
+      "rank_delta": 0
     },
     {
       "rank": 79,
@@ -2283,14 +2283,14 @@
       },
       "valuation": {
         "method": "PB",
-        "multiple": 19.74,
+        "multiple": 20.89,
         "band": "> +2σ",
-        "upside_pct": -65.34,
+        "upside_pct": -67.18,
         "decision": "SELL"
       },
-      "is_new": true,
-      "prev_rank": null,
-      "rank_delta": null
+      "is_new": false,
+      "prev_rank": 79,
+      "rank_delta": 0
     },
     {
       "rank": 80,
@@ -2312,14 +2312,14 @@
       },
       "valuation": {
         "method": "PE",
-        "multiple": 20.27,
-        "band": "+1σ ~ +2σ",
-        "upside_pct": -28.98,
+        "multiple": 19.05,
+        "band": "mean ~ +1σ",
+        "upside_pct": -24.38,
         "decision": "SELL"
       },
-      "is_new": true,
-      "prev_rank": null,
-      "rank_delta": null
+      "is_new": false,
+      "prev_rank": 80,
+      "rank_delta": 0
     },
     {
       "rank": 81,
@@ -2341,14 +2341,14 @@
       },
       "valuation": {
         "method": "PB",
-        "multiple": 3.29,
+        "multiple": 2.98,
         "band": "> +2σ",
-        "upside_pct": -60.91,
+        "upside_pct": -56.66,
         "decision": "SELL"
       },
-      "is_new": true,
-      "prev_rank": null,
-      "rank_delta": null
+      "is_new": false,
+      "prev_rank": 81,
+      "rank_delta": 0
     },
     {
       "rank": 82,
@@ -2370,14 +2370,14 @@
       },
       "valuation": {
         "method": "PE",
-        "multiple": 20.62,
+        "multiple": 19.48,
         "band": "−1σ ~ mean",
-        "upside_pct": 10.45,
+        "upside_pct": 16.95,
         "decision": "HOLD"
       },
       "is_new": false,
-      "prev_rank": 51,
-      "rank_delta": -31
+      "prev_rank": 82,
+      "rank_delta": 0
     },
     {
       "rank": 83,
@@ -2399,14 +2399,14 @@
       },
       "valuation": {
         "method": "PE",
-        "multiple": 20.37,
+        "multiple": 22.39,
         "band": "mean ~ +1σ",
-        "upside_pct": -25.95,
+        "upside_pct": -32.46,
         "decision": "SELL"
       },
-      "is_new": true,
-      "prev_rank": null,
-      "rank_delta": null
+      "is_new": false,
+      "prev_rank": 83,
+      "rank_delta": 0
     },
     {
       "rank": 84,
@@ -2428,14 +2428,14 @@
       },
       "valuation": {
         "method": "PE",
-        "multiple": 10.43,
+        "multiple": 10.72,
         "band": "−1σ ~ mean",
-        "upside_pct": 15.61,
+        "upside_pct": 12.4,
         "decision": "HOLD"
       },
-      "is_new": true,
-      "prev_rank": null,
-      "rank_delta": null
+      "is_new": false,
+      "prev_rank": 84,
+      "rank_delta": 0
     },
     {
       "rank": 85,
@@ -2457,14 +2457,14 @@
       },
       "valuation": {
         "method": "PB",
-        "multiple": 0.71,
+        "multiple": 0.7,
         "band": "−2σ ~ −1σ",
-        "upside_pct": 31.74,
+        "upside_pct": 34.77,
         "decision": "BUY"
       },
-      "is_new": true,
-      "prev_rank": null,
-      "rank_delta": null
+      "is_new": false,
+      "prev_rank": 85,
+      "rank_delta": 0
     },
     {
       "rank": 86,
@@ -2486,14 +2486,14 @@
       },
       "valuation": {
         "method": "PE",
-        "multiple": 13.76,
+        "multiple": 13.87,
         "band": "mean ~ +1σ",
-        "upside_pct": -0.57,
+        "upside_pct": -1.35,
         "decision": "SELL"
       },
       "is_new": false,
-      "prev_rank": 54,
-      "rank_delta": -32
+      "prev_rank": 86,
+      "rank_delta": 0
     },
     {
       "rank": 87,
@@ -2517,12 +2517,12 @@
         "method": "PB",
         "multiple": 1.77,
         "band": "+1σ ~ +2σ",
-        "upside_pct": -17.04,
+        "upside_pct": -17.26,
         "decision": "SELL"
       },
-      "is_new": true,
-      "prev_rank": null,
-      "rank_delta": null
+      "is_new": false,
+      "prev_rank": 87,
+      "rank_delta": 0
     },
     {
       "rank": 88,
@@ -2544,14 +2544,14 @@
       },
       "valuation": {
         "method": "PE",
-        "multiple": 51.26,
+        "multiple": 51.34,
         "band": "> +2σ",
-        "upside_pct": -66.04,
+        "upside_pct": -66.05,
         "decision": "SELL"
       },
-      "is_new": true,
-      "prev_rank": null,
-      "rank_delta": null
+      "is_new": false,
+      "prev_rank": 88,
+      "rank_delta": 0
     },
     {
       "rank": 89,
@@ -2573,14 +2573,14 @@
       },
       "valuation": {
         "method": "PB",
-        "multiple": 1.19,
+        "multiple": 1.16,
         "band": "< −2σ",
-        "upside_pct": 23.46,
+        "upside_pct": 26.16,
         "decision": "BUY"
       },
-      "is_new": true,
-      "prev_rank": null,
-      "rank_delta": null
+      "is_new": false,
+      "prev_rank": 89,
+      "rank_delta": 0
     },
     {
       "rank": 90,
@@ -2602,14 +2602,14 @@
       },
       "valuation": {
         "method": "PB",
-        "multiple": 1.87,
+        "multiple": 1.92,
         "band": "> +2σ",
-        "upside_pct": -31.89,
+        "upside_pct": -33.81,
         "decision": "SELL"
       },
       "is_new": false,
-      "prev_rank": 60,
-      "rank_delta": -30
+      "prev_rank": 90,
+      "rank_delta": 0
     },
     {
       "rank": 91,
@@ -2631,14 +2631,14 @@
       },
       "valuation": {
         "method": "PB",
-        "multiple": 1.9,
+        "multiple": 1.76,
         "band": "> +2σ",
-        "upside_pct": -34.72,
+        "upside_pct": -29.54,
         "decision": "SELL"
       },
-      "is_new": true,
-      "prev_rank": null,
-      "rank_delta": null
+      "is_new": false,
+      "prev_rank": 91,
+      "rank_delta": 0
     },
     {
       "rank": 92,
@@ -2660,14 +2660,14 @@
       },
       "valuation": {
         "method": "PE",
-        "multiple": 14.32,
+        "multiple": 14.43,
         "band": "mean ~ +1σ",
-        "upside_pct": -24.0,
+        "upside_pct": -24.52,
         "decision": "SELL"
       },
       "is_new": false,
-      "prev_rank": 62,
-      "rank_delta": -30
+      "prev_rank": 92,
+      "rank_delta": 0
     },
     {
       "rank": 93,
@@ -2689,14 +2689,14 @@
       },
       "valuation": {
         "method": "PE",
-        "multiple": 12.58,
+        "multiple": 12.56,
         "band": "−1σ ~ mean",
-        "upside_pct": 63.7,
+        "upside_pct": 63.96,
         "decision": "BUY"
       },
-      "is_new": true,
-      "prev_rank": null,
-      "rank_delta": null
+      "is_new": false,
+      "prev_rank": 93,
+      "rank_delta": 0
     },
     {
       "rank": 94,
@@ -2718,14 +2718,14 @@
       },
       "valuation": {
         "method": "PE",
-        "multiple": 25.52,
+        "multiple": 24.74,
         "band": "mean ~ +1σ",
-        "upside_pct": -25.23,
+        "upside_pct": -22.88,
         "decision": "SELL"
       },
-      "is_new": true,
-      "prev_rank": null,
-      "rank_delta": null
+      "is_new": false,
+      "prev_rank": 94,
+      "rank_delta": 0
     },
     {
       "rank": 95,
@@ -2747,14 +2747,14 @@
       },
       "valuation": {
         "method": "PE",
-        "multiple": 31.73,
-        "band": "+1σ ~ +2σ",
-        "upside_pct": -29.88,
+        "multiple": 32.45,
+        "band": "> +2σ",
+        "upside_pct": -31.44,
         "decision": "SELL"
       },
-      "is_new": true,
-      "prev_rank": null,
-      "rank_delta": null
+      "is_new": false,
+      "prev_rank": 95,
+      "rank_delta": 0
     },
     {
       "rank": 96,
@@ -2776,14 +2776,14 @@
       },
       "valuation": {
         "method": "PE",
-        "multiple": 15.39,
-        "band": "+1σ ~ +2σ",
-        "upside_pct": -16.17,
+        "multiple": 15.09,
+        "band": "mean ~ +1σ",
+        "upside_pct": -14.47,
         "decision": "SELL"
       },
-      "is_new": true,
-      "prev_rank": null,
-      "rank_delta": null
+      "is_new": false,
+      "prev_rank": 96,
+      "rank_delta": 0
     },
     {
       "rank": 97,
@@ -2805,14 +2805,14 @@
       },
       "valuation": {
         "method": "PE",
-        "multiple": 26.86,
+        "multiple": 26.45,
         "band": "> +2σ",
-        "upside_pct": -46.94,
+        "upside_pct": -46.09,
         "decision": "SELL"
       },
       "is_new": false,
-      "prev_rank": 65,
-      "rank_delta": -32
+      "prev_rank": 97,
+      "rank_delta": 0
     },
     {
       "rank": 98,
@@ -2834,14 +2834,14 @@
       },
       "valuation": {
         "method": "PB",
-        "multiple": 3.1,
+        "multiple": 2.91,
         "band": "> +2σ",
-        "upside_pct": -42.6,
+        "upside_pct": -38.74,
         "decision": "SELL"
       },
       "is_new": false,
-      "prev_rank": 66,
-      "rank_delta": -32
+      "prev_rank": 98,
+      "rank_delta": 0
     },
     {
       "rank": 99,
@@ -2863,14 +2863,14 @@
       },
       "valuation": {
         "method": "PE",
-        "multiple": 44.07,
+        "multiple": 42.45,
         "band": "> +2σ",
-        "upside_pct": -64.77,
+        "upside_pct": -63.38,
         "decision": "SELL"
       },
-      "is_new": true,
-      "prev_rank": null,
-      "rank_delta": null
+      "is_new": false,
+      "prev_rank": 99,
+      "rank_delta": 0
     },
     {
       "rank": 100,
@@ -2892,17 +2892,22 @@
       },
       "valuation": {
         "method": "PE",
-        "multiple": 80.27,
+        "multiple": 74.71,
         "band": "> +2σ",
-        "upside_pct": -70.6,
+        "upside_pct": -68.34,
         "decision": "SELL"
       },
-      "is_new": true,
-      "prev_rank": null,
-      "rank_delta": null
+      "is_new": false,
+      "prev_rank": 100,
+      "rank_delta": 0
     }
   ],
   "history": [
+    {
+      "date": "2026-07-14",
+      "top_n": 100,
+      "new_count": 0
+    },
     {
       "date": "2026-07-13",
       "top_n": 100,
@@ -3047,11 +3052,6 @@
       "date": "2026-05-21",
       "top_n": 94,
       "new_count": 0
-    },
-    {
-      "date": "2026-05-20",
-      "top_n": 94,
-      "new_count": 53
     }
   ]
 }
