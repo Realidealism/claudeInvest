@@ -1,65 +1,56 @@
 {
-  "snapshot_date": "2026-07-14",
-  "snapshot_time": "2026-07-14T05:40:31.379064+00:00",
+  "snapshot_date": "2026-07-15",
+  "snapshot_time": "2026-07-15T01:10:31.382538+00:00",
   "signals": {
-    "pick": [
-      {
-        "ticker": "4542",
-        "name": "科嶠",
-        "market": "TPEx",
-        "turnover": 742265024.0,
-        "streak": 1
-      }
-    ],
-    "touch": [
-      {
-        "ticker": "9938",
-        "name": "百和",
-        "market": "TWSE",
-        "turnover": 48652300.0,
-        "streak": 1
-      }
-    ],
+    "pick": [],
+    "touch": [],
     "buy": [
       {
-        "ticker": "5483",
-        "name": "中美晶",
+        "ticker": "1303",
+        "name": "南亞",
+        "market": "TWSE",
+        "turnover": 30715009024.0,
+        "streak": 1
+      },
+      {
+        "ticker": "3374",
+        "name": "精材",
         "market": "TPEx",
-        "turnover": 19926108160.0,
-        "streak": 2
+        "turnover": 8297468928.0,
+        "streak": 1
       },
       {
-        "ticker": "3532",
-        "name": "台勝科",
+        "ticker": "2881",
+        "name": "富邦金",
         "market": "TWSE",
-        "turnover": 8921990144.0,
-        "streak": 2
+        "turnover": 1938030848.0,
+        "streak": 1
       },
       {
-        "ticker": "1810",
-        "name": "和成",
+        "ticker": "3033",
+        "name": "威健",
         "market": "TWSE",
-        "turnover": 1388916992.0,
-        "streak": 2
+        "turnover": 1525324544.0,
+        "streak": 1
       },
       {
-        "ticker": "8462",
-        "name": "柏文",
+        "ticker": "5880",
+        "name": "合庫金",
         "market": "TWSE",
-        "turnover": 158196000.0,
+        "turnover": 793127360.0,
         "streak": 1
       }
     ],
-    "sell": [
+    "sell": [],
+    "buy_flee": [
       {
-        "ticker": "8111",
-        "name": "立碁",
-        "market": "TPEx",
-        "turnover": 62920448.0,
+        "ticker": "2636",
+        "name": "台驊控股",
+        "market": "TWSE",
+        "turnover": 77069656.0,
         "streak": 1
       }
     ],
-    "buy_flee": [],
     "sell_flee": []
   }
 }
