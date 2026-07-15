@@ -27,7 +27,7 @@ from __future__ import annotations
 
 import logging
 import threading
-from typing import Dict, List, Optional, Tuple
+from typing import Callable, Dict, List, Optional, Tuple
 
 from .base import BrokerAdapter, ReconnectMixin
 from .types import (
@@ -144,7 +144,8 @@ class CapitalSKCOMAdapter(BrokerAdapter, ReconnectMixin):
         self._emit_connection(ConnectionStatus.DISCONNECTED)
 
     def serve(self, symbols, periodic=None, period: float = 1.0, with_orders: bool = True,
-              on_ready=None) -> None:
+              on_ready=None, is_active_fn: Optional[Callable[[], bool]] = None,
+              stall_timeout: float = 90.0) -> None:
         """Run the live loop on THE CALLING THREAD: connect, subscribe, pump forever.
 
         All four COM objects are created AND message-pumped on this one thread
@@ -183,6 +184,7 @@ class CapitalSKCOMAdapter(BrokerAdapter, ReconnectMixin):
 
         self._serve_stop.clear()
         self._quote_lost.clear()
+        self._mark_alive()   # arm the stall watchdog from the moment ticks are due
         last_periodic = 0.0
         while not self._serve_stop.is_set():
             self._pythoncom.PumpWaitingMessages()
@@ -194,6 +196,15 @@ class CapitalSKCOMAdapter(BrokerAdapter, ReconnectMixin):
                 log.warning("quote connection lost (OnConnection 3002); exiting for clean restart")
                 raise RuntimeError("quote connection lost; exiting for supervisor restart")
             now = _time.monotonic()
+            # Silent tick stall: ticks stop flowing but SKCOM never fires a 3002, so
+            # _quote_lost stays clear and the loop above never trips (verified live
+            # 2026-07-15: feed froze mid-session for 30+ min, no disconnect, the
+            # 13:44 force-close never fired). Treat prolonged silence DURING an active
+            # session the same as a lost connection -> exit for a clean NSSM restart.
+            if self._stalled(now, is_active_fn, stall_timeout):
+                log.warning("no ticks for %.0fs during active session; exiting for clean restart",
+                            now - self._last_alive)
+                raise RuntimeError("quote stall; exiting for supervisor restart")
             if periodic is not None and now - last_periodic >= period:
                 try:
                     periodic()
@@ -202,6 +213,18 @@ class CapitalSKCOMAdapter(BrokerAdapter, ReconnectMixin):
                 last_periodic = now
             _time.sleep(0.005)
         self._emit_connection(ConnectionStatus.DISCONNECTED)
+
+    def _stalled(self, now: float, is_active_fn: Optional[Callable[[], bool]],
+                 stall_timeout: float) -> bool:
+        """True when ticks have been silent past ``stall_timeout`` while a session
+        is open. Gated by ``is_active_fn`` so legitimate between-session gaps (no
+        ticks by design) never trigger a restart loop. ``now``/``_last_alive`` are
+        both ``time.monotonic`` seconds."""
+        if is_active_fn is None or stall_timeout <= 0:
+            return False
+        if now - self._last_alive <= stall_timeout:
+            return False
+        return is_active_fn()
 
     def _init_com(self) -> None:
         import comtypes.client as cc  # lazy: only available on a configured Windows host

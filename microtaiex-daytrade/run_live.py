@@ -205,6 +205,10 @@ def main(argv) -> int:
     broker.set_on_tick(on_tick)
     broker.set_on_connection(lambda s: print(f"CONN {s.value}"))
 
+    # Silent-stall watchdog gate: only treat tick silence as a lost feed while a
+    # session is actually open (off-hours gaps have no ticks by design).
+    is_active = lambda: clock.session_of(datetime.now()) is not Session.CLOSED
+
     if paper:
         engines = []   # (engine, risk, label) — composite + optional 麻紗 shadow
 
@@ -324,7 +328,7 @@ def main(argv) -> int:
                           reply_markup=STATUS_KEYBOARD)
             notifier.poll_commands()   # drain pre-restart backlog + prime the offset
         broker.serve([SYMBOL], periodic=periodic, period=10.0, with_orders=False,
-                     on_ready=(_do_warmup if warmup else None))
+                     on_ready=(_do_warmup if warmup else None), is_active_fn=is_active)
     elif trade:
         risk = RiskManager(RiskConfig(max_lots=1, stop_loss_atr_mult=ATR_MULT,
                                       long_stop_atr_mult=LONG_ATR_MULT,
@@ -356,7 +360,8 @@ def main(argv) -> int:
                   f"last={stats['last_price']} pos={engine.position.state.value}")
         env = "測試環境(模擬)" if test_env else "正式環境(REAL)"
         print(f"--- LIVE TRADE [{env}] {SYMBOL} lookback={LOOKBACK} atr_mult={ATR_MULT} max_lots=1 ---")
-        broker.serve([SYMBOL], periodic=periodic, period=10.0, with_orders=True)
+        broker.serve([SYMBOL], periodic=periodic, period=10.0, with_orders=True,
+                     is_active_fn=is_active)
     else:
         ctx = StrategyContext()
 
@@ -374,7 +379,8 @@ def main(argv) -> int:
             print(f"[hb] {now:%H:%M:%S} {market_status(now)} ticks={stats['ticks']} "
                   f"last={stats['last_price']}")
         print(f"--- LIVE OBSERVE (no orders) {SYMBOL} ---")
-        broker.serve([SYMBOL], periodic=periodic, period=10.0, with_orders=False)
+        broker.serve([SYMBOL], periodic=periodic, period=10.0, with_orders=False,
+                     is_active_fn=is_active)
     return 0
 
 
