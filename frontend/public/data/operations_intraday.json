@@ -1,6 +1,6 @@
 {
   "snapshot_date": "2026-07-17",
-  "snapshot_time": "2026-07-17T02:24:17.669392+00:00",
+  "snapshot_time": "2026-07-17T02:34:58.875944+00:00",
   "signals": {
     "pick": [],
     "touch": [],
@@ -9,19 +9,41 @@
         "ticker": "2886",
         "name": "兆豐金",
         "market": "TWSE",
-        "turnover": 1417094784.0,
+        "turnover": 1442160640.0,
+        "streak": 1
+      },
+      {
+        "ticker": "2880",
+        "name": "華南金",
+        "market": "TWSE",
+        "turnover": 877549056.0,
+        "streak": 1
+      },
+      {
+        "ticker": "5876",
+        "name": "上海商銀",
+        "market": "TWSE",
+        "turnover": 636437696.0,
         "streak": 1
       },
       {
         "ticker": "2867",
         "name": "三商壽",
         "market": "TWSE",
-        "turnover": 302215328.0,
+        "turnover": 309179328.0,
         "streak": 2
       }
     ],
     "sell": [],
-    "buy_flee": [],
+    "buy_flee": [
+      {
+        "ticker": "3041",
+        "name": "揚智",
+        "market": "TWSE",
+        "turnover": 38873792.0,
+        "streak": 1
+      }
+    ],
     "sell_flee": []
   }
 }
