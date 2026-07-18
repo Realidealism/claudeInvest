@@ -83,12 +83,23 @@ def front_contract(d: date) -> str:
 # ---- sessions ----
 
 def session_of(dt: datetime) -> Session:
+    # weekday(): Mon=0 .. Sun=6. TAIFEX trades Mon-Fri only; there is no Saturday
+    # or Sunday session. The night session opens Mon-Fri 15:00 and runs to 05:00
+    # the NEXT calendar day, so the [00:00, 05:00) tail is valid Tue-Sat (it belongs
+    # to the previous weekday's night). Without this weekday gate, session_of would
+    # report DAY/NIGHT on weekends purely from the clock time; is_active then stays
+    # True with no ticks flowing, and the tick-stall watchdog restart-loops.
     t = dt.time()
+    wd = dt.weekday()
     if DAY_OPEN <= t < DAY_CLOSE:
-        return Session.DAY
-    # night wraps midnight: [15:00, 24:00) or [00:00, 05:00)
-    if t >= NIGHT_OPEN or t < NIGHT_CLOSE:
-        return Session.NIGHT
+        return Session.DAY if wd < 5 else Session.CLOSED
+    # night opens 15:00 (Mon-Fri)
+    if t >= NIGHT_OPEN:
+        return Session.NIGHT if wd < 5 else Session.CLOSED
+    # night tail 00:00-05:00 belongs to the previous day's night (Mon-Fri open),
+    # i.e. valid when today is Tue(1)..Sat(5)
+    if t < NIGHT_CLOSE:
+        return Session.NIGHT if 1 <= wd <= 5 else Session.CLOSED
     return Session.CLOSED
 
 

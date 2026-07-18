@@ -30,6 +30,25 @@ def test_sessions():
     assert clock.session_of(datetime(2024, 12, 19, 6, 0)) is Session.CLOSED
 
 
+def test_sessions_weekend_closed():
+    # TAIFEX trades Mon-Fri only. 2026-07-17 Fri / 18 Sat / 19 Sun / 20 Mon.
+    # Saturday day/evening hours are CLOSED even though the clock time is in-window
+    # (this is what restart-looped the paper watchdog on 2026-07-18).
+    assert clock.session_of(datetime(2026, 7, 18, 10, 27)) is Session.CLOSED   # Sat day
+    assert clock.session_of(datetime(2026, 7, 18, 16, 0)) is Session.CLOSED    # Sat evening: no Sat night
+    # but the 00:00-05:00 tail on Saturday belongs to Friday's night session
+    assert clock.session_of(datetime(2026, 7, 18, 3, 0)) is Session.NIGHT      # Fri night tail
+    assert clock.session_of(datetime(2026, 7, 17, 16, 0)) is Session.NIGHT     # Fri night open
+    # Sunday fully closed
+    assert clock.session_of(datetime(2026, 7, 19, 3, 0)) is Session.CLOSED
+    assert clock.session_of(datetime(2026, 7, 19, 10, 0)) is Session.CLOSED
+    # Monday: no Sunday-night tail, but day/evening resume
+    assert clock.session_of(datetime(2026, 7, 20, 3, 0)) is Session.CLOSED     # no Sun night tail
+    assert clock.session_of(datetime(2026, 7, 20, 10, 0)) is Session.DAY
+    assert clock.session_of(datetime(2026, 7, 20, 16, 0)) is Session.NIGHT
+    assert not clock.should_force_close(datetime(2026, 7, 18, 13, 44))         # Sat: nothing to close
+
+
 def test_force_close():
     assert clock.should_force_close(datetime(2024, 12, 18, 13, 44))
     assert not clock.should_force_close(datetime(2024, 12, 18, 13, 43))

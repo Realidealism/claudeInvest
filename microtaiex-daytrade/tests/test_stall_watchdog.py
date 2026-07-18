@@ -1,5 +1,6 @@
 """serve() silent-stall watchdog: prolonged tick silence during an open session
-must trip a restart, but off-hours silence and fresh feeds must not."""
+that had already been delivering ticks must trip a restart, but off-hours silence,
+fresh feeds, and whole non-trading days (no tick ever) must not."""
 import time
 
 from broker.capital_skcom import CapitalSKCOMAdapter
@@ -11,30 +12,45 @@ def _adapter():
     return a
 
 
+def _seen_tick(a, ago: float) -> None:
+    """Simulate a real tick delivered ``ago`` seconds in the past."""
+    a._session_had_tick = True
+    a._last_tick_at = time.monotonic() - ago
+
+
 def test_stall_during_session_trips():
     a = _adapter()
-    a._last_alive = time.monotonic() - 120.0  # 120s of silence
+    _seen_tick(a, 120.0)  # feed was alive, then 120s of silence
     assert a._stalled(time.monotonic(), lambda: True, stall_timeout=90.0) is True
 
 
 def test_fresh_feed_does_not_trip():
-    a = _adapter()  # just marked alive
+    a = _adapter()
+    _seen_tick(a, 1.0)  # tick just arrived
+    assert a._stalled(time.monotonic(), lambda: True, stall_timeout=90.0) is False
+
+
+def test_no_tick_yet_does_not_trip():
+    # Whole non-trading day (weekend/holiday): session_of reads in-window but no
+    # tick has ever arrived -> must NOT restart-loop even after long silence.
+    a = _adapter()
+    assert a._session_had_tick is False
     assert a._stalled(time.monotonic(), lambda: True, stall_timeout=90.0) is False
 
 
 def test_silence_off_session_does_not_trip():
     a = _adapter()
-    a._last_alive = time.monotonic() - 600.0  # long silence, but market closed
+    _seen_tick(a, 600.0)  # long silence, but market closed
     assert a._stalled(time.monotonic(), lambda: False, stall_timeout=90.0) is False
 
 
 def test_disabled_when_no_gate():
     a = _adapter()
-    a._last_alive = time.monotonic() - 600.0
+    _seen_tick(a, 600.0)
     assert a._stalled(time.monotonic(), None, stall_timeout=90.0) is False
 
 
 def test_disabled_when_timeout_nonpositive():
     a = _adapter()
-    a._last_alive = time.monotonic() - 600.0
+    _seen_tick(a, 600.0)
     assert a._stalled(time.monotonic(), lambda: True, stall_timeout=0.0) is False

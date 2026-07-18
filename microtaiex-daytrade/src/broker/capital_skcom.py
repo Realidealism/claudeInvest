@@ -113,6 +113,17 @@ class CapitalSKCOMAdapter(BrokerAdapter, ReconnectMixin):
         # open-interest query buffering (GetOpenInterestGW -> OnOpenInterest)
         self._oi_lines: List[str] = []
         self._oi_done = threading.Event()
+        # serve() tick-stall watchdog: a stall is only real once the feed has
+        # delivered a REAL trade tick THIS session. Otherwise whole non-trading
+        # days -- weekends and market holidays, when session_of may still read
+        # in-window but no ticks ever flow -- would be mistaken for a frozen feed
+        # and restart-loop. Distinct from _last_alive (generic COM liveness).
+        self._session_had_tick = False
+        self._last_tick_at: Optional[float] = None
+        # monotonic time the current session was observed to open (is_active_fn
+        # False->True). Lets a caller detect "session open but feed never delivered
+        # a tick" (cold-start dead feed) via periodic; see run_live.
+        self._session_open_at: Optional[float] = None
 
     # ---- connection ----
     def connect(self, quote_only: bool = False, background_pump: bool = True) -> None:
@@ -185,6 +196,10 @@ class CapitalSKCOMAdapter(BrokerAdapter, ReconnectMixin):
         self._serve_stop.clear()
         self._quote_lost.clear()
         self._mark_alive()   # arm the stall watchdog from the moment ticks are due
+        self._session_had_tick = False   # require a fresh per-session liveness proof
+        self._last_tick_at = None
+        self._session_open_at = None
+        prev_active = False
         last_periodic = 0.0
         while not self._serve_stop.is_set():
             self._pythoncom.PumpWaitingMessages()
@@ -196,14 +211,24 @@ class CapitalSKCOMAdapter(BrokerAdapter, ReconnectMixin):
                 log.warning("quote connection lost (OnConnection 3002); exiting for clean restart")
                 raise RuntimeError("quote connection lost; exiting for supervisor restart")
             now = _time.monotonic()
+            # A new session just opening resets the liveness proof: a stall is only
+            # real once THIS session has delivered a tick (holidays/weekends never
+            # do, so they never restart-loop; see _stalled).
+            active = is_active_fn() if is_active_fn is not None else False
+            if active and not prev_active:
+                self._session_had_tick = False
+                self._last_tick_at = None
+                self._session_open_at = now
+            prev_active = active
             # Silent tick stall: ticks stop flowing but SKCOM never fires a 3002, so
             # _quote_lost stays clear and the loop above never trips (verified live
             # 2026-07-15: feed froze mid-session for 30+ min, no disconnect, the
             # 13:44 force-close never fired). Treat prolonged silence DURING an active
-            # session the same as a lost connection -> exit for a clean NSSM restart.
+            # session that had already been delivering ticks the same as a lost
+            # connection -> exit for a clean NSSM restart.
             if self._stalled(now, is_active_fn, stall_timeout):
                 log.warning("no ticks for %.0fs during active session; exiting for clean restart",
-                            now - self._last_alive)
+                            now - self._last_tick_at)
                 raise RuntimeError("quote stall; exiting for supervisor restart")
             if periodic is not None and now - last_periodic >= period:
                 try:
@@ -216,13 +241,21 @@ class CapitalSKCOMAdapter(BrokerAdapter, ReconnectMixin):
 
     def _stalled(self, now: float, is_active_fn: Optional[Callable[[], bool]],
                  stall_timeout: float) -> bool:
-        """True when ticks have been silent past ``stall_timeout`` while a session
-        is open. Gated by ``is_active_fn`` so legitimate between-session gaps (no
-        ticks by design) never trigger a restart loop. ``now``/``_last_alive`` are
-        both ``time.monotonic`` seconds."""
+        """True when the feed proved alive THIS session (>=1 real tick) then went
+        silent past ``stall_timeout`` while a session is open. Gated three ways so
+        it only trips on a genuine mid-session freeze:
+        - ``is_active_fn``: in an open session (between-session gaps have no ticks
+          by design);
+        - ``_session_had_tick``: the feed already delivered a tick this session, so
+          whole non-trading days -- weekends and market holidays, when session_of
+          may still read in-window yet zero ticks flow -- never restart-loop;
+        - the silence window since ``_last_tick_at``.
+        ``now``/``_last_tick_at`` are both ``time.monotonic`` seconds."""
         if is_active_fn is None or stall_timeout <= 0:
             return False
-        if now - self._last_alive <= stall_timeout:
+        if not self._session_had_tick or self._last_tick_at is None:
+            return False
+        if now - self._last_tick_at <= stall_timeout:
             return False
         return is_active_fn()
 
@@ -384,6 +417,11 @@ class CapitalSKCOMAdapter(BrokerAdapter, ReconnectMixin):
         self._mark_alive()
         if nSimulate != 0:
             return  # skip trial-calculation ticks; only act on real ticks
+        import time as _time
+        # real trading tick -> the feed is proven alive this session (arms the
+        # serve() stall watchdog; see _stalled).
+        self._session_had_tick = True
+        self._last_tick_at = _time.monotonic()
         from datetime import datetime
 
         symbol = self._resolve_symbol(sMarketNo, nIndex)

@@ -17,6 +17,7 @@ from __future__ import annotations
 import logging
 import os
 import sys
+import time
 from datetime import datetime
 from pathlib import Path
 
@@ -98,6 +99,12 @@ ATR_PERIOD = 21
 # 8-file backtest (PF 1.063 -> 1.061); accepted as the price of scale-invariance.
 STOP_HI_PCT = 0.00087
 STRAT_TF = "5m"
+# Cold-start feed check: if a session has been open this long with no tick, the
+# feed is probably dead from the open (login OK but ticks never arrive -- SKCOM
+# never fires a 3002 and the stall watchdog can't tell this apart from a holiday,
+# so it deliberately won't restart). Alert once and let a human decide. Longer
+# than a normal session's first-tick latency (ticks flow within seconds of open).
+COLD_START_ALERT_SEC = 300.0
 
 
 def main(argv) -> int:
@@ -294,6 +301,20 @@ def main(argv) -> int:
                                 for eng, _, lbl in engines)
             print(f"[hb] {now:%H:%M:%S} {market_status(now)} ticks={stats['ticks']} "
                   f"last={stats['last_price']}  {pos_str}")
+            # Cold-start dead-feed alert: session open but no tick for too long.
+            # Re-arms whenever we leave the session or a tick finally arrives, so
+            # each dead session alerts at most once. The stall watchdog stays
+            # silent here by design (can't distinguish this from a holiday), so
+            # this notify is the only signal for a feed that never came up.
+            if not is_active() or broker._session_had_tick:
+                stats["cold_alerted"] = False
+            elif not stats.get("cold_alerted") and notifier.enabled:
+                open_at = broker._session_open_at
+                if open_at is not None and time.monotonic() - open_at > COLD_START_ALERT_SEC:
+                    mins = int(COLD_START_ALERT_SEC // 60)
+                    notifier.send(f"⚠️ 微台當沖 paper：開盤逾 {mins} 分鐘仍無行情，"
+                                  f"feed 可能未連上，請確認並視需要重啟服務")
+                    stats["cold_alerted"] = True
             for cmd in notifier.poll_commands():          # 🔍 狀態 button / /status
                 if "狀態" in cmd or cmd.lstrip("/").lower().startswith("status"):
                     notifier.send(build_status())
