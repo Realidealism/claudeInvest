@@ -24,6 +24,7 @@ const NAV_GROUPS = [
       { to: "/dual-track", label: "雙軌比對" },
       { to: "/flow",       label: "資金流向" },
       { to: "/chip-picks", label: "集保選股" },
+      { to: "/insider-pledge", label: "內部人設質解質" },
     ],
   },
   {

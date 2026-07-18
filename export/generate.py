@@ -1425,6 +1425,78 @@ def export_margin(cur, out: Path):
     }, out / "margin.json")
 
 
+def export_insider_pledge(cur, out: Path):
+    """Insider pledge / release events (tw.insider_pledge_events, 內部人設質解質).
+
+    Event-grained: each row is one 設質/解質 filing. type is derived from the
+    pledged/released shares (pledge / release / mixed). Last 180 days by
+    change_date, joined to tw.stocks for the company name.
+    """
+    cur.execute(
+        """
+        SELECT e.stock_id, s.name AS company_name,
+               e.insider_role, e.insider_name, e.change_date,
+               e.pledged_shares, e.released_shares, e.cumulative_pledged,
+               e.pledgee_name, e.remark, e.report_date
+        FROM tw.insider_pledge_events e
+        LEFT JOIN tw.stocks s ON s.stock_id = e.stock_id
+        WHERE e.change_date >= CURRENT_DATE - INTERVAL '180 days'
+        ORDER BY e.change_date DESC, e.stock_id
+        """
+    )
+    rows = cur.fetchall()
+
+    events = []
+    for r in rows:
+        pledged = r["pledged_shares"] or 0
+        released = r["released_shares"] or 0
+        if released > 0 and pledged == 0:
+            ev_type = "release"
+        elif pledged > 0 and released == 0:
+            ev_type = "pledge"
+        elif pledged > 0 and released > 0:
+            ev_type = "mixed"
+        else:
+            ev_type = "pledge"  # both zero (rare); default label
+        events.append({
+            "stock_id": r["stock_id"],
+            "company_name": r["company_name"],
+            "insider_role": r["insider_role"],
+            "insider_name": r["insider_name"],
+            "change_date": r["change_date"],
+            "pledged_shares": pledged,
+            "released_shares": released,
+            "cumulative_pledged": r["cumulative_pledged"],
+            "pledgee_name": r["pledgee_name"],
+            "remark": r["remark"],
+            "report_date": r["report_date"],
+            "type": ev_type,
+        })
+
+    cur.execute(
+        """
+        SELECT
+            COUNT(*) FILTER (WHERE released_shares > 0)                       AS release_events_30d,
+            COUNT(DISTINCT stock_id) FILTER (WHERE released_shares > 0)       AS release_stocks_30d,
+            COUNT(*) FILTER (WHERE pledged_shares > 0)                        AS pledge_events_30d
+        FROM tw.insider_pledge_events
+        WHERE change_date >= CURRENT_DATE - INTERVAL '30 days'
+        """
+    )
+    s = cur.fetchone()
+    stats = {
+        "release_events_30d": int(s["release_events_30d"] or 0),
+        "release_stocks_30d": int(s["release_stocks_30d"] or 0),
+        "pledge_events_30d":  int(s["pledge_events_30d"] or 0),
+    }
+
+    _write({
+        "updated_at": datetime.now().isoformat(timespec="seconds"),
+        "events": events,
+        "stats": stats,
+    }, out / "insider_pledge.json")
+
+
 _FG_SUB_SLOTS = [
     "momentum", "strength", "breadth",
     "put_call", "safe_haven", "junk_bond", "volatility",
@@ -1921,6 +1993,7 @@ def export_all(out_dir: str | None = None):
         export_positions(cur, out)
         export_breadth(cur, out)
         export_margin(cur, out)
+        export_insider_pledge(cur, out)
         export_fear_greed(cur, out)
         export_vix(cur, out)
         export_yield_curve(cur, out)

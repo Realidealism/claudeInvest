@@ -19,6 +19,7 @@ import VixPage from "./pages/VixPage";
 import YieldCurvePage from "./pages/YieldCurvePage";
 import FtseTaiwanPage from "./pages/FtseTaiwanPage";
 import CommoditiesPage from "./pages/CommoditiesPage";
+import InsiderPledgePage from "./pages/InsiderPledgePage";
 
 export default function App() {
   return (
@@ -44,6 +45,7 @@ export default function App() {
         <Route path="/yield-curve" element={<YieldCurvePage />} />
         <Route path="/ftse-taiwan" element={<FtseTaiwanPage />} />
         <Route path="/commodities" element={<CommoditiesPage />} />
+        <Route path="/insider-pledge" element={<InsiderPledgePage />} />
       </Route>
     </Routes>
   );

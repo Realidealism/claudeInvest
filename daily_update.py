@@ -66,6 +66,7 @@ SCRAPERS = [
     # Weekly/monthly (idempotent, run once per period)
     ("Shareholder dist.",       "scrapers.shareholder_distribution", "scrape_date"),
     ("Insider holdings",        "scrapers.insider_holdings",  "scrape_date"),
+    ("Insider pledge events",   "scrapers.insider_pledge_events", "scrape_date"),
     ("Treasury stock",          "scrapers.treasury_stock",    "scrape_date"),
 ]
 
