@@ -67,6 +67,8 @@ SCRAPERS = [
     ("Shareholder dist.",       "scrapers.shareholder_distribution", "scrape_date"),
     ("Insider holdings",        "scrapers.insider_holdings",  "scrape_date"),
     ("Insider pledge events",   "scrapers.insider_pledge_events", "scrape_date"),
+    ("Insider share transfers", "scrapers.insider_share_transfers", "scrape_date"),
+    ("Private placements",      "scrapers.private_placements", "scrape_date"),
     ("Treasury stock",          "scrapers.treasury_stock",    "scrape_date"),
 ]
 

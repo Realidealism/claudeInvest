@@ -43,6 +43,10 @@ _RANK_DELTA_NOTABLE = 30
 # Ex-dividend alert lead time, in trading days
 _DIVIDEND_LEAD_DAYS = 3
 
+# Insider-selling / dilution alert window (calendar days). The 洽特定人 signal bleeds
+# for 20-60 trading days, so surface events filed within roughly the last month.
+_INSIDER_SELLING_LOOKBACK_DAYS = 30
+
 _REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 _SCORES_JSON = _REPO_ROOT / "frontend" / "public" / "data" / "scores.json"
 _OPERATIONS_JSON = _REPO_ROOT / "frontend" / "public" / "data" / "operations.json"
@@ -302,6 +306,72 @@ def _build_section_dividend(watchlist: set[str], today: date) -> list[str] | Non
     return lines
 
 
+def _build_section_insider_selling(watchlist: set[str], today: date) -> list[str] | None:
+    """Watchlist tickers with a recent insider block-sale (洽特定人轉讓) or common-stock
+    private-placement (私募普通股) filing — a mid-term bearish avoid/defense flag.
+
+    洽特定人 (insider transfers a block to a specific buyer) historically underperforms
+    ~-2.5pp/20d, -10pp/60d in liquid names; common-stock private placements are a weaker
+    dilution flag. Surfaces events filed within the last ~month (the bleed window).
+    """
+    if not watchlist:
+        return None
+
+    from datetime import timedelta
+    since = today - timedelta(days=_INSIDER_SELLING_LOOKBACK_DAYS)
+    try:
+        from db.connection import get_cursor
+        with get_cursor(commit=False) as cur:
+            cur.execute(
+                """
+                SELECT t.stock_id, s.name, t.report_date AS d, t.insider_name,
+                       GREATEST(t.planned_shares, t.transfer_shares) AS shares
+                FROM tw.insider_share_transfers t
+                LEFT JOIN tw.stocks s ON s.stock_id = t.stock_id
+                WHERE t.transfer_method LIKE %s
+                  AND t.stock_id = ANY(%s) AND t.report_date >= %s
+                ORDER BY t.report_date DESC, t.stock_id
+                """,
+                ("%洽特定人%", sorted(watchlist), since),
+            )
+            transfers = cur.fetchall()
+            cur.execute(
+                """
+                SELECT p.stock_id, s.name, p.decide_date AS d
+                FROM tw.private_placements p
+                LEFT JOIN tw.stocks s ON s.stock_id = p.stock_id
+                WHERE p.security_kind LIKE %s
+                  AND p.security_kind NOT LIKE %s AND p.security_kind NOT LIKE %s
+                  AND p.stock_id = ANY(%s) AND p.decide_date >= %s
+                ORDER BY p.decide_date DESC, p.stock_id
+                """,
+                ("%普通股%", "%轉換%", "%特別%", sorted(watchlist), since),
+            )
+            placements = cur.fetchall()
+    except Exception as e:
+        logger.warning("morning_brief: insider-selling read failed: %s", e)
+        return None
+
+    if not transfers and not placements:
+        return None
+
+    lines: list[str] = []
+    for r in transfers:
+        ago = _trading_days_until(r["d"], today)
+        lots = f"{r['shares'] / 1000:,.0f}張" if r["shares"] else ""
+        lines.append(
+            f"  {r['stock_id']} {r.get('name') or ''} 洽特定人轉讓 {lots}"
+            f"  {r['d']:%m/%d}（{ago} 交易日前）"
+        )
+    for r in placements:
+        ago = _trading_days_until(r["d"], today)
+        lines.append(
+            f"  {r['stock_id']} {r.get('name') or ''} 私募普通股（決議）"
+            f"  {r['d']:%m/%d}（{ago} 交易日前）"
+        )
+    return lines
+
+
 def _load_ftse_latest() -> dict | None:
     """Read the latest 富台/台指期夜盤 row from tw.ftse_taiwan.
 
@@ -413,6 +483,7 @@ def _build_message(today: date, snapshot_date: str, sections: dict) -> str:
         ("scores", "📊 評分變動"),
         ("signals", "📈 昨日訊號（追蹤股）"),
         ("positions", "🔄 昨日部位進出（追蹤股）"),
+        ("insider_selling", "🚪 內部人賣壓／稀釋（追蹤股）"),
         ("disposal", "⚠️ 處置預警（追蹤股）"),
     )
     for key, title in section_titles:
@@ -447,6 +518,7 @@ def _run_check(*, respect_gates: bool) -> tuple[str | None, str]:
         "scores": _build_section_score_changes(scores, watchlist),
         "signals": _build_section_signals(operations, watchlist),
         "positions": _build_section_positions(positions, watchlist, snapshot_date),
+        "insider_selling": _build_section_insider_selling(watchlist, today),
         "disposal": _build_section_disposal(watchlist),
     }
 

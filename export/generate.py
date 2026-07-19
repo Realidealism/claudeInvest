@@ -1497,6 +1497,112 @@ def export_insider_pledge(cur, out: Path):
     }, out / "insider_pledge.json")
 
 
+def export_insider_selling(cur, out: Path):
+    """Insider selling / dilution avoid-overlay (內部人賣壓/稀釋).
+
+    Two event types, both surfaced as bearish avoid/defense flags:
+      transfer  — 事前申報轉讓 with 轉讓方式=洽特定人 (insider block-sale to a specific
+                  buyer); the tradeable signal (~-2.5pp/20d in liquid names).
+      placement — company common-stock private placement (私募普通股); a weaker
+                  small-cap dilution flag (董事會決議日 = event date).
+    Last 90 days by event date, joined to tw.stocks for the company name.
+    """
+    _SPECIFIC = "%洽特定人%"
+    _COMMON, _NOT_CB, _NOT_PREF = "%普通股%", "%轉換%", "%特別%"
+    events = []
+
+    cur.execute(
+        """
+        SELECT t.stock_id, s.name AS company_name, t.report_date,
+               t.insider_role, t.insider_name, t.transfer_method,
+               GREATEST(t.planned_shares, t.transfer_shares) AS shares,
+               t.transfer_period
+        FROM tw.insider_share_transfers t
+        LEFT JOIN tw.stocks s ON s.stock_id = t.stock_id
+        WHERE t.transfer_method LIKE %s
+          AND t.report_date >= CURRENT_DATE - INTERVAL '90 days'
+        ORDER BY t.report_date DESC, t.stock_id
+        """,
+        (_SPECIFIC,),
+    )
+    for r in cur.fetchall():
+        events.append({
+            "type": "transfer",
+            "stock_id": r["stock_id"],
+            "company_name": r["company_name"],
+            "date": r["report_date"],
+            "insider_role": r["insider_role"],
+            "insider_name": r["insider_name"],
+            "method": r["transfer_method"],
+            "shares": r["shares"] or 0,
+            "security_kind": None,
+            "period": r["transfer_period"],
+        })
+
+    cur.execute(
+        """
+        SELECT p.stock_id, s.name AS company_name, p.decide_date, p.security_kind
+        FROM tw.private_placements p
+        LEFT JOIN tw.stocks s ON s.stock_id = p.stock_id
+        WHERE p.security_kind LIKE %s
+          AND p.security_kind NOT LIKE %s
+          AND p.security_kind NOT LIKE %s
+          AND p.decide_date >= CURRENT_DATE - INTERVAL '90 days'
+        ORDER BY p.decide_date DESC, p.stock_id
+        """,
+        (_COMMON, _NOT_CB, _NOT_PREF),
+    )
+    for r in cur.fetchall():
+        events.append({
+            "type": "placement",
+            "stock_id": r["stock_id"],
+            "company_name": r["company_name"],
+            "date": r["decide_date"],
+            "insider_role": None,
+            "insider_name": None,
+            "method": None,
+            "shares": None,
+            "security_kind": r["security_kind"],
+            "period": None,
+        })
+
+    events.sort(key=lambda e: e["date"], reverse=True)
+
+    cur.execute(
+        """
+        SELECT
+            COUNT(*) FILTER (WHERE transfer_method LIKE %s)                 AS transfer_events_30d,
+            COUNT(DISTINCT stock_id) FILTER (WHERE transfer_method LIKE %s)  AS transfer_stocks_30d
+        FROM tw.insider_share_transfers
+        WHERE report_date >= CURRENT_DATE - INTERVAL '30 days'
+        """,
+        (_SPECIFIC, _SPECIFIC),
+    )
+    t = cur.fetchone()
+    cur.execute(
+        """
+        SELECT COUNT(*) AS placement_events_30d
+        FROM tw.private_placements
+        WHERE decide_date >= CURRENT_DATE - INTERVAL '30 days'
+          AND security_kind LIKE %s
+          AND security_kind NOT LIKE %s AND security_kind NOT LIKE %s
+        """,
+        (_COMMON, _NOT_CB, _NOT_PREF),
+    )
+    p = cur.fetchone()
+    stats = {
+        "transfer_events_30d":  int(t["transfer_events_30d"] or 0),
+        "transfer_stocks_30d":  int(t["transfer_stocks_30d"] or 0),
+        "placement_events_30d": int(p["placement_events_30d"] or 0),
+    }
+
+    _write({
+        "updated_at": datetime.now().isoformat(timespec="seconds"),
+        "events": events,
+        "stats": stats,
+    }, out / "insider_selling.json")
+
+
 _FG_SUB_SLOTS = [
     "momentum", "strength", "breadth",
     "put_call", "safe_haven", "junk_bond", "volatility",
@@ -1994,6 +2100,7 @@ def export_all(out_dir: str | None = None):
         export_breadth(cur, out)
         export_margin(cur, out)
         export_insider_pledge(cur, out)
+        export_insider_selling(cur, out)
         export_fear_greed(cur, out)
         export_vix(cur, out)
         export_yield_curve(cur, out)

@@ -20,6 +20,7 @@ import YieldCurvePage from "./pages/YieldCurvePage";
 import FtseTaiwanPage from "./pages/FtseTaiwanPage";
 import CommoditiesPage from "./pages/CommoditiesPage";
 import InsiderPledgePage from "./pages/InsiderPledgePage";
+import InsiderSellingPage from "./pages/InsiderSellingPage";
 
 export default function App() {
   return (
@@ -46,6 +47,7 @@ export default function App() {
         <Route path="/ftse-taiwan" element={<FtseTaiwanPage />} />
         <Route path="/commodities" element={<CommoditiesPage />} />
         <Route path="/insider-pledge" element={<InsiderPledgePage />} />
+        <Route path="/insider-selling" element={<InsiderSellingPage />} />
       </Route>
     </Routes>
   );

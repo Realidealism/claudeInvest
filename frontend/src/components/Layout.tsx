@@ -25,6 +25,7 @@ const NAV_GROUPS = [
       { to: "/flow",       label: "資金流向" },
       { to: "/chip-picks", label: "集保選股" },
       { to: "/insider-pledge", label: "內部人設質解質" },
+      { to: "/insider-selling", label: "內部人賣壓／稀釋" },
     ],
   },
   {
