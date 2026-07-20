@@ -63,6 +63,10 @@ SCRAPERS = [
     ("Stock alerts (注意/處置)", "scrapers.stock_alerts",       "scrape_date"),
     # Forward-looking board (除權除息預告) — feeds the morning-brief ex-dividend alert
     ("Dividend calendar (除權息)", "scrapers.dividend_calendar", "scrape_date"),
+    # Forward-looking board (停券/融券最後回補日) — covering-squeeze calendar
+    ("Short-cover calendar (停券)", "scrapers.short_cover_calendar", "scrape_date"),
+    # Current-year AGM board (股東會開會日期, OpenAPI)
+    ("Shareholder meetings (股東會)", "scrapers.shareholder_meetings", "scrape_date"),
     # Weekly/monthly (idempotent, run once per period)
     ("Shareholder dist.",       "scrapers.shareholder_distribution", "scrape_date"),
     ("Insider holdings",        "scrapers.insider_holdings",  "scrape_date"),
