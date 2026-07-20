@@ -1,6 +1,18 @@
 {
-  "updated_at": "2026-07-19T16:58:26",
+  "updated_at": "2026-07-20T21:45:33",
   "events": [
+    {
+      "type": "transfer",
+      "stock_id": "7765",
+      "company_name": "中華資安",
+      "date": "2026-07-20",
+      "insider_role": "經理人本人",
+      "insider_name": "劉叡",
+      "method": "洽特定人",
+      "shares": 223000,
+      "security_kind": null,
+      "period": "115/07/20\r\n~\r\n115/07/22"
+    },
     {
       "type": "placement",
       "stock_id": "4128",
@@ -270,10 +282,10 @@
       "stock_id": "4987",
       "company_name": "科誠",
       "date": "2026-05-27",
-      "insider_role": "董事本人",
-      "insider_name": "胡漢良",
+      "insider_role": "經理人本人",
+      "insider_name": "謝立龍",
       "method": "洽特定人",
-      "shares": 25300,
+      "shares": 21823,
       "security_kind": null,
       "period": "115/05/27\r\n~\r\n115/05/29"
     },
@@ -282,10 +294,10 @@
       "stock_id": "4987",
       "company_name": "科誠",
       "date": "2026-05-27",
-      "insider_role": "經理人本人",
-      "insider_name": "謝立龍",
+      "insider_role": "董事本人",
+      "insider_name": "胡漢良",
       "method": "洽特定人",
-      "shares": 21823,
+      "shares": 25300,
       "security_kind": null,
       "period": "115/05/27\r\n~\r\n115/05/29"
     },
@@ -1119,8 +1131,8 @@
     }
   ],
   "stats": {
-    "transfer_events_30d": 11,
-    "transfer_stocks_30d": 9,
+    "transfer_events_30d": 12,
+    "transfer_stocks_30d": 10,
     "placement_events_30d": 1
   }
 }
