@@ -21,6 +21,7 @@ import FtseTaiwanPage from "./pages/FtseTaiwanPage";
 import CommoditiesPage from "./pages/CommoditiesPage";
 import InsiderPledgePage from "./pages/InsiderPledgePage";
 import InsiderSellingPage from "./pages/InsiderSellingPage";
+import CoverSqueezePage from "./pages/CoverSqueezePage";
 
 export default function App() {
   return (
@@ -48,6 +49,7 @@ export default function App() {
         <Route path="/commodities" element={<CommoditiesPage />} />
         <Route path="/insider-pledge" element={<InsiderPledgePage />} />
         <Route path="/insider-selling" element={<InsiderSellingPage />} />
+        <Route path="/cover-squeeze" element={<CoverSqueezePage />} />
       </Route>
     </Routes>
   );

@@ -1908,6 +1908,20 @@ def export_ftse_taiwan(cur, out: Path):
     }, out / "ftse_taiwan.json")
 
 
+def export_cover_squeeze(cur, out: Path):
+    """cover_squeeze.json — 股東會強制回補軋空 daily candidate list.
+
+    Heavily-shorted names must force-cover 融券 into a stock's 股東會 book-closure;
+    high days-to-cover names squeeze up in the ~6 trading days into the cover date
+    (validated edge, memory project_agm_forced_cover_squeeze). Seasonal (Feb–Apr);
+    off-season the list is empty by design. Ranking lives in analysis.cover_squeeze
+    so the same logic can back a backtest / telegram surface later."""
+    from analysis.cover_squeeze import rank_candidates
+
+    snap = rank_candidates(cur)
+    _write(snap, out / "cover_squeeze.json")
+
+
 def export_chip_picks(cur, out: Path):
     """chip_picks.json — 集保大戶選股 (chip_model) 最近 5 週、做多/做空各 top-30。
 
@@ -2105,6 +2119,7 @@ def export_all(out_dir: str | None = None):
         export_vix(cur, out)
         export_yield_curve(cur, out)
         export_chip_picks(cur, out)
+        export_cover_squeeze(cur, out)
         export_market_quote(cur, out)
         # intraday JSONs (scores/operations/positions) are intentionally
         # NOT refreshed here — they are owned by intraday_snapshot.exe

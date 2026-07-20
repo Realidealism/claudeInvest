@@ -29,6 +29,13 @@ const NAV_GROUPS = [
     ],
   },
   {
+    key: "composite",
+    label: "綜合型",
+    items: [
+      { to: "/cover-squeeze", label: "股東會軋空回補" },
+    ],
+  },
+  {
     key: "fundamentals",
     label: "基本面",
     items: [
