@@ -1,57 +1,42 @@
 {
-  "snapshot_date": "2026-07-17",
-  "snapshot_time": "2026-07-17T05:40:29.053451+00:00",
+  "snapshot_date": "2026-07-20",
+  "snapshot_time": "2026-07-20T01:14:33.459902+00:00",
   "signals": {
     "pick": [
       {
-        "ticker": "5536",
-        "name": "聖暉*",
+        "ticker": "2305",
+        "name": "全友",
+        "market": "TWSE",
+        "turnover": 725745728.0,
+        "streak": 1
+      },
+      {
+        "ticker": "2061",
+        "name": "風青",
         "market": "TPEx",
-        "turnover": 707505024.0,
+        "turnover": 570377216.0,
         "streak": 1
       }
     ],
     "touch": [],
     "buy": [
       {
-        "ticker": "2886",
-        "name": "兆豐金",
-        "market": "TWSE",
-        "turnover": 2468412672.0,
+        "ticker": "4541",
+        "name": "晟田",
+        "market": "TPEx",
+        "turnover": 2788553216.0,
         "streak": 1
       },
       {
-        "ticker": "2880",
-        "name": "華南金",
+        "ticker": "5876",
+        "name": "上海商銀",
         "market": "TWSE",
-        "turnover": 1591826048.0,
+        "turnover": 483198784.0,
         "streak": 1
-      },
-      {
-        "ticker": "2867",
-        "name": "三商壽",
-        "market": "TWSE",
-        "turnover": 340409664.0,
-        "streak": 2
       }
     ],
     "sell": [],
-    "buy_flee": [
-      {
-        "ticker": "4961",
-        "name": "天鈺",
-        "market": "TWSE",
-        "turnover": 163092496.0,
-        "streak": 1
-      },
-      {
-        "ticker": "3041",
-        "name": "揚智",
-        "market": "TWSE",
-        "turnover": 51066048.0,
-        "streak": 1
-      }
-    ],
+    "buy_flee": [],
     "sell_flee": []
   }
 }
