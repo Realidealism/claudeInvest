@@ -1908,6 +1908,27 @@ def export_ftse_taiwan(cur, out: Path):
     }, out / "ftse_taiwan.json")
 
 
+def export_thermometer(cur, out: Path):
+    """thermometer.json — 市場溫度計 (綜合型 L1 descriptive fragility gauge).
+
+    0-100 tension score from 外資期貨定位 + 融資水位. Descriptive, not a crash
+    predictor (memory project_market_thermometer). Logic in analysis.market_thermometer."""
+    from analysis.market_thermometer import build_thermometer
+
+    _write(build_thermometer(cur), out / "thermometer.json")
+
+
+def export_theme_calendar(cur, out: Path):
+    """theme_calendar.json — 季節題材行事曆 (綜合型 event calendar).
+
+    Recurring time-of-year themes as 12-month bands (股東會軋空/除權息/月營收/財報),
+    with a live upcoming-density label for the AGM squeeze. Registry + logic live in
+    analysis.theme_calendar."""
+    from analysis.theme_calendar import build_calendar
+
+    _write(build_calendar(cur), out / "theme_calendar.json")
+
+
 def export_cover_squeeze(cur, out: Path):
     """cover_squeeze.json — 股東會強制回補軋空 daily candidate list.
 
@@ -2120,6 +2141,8 @@ def export_all(out_dir: str | None = None):
         export_yield_curve(cur, out)
         export_chip_picks(cur, out)
         export_cover_squeeze(cur, out)
+        export_thermometer(cur, out)
+        export_theme_calendar(cur, out)
         export_market_quote(cur, out)
         # intraday JSONs (scores/operations/positions) are intentionally
         # NOT refreshed here — they are owned by intraday_snapshot.exe
