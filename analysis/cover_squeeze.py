@@ -44,6 +44,35 @@ def _latest_trade_date(cur, as_of: date | None) -> date | None:
     return row["m"] if row else None
 
 
+def _position_states(cur, asof: date, tickers: list[str]):
+    """Return f(stock_id) -> unified-strategy operation state as of `asof`:
+    'long'/'short' (open position), 'exited_long'/'exited_short' (closed that day,
+    keeping the direction), 'flat' (tracked, no position), 'na' (position tracking
+    not yet recorded on that date — tw.open_positions starts 2026-04-28; must not
+    read as 空手)."""
+    cur.execute(
+        "SELECT MAX(snapshot_date) d FROM tw.open_positions WHERE snapshot_date <= %s",
+        (asof,),
+    )
+    row = cur.fetchone()
+    pos_date = row["d"] if row else None
+    if pos_date is None:
+        return lambda _sid: "na"
+    cur.execute(
+        """SELECT stock_id, side, is_exited FROM tw.open_positions
+           WHERE snapshot_date = %s AND stock_id = ANY(%s)""",
+        (pos_date, tickers),
+    )
+    state: dict[str, str] = {}
+    for r in cur.fetchall():
+        s = ("exited_" + r["side"]) if r["is_exited"] else r["side"]
+        # prefer an open position over an exited one for the same stock
+        prev = state.get(r["stock_id"])
+        if prev is None or prev.startswith("exited"):
+            state[r["stock_id"]] = s
+    return lambda sid: state.get(sid, "flat")
+
+
 def rank_candidates(cur, as_of: date | None = None) -> dict:
     """Rank the AGM-cover-squeeze candidates live as of `as_of` (default: latest
     trade date). Returns a snapshot dict ready for JSON serialisation.
@@ -111,6 +140,12 @@ def rank_candidates(cur, as_of: date | None = None) -> dict:
                 "candidates": [], "next_cover_date": nxt["d"] if nxt else None,
                 "params": _params()}
 
+    # Technical-side operation state (統一策略持倉) as of `asof`, joined per stock.
+    # "flat" = tracked-but-no-position; "na" = position tracking not yet recorded on
+    # that date (tw.open_positions only starts 2026-04-28) — must not read as 空手.
+    tickers = [r["stock_id"] for r in rows]
+    pos_state = _position_states(cur, asof, tickers)
+
     candidates = []
     for rank, r in enumerate(rows, start=1):
         candidates.append({
@@ -125,6 +160,7 @@ def rank_candidates(cur, as_of: date | None = None) -> dict:
             "avg_volume": int(r["av_vol"]),
             "dtc": round(r["dtc"], 3),
             "close": r["close_price"],
+            "position_state": pos_state(r["stock_id"]),
             "is_strong": r["dtc"] >= STRONG_DTC,
         })
 
@@ -151,4 +187,4 @@ if __name__ == "__main__":
         flag = "★" if c["is_strong"] else " "
         print(f"{flag} #{c['rank']:2d} {c['ticker']:6s} {(c['name'] or ''):10s} "
               f"cover={c['last_cover_date']} d={c['days_to_cover_date']:+d} "
-              f"dtc={c['dtc']:.3f} short={c['short_balance']} close={c['close']}")
+              f"dtc={c['dtc']:.3f} pos={c['position_state']} close={c['close']}")

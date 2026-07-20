@@ -14,7 +14,18 @@ interface Candidate {
   dtc: number;
   close: number | null;
   is_strong: boolean;
+  position_state: "long" | "short" | "exited_long" | "exited_short" | "flat" | "na";
 }
+
+// Technical-side (統一策略持倉) operation state badge. 台股慣例：多=紅、空=綠。
+const POS_BADGE: Record<Candidate["position_state"], { label: string; cls: string }> = {
+  long: { label: "多方持倉", cls: "text-long-strong font-medium" },
+  short: { label: "空方持倉", cls: "text-short-strong font-medium" },
+  exited_long: { label: "多方出場", cls: "text-long-strong/55" },
+  exited_short: { label: "空方出場", cls: "text-short-strong/55" },
+  flat: { label: "空手", cls: "text-text-secondary/60" },
+  na: { label: "—", cls: "text-text-secondary/40" },
+};
 
 interface Params {
   window_td: number;
@@ -71,6 +82,7 @@ export default function CoverSqueezePage() {
             dtc ≥ {p.strong_dtc} PF 1.70／+1.26%（絕對門檻優於橫斷面 top decile）；
             加 {p.stop_pct}% 停損後 dtc ≥ {p.strong_dtc} PF 1.80／maxL −17.5%。dtc 低於地板者控制組實測為負，不列入。
           </li>
+          <li>操作狀態：該股在統一策略（技術面）當日的持倉狀態——多方持倉／空方持倉／今日出場／空手。軋空候選同時為多方持倉＝技術面確認。持倉追蹤自 2026-04-28 起，之前的日期顯示「—」。</li>
           <li>來源：TWSE BFI84U 停券預告表 + TPEx term 前瞻板（每日刷新）＋股東會日期衍生回補日。屬綜合型 overlay，非純技術訊號。</li>
         </ul>
       </details>
@@ -95,6 +107,7 @@ export default function CoverSqueezePage() {
                   <th className="py-2 pr-3 font-medium">排名</th>
                   <th className="py-2 pr-3 font-medium">代號</th>
                   <th className="py-2 pr-3 font-medium">名稱</th>
+                  <th className="py-2 pr-3 font-medium">操作狀態</th>
                   <th className="py-2 pr-3 font-medium text-right">dtc</th>
                   <th className="py-2 pr-3 font-medium">回補日</th>
                   <th className="py-2 pr-3 font-medium text-right">距回補</th>
@@ -116,6 +129,9 @@ export default function CoverSqueezePage() {
                     </td>
                     <td className="py-2 pr-3">
                       <Link to={`/stock/${c.ticker}`} className="hover:underline">{c.name ?? "—"}</Link>
+                    </td>
+                    <td className={"py-2 pr-3 " + POS_BADGE[c.position_state].cls}>
+                      {POS_BADGE[c.position_state].label}
                     </td>
                     <td className="py-2 pr-3 text-right font-medium">{c.dtc.toFixed(3)}</td>
                     <td className="py-2 pr-3">{c.last_cover_date}</td>
