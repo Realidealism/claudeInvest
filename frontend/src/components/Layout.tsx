@@ -33,8 +33,9 @@ const NAV_GROUPS = [
     label: "綜合型",
     items: [
       { to: "/thermometer", label: "市場溫度計" },
-      { to: "/theme-calendar", label: "題材行事曆" },
-      { to: "/cover-squeeze", label: "股東會軋空回補" },
+      // 題材行事曆 / 股東會軋空回補 頁面已存在但暫不對外顯示 (資料未完備), 待完成後再開放
+      // { to: "/theme-calendar", label: "題材行事曆" },
+      // { to: "/cover-squeeze", label: "股東會軋空回補" },
     ],
   },
   {
