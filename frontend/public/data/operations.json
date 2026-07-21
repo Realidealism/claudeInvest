@@ -1,47 +1,103 @@
 {
-  "snapshot_date": "2026-07-20",
+  "snapshot_date": "2026-07-21",
   "signals": {
-    "pick": [],
+    "pick": [
+      {
+        "ticker": "2383",
+        "name": "台光電",
+        "market": "TWSE",
+        "turnover": 13943259136.0,
+        "streak": 1
+      },
+      {
+        "ticker": "6274",
+        "name": "台燿",
+        "market": "TPEx",
+        "turnover": 2925468928.0,
+        "streak": 1
+      }
+    ],
     "touch": [],
     "buy": [
+      {
+        "ticker": "2634",
+        "name": "漢翔",
+        "market": "TWSE",
+        "turnover": 6434076160.0,
+        "streak": 1
+      },
+      {
+        "ticker": "6505",
+        "name": "台塑化",
+        "market": "TWSE",
+        "turnover": 4121053952.0,
+        "streak": 1
+      },
+      {
+        "ticker": "8039",
+        "name": "台虹",
+        "market": "TWSE",
+        "turnover": 2715567104.0,
+        "streak": 1
+      },
+      {
+        "ticker": "4939",
+        "name": "亞電",
+        "market": "TPEx",
+        "turnover": 2583735552.0,
+        "streak": 1
+      },
       {
         "ticker": "2884",
         "name": "玉山金",
         "market": "TWSE",
-        "turnover": 2859648512.0,
+        "turnover": 2435107840.0,
+        "streak": 2
+      },
+      {
+        "ticker": "2395",
+        "name": "研華",
+        "market": "TWSE",
+        "turnover": 2432596736.0,
         "streak": 1
       },
       {
-        "ticker": "5871",
-        "name": "中租-KY",
+        "ticker": "6414",
+        "name": "樺漢",
         "market": "TWSE",
-        "turnover": 2019448832.0,
+        "turnover": 2233065472.0,
         "streak": 1
       },
       {
-        "ticker": "2867",
-        "name": "三商壽",
+        "ticker": "2801",
+        "name": "彰銀",
         "market": "TWSE",
-        "turnover": 256053712.0,
-        "streak": 3
+        "turnover": 954073088.0,
+        "streak": 1
       },
       {
-        "ticker": "2527",
-        "name": "宏璟",
+        "ticker": "4541",
+        "name": "晟田",
+        "market": "TPEx",
+        "turnover": 753294144.0,
+        "streak": 1
+      },
+      {
+        "ticker": "3577",
+        "name": "泓格",
+        "market": "TPEx",
+        "turnover": 723646784.0,
+        "streak": 1
+      },
+      {
+        "ticker": "1709",
+        "name": "和益",
         "market": "TWSE",
-        "turnover": 166732800.0,
+        "turnover": 242764640.0,
         "streak": 1
       }
     ],
-    "sell": [
-      {
-        "ticker": "2233",
-        "name": "宇隆",
-        "market": "TWSE",
-        "turnover": 418397664.0,
-        "streak": 1
-      }
-    ],
+    "sell": [],
     "buy_flee": [],
     "sell_flee": []
   }

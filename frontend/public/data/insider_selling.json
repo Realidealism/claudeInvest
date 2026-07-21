@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-07-20T21:45:33",
+  "updated_at": "2026-07-21T21:47:47",
   "events": [
     {
       "type": "transfer",
@@ -12,6 +12,18 @@
       "shares": 223000,
       "security_kind": null,
       "period": "115/07/20\r\n~\r\n115/07/22"
+    },
+    {
+      "type": "placement",
+      "stock_id": "3349",
+      "company_name": "寶德",
+      "date": "2026-07-20",
+      "insider_role": null,
+      "insider_name": null,
+      "method": null,
+      "shares": null,
+      "security_kind": "普通股",
+      "period": null
     },
     {
       "type": "placement",
@@ -1133,6 +1145,6 @@
   "stats": {
     "transfer_events_30d": 12,
     "transfer_stocks_30d": 10,
-    "placement_events_30d": 1
+    "placement_events_30d": 2
   }
 }

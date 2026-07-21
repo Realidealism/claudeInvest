@@ -1,6 +1,6 @@
 {
-  "as_of": "2026-07-20",
-  "score": 70.3,
+  "as_of": "2026-07-21",
+  "score": 71.7,
   "bucket": "無頂部訊號",
   "bucket_color": "#8a8a9a",
   "danger": false,
@@ -8,7 +8,7 @@
   "stance_color": "#ef4444",
   "stance_reason": "頂部過熱後排列翻空、續守中（排列：強空，回多方或連續 3 天中性以上才解除）",
   "near_high": false,
-  "pct_from_high": -11.1,
+  "pct_from_high": -7.3,
   "hi_window": 55,
   "alert": false,
   "alert_conditions": [
@@ -17,11 +17,11 @@
       "met": false
     }
   ],
-  "panic": true,
+  "panic": false,
   "panic_conditions": [
     {
       "name": "深跌（距 55 日高 ≤ -8%）",
-      "met": true
+      "met": false
     },
     {
       "name": "融資 5 日急殺（≤ -2%）",
@@ -29,7 +29,7 @@
     },
     {
       "name": "快殺（指數 10 日跌 ≤ -6%）",
-      "met": true
+      "met": false
     }
   ],
   "components": [
@@ -37,29 +37,16 @@
       "key": "futures",
       "name": "外資期貨定位",
       "hot": 83.3,
-      "detail": "外資臺股期貨淨未平倉 -78,337 口（90日百分位越低越淨空＝越熱）"
+      "detail": "外資臺股期貨淨未平倉 -78,490 口（90日百分位越低越淨空＝越熱）"
     },
     {
       "key": "margin",
       "name": "融資水位",
-      "hot": 57.2,
-      "detail": "融資餘額金額 5,690億（距 55 日均 +0.29σ；+2σ=過熱）"
+      "hot": 60.1,
+      "detail": "融資餘額金額 5,765億（距 55 日均 +0.41σ；+2σ=過熱）"
     }
   ],
   "history": [
-    {
-      "date": "2025-07-08",
-      "score": 81.9,
-      "tx": 22362,
-      "label": "頂部過熱",
-      "color": "#ef4444",
-      "stance": "防守",
-      "panic": false,
-      "c": {
-        "futures": 98.9,
-        "margin": 64.8
-      }
-    },
     {
       "date": "2025-07-09",
       "score": 82.6,
@@ -3295,6 +3282,19 @@
       "c": {
         "futures": 83.3,
         "margin": 57.2
+      }
+    },
+    {
+      "date": "2026-07-21",
+      "score": 71.7,
+      "tx": 44233,
+      "label": "無頂部訊號",
+      "color": "#8a8a9a",
+      "stance": "防守",
+      "panic": false,
+      "c": {
+        "futures": 83.3,
+        "margin": 60.1
       }
     }
   ]
