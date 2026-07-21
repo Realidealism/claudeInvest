@@ -1,41 +1,55 @@
 {
-  "snapshot_date": "2026-07-20",
-  "snapshot_time": "2026-07-20T05:40:36.843447+00:00",
+  "snapshot_date": "2026-07-21",
+  "snapshot_time": "2026-07-21T01:14:51.332791+00:00",
   "signals": {
-    "pick": [],
+    "pick": [
+      {
+        "ticker": "2383",
+        "name": "台光電",
+        "market": "TWSE",
+        "turnover": 10866549760.0,
+        "streak": 1
+      },
+      {
+        "ticker": "6274",
+        "name": "台燿",
+        "market": "TPEx",
+        "turnover": 2978481664.0,
+        "streak": 1
+      }
+    ],
     "touch": [],
     "buy": [
       {
-        "ticker": "2884",
-        "name": "玉山金",
+        "ticker": "8039",
+        "name": "台虹",
         "market": "TWSE",
-        "turnover": 2833224704.0,
+        "turnover": 8443796480.0,
         "streak": 1
       },
       {
-        "ticker": "2867",
-        "name": "三商壽",
+        "ticker": "6414",
+        "name": "樺漢",
         "market": "TWSE",
-        "turnover": 254130800.0,
-        "streak": 3
+        "turnover": 2088273152.0,
+        "streak": 1
       },
       {
-        "ticker": "2527",
-        "name": "宏璟",
+        "ticker": "2892",
+        "name": "第一金",
         "market": "TWSE",
-        "turnover": 164810208.0,
+        "turnover": 490484544.0,
         "streak": 1
-      }
-    ],
-    "sell": [
+      },
       {
-        "ticker": "2233",
-        "name": "宇隆",
+        "ticker": "2248",
+        "name": "華勝-KY",
         "market": "TWSE",
-        "turnover": 413072000.0,
+        "turnover": 29347056.0,
         "streak": 1
       }
     ],
+    "sell": [],
     "buy_flee": [],
     "sell_flee": []
   }
