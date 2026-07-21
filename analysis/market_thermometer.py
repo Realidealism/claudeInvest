@@ -2,19 +2,17 @@
 
 A 0-100 "how stretched is the market right now" reading, NOT a crash predictor
 (see memory project_market_thermometer: simple gates don't time crashes; this only
-describes current tension). Two validated-as-meaningful components, equal weight:
+describes current tension). Two components drive the 定位極端度 score, equal weight:
 
   外資期貨定位  foreign TX net open interest — hotter the more net-short foreigns
                 are vs their own recent range (survived a fair false-positive test,
                 1.47x standalone).
   融資水位      margin balance percentile — leverage backdrop (elevated at 6/7 tops).
-  選擇權自滿    low put/call OI ratio — complacency / under-hedging. Weak alone
-                (1.18x) but ANDed onto the futures gate lifted precision 1.47x→2.10x
-                (semi-independent), so it earns a slot; foreign spot selling was
-                tested and rejected (0x).
 
-More components can be appended later. Buckets are temperature words on purpose
-(冷靜/溫和/偏緊/過熱), not 攻擊/防守 — we did not validate timing.
+P/C ratio and 微台散戶 were dropped (2026-07-21): both are extreme at BOTH tops and
+bottoms (contrarian, no directional discrimination), so averaging them in only
+diluted the score. The actionable signals live outside this gauge — 頂部過熱 uses
+外資期貨 fresh-low, 攻防 uses OBV + 排列, 恐慌買進 uses 融資 + 深跌 + 快殺.
 """
 
 from __future__ import annotations
@@ -24,13 +22,11 @@ from datetime import date
 import numpy as np
 import pandas as pd
 
+from analysis.obv import calculate_obv, PERIOD_PARAMS
+
 MARGIN_MA_WIN = 55  # 融資餘額金額 55日均線 ±2σ 乖離 (Bollinger z; deviation-from-trend, 不受長多水位長期偏高影響)
 FUT_WIN = 90       # 外資期貨 net_oi percentile lookback (swept 2026-07-21: 90 best, bottom-decile
-                   # gate 1.53x vs 120's 1.33x, same 6/6 cover; matches P/C's 90; tmp/_fut_window_sweep.py)
-PC_WIN = 90        # put/call OI ratio percentile lookback (swept 2026-07-21: 60-90 plateau,
-                   # 90 best — low-P/C+futures gate 2.65x vs 120's 2.10x, time-uniform; tmp/_pc_window_sweep.py)
-RETAIL_WIN = 120   # 微台散戶淨多空比 percentile lookback
-RETAIL_W = 0.5     # 微台散戶 weight (down-weighted: only ~2yr history since 2024-07)
+                   # gate 1.53x vs 120's 1.33x, same 6/6 cover; tmp/_fut_window_sweep.py)
 HI_WINDOW = 55     # 位階 context: index near its 55-day high
 NEAR_HIGH_TOL = 2.0  # within 2% of the 55d high counts as 近高
 # 攻防狀態: short-timeframe 多空頭排列 (market_breadth.short_trend, -2..+2). 攻擊 =
@@ -43,10 +39,18 @@ ST_LABELS = {2: "強多", 1: "偏多", 0: "中性", -1: "偏空", -2: "強空"}
 PANIC_PFH = -8.0     # 距 55 日高 <= -8% (deep drawdown)
 PANIC_MARGIN_WIN = 5  # 融資餘額金額 5-day drop window
 PANIC_MARGIN_CHG = -2.0  # 融資 5 日跌 <= -2% (斷頭急殺)
+PANIC_SPEED_WIN = 10  # 快殺 window (V-bottoms plunge fast; filters slow grinding bears)
+PANIC_SPEED_CHG = -6.0  # 指數 10 日跌 <= -6% (fast washout; +9.3%/71% vs +6.9%/68%)
 # 離散警戒燈 (discrete alarm, NOT a prediction): the validated crash gate. 近高 +
 # 外資淨空創 60日新低 + 低P/C自滿. Precision 2.98x but ~71% false — a caution flag only.
 ALERT_LOW_WIN = 60   # foreign net-OI fresh N-day net-short low (swept: 60 > 40)
-ALERT_PC_PCTL = 0.33  # low P/C = bottom tercile of PC_WIN percentile
+TOP_LOOKBACK = 3     # 攻防 entry: 過熱 within the last 3 trading days counts
+# 大台期貨 OBV 弱勢 = ScoreBoard short-scope OBV in bearish state (trend<0), aligned with
+# analysis.obv (short scope only). We use the persistent latched trend, NOT signal_down:
+# the sparse down-cross event misses declines with no fresh cross (2026-07-09~16 reopened
+# the stance gap), while trend<0 stays weak through the whole decline. The latched-trend
+# form was rejected UPSTREAM only for cross-sectional scoring (cross-timeframe redundancy),
+# which doesn't apply to a single market dial. tmp/_txf_obv_build_faithful.py.
 HISTORY_DAYS = 250 # sparkline length
 
 def _regime(score: float, near_high: bool, fresh_low: bool) -> tuple[str, str, bool]:
@@ -66,71 +70,74 @@ def _roll_pctl(s: pd.Series, win: int) -> pd.Series:
     return s.rolling(win, min_periods=win).apply(lambda w: (w <= w.iloc[-1]).mean(), raw=False)
 
 
-def _retail_micro(cur) -> pd.DataFrame:
-    """微台散戶淨多空比 proxy: retail ≈ total 微台 OI − 三大法人 (微台 ~97% retail, so
-    大額-trader contamination is minimal). retail_net = −Σ法人net (futures zero-sum
-    identity), as % of OI. Only 2024-07+ (三大法人 微台 start). Higher net-long =
-    more retail froth = hotter (contrarian)."""
-    cur.execute("""SELECT trade_date, SUM(open_interest) oi FROM tw.taifex_futures_daily
-                   WHERE contract='TMF' AND session='一般' AND contract_month NOT LIKE '%%/%%'
-                     AND open_interest IS NOT NULL GROUP BY trade_date ORDER BY trade_date""")
-    oi = pd.DataFrame(cur.fetchall())
-    cur.execute("""SELECT trade_date, SUM(net_oi) instnet FROM tw.taifex_inst_futures
-                   WHERE product='微型臺指期貨' GROUP BY trade_date ORDER BY trade_date""")
-    inst = pd.DataFrame(cur.fetchall())
-    if oi.empty or inst.empty:
-        return pd.DataFrame(columns=["d", "retail_hot", "retail_pct"])
-    oi["d"] = pd.to_datetime(oi["trade_date"]); oi["oi"] = oi["oi"].astype(float)
-    inst["d"] = pd.to_datetime(inst["trade_date"]); inst["instnet"] = inst["instnet"].astype(float)
-    r = oi[["d", "oi"]].merge(inst[["d", "instnet"]], on="d").sort_values("d").reset_index(drop=True)
-    r["retail_pct"] = -r["instnet"] / r["oi"] * 100
-    r["retail_hot"] = _roll_pctl(r["retail_pct"], RETAIL_WIN) * 100
-    return r[["d", "retail_hot", "retail_pct"]]
-
-
 def build_thermometer(cur, today: date | None = None) -> dict:
     cur.execute("SELECT trade_date, margin_balance_value FROM tw.margin_summary ORDER BY trade_date")
     mg = pd.DataFrame(cur.fetchall())
     cur.execute("""SELECT trade_date, net_oi FROM tw.taifex_inst_futures
                    WHERE product='臺股期貨' AND investor='外資及陸資' ORDER BY trade_date""")
     fu = pd.DataFrame(cur.fetchall())
-    cur.execute("SELECT trade_date, pc_oi_ratio FROM tw.taifex_pc_ratio ORDER BY trade_date")
-    pc = pd.DataFrame(cur.fetchall())
     cur.execute("SELECT trade_date, close_price FROM tw.index_prices WHERE index_id='TAIEX' ORDER BY trade_date")
     ix = pd.DataFrame(cur.fetchall())
     cur.execute("SELECT trade_date, short_trend FROM tw.market_breadth ORDER BY trade_date")
     br = pd.DataFrame(cur.fetchall())
+    # 大台期貨 front-month OHLCV (per day = non-spread 一般 contract with MAX volume)
+    cur.execute("""SELECT DISTINCT ON (trade_date) trade_date, contract_month,
+                     open_price o, high_price h, low_price l, close_price c, volume v
+                   FROM tw.taifex_futures_daily
+                   WHERE contract='TX' AND session='一般' AND contract_month NOT LIKE '%%/%%'
+                     AND volume IS NOT NULL AND close_price IS NOT NULL
+                   ORDER BY trade_date, volume DESC""")
+    tv = pd.DataFrame(cur.fetchall())
     mg["d"] = pd.to_datetime(mg["trade_date"]); mg["mgn"] = mg["margin_balance_value"].astype(float)
     fu["d"] = pd.to_datetime(fu["trade_date"]); fu["noi"] = fu["net_oi"].astype(float)
-    pc["d"] = pd.to_datetime(pc["trade_date"]); pc["pc"] = pc["pc_oi_ratio"].astype(float)
     ix["d"] = pd.to_datetime(ix["trade_date"]); ix["tx"] = ix["close_price"].astype(float)
     ix["pct_from_high"] = (ix["tx"] / ix["tx"].rolling(HI_WINDOW).max() - 1) * 100
     br["d"] = pd.to_datetime(br["trade_date"]); br["st"] = br["short_trend"].astype(int)
-    m = (mg[["d", "mgn"]].merge(fu[["d", "noi"]], on="d").merge(pc[["d", "pc"]], on="d")
+    tv["d"] = pd.to_datetime(tv["trade_date"])
+    for _k in ("o", "h", "l", "c", "v"):
+        tv[_k] = tv[_k].astype(float)
+    # limit_refer = prev close; on contract rollover use today's open (neutralize gap)
+    tv = tv.sort_values("d").reset_index(drop=True)
+    tv["roll"] = tv["contract_month"] != tv["contract_month"].shift(1)
+    tv["ref"] = np.where(tv["roll"], tv["o"], tv["c"].shift(1))
+    tv.loc[0, "ref"] = tv.loc[0, "c"]
+    m = (mg[["d", "mgn"]].merge(fu[["d", "noi"]], on="d")
          .merge(ix[["d", "pct_from_high", "tx"]], on="d").merge(br[["d", "st"]], on="d")
-         .sort_values("d").reset_index(drop=True))
-    m["defensive"] = m["st"] <= 0   # short 多空排列 中性以下 = 防守
+         .merge(tv[["d", "o", "h", "l", "c", "v", "ref"]], on="d").sort_values("d").reset_index(drop=True))
+    # 大台期貨 OBV — aligned with ScoreBoard OBV machinery (analysis.obv), short scope only
+    _obv = calculate_obv(m["c"].to_numpy(np.float32), m["ref"].to_numpy(np.float32),
+                         m["h"].to_numpy(np.float32), m["l"].to_numpy(np.float32),
+                         m["v"].to_numpy(np.float32), **PERIOD_PARAMS["short"])
+    m["obv_weak"] = _obv.trend < 0   # short-scope OBV 空頭 latch = 量能轉弱 (持續狀態, 撐過整段下跌)
+    m["fresh_low"] = m["noi"] <= m["noi"].rolling(ALERT_LOW_WIN).min() + 1e-9  # 頂部過熱 badge (窄, 2.17x)
+    m["hot_wide"] = m["fresh_low"] | m["obv_weak"]   # 加寬弱勢 (外資期貨 OR OBV弱) for stance entry
+    # 攻防狀態 (stateful hysteresis): enter 防守 when 加寬過熱(3日內) AND 排列翻空(short_trend<0);
+    # latch 防守 until 排列 回多方(short_trend>0). OBV widens entry to cover secondary declines.
+    _fl3 = (m["hot_wide"].rolling(TOP_LOOKBACK, min_periods=1).max() > 0).to_numpy()
+    _st = m["st"].to_numpy()
+    _def = np.zeros(len(m), dtype=bool); _state = False
+    for _i in range(len(m)):
+        if not _state:
+            if _fl3[_i] and _st[_i] < 0:
+                _state = True
+        elif _st[_i] > 0:
+            _state = False
+        _def[_i] = _state
+    m["defensive"] = _def
     m["mchg5"] = m["mgn"].pct_change(PANIC_MARGIN_WIN) * 100
-    m["panic"] = (m["pct_from_high"] <= PANIC_PFH) & (m["mchg5"] <= PANIC_MARGIN_CHG)  # 恐慌買進
+    m["ret10"] = m["tx"].pct_change(PANIC_SPEED_WIN) * 100
+    m["panic"] = ((m["pct_from_high"] <= PANIC_PFH) & (m["mchg5"] <= PANIC_MARGIN_CHG)
+                  & (m["ret10"] <= PANIC_SPEED_CHG))   # 深跌 + 融資斷頭急殺 + 快殺
 
     ma = m["mgn"].rolling(MARGIN_MA_WIN).mean()
     sd = m["mgn"].rolling(MARGIN_MA_WIN).std()
     m["margin_z"] = (m["mgn"] - ma) / sd                        # deviation from 55d trend in σ
     m["margin_hot"] = ((m["margin_z"] + 2) / 4).clip(0, 1) * 100  # −2σ→0, 均線→50, +2σ→100
     m["futures_hot"] = (1 - _roll_pctl(m["noi"], FUT_WIN)) * 100   # more net-short -> hotter
-    m["pc_hot"] = (1 - _roll_pctl(m["pc"], PC_WIN)) * 100          # lower P/C (complacency) -> hotter
-    m["fresh_low"] = m["noi"] <= m["noi"].rolling(ALERT_LOW_WIN).min() + 1e-9  # 外資淨空創60日新低
-    m["core3"] = m["margin_hot"] + m["futures_hot"] + m["pc_hot"]
-
-    # 微台散戶: down-weighted 4th component, left-joined so the pre-2024 history
-    # keeps its 3-component score (no retail data before 2024-07).
-    r = _retail_micro(cur)
-    m = m.merge(r, on="d", how="left")
-    has_r = m["retail_hot"].notna()
-    m["score"] = np.where(has_r,
-                          (m["core3"] + RETAIL_W * m["retail_hot"]) / (3 + RETAIL_W),
-                          m["core3"] / 3)
-    m = m.dropna(subset=["core3"]).reset_index(drop=True)
+    # 定位極端度 = 外資期貨 + 融資 only. P/C 與微台散戶在頂/底皆極端(反指標無方向鑑別力),
+    # 只會稀釋分數, 已移除 (see memory project_market_thermometer 2026-07-21).
+    m["score"] = (m["margin_hot"] + m["futures_hot"]) / 2
+    m = m.dropna(subset=["score"]).reset_index(drop=True)
     if m.empty:
         return {"as_of": None, "score": None, "bucket": None, "components": [], "history": []}
 
@@ -141,13 +148,7 @@ def build_thermometer(cur, today: date | None = None) -> dict:
          "detail": f"外資臺股期貨淨未平倉 {int(last['noi']):+,} 口（{FUT_WIN}日百分位越低越淨空＝越熱）"},
         {"key": "margin", "name": "融資水位", "hot": round(last["margin_hot"], 1),
          "detail": f"融資餘額金額 {last['mgn']/1e5:,.0f}億（距 {MARGIN_MA_WIN} 日均 {last['margin_z']:+.2f}σ；+2σ=過熱）"},
-        {"key": "pc", "name": "選擇權自滿", "hot": round(last["pc_hot"], 1),
-         "detail": f"Put/Call OI 比 {last['pc']:.2f}（{PC_WIN}日百分位越低越自滿＝越熱）"},
     ]
-    if pd.notna(last["retail_hot"]):
-        components.append({
-            "key": "retail", "name": "微台散戶多單", "hot": round(last["retail_hot"], 1),
-            "detail": f"微台散戶淨多 {last['retail_pct']:+.0f}% OI（{RETAIL_WIN}日百分位越高越froth＝越熱；降權，史僅2024-07+）"})
     def _r1(x):
         return None if pd.isna(x) else round(float(x), 1)
 
@@ -158,8 +159,7 @@ def build_thermometer(cur, today: date | None = None) -> dict:
                         "tx": round(r.tx), "label": lbl, "color": col,
                         "stance": "防守" if r.defensive else "攻擊",
                         "panic": bool(r.panic),
-                        "c": {"futures": _r1(r.futures_hot), "margin": _r1(r.margin_hot),
-                              "pc": _r1(r.pc_hot), "retail": _r1(r.retail_hot)}})
+                        "c": {"futures": _r1(r.futures_hot), "margin": _r1(r.margin_hot)}})
 
     pfh = last["pct_from_high"]
     a_near = bool(pfh >= -NEAR_HIGH_TOL)
@@ -174,7 +174,8 @@ def build_thermometer(cur, today: date | None = None) -> dict:
         "danger": danger,
         "stance": "防守" if defensive else "攻擊",
         "stance_color": "#ef4444" if defensive else "#22c55e",
-        "stance_reason": f"短期多空排列：{ST_LABELS.get(int(last['st']), '?')}",
+        "stance_reason": (f"頂部過熱後排列翻空、續守中（排列：{ST_LABELS.get(int(last['st']), '?')}，回中性/多方才解除）"
+                          if defensive else f"排列中性以上（{ST_LABELS.get(int(last['st']), '?')}）"),
         "near_high": a_near,
         "pct_from_high": round(float(pfh), 1),
         "hi_window": HI_WINDOW,
@@ -186,6 +187,7 @@ def build_thermometer(cur, today: date | None = None) -> dict:
         "panic_conditions": [
             {"name": f"深跌（距 {HI_WINDOW} 日高 ≤ {PANIC_PFH:.0f}%）", "met": bool(last["pct_from_high"] <= PANIC_PFH)},
             {"name": f"融資 {PANIC_MARGIN_WIN} 日急殺（≤ {PANIC_MARGIN_CHG:.0f}%）", "met": bool(last["mchg5"] <= PANIC_MARGIN_CHG)},
+            {"name": f"快殺（指數 {PANIC_SPEED_WIN} 日跌 ≤ {PANIC_SPEED_CHG:.0f}%）", "met": bool(last["ret10"] <= PANIC_SPEED_CHG)},
         ],
         "components": components,
         "history": history,
@@ -206,16 +208,12 @@ if __name__ == "__main__":
         cur.execute("""SELECT trade_date, net_oi FROM tw.taifex_inst_futures
                        WHERE product='臺股期貨' AND investor='外資及陸資' ORDER BY trade_date""")
         fu = pd.DataFrame(cur.fetchall()); fu["d"] = pd.to_datetime(fu["trade_date"])
-        cur.execute("SELECT trade_date, pc_oi_ratio FROM tw.taifex_pc_ratio ORDER BY trade_date")
-        pc = pd.DataFrame(cur.fetchall()); pc["d"] = pd.to_datetime(pc["trade_date"])
         mg["mgn"] = mg["margin_balance_value"].astype(float); fu["noi"] = fu["net_oi"].astype(float)
-        pc["pc"] = pc["pc_oi_ratio"].astype(float)
-        m = (mg[["d", "mgn"]].merge(fu[["d", "noi"]], on="d").merge(pc[["d", "pc"]], on="d")
+        m = (mg[["d", "mgn"]].merge(fu[["d", "noi"]], on="d")
              .sort_values("d").reset_index(drop=True))
         m["mh"] = (((m["mgn"] - m["mgn"].rolling(MARGIN_MA_WIN).mean()) / m["mgn"].rolling(MARGIN_MA_WIN).std() + 2) / 4).clip(0, 1) * 100
         m["fh"] = (1 - _roll_pctl(m["noi"], FUT_WIN)) * 100
-        m["ph"] = (1 - _roll_pctl(m["pc"], PC_WIN)) * 100
-        m["s"] = (m["mh"] + m["fh"] + m["ph"]) / 3
+        m["s"] = (m["mh"] + m["fh"]) / 2
         m = m.set_index("d")
         print("\nsanity — 崩盤峰當日溫度分數 (vs 全樣本中位):")
         print(f"  全樣本 score 中位={m['s'].median():.0f} p75={m['s'].quantile(.75):.0f}")

@@ -14,6 +14,7 @@ interface HistPoint {
   label: string;
   color: string;
   stance: string;
+  panic: boolean;
   c: Record<string, number | null>;
 }
 
@@ -22,8 +23,6 @@ const STANCE_COLOR: Record<string, string> = { 攻擊: "#22c55e", 防守: "#ef44
 const COMP_COLOR: Record<string, string> = {
   futures: "#3b82f6",
   margin: "#f59e0b",
-  pc: "#a855f7",
-  retail: "#22c55e",
 };
 
 function MiniChart({ pts, ck, color }: { pts: HistPoint[]; ck: string; color: string }) {
@@ -154,6 +153,14 @@ function TrendCharts({ pts }: { pts: HistPoint[] }) {
       {/* 加權指數 */}
       <div className="relative mt-1" style={{ height: H }} onMouseLeave={() => setHi(null)} onMouseMove={onMove}>
         <svg viewBox={`0 0 1000 ${H}`} className="w-full" style={{ height: H }} preserveAspectRatio="none">
+          {pts.map((p, i) => p.label === "頂部過熱" ? (
+            <line key={"tp" + i} x1={xOf(i)} x2={xOf(i)} y1={0} y2={9} stroke="#ef4444"
+              strokeWidth={2} vectorEffect="non-scaling-stroke" opacity={0.8} />
+          ) : null)}
+          {pts.map((p, i) => p.panic ? (
+            <line key={"pk" + i} x1={xOf(i)} x2={xOf(i)} y1={0} y2={H} stroke="#22c55e"
+              strokeWidth={2} vectorEffect="non-scaling-stroke" opacity={0.55} />
+          ) : null)}
           {pts.slice(1).map((p, i) => (
             <line key={i} x1={xOf(i)} y1={pY(pts[i].tx)} x2={xOf(i + 1)} y2={pY(p.tx)}
               stroke={STANCE_COLOR[p.stance] ?? "#e5e5e5"} strokeWidth={1.5} vectorEffect="non-scaling-stroke" />
@@ -163,7 +170,7 @@ function TrendCharts({ pts }: { pts: HistPoint[] }) {
         </svg>
         <span className="absolute right-0.5 text-[9px] text-text-secondary" style={{ top: pY(hiv), transform: "translateY(-50%)" }}>{Math.round(hiv).toLocaleString()}</span>
         <span className="absolute right-0.5 text-[9px] text-text-secondary" style={{ top: pY(lo), transform: "translateY(-50%)" }}>{Math.round(lo).toLocaleString()}</span>
-        <span className="absolute left-0.5 top-0.5 text-[9px] text-text-secondary">加權指數（綠攻·紅防）</span>
+        <span className="absolute left-0.5 top-0.5 text-[9px] text-text-secondary">加權指數（線 綠攻·紅防；頂紅刻＝頂部過熱、綠豎線＝恐慌買進）</span>
       </div>
 
       <div className="flex justify-between text-[10px] text-text-secondary mt-1">
@@ -193,10 +200,11 @@ export default function ThermometerPage() {
         <span className="text-text-primary">非崩盤預測</span>，細節見下方「詳細指標」。資料日 {data.as_of}。
       </p>
 
-      {/* 現在建議 (main call) */}
-      <div className="mb-5 rounded-lg border p-3"
-        style={{ borderColor: data.stance_color, backgroundColor: data.stance_color + "1a" }}>
-        <div className="flex items-center gap-4">
+      {/* 現在建議: 趨勢 + 觸發訊號 兩塊並列 */}
+      <div className="mb-5 flex flex-col sm:flex-row gap-3">
+        {/* 趨勢 */}
+        <div className="flex-1 rounded-lg border p-3 flex items-center gap-3"
+          style={{ borderColor: data.stance_color, backgroundColor: data.stance_color + "1a" }}>
           <span className="text-4xl font-bold" style={{ color: data.stance_color }}>{data.stance}</span>
           <div>
             <div className="text-sm font-semibold">現在建議（趨勢）</div>
@@ -205,14 +213,26 @@ export default function ThermometerPage() {
             </div>
           </div>
         </div>
+        {/* 恐慌買進（觸發才出現） */}
         {data.panic && (
-          <div className="mt-2 pt-2 border-t border-border text-xs" style={{ color: "#22c55e" }}>
-            ⚡ <span className="font-semibold">恐慌買進機會</span>：深跌＋融資斷頭急殺（V 底反彈設定）。★快崩限定，慢熊會接刀，別盲買。
+          <div className="flex-1 rounded-lg border p-3 flex items-center gap-3"
+            style={{ borderColor: "#22c55e", backgroundColor: "#22c55e1a" }}>
+            <span className="text-3xl font-bold" style={{ color: "#22c55e" }}>⚡</span>
+            <div>
+              <div className="text-sm font-semibold" style={{ color: "#22c55e" }}>恐慌買進機會</div>
+              <div className="text-xs text-text-secondary">深跌＋斷頭急殺＋快殺（V 底設定）。★快崩為主，慢熊仍會接刀，別盲買。</div>
+            </div>
           </div>
         )}
+        {/* 頂部過熱（觸發才出現） */}
         {data.danger && (
-          <div className="mt-2 pt-2 border-t border-border text-xs text-negative">
-            ⚠ <span className="font-semibold">頂部過熱</span>：外資淨空創新低（減碼警訊）。★約 82% 假警報。
+          <div className="flex-1 rounded-lg border p-3 flex items-center gap-3"
+            style={{ borderColor: "#ef4444", backgroundColor: "#ef44441a" }}>
+            <span className="text-3xl font-bold text-negative">⚠</span>
+            <div>
+              <div className="text-sm font-semibold text-negative">頂部過熱</div>
+              <div className="text-xs text-text-secondary">外資淨空創新低（減碼警訊）。★約 82% 假警報。</div>
+            </div>
           </div>
         )}
       </div>
@@ -308,8 +328,8 @@ export default function ThermometerPage() {
           ))}
         </ul>
         <div className="text-xs text-text-secondary mt-2">
-          深跌＋融資斷頭急殺＝V 底反彈設定（歷史未來 60 日 +7%／勝 68%）。
-          <span className="text-text-primary">★但只適用快崩 V 轉；慢熊（如 2018/2022）會一路接刀失效</span>，別盲買。
+          深跌＋融資斷頭急殺＋快殺＝V 底反彈設定（歷史未來 60 日 +9%／勝 71%）。
+          <span className="text-text-primary">★仍以快崩 V 轉為主；慢熊（2018/2022）已大幅過濾但未全消</span>，別盲買。
         </div>
       </div>
 
@@ -342,11 +362,10 @@ export default function ThermometerPage() {
       <details className="text-xs text-text-secondary mt-6">
         <summary className="cursor-pointer hover:text-text-primary">方法與限制</summary>
         <ul className="mt-2 space-y-1 list-disc pl-4">
-          <li>外資期貨定位：外資臺股期貨淨未平倉在近 120 日的百分位（越淨空越熱）。此為唯一撐過公平偽訊號測試的組件（1.47x）。</li>
+          <li>外資期貨定位：外資臺股期貨淨未平倉在近 90 日的百分位（越淨空越熱）。此為唯一撐過公平偽訊號測試的組件（1.47x）。</li>
           <li>融資水位：融資餘額金額對 55 日均線的乖離（Bollinger z，−2σ→0、均線→50、+2σ→100）。衡量偏離趨勢多少，不受長多水位長期偏高影響。</li>
-          <li>選擇權自滿：Put/Call OI 比近 90 日百分位（越低越自滿＝越熱）。單獨弱，但與外資期貨疊加把精確率拉到 2.65x（窗口 60–90 為掃描出的甜蜜點）。</li>
-          <li>微台散戶多單：微台散戶淨多佔 OI 百分位（越高越 froth＝越熱）。與外資期貨正交（散戶 vs 外資），但史僅 2024-07 起、樣本短，故降權（0.5）。</li>
-          <li>前三組件等權、微台散戶降權平均。★這是狀態描述非計時訊號——歷史上偏熱也常不崩（如 2020 COVID 為外生衝擊，儀表當時僅中性）。</li>
+          <li>定位極端度＝上述兩組件等權平均。★這是狀態描述非計時訊號——歷史上偏熱也常不崩（如 2020 COVID 為外生衝擊，儀表當時僅中性）。</li>
+          <li>P/C 比與微台散戶已移除：兩者在頂部與底部皆極端（反指標、無方向鑑別力），平均進來只會稀釋分數。真正的操作訊號在儀表之外——頂部過熱看外資期貨創新低、攻防看 OBV＋多空排列、恐慌買進看融資急殺＋深跌。</li>
         </ul>
       </details>
     </div>
