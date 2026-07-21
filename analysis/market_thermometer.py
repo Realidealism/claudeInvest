@@ -33,16 +33,32 @@ RETAIL_WIN = 120   # 微台散戶淨多空比 percentile lookback
 RETAIL_W = 0.5     # 微台散戶 weight (down-weighted: only ~2yr history since 2024-07)
 HI_WINDOW = 55     # 位階 context: index near its 55-day high
 NEAR_HIGH_TOL = 2.0  # within 2% of the 55d high counts as 近高
+# 攻防狀態: short-timeframe 多空頭排列 (market_breadth.short_trend, -2..+2). 攻擊 =
+# 偏多以上 (>0); 防守 = 中性以下 (<=0). More responsive than a 20d MA (defensive ~49%
+# of the time) but flips on short bounces.
+ST_LABELS = {2: "強多", 1: "偏多", 0: "中性", -1: "偏空", -2: "強空"}
+# 恐慌買進 (contrarian V-bottom, discrete): 深跌 + 融資短窗急殺(斷頭 flush). Validated
+# 6/8 yrs positive BUT fails in grinding bears (2018/2022 negative, fired most) — a
+# SHARP-CRASH-ONLY tool; caveat prominently. 深跌 must be after a fast washout.
+PANIC_PFH = -8.0     # 距 55 日高 <= -8% (deep drawdown)
+PANIC_MARGIN_WIN = 5  # 融資餘額金額 5-day drop window
+PANIC_MARGIN_CHG = -2.0  # 融資 5 日跌 <= -2% (斷頭急殺)
+# 離散警戒燈 (discrete alarm, NOT a prediction): the validated crash gate. 近高 +
+# 外資淨空創 60日新低 + 低P/C自滿. Precision 2.98x but ~71% false — a caution flag only.
+ALERT_LOW_WIN = 60   # foreign net-OI fresh N-day net-short low (swept: 60 > 40)
+ALERT_PC_PCTL = 0.33  # low P/C = bottom tercile of PC_WIN percentile
 HISTORY_DAYS = 250 # sparkline length
 
-BUCKETS = [(80, "過熱"), (60, "偏緊"), (40, "溫和"), (0, "冷靜")]
-
-
-def _bucket(score: float) -> str:
-    for lo, name in BUCKETS:
-        if score >= lo:
-            return name
-    return "冷靜"
+def _regime(score: float, near_high: bool, fresh_low: bool) -> tuple[str, str, bool]:
+    """(label, colour, is_danger). 頂部過熱 (the real top warning) is 外資期貨-driven:
+    among near-high days, foreign net-OI (期) is the ONLY component that separates
+    tops from ordinary highs (融資/P/C/散戶 are high at almost every high). So the
+    red danger = 近高 AND 外資淨空創 60 日新低 (catches 5/6 tops incl. the recent
+    wave; still ~82% false — top prediction is inherently hard). The composite score
+    stays a descriptive 定位極端度. Below the high we make no bottom claim."""
+    if fresh_low:
+        return "頂部過熱", "#ef4444", True
+    return "無頂部訊號", "#8a8a9a", False
 
 
 def _roll_pctl(s: pd.Series, win: int) -> pd.Series:
@@ -82,13 +98,20 @@ def build_thermometer(cur, today: date | None = None) -> dict:
     pc = pd.DataFrame(cur.fetchall())
     cur.execute("SELECT trade_date, close_price FROM tw.index_prices WHERE index_id='TAIEX' ORDER BY trade_date")
     ix = pd.DataFrame(cur.fetchall())
+    cur.execute("SELECT trade_date, short_trend FROM tw.market_breadth ORDER BY trade_date")
+    br = pd.DataFrame(cur.fetchall())
     mg["d"] = pd.to_datetime(mg["trade_date"]); mg["mgn"] = mg["margin_balance_value"].astype(float)
     fu["d"] = pd.to_datetime(fu["trade_date"]); fu["noi"] = fu["net_oi"].astype(float)
     pc["d"] = pd.to_datetime(pc["trade_date"]); pc["pc"] = pc["pc_oi_ratio"].astype(float)
     ix["d"] = pd.to_datetime(ix["trade_date"]); ix["tx"] = ix["close_price"].astype(float)
     ix["pct_from_high"] = (ix["tx"] / ix["tx"].rolling(HI_WINDOW).max() - 1) * 100
+    br["d"] = pd.to_datetime(br["trade_date"]); br["st"] = br["short_trend"].astype(int)
     m = (mg[["d", "mgn"]].merge(fu[["d", "noi"]], on="d").merge(pc[["d", "pc"]], on="d")
-         .merge(ix[["d", "pct_from_high", "tx"]], on="d").sort_values("d").reset_index(drop=True))
+         .merge(ix[["d", "pct_from_high", "tx"]], on="d").merge(br[["d", "st"]], on="d")
+         .sort_values("d").reset_index(drop=True))
+    m["defensive"] = m["st"] <= 0   # short 多空排列 中性以下 = 防守
+    m["mchg5"] = m["mgn"].pct_change(PANIC_MARGIN_WIN) * 100
+    m["panic"] = (m["pct_from_high"] <= PANIC_PFH) & (m["mchg5"] <= PANIC_MARGIN_CHG)  # 恐慌買進
 
     ma = m["mgn"].rolling(MARGIN_MA_WIN).mean()
     sd = m["mgn"].rolling(MARGIN_MA_WIN).std()
@@ -96,6 +119,7 @@ def build_thermometer(cur, today: date | None = None) -> dict:
     m["margin_hot"] = ((m["margin_z"] + 2) / 4).clip(0, 1) * 100  # −2σ→0, 均線→50, +2σ→100
     m["futures_hot"] = (1 - _roll_pctl(m["noi"], FUT_WIN)) * 100   # more net-short -> hotter
     m["pc_hot"] = (1 - _roll_pctl(m["pc"], PC_WIN)) * 100          # lower P/C (complacency) -> hotter
+    m["fresh_low"] = m["noi"] <= m["noi"].rolling(ALERT_LOW_WIN).min() + 1e-9  # 外資淨空創60日新低
     m["core3"] = m["margin_hot"] + m["futures_hot"] + m["pc_hot"]
 
     # 微台散戶: down-weighted 4th component, left-joined so the pre-2024 history
@@ -124,17 +148,47 @@ def build_thermometer(cur, today: date | None = None) -> dict:
         components.append({
             "key": "retail", "name": "微台散戶多單", "hot": round(last["retail_hot"], 1),
             "detail": f"微台散戶淨多 {last['retail_pct']:+.0f}% OI（{RETAIL_WIN}日百分位越高越froth＝越熱；降權，史僅2024-07+）"})
+    def _r1(x):
+        return None if pd.isna(x) else round(float(x), 1)
+
+    history = []
+    for r in hist.itertuples(index=False):
+        lbl, col, _ = _regime(r.score, bool(r.pct_from_high >= -NEAR_HIGH_TOL), bool(r.fresh_low))
+        history.append({"date": r.d.date().isoformat(), "score": round(r.score, 1),
+                        "tx": round(r.tx), "label": lbl, "color": col,
+                        "stance": "防守" if r.defensive else "攻擊",
+                        "panic": bool(r.panic),
+                        "c": {"futures": _r1(r.futures_hot), "margin": _r1(r.margin_hot),
+                              "pc": _r1(r.pc_hot), "retail": _r1(r.retail_hot)}})
+
     pfh = last["pct_from_high"]
+    a_near = bool(pfh >= -NEAR_HIGH_TOL)
+    a_fresh = bool(last["fresh_low"])
+    label, color, danger = _regime(last["score"], a_near, a_fresh)
+    defensive = bool(last["defensive"])
     return {
         "as_of": last["d"].date().isoformat(),
         "score": round(last["score"], 1),
-        "bucket": _bucket(last["score"]),
-        "near_high": bool(pfh >= -NEAR_HIGH_TOL),
+        "bucket": label,
+        "bucket_color": color,
+        "danger": danger,
+        "stance": "防守" if defensive else "攻擊",
+        "stance_color": "#ef4444" if defensive else "#22c55e",
+        "stance_reason": f"短期多空排列：{ST_LABELS.get(int(last['st']), '?')}",
+        "near_high": a_near,
         "pct_from_high": round(float(pfh), 1),
         "hi_window": HI_WINDOW,
+        "alert": a_fresh,
+        "alert_conditions": [
+            {"name": f"外資淨空創 {ALERT_LOW_WIN} 日新低", "met": a_fresh},
+        ],
+        "panic": bool(last["panic"]),
+        "panic_conditions": [
+            {"name": f"深跌（距 {HI_WINDOW} 日高 ≤ {PANIC_PFH:.0f}%）", "met": bool(last["pct_from_high"] <= PANIC_PFH)},
+            {"name": f"融資 {PANIC_MARGIN_WIN} 日急殺（≤ {PANIC_MARGIN_CHG:.0f}%）", "met": bool(last["mchg5"] <= PANIC_MARGIN_CHG)},
+        ],
         "components": components,
-        "history": [{"date": r.d.date().isoformat(), "score": round(r.score, 1), "tx": round(r.tx)}
-                    for r in hist.itertuples(index=False)],
+        "history": history,
     }
 
 

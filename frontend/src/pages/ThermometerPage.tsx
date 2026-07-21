@@ -11,40 +11,91 @@ interface HistPoint {
   date: string;
   score: number;
   tx: number;
+  label: string;
+  color: string;
+  stance: string;
+  c: Record<string, number | null>;
+}
+
+const STANCE_COLOR: Record<string, string> = { 攻擊: "#22c55e", 防守: "#ef4444" };
+
+const COMP_COLOR: Record<string, string> = {
+  futures: "#3b82f6",
+  margin: "#f59e0b",
+  pc: "#a855f7",
+  retail: "#22c55e",
+};
+
+function MiniChart({ pts, ck, color }: { pts: HistPoint[]; ck: string; color: string }) {
+  const [hi, setHi] = useState<number | null>(null);
+  const n = pts.length;
+  if (n < 2) return null;
+  const H = 46, pad = 5;
+  const xOf = (i: number) => (i / (n - 1)) * 1000;
+  const yOf = (v: number) => pad + (1 - v / 100) * (H - 2 * pad);
+  let lastIdx = n - 1;
+  while (lastIdx > 0 && pts[lastIdx].c[ck] == null) lastIdx--;
+  const cur = hi ?? lastIdx;
+  const curVal = pts[cur].c[ck];
+  const segs: string[] = [];
+  for (let i = 1; i < n; i++) {
+    const a = pts[i - 1].c[ck], b = pts[i].c[ck];
+    if (a == null || b == null) continue;
+    segs.push(`M${xOf(i - 1).toFixed(1)},${yOf(a).toFixed(1)}L${xOf(i).toFixed(1)},${yOf(b).toFixed(1)}`);
+  }
+  return (
+    <div className="relative" style={{ height: H }}
+      onMouseLeave={() => setHi(null)}
+      onMouseMove={(e) => {
+        const r = e.currentTarget.getBoundingClientRect();
+        setHi(Math.max(0, Math.min(n - 1, Math.round((e.clientX - r.left) / r.width * (n - 1)))));
+      }}>
+      <svg viewBox={`0 0 1000 ${H}`} className="w-full" style={{ height: H }} preserveAspectRatio="none">
+        {[50].map((y) => (
+          <line key={y} x1={0} x2={1000} y1={yOf(y)} y2={yOf(y)} stroke="currentColor" className="text-border" strokeWidth={1} vectorEffect="non-scaling-stroke" opacity={0.4} />
+        ))}
+        <path d={segs.join(" ")} fill="none" stroke={color} strokeWidth={1.5} vectorEffect="non-scaling-stroke" />
+        <line x1={xOf(cur)} x2={xOf(cur)} y1={0} y2={H} stroke="currentColor" className="text-text-secondary" strokeWidth={1} vectorEffect="non-scaling-stroke" opacity={0.5} />
+        {curVal != null && <circle cx={xOf(cur)} cy={yOf(curVal)} r={2.5} fill={color} vectorEffect="non-scaling-stroke" />}
+      </svg>
+      {hi != null && (
+        <div className="absolute -top-0.5 right-0 text-[10px] text-text-primary bg-surface/90 px-1 rounded">
+          {pts[cur].date}　{curVal ?? "—"}
+        </div>
+      )}
+    </div>
+  );
 }
 
 interface ThermoData {
   as_of: string | null;
   score: number | null;
   bucket: string | null;
+  bucket_color: string;
+  danger: boolean;
+  stance: string;
+  stance_color: string;
+  stance_reason: string;
   near_high: boolean;
   pct_from_high: number;
   hi_window: number;
+  alert: boolean;
+  alert_conditions: { name: string; met: boolean }[];
+  panic: boolean;
+  panic_conditions: { name: string; met: boolean }[];
   components: Component[];
   history: HistPoint[];
 }
 
-const BUCKET_COLOR: Record<string, string> = {
-  冷靜: "#3b82f6",
-  溫和: "#22c55e",
-  偏緊: "#f59e0b",
-  過熱: "#ef4444",
-};
-
-// gauge zones: 0-40 冷靜, 40-60 溫和, 60-80 偏緊, 80-100 過熱
+// gauge zones = 定位極端度 intensity (neutral grey → the regime/direction is carried
+// by the headline colour, not the gauge, because a high reading is 頂部過熱 near a
+// high but 底部超賣 below it).
 const ZONES = [
-  { w: 40, c: "#3b82f6" },
-  { w: 20, c: "#22c55e" },
-  { w: 20, c: "#f59e0b" },
-  { w: 20, c: "#ef4444" },
+  { w: 40, c: "#3a3a45" },
+  { w: 20, c: "#55555f" },
+  { w: 20, c: "#70707a" },
+  { w: 20, c: "#9a9aa8" },
 ];
-
-function zoneColor(s: number): string {
-  if (s >= 80) return "#ef4444";
-  if (s >= 60) return "#f59e0b";
-  if (s >= 40) return "#22c55e";
-  return "#3b82f6";
-}
 
 function TrendCharts({ pts }: { pts: HistPoint[] }) {
   const [hi, setHi] = useState<number | null>(null);
@@ -64,19 +115,19 @@ function TrendCharts({ pts }: { pts: HistPoint[] }) {
       className="text-text-secondary" strokeWidth={1} vectorEffect="non-scaling-stroke" opacity={0.55} />
   );
 
-  // temperature (fixed 0-100)
+  // 定位極端度 (fixed 0-100; line coloured per-day by regime)
   const tY = (v: number) => padT + (1 - v / 100) * (H - padT);
-  const tLine = pts.map((p, i) => `${i ? "L" : "M"}${xOf(i).toFixed(1)},${tY(p.score).toFixed(1)}`).join(" ");
   // index (auto min-max)
   const txs = pts.map((p) => p.tx);
   const lo = Math.min(...txs), hiv = Math.max(...txs);
   const pY = (v: number) => padT + (1 - (v - lo) / (hiv - lo || 1)) * (H - padT);
-  const pLine = pts.map((p, i) => `${i ? "L" : "M"}${xOf(i).toFixed(1)},${pY(p.tx).toFixed(1)}`).join(" ");
 
   return (
     <div>
       <div className="text-xs text-text-secondary mb-1">
-        {pts[cur].date}　溫度 <span className="text-text-primary font-medium tabular-nums" style={{ color: zoneColor(pts[cur].score) }}>{pts[cur].score}</span>
+        {pts[cur].date}　<span className="font-medium" style={{ color: STANCE_COLOR[pts[cur].stance] }}>{pts[cur].stance}</span>
+        　極端度 <span className="font-medium tabular-nums" style={{ color: pts[cur].color }}>{pts[cur].score}</span>
+        　<span className="font-medium" style={{ color: pts[cur].color }}>{pts[cur].label}</span>
         　加權 <span className="text-text-primary font-medium tabular-nums">{pts[cur].tx.toLocaleString()}</span>
         {hi === null && <span className="ml-1">（最新；滑過看每日）</span>}
       </div>
@@ -84,37 +135,35 @@ function TrendCharts({ pts }: { pts: HistPoint[] }) {
       {/* temperature */}
       <div className="relative" style={{ height: H }} onMouseLeave={() => setHi(null)} onMouseMove={onMove}>
         <svg viewBox={`0 0 1000 ${H}`} className="w-full" style={{ height: H }} preserveAspectRatio="none">
-          <defs>
-            <linearGradient id="thermoGrad" gradientUnits="userSpaceOnUse" x1={0} y1={tY(100)} x2={0} y2={tY(0)}>
-              <stop offset="0" stopColor="#ef4444" /><stop offset="0.2" stopColor="#ef4444" />
-              <stop offset="0.2" stopColor="#f59e0b" /><stop offset="0.4" stopColor="#f59e0b" />
-              <stop offset="0.4" stopColor="#22c55e" /><stop offset="0.6" stopColor="#22c55e" />
-              <stop offset="0.6" stopColor="#3b82f6" /><stop offset="1" stopColor="#3b82f6" />
-            </linearGradient>
-          </defs>
           {[60, 80].map((y) => (
             <line key={y} x1={0} x2={1000} y1={tY(y)} y2={tY(y)} stroke="currentColor" className="text-border" strokeWidth={1} vectorEffect="non-scaling-stroke" opacity={0.5} />
           ))}
-          <path d={tLine} fill="none" stroke="url(#thermoGrad)" strokeWidth={1.8} vectorEffect="non-scaling-stroke" />
+          {pts.slice(1).map((p, i) => (
+            <line key={i} x1={xOf(i)} y1={tY(pts[i].score)} x2={xOf(i + 1)} y2={tY(p.score)}
+              stroke={p.color} strokeWidth={1.8} vectorEffect="non-scaling-stroke" />
+          ))}
           {crosshair}
-          <circle cx={xOf(cur)} cy={tY(pts[cur].score)} r={3.5} fill={zoneColor(pts[cur].score)} vectorEffect="non-scaling-stroke" />
+          <circle cx={xOf(cur)} cy={tY(pts[cur].score)} r={3.5} fill={pts[cur].color} vectorEffect="non-scaling-stroke" />
         </svg>
         {[60, 80].map((y) => (
           <span key={y} className="absolute right-0.5 text-[9px] text-text-secondary" style={{ top: tY(y), transform: "translateY(-50%)" }}>{y}</span>
         ))}
-        <span className="absolute left-0.5 top-0.5 text-[9px] text-text-secondary">溫度</span>
+        <span className="absolute left-0.5 top-0.5 text-[9px] text-text-secondary">極端度</span>
       </div>
 
       {/* 加權指數 */}
       <div className="relative mt-1" style={{ height: H }} onMouseLeave={() => setHi(null)} onMouseMove={onMove}>
         <svg viewBox={`0 0 1000 ${H}`} className="w-full" style={{ height: H }} preserveAspectRatio="none">
-          <path d={pLine} fill="none" stroke="currentColor" className="text-text-primary" strokeWidth={1.5} vectorEffect="non-scaling-stroke" />
+          {pts.slice(1).map((p, i) => (
+            <line key={i} x1={xOf(i)} y1={pY(pts[i].tx)} x2={xOf(i + 1)} y2={pY(p.tx)}
+              stroke={STANCE_COLOR[p.stance] ?? "#e5e5e5"} strokeWidth={1.5} vectorEffect="non-scaling-stroke" />
+          ))}
           {crosshair}
-          <circle cx={xOf(cur)} cy={pY(pts[cur].tx)} r={3.5} fill="currentColor" className="text-text-primary" vectorEffect="non-scaling-stroke" />
+          <circle cx={xOf(cur)} cy={pY(pts[cur].tx)} r={3.5} fill={STANCE_COLOR[pts[cur].stance] ?? "#e5e5e5"} vectorEffect="non-scaling-stroke" />
         </svg>
         <span className="absolute right-0.5 text-[9px] text-text-secondary" style={{ top: pY(hiv), transform: "translateY(-50%)" }}>{Math.round(hiv).toLocaleString()}</span>
         <span className="absolute right-0.5 text-[9px] text-text-secondary" style={{ top: pY(lo), transform: "translateY(-50%)" }}>{Math.round(lo).toLocaleString()}</span>
-        <span className="absolute left-0.5 top-0.5 text-[9px] text-text-secondary">加權指數</span>
+        <span className="absolute left-0.5 top-0.5 text-[9px] text-text-secondary">加權指數（綠攻·紅防）</span>
       </div>
 
       <div className="flex justify-between text-[10px] text-text-secondary mt-1">
@@ -134,15 +183,43 @@ export default function ThermometerPage() {
   if (!data) return <div className="text-text-secondary">Loading...</div>;
   if (data.score == null) return <div className="text-text-secondary">尚無溫度計資料</div>;
 
-  const color = BUCKET_COLOR[data.bucket ?? ""] ?? "#8a8a9a";
+  const color = data.bucket_color;
 
   return (
     <div className="max-w-3xl">
       <h2 className="text-lg font-semibold mb-1">市場溫度計</h2>
       <p className="text-xs text-text-secondary mb-5">
-        描述「當前市場多緊繃」的脆弱度儀表——<span className="text-text-primary">不是崩盤預測</span>。
-        熱＝槓桿與外資空方定位偏極端、提高警覺；冷＝相對安全。歷史上內生型頂多偏熱，但偏熱不代表即將下跌。資料日 {data.as_of}。
+        以趨勢（攻擊／防守）為主，搭配頂部過熱、恐慌買進兩個 contrarian 訊號。
+        <span className="text-text-primary">非崩盤預測</span>，細節見下方「詳細指標」。資料日 {data.as_of}。
       </p>
+
+      {/* 現在建議 (main call) */}
+      <div className="mb-5 rounded-lg border p-3"
+        style={{ borderColor: data.stance_color, backgroundColor: data.stance_color + "1a" }}>
+        <div className="flex items-center gap-4">
+          <span className="text-4xl font-bold" style={{ color: data.stance_color }}>{data.stance}</span>
+          <div>
+            <div className="text-sm font-semibold">現在建議（趨勢）</div>
+            <div className="text-xs text-text-secondary">
+              {data.stance_reason}　·　{data.stance === "防守" ? "短期轉弱，空手觀望" : "短期偏多，可進場"}
+            </div>
+          </div>
+        </div>
+        {data.panic && (
+          <div className="mt-2 pt-2 border-t border-border text-xs" style={{ color: "#22c55e" }}>
+            ⚡ <span className="font-semibold">恐慌買進機會</span>：深跌＋融資斷頭急殺（V 底反彈設定）。★快崩限定，慢熊會接刀，別盲買。
+          </div>
+        )}
+        {data.danger && (
+          <div className="mt-2 pt-2 border-t border-border text-xs text-negative">
+            ⚠ <span className="font-semibold">頂部過熱</span>：外資淨空創新低（減碼警訊）。★約 82% 假警報。
+          </div>
+        )}
+      </div>
+
+      {/* 詳細指標與訊號（收合） */}
+      <details className="mb-4">
+        <summary className="cursor-pointer text-sm text-text-secondary hover:text-text-primary mb-3">詳細指標與訊號</summary>
 
       {/* score + bucket */}
       <div className="flex items-end gap-4 mb-3">
@@ -151,7 +228,7 @@ export default function ThermometerPage() {
           <span className="px-2 py-0.5 rounded text-sm font-semibold text-white" style={{ backgroundColor: color }}>
             {data.bucket}
           </span>
-          <div className="text-xs text-text-secondary mt-1">0–100 緊繃度</div>
+          <div className="text-xs text-text-secondary mt-1">定位極端度 {data.score}／100</div>
         </div>
       </div>
 
@@ -172,7 +249,7 @@ export default function ThermometerPage() {
           }}
         />
         <div className="flex justify-between text-[10px] text-text-secondary mt-1">
-          <span>0 冷靜</span><span>40 溫和</span><span>60 偏緊</span><span>80 過熱</span><span>100</span>
+          <span>0 低</span><span>40 中</span><span>60 高</span><span>80 極端</span><span>100</span>
         </div>
       </div>
 
@@ -184,13 +261,56 @@ export default function ThermometerPage() {
           (data.near_high ? "bg-negative/20 text-negative" : "bg-surface-hover text-text-secondary")}>
           {data.near_high ? "近高" : "非高"}
         </span>
-        {(data.score ?? 0) >= 60 && (
-          <div className="text-text-secondary mt-1">
-            {data.near_high
-              ? "⚠ 過熱且貼近高點——歷史上這種組合較危險（會崩的過熱有 50% 落在高點）。"
-              : "過熱但已離高——屬回檔中的定位極端，歷史上較少接續大跌。"}
-          </div>
-        )}
+      </div>
+
+      {/* 崩盤警示閘門（離散警報，非預測） */}
+      <div className={"mb-6 rounded border p-3 " + (data.alert ? "border-negative bg-negative/10" : "border-border")}>
+        <div className="flex items-center gap-2 mb-2">
+          <span className={"px-2 py-0.5 rounded text-xs font-semibold " +
+            (data.alert ? "bg-negative text-white" : "bg-surface-hover text-text-secondary")}>
+            {data.alert ? "⚠ 頂部過熱" : "未觸發"}
+          </span>
+          <span className="text-xs text-text-secondary">
+            頂部過熱訊號　{data.alert_conditions.filter((c) => c.met).length}/{data.alert_conditions.length} 條件
+          </span>
+        </div>
+        <ul className="text-xs space-y-1">
+          {data.alert_conditions.map((c) => (
+            <li key={c.name} className={c.met ? "text-text-primary" : "text-text-secondary"}>
+              <span className={c.met ? "text-negative" : "text-text-secondary/50"}>{c.met ? "✔" : "✗"}</span>{" "}
+              {c.name}
+            </li>
+          ))}
+        </ul>
+        <div className="text-xs text-text-secondary mt-2">
+          外資淨空創 60 日新低時亮。
+          <span className="text-text-primary">★已拿掉近高限制，下跌途中（如崩盤日）也會亮、非僅頂部</span>，僅供參考。
+        </div>
+      </div>
+
+      {/* 恐慌買進訊號（V 底 contrarian，快崩限定） */}
+      <div className={"mb-6 rounded border p-3 " + (data.panic ? "border-[#22c55e] bg-[#22c55e]/10" : "border-border")}>
+        <div className="flex items-center gap-2 mb-2">
+          <span className={"px-2 py-0.5 rounded text-xs font-semibold " +
+            (data.panic ? "bg-[#22c55e] text-white" : "bg-surface-hover text-text-secondary")}>
+            {data.panic ? "恐慌買進" : "未觸發"}
+          </span>
+          <span className="text-xs text-text-secondary">
+            恐慌買進訊號　{data.panic_conditions.filter((c) => c.met).length}/{data.panic_conditions.length} 條件
+          </span>
+        </div>
+        <ul className="text-xs space-y-1">
+          {data.panic_conditions.map((c) => (
+            <li key={c.name} className={c.met ? "text-text-primary" : "text-text-secondary"}>
+              <span className={c.met ? "text-[#22c55e]" : "text-text-secondary/50"}>{c.met ? "✔" : "✗"}</span>{" "}
+              {c.name}
+            </li>
+          ))}
+        </ul>
+        <div className="text-xs text-text-secondary mt-2">
+          深跌＋融資斷頭急殺＝V 底反彈設定（歷史未來 60 日 +7%／勝 68%）。
+          <span className="text-text-primary">★但只適用快崩 V 轉；慢熊（如 2018/2022）會一路接刀失效</span>，別盲買。
+        </div>
       </div>
 
       {/* components */}
@@ -199,20 +319,23 @@ export default function ThermometerPage() {
         {data.components.map((c) => (
           <div key={c.key}>
             <div className="flex items-center justify-between text-sm">
-              <span>{c.name}</span>
-              <span className="tabular-nums text-text-secondary">{c.hot}</span>
+              <span className="flex items-center gap-1.5">
+                <span className="inline-block w-2 h-2 rounded-full" style={{ backgroundColor: COMP_COLOR[c.key] ?? color }} />
+                {c.name}
+              </span>
+              <span className="tabular-nums font-medium" style={{ color: COMP_COLOR[c.key] ?? color }}>{c.hot}</span>
             </div>
-            <div className="h-1.5 rounded bg-surface-hover overflow-hidden mt-1">
-              <div className="h-full rounded" style={{ width: `${c.hot}%`, backgroundColor: color }} />
-            </div>
-            <div className="text-xs text-text-secondary mt-1">{c.detail}</div>
+            <MiniChart pts={data.history} ck={c.key} color={COMP_COLOR[c.key] ?? color} />
+            <div className="text-xs text-text-secondary mt-0.5">{c.detail}</div>
           </div>
         ))}
       </div>
 
+      </details>
+
       {/* history */}
       <div>
-        <div className="text-sm font-semibold mb-1">近一年溫度 vs 加權指數</div>
+        <div className="text-sm font-semibold mb-1">近一年定位極端度 vs 加權指數（線色＝當日評語）</div>
         <TrendCharts pts={data.history} />
       </div>
 
