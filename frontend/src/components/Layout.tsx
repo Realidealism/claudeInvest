@@ -3,6 +3,16 @@ import { NavLink, Outlet, useLocation } from "react-router-dom";
 
 const NAV_GROUPS = [
   {
+    key: "composite",
+    label: "綜合型",
+    items: [
+      { to: "/thermometer", label: "市場溫度計" },
+      // 題材行事曆 / 股東會軋空回補 頁面已存在但暫不對外顯示 (資料未完備), 待完成後再開放
+      // { to: "/theme-calendar", label: "題材行事曆" },
+      // { to: "/cover-squeeze", label: "股東會軋空回補" },
+    ],
+  },
+  {
     key: "market",
     label: "市場面",
     items: [
@@ -26,16 +36,6 @@ const NAV_GROUPS = [
       { to: "/chip-picks", label: "集保選股" },
       { to: "/insider-pledge", label: "內部人設質解質" },
       { to: "/insider-selling", label: "內部人賣壓／稀釋" },
-    ],
-  },
-  {
-    key: "composite",
-    label: "綜合型",
-    items: [
-      { to: "/thermometer", label: "市場溫度計" },
-      // 題材行事曆 / 股東會軋空回補 頁面已存在但暫不對外顯示 (資料未完備), 待完成後再開放
-      // { to: "/theme-calendar", label: "題材行事曆" },
-      // { to: "/cover-squeeze", label: "股東會軋空回補" },
     ],
   },
   {
