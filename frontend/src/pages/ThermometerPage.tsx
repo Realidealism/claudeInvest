@@ -158,7 +158,7 @@ function TrendCharts({ pts }: { pts: HistPoint[] }) {
               strokeWidth={2} vectorEffect="non-scaling-stroke" opacity={0.8} />
           ) : null)}
           {pts.map((p, i) => p.panic ? (
-            <line key={"pk" + i} x1={xOf(i)} x2={xOf(i)} y1={0} y2={H} stroke="#22c55e"
+            <line key={"pk" + i} x1={xOf(i)} x2={xOf(i)} y1={0} y2={H} stroke="#facc15"
               strokeWidth={2} vectorEffect="non-scaling-stroke" opacity={0.55} />
           ) : null)}
           {pts.slice(1).map((p, i) => (
@@ -170,7 +170,7 @@ function TrendCharts({ pts }: { pts: HistPoint[] }) {
         </svg>
         <span className="absolute right-0.5 text-[9px] text-text-secondary" style={{ top: pY(hiv), transform: "translateY(-50%)" }}>{Math.round(hiv).toLocaleString()}</span>
         <span className="absolute right-0.5 text-[9px] text-text-secondary" style={{ top: pY(lo), transform: "translateY(-50%)" }}>{Math.round(lo).toLocaleString()}</span>
-        <span className="absolute left-0.5 top-0.5 text-[9px] text-text-secondary">加權指數（線 綠攻·紅防；頂紅刻＝頂部過熱、綠豎線＝恐慌買進）</span>
+        <span className="absolute left-0.5 top-0.5 text-[9px] text-text-secondary">加權指數（線 綠攻·紅防；頂紅刻＝頂部過熱、黃豎線＝恐慌買進）</span>
       </div>
 
       <div className="flex justify-between text-[10px] text-text-secondary mt-1">
@@ -216,10 +216,10 @@ export default function ThermometerPage() {
         {/* 恐慌買進（觸發才出現） */}
         {data.panic && (
           <div className="flex-1 rounded-lg border p-3 flex items-center gap-3"
-            style={{ borderColor: "#22c55e", backgroundColor: "#22c55e1a" }}>
-            <span className="text-3xl font-bold" style={{ color: "#22c55e" }}>⚡</span>
+            style={{ borderColor: "#facc15", backgroundColor: "#facc151a" }}>
+            <span className="text-3xl font-bold" style={{ color: "#facc15" }}>⚡</span>
             <div>
-              <div className="text-sm font-semibold" style={{ color: "#22c55e" }}>恐慌買進機會</div>
+              <div className="text-sm font-semibold" style={{ color: "#facc15" }}>恐慌買進機會</div>
               <div className="text-xs text-text-secondary">深跌＋斷頭急殺＋快殺（V 底設定）。★快崩為主，慢熊仍會接刀，別盲買。</div>
             </div>
           </div>
@@ -309,10 +309,10 @@ export default function ThermometerPage() {
       </div>
 
       {/* 恐慌買進訊號（V 底 contrarian，快崩限定） */}
-      <div className={"mb-6 rounded border p-3 " + (data.panic ? "border-[#22c55e] bg-[#22c55e]/10" : "border-border")}>
+      <div className={"mb-6 rounded border p-3 " + (data.panic ? "border-[#facc15] bg-[#facc15]/10" : "border-border")}>
         <div className="flex items-center gap-2 mb-2">
           <span className={"px-2 py-0.5 rounded text-xs font-semibold " +
-            (data.panic ? "bg-[#22c55e] text-white" : "bg-surface-hover text-text-secondary")}>
+            (data.panic ? "bg-[#facc15] text-black" : "bg-surface-hover text-text-secondary")}>
             {data.panic ? "恐慌買進" : "未觸發"}
           </span>
           <span className="text-xs text-text-secondary">
@@ -322,7 +322,7 @@ export default function ThermometerPage() {
         <ul className="text-xs space-y-1">
           {data.panic_conditions.map((c) => (
             <li key={c.name} className={c.met ? "text-text-primary" : "text-text-secondary"}>
-              <span className={c.met ? "text-[#22c55e]" : "text-text-secondary/50"}>{c.met ? "✔" : "✗"}</span>{" "}
+              <span className={c.met ? "text-[#facc15]" : "text-text-secondary/50"}>{c.met ? "✔" : "✗"}</span>{" "}
               {c.name}
             </li>
           ))}

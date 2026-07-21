@@ -6,7 +6,7 @@
   "danger": false,
   "stance": "防守",
   "stance_color": "#ef4444",
-  "stance_reason": "頂部過熱後排列翻空、續守中（排列：強空，回中性/多方才解除）",
+  "stance_reason": "頂部過熱後排列翻空、續守中（排列：強空，回多方或連續 3 天中性以上才解除）",
   "near_high": false,
   "pct_from_high": -11.1,
   "hi_window": 55,
@@ -1340,7 +1340,7 @@
       "tx": 27626,
       "label": "無頂部訊號",
       "color": "#8a8a9a",
-      "stance": "防守",
+      "stance": "攻擊",
       "panic": false,
       "c": {
         "futures": 44.4,
@@ -1353,7 +1353,7 @@
       "tx": 27343,
       "label": "無頂部訊號",
       "color": "#8a8a9a",
-      "stance": "防守",
+      "stance": "攻擊",
       "panic": false,
       "c": {
         "futures": 56.7,
@@ -1366,7 +1366,7 @@
       "tx": 27564,
       "label": "無頂部訊號",
       "color": "#8a8a9a",
-      "stance": "防守",
+      "stance": "攻擊",
       "panic": false,
       "c": {
         "futures": 54.4,

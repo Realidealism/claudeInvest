@@ -45,6 +45,7 @@ PANIC_SPEED_CHG = -6.0  # 指數 10 日跌 <= -6% (fast washout; +9.3%/71% vs +6
 # 外資淨空創 60日新低 + 低P/C自滿. Precision 2.98x but ~71% false — a caution flag only.
 ALERT_LOW_WIN = 60   # foreign net-OI fresh N-day net-short low (swept: 60 > 40)
 TOP_LOOKBACK = 3     # 攻防 entry: 過熱 within the last 3 trading days counts
+STANCE_EXIT_DAYS = 3  # 攻防 exit: 排列 連續 N 天回到中性以上(short_trend>=0) 才解除防守
 # 大台期貨 OBV 弱勢 = ScoreBoard short-scope OBV in bearish state (trend<0), aligned with
 # analysis.obv (short scope only). We use the persistent latched trend, NOT signal_down:
 # the sparse down-cross event misses declines with no fresh cross (2026-07-09~16 reopened
@@ -112,15 +113,18 @@ def build_thermometer(cur, today: date | None = None) -> dict:
     m["fresh_low"] = m["noi"] <= m["noi"].rolling(ALERT_LOW_WIN).min() + 1e-9  # 頂部過熱 badge (窄, 2.17x)
     m["hot_wide"] = m["fresh_low"] | m["obv_weak"]   # 加寬弱勢 (外資期貨 OR OBV弱) for stance entry
     # 攻防狀態 (stateful hysteresis): enter 防守 when 加寬過熱(3日內) AND 排列翻空(short_trend<0);
-    # latch 防守 until 排列 回多方(short_trend>0). OBV widens entry to cover secondary declines.
+    # exit 防守 when 排列 回多方(short_trend>0) 單日, OR 連續 STANCE_EXIT_DAYS 天回到中性以上
+    # (short_trend>=0). OBV widens entry to cover secondary declines.
     _fl3 = (m["hot_wide"].rolling(TOP_LOOKBACK, min_periods=1).max() > 0).to_numpy()
     _st = m["st"].to_numpy()
+    _rec3 = (m["st"].rolling(STANCE_EXIT_DAYS, min_periods=STANCE_EXIT_DAYS).min() >= 0).fillna(False)
+    _rec = (_rec3 | (m["st"] > 0)).to_numpy()
     _def = np.zeros(len(m), dtype=bool); _state = False
     for _i in range(len(m)):
         if not _state:
             if _fl3[_i] and _st[_i] < 0:
                 _state = True
-        elif _st[_i] > 0:
+        elif _rec[_i]:
             _state = False
         _def[_i] = _state
     m["defensive"] = _def
@@ -174,7 +178,7 @@ def build_thermometer(cur, today: date | None = None) -> dict:
         "danger": danger,
         "stance": "防守" if defensive else "攻擊",
         "stance_color": "#ef4444" if defensive else "#22c55e",
-        "stance_reason": (f"頂部過熱後排列翻空、續守中（排列：{ST_LABELS.get(int(last['st']), '?')}，回中性/多方才解除）"
+        "stance_reason": (f"頂部過熱後排列翻空、續守中（排列：{ST_LABELS.get(int(last['st']), '?')}，回多方或連續 {STANCE_EXIT_DAYS} 天中性以上才解除）"
                           if defensive else f"排列中性以上（{ST_LABELS.get(int(last['st']), '?')}）"),
         "near_high": a_near,
         "pct_from_high": round(float(pfh), 1),
