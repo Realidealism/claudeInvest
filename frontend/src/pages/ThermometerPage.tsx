@@ -187,17 +187,41 @@ function TrendCharts({ pts }: { pts: HistPoint[] }) {
   );
 }
 
+interface LiveStance {
+  as_of: string;
+  snapshot_time: string;
+  is_today: boolean;
+  stance: string;
+  stance_color: string;
+  stance_reason: string;
+  short_trend: number;
+}
+
 export default function ThermometerPage() {
   const [data, setData] = useState<ThermoData | null>(null);
+  const [live, setLive] = useState<LiveStance | null>(null);
 
   useEffect(() => {
     fetch("/data/thermometer.json").then((r) => r.json()).then(setData).catch(console.error);
+    // Live intraday stance (only the 攻防 updates during the session). Missing
+    // file / parse errors just leave the close stance in place.
+    fetch("/data/thermometer_stance.json").then((r) => (r.ok ? r.json() : null)).then(setLive).catch(() => {});
   }, []);
 
   if (!data) return <div className="text-text-secondary">Loading...</div>;
   if (data.score == null) return <div className="text-text-secondary">尚無溫度計資料</div>;
 
   const color = data.bucket_color;
+
+  // Use the live stance only when it is strictly newer than the last close
+  // reflected in thermometer.json (i.e. an in-session reading). After the
+  // daily post-close export catches up, both dates match and we fall back to
+  // the close stance (identical value, no misleading "盤中" time tag).
+  const showLive = !!live && live.is_today && live.as_of > data.as_of!;
+  const stanceValue = showLive ? live!.stance : data.stance;
+  const stanceColor = showLive ? live!.stance_color : data.stance_color;
+  const stanceReason = showLive ? live!.stance_reason : data.stance_reason;
+  const liveTime = showLive ? live!.snapshot_time.slice(11, 16) : null;
 
   return (
     <div className="max-w-3xl">
@@ -211,12 +235,19 @@ export default function ThermometerPage() {
       <div className="mb-5 flex flex-col sm:flex-row gap-3">
         {/* 趨勢 */}
         <div className="flex-1 rounded-lg border p-3 flex items-center gap-3"
-          style={{ borderColor: data.stance_color, backgroundColor: data.stance_color + "1a" }}>
-          <span className="text-4xl font-bold" style={{ color: data.stance_color }}>{data.stance}</span>
+          style={{ borderColor: stanceColor, backgroundColor: stanceColor + "1a" }}>
+          <span className="text-4xl font-bold" style={{ color: stanceColor }}>{stanceValue}</span>
           <div>
-            <div className="text-sm font-semibold">現在建議（趨勢）</div>
+            <div className="text-sm font-semibold">
+              現在建議（趨勢）
+              {liveTime && (
+                <span className="ml-1.5 px-1.5 py-0.5 rounded text-[10px] font-medium bg-surface-hover text-text-secondary">
+                  盤中 {liveTime}
+                </span>
+              )}
+            </div>
             <div className="text-xs text-text-secondary">
-              {data.stance_reason}　·　{data.stance === "防守" ? "短期轉弱，空手觀望" : "短期偏多，可進場"}
+              {stanceReason}　·　{stanceValue === "防守" ? "短期轉弱，空手觀望" : "短期偏多，可進場"}
             </div>
           </div>
         </div>
