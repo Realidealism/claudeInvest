@@ -224,7 +224,8 @@ export default function ThermometerPage() {
   const liveTime = showLive ? live!.snapshot_time.slice(11, 16) : null;
 
   return (
-    <div className="max-w-3xl">
+    <div className="max-w-5xl">
+     <div className="max-w-3xl">
       <h2 className="text-lg font-semibold mb-1">市場溫度計</h2>
       <p className="text-xs text-text-secondary mb-5">
         以趨勢（攻擊／防守）為主，搭配頂部過熱、恐慌買進兩個 contrarian 訊號。
@@ -426,13 +427,15 @@ export default function ThermometerPage() {
       </div>
 
       </details>
+     </div>
 
-      {/* history */}
+      {/* history — full width (max-w-5xl) so the sparkline reads wider */}
       <div>
         <div className="text-sm font-semibold mb-1">近一年定位極端度 vs 加權指數（線色＝當日評語）</div>
         <TrendCharts pts={data.history} />
       </div>
 
+     <div className="max-w-3xl">
       <details className="text-xs text-text-secondary mt-6">
         <summary className="cursor-pointer hover:text-text-primary">方法與限制</summary>
         <ul className="mt-2 space-y-1 list-disc pl-4">
@@ -442,6 +445,7 @@ export default function ThermometerPage() {
           <li>P/C 比與微台散戶已移除：兩者在頂部與底部皆極端（反指標、無方向鑑別力），平均進來只會稀釋分數。真正的操作訊號在儀表之外——頂部過熱看外資期貨創新低、攻防看 OBV＋多空排列、恐慌買進看融資急殺＋深跌。</li>
         </ul>
       </details>
+     </div>
     </div>
   );
 }
