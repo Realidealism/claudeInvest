@@ -44,6 +44,12 @@ PANIC_SPEED_CHG = -6.0  # 指數 10 日跌 <= -6% (fast washout; +9.3%/71% vs +6
 # 離散警戒燈 (discrete alarm, NOT a prediction): the validated crash gate. 近高 +
 # 外資淨空創 60日新低 + 低P/C自滿. Precision 2.98x but ~71% false — a caution flag only.
 ALERT_LOW_WIN = 60   # foreign net-OI fresh N-day net-short low (swept: 60 > 40)
+# 融資過熱 (independent 2nd top flag): Bollinger z of 融資餘額/55MA成交金額. Normalizing 融資
+# by turnover then de-trending gives 2.17x@+1.5σ (matches 外資期貨) with fixed persistence,
+# and uniquely caught the 2025-03 -23% top that 外資期貨 missed. NOT OR-merged with fresh_low
+# (that diluted clean years); shown as a separate flag. ~70% false, non-uniform, caution only.
+# tmp/_overheat_mt_bollinger.py, _overheat_optimize.py.
+MARGIN_OVERHEAT_Z = 1.5
 TOP_LOOKBACK = 3     # 攻防 entry: 過熱 within the last 3 trading days counts
 STANCE_EXIT_DAYS = 3  # 攻防 exit: 排列 連續 N 天回到中性以上(short_trend>=0) 才解除防守
 # 大台期貨 OBV 弱勢 = ScoreBoard short-scope OBV in bearish state (trend<0), aligned with
@@ -77,7 +83,7 @@ def build_thermometer(cur, today: date | None = None) -> dict:
     cur.execute("""SELECT trade_date, net_oi FROM tw.taifex_inst_futures
                    WHERE product='臺股期貨' AND investor='外資及陸資' ORDER BY trade_date""")
     fu = pd.DataFrame(cur.fetchall())
-    cur.execute("SELECT trade_date, close_price FROM tw.index_prices WHERE index_id='TAIEX' ORDER BY trade_date")
+    cur.execute("SELECT trade_date, close_price, turnover FROM tw.index_prices WHERE index_id='TAIEX' ORDER BY trade_date")
     ix = pd.DataFrame(cur.fetchall())
     cur.execute("SELECT trade_date, short_trend FROM tw.market_breadth ORDER BY trade_date")
     br = pd.DataFrame(cur.fetchall())
@@ -92,6 +98,7 @@ def build_thermometer(cur, today: date | None = None) -> dict:
     mg["d"] = pd.to_datetime(mg["trade_date"]); mg["mgn"] = mg["margin_balance_value"].astype(float)
     fu["d"] = pd.to_datetime(fu["trade_date"]); fu["noi"] = fu["net_oi"].astype(float)
     ix["d"] = pd.to_datetime(ix["trade_date"]); ix["tx"] = ix["close_price"].astype(float)
+    ix["to"] = ix["turnover"].astype(float).ffill()   # a few null-turnover days would else NaN the whole 55d window
     ix["pct_from_high"] = (ix["tx"] / ix["tx"].rolling(HI_WINDOW).max() - 1) * 100
     br["d"] = pd.to_datetime(br["trade_date"]); br["st"] = br["short_trend"].astype(int)
     tv["d"] = pd.to_datetime(tv["trade_date"])
@@ -103,7 +110,7 @@ def build_thermometer(cur, today: date | None = None) -> dict:
     tv["ref"] = np.where(tv["roll"], tv["o"], tv["c"].shift(1))
     tv.loc[0, "ref"] = tv.loc[0, "c"]
     m = (mg[["d", "mgn"]].merge(fu[["d", "noi"]], on="d")
-         .merge(ix[["d", "pct_from_high", "tx"]], on="d").merge(br[["d", "st"]], on="d")
+         .merge(ix[["d", "pct_from_high", "tx", "to"]], on="d").merge(br[["d", "st"]], on="d")
          .merge(tv[["d", "o", "h", "l", "c", "v", "ref"]], on="d").sort_values("d").reset_index(drop=True))
     # 大台期貨 OBV — aligned with ScoreBoard OBV machinery (analysis.obv), short scope only
     _obv = calculate_obv(m["c"].to_numpy(np.float32), m["ref"].to_numpy(np.float32),
@@ -137,6 +144,11 @@ def build_thermometer(cur, today: date | None = None) -> dict:
     sd = m["mgn"].rolling(MARGIN_MA_WIN).std()
     m["margin_z"] = (m["mgn"] - ma) / sd                        # deviation from 55d trend in σ
     m["margin_hot"] = ((m["margin_z"] + 2) / 4).clip(0, 1) * 100  # −2σ→0, 均線→50, +2σ→100
+    # 融資過熱: Bollinger z of 融資餘額/55MA成交金額 (normalize by turnover, then de-trend). z is
+    # scale-invariant so 融資/成交金額 unit mismatch is harmless. Independent 2nd top flag.
+    _mt = m["mgn"] / m["to"].rolling(MARGIN_MA_WIN).mean()
+    m["mt_z"] = (_mt - _mt.rolling(MARGIN_MA_WIN).mean()) / _mt.rolling(MARGIN_MA_WIN).std()
+    m["margin_overheat"] = m["mt_z"] >= MARGIN_OVERHEAT_Z
     m["futures_hot"] = (1 - _roll_pctl(m["noi"], FUT_WIN)) * 100   # more net-short -> hotter
     # 定位極端度 = 外資期貨 + 融資 only. P/C 與微台散戶在頂/底皆極端(反指標無方向鑑別力),
     # 只會稀釋分數, 已移除 (see memory project_market_thermometer 2026-07-21).
@@ -163,6 +175,7 @@ def build_thermometer(cur, today: date | None = None) -> dict:
                         "tx": round(r.tx), "label": lbl, "color": col,
                         "stance": "防守" if r.defensive else "攻擊",
                         "panic": bool(r.panic),
+                        "m_alert": bool(r.margin_overheat),
                         "c": {"futures": _r1(r.futures_hot), "margin": _r1(r.margin_hot)}})
 
     pfh = last["pct_from_high"]
@@ -186,6 +199,11 @@ def build_thermometer(cur, today: date | None = None) -> dict:
         "alert": a_fresh,
         "alert_conditions": [
             {"name": f"外資淨空創 {ALERT_LOW_WIN} 日新低", "met": a_fresh},
+        ],
+        "margin_alert": bool(last["margin_overheat"]),
+        "margin_alert_conditions": [
+            {"name": f"融資/成交量 布林 z ≥ +{MARGIN_OVERHEAT_Z:.1f}σ（現 {last['mt_z']:+.1f}σ）",
+             "met": bool(last["margin_overheat"])},
         ],
         "panic": bool(last["panic"]),
         "panic_conditions": [
