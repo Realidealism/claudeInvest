@@ -5,12 +5,12 @@
     "label": "美股 VIX",
     "source": "CBOE (via CNN F&G)",
     "latest": {
-      "close": 17.84,
-      "rating": "elevated"
+      "close": 17.05,
+      "rating": "low"
     },
     "thresholds": {
       "p20": 15.69,
-      "p50": 17.12,
+      "p50": 17.06,
       "p80": 19.79
     },
     "series": [
@@ -1020,7 +1020,7 @@
       },
       {
         "date": "2026-07-21",
-        "close": 17.84
+        "close": 17.05
       }
     ]
   },
@@ -1029,12 +1029,12 @@
     "label": "台指 VIX",
     "source": "TAIFEX",
     "latest": {
-      "close": 0.0,
-      "rating": "calm",
-      "intraday_time": "000000"
+      "close": 34.91,
+      "rating": "low",
+      "intraday_time": "090945"
     },
     "thresholds": {
-      "p20": 33.75,
+      "p20": 33.98,
       "p50": 36.56,
       "p80": 38.63
     },
@@ -1429,7 +1429,7 @@
       },
       {
         "date": "2026-07-22",
-        "close": 0.0
+        "close": 34.91
       }
     ]
   }
