@@ -45,6 +45,8 @@ a = Analysis(
         'signal_backtest.factories.macd',
         'scrapers.vix_tw_intraday',
         'analysis.tx_status',
+        'analysis.market_thermometer',
+        'analysis.market_breadth',
         'analysis.daily_snapshot',
         'scrapers.ftse_taiwan',
         'numpy',

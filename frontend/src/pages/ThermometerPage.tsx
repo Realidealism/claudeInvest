@@ -15,6 +15,7 @@ interface HistPoint {
   color: string;
   stance: string;
   panic: boolean;
+  m_alert: boolean;
   c: Record<string, number | null>;
 }
 
@@ -80,6 +81,8 @@ interface ThermoData {
   hi_window: number;
   alert: boolean;
   alert_conditions: { name: string; met: boolean }[];
+  margin_alert: boolean;
+  margin_alert_conditions: { name: string; met: boolean }[];
   panic: boolean;
   panic_conditions: { name: string; met: boolean }[];
   components: Component[];
@@ -157,6 +160,10 @@ function TrendCharts({ pts }: { pts: HistPoint[] }) {
             <line key={"tp" + i} x1={xOf(i)} x2={xOf(i)} y1={0} y2={9} stroke="#ef4444"
               strokeWidth={2} vectorEffect="non-scaling-stroke" opacity={0.8} />
           ) : null)}
+          {pts.map((p, i) => p.m_alert ? (
+            <line key={"mp" + i} x1={xOf(i)} x2={xOf(i)} y1={11} y2={20} stroke="#f59e0b"
+              strokeWidth={2} vectorEffect="non-scaling-stroke" opacity={0.8} />
+          ) : null)}
           {pts.map((p, i) => p.panic ? (
             <line key={"pk" + i} x1={xOf(i)} x2={xOf(i)} y1={0} y2={H} stroke="#facc15"
               strokeWidth={2} vectorEffect="non-scaling-stroke" opacity={0.55} />
@@ -170,7 +177,7 @@ function TrendCharts({ pts }: { pts: HistPoint[] }) {
         </svg>
         <span className="absolute right-0.5 text-[9px] text-text-secondary" style={{ top: pY(hiv), transform: "translateY(-50%)" }}>{Math.round(hiv).toLocaleString()}</span>
         <span className="absolute right-0.5 text-[9px] text-text-secondary" style={{ top: pY(lo), transform: "translateY(-50%)" }}>{Math.round(lo).toLocaleString()}</span>
-        <span className="absolute left-0.5 top-0.5 text-[9px] text-text-secondary">加權指數（線 綠攻·紅防；頂紅刻＝頂部過熱、黃豎線＝恐慌買進）</span>
+        <span className="absolute left-0.5 top-0.5 text-[9px] text-text-secondary">加權指數（線 綠攻·紅防；紅刻＝外資過熱、橙刻＝融資過熱、黃豎線＝恐慌買進）</span>
       </div>
 
       <div className="flex justify-between text-[10px] text-text-secondary mt-1">
@@ -180,11 +187,25 @@ function TrendCharts({ pts }: { pts: HistPoint[] }) {
   );
 }
 
+interface LiveStance {
+  as_of: string;
+  snapshot_time: string;
+  is_today: boolean;
+  stance: string;
+  stance_color: string;
+  stance_reason: string;
+  short_trend: number;
+}
+
 export default function ThermometerPage() {
   const [data, setData] = useState<ThermoData | null>(null);
+  const [live, setLive] = useState<LiveStance | null>(null);
 
   useEffect(() => {
     fetch("/data/thermometer.json").then((r) => r.json()).then(setData).catch(console.error);
+    // Live intraday stance (only the 攻防 updates during the session). Missing
+    // file / parse errors just leave the close stance in place.
+    fetch("/data/thermometer_stance.json").then((r) => (r.ok ? r.json() : null)).then(setLive).catch(() => {});
   }, []);
 
   if (!data) return <div className="text-text-secondary">Loading...</div>;
@@ -192,8 +213,19 @@ export default function ThermometerPage() {
 
   const color = data.bucket_color;
 
+  // Use the live stance only when it is strictly newer than the last close
+  // reflected in thermometer.json (i.e. an in-session reading). After the
+  // daily post-close export catches up, both dates match and we fall back to
+  // the close stance (identical value, no misleading "盤中" time tag).
+  const showLive = !!live && live.is_today && live.as_of > data.as_of!;
+  const stanceValue = showLive ? live!.stance : data.stance;
+  const stanceColor = showLive ? live!.stance_color : data.stance_color;
+  const stanceReason = showLive ? live!.stance_reason : data.stance_reason;
+  const liveTime = showLive ? live!.snapshot_time.slice(11, 16) : null;
+
   return (
-    <div className="max-w-3xl">
+    <div className="max-w-5xl">
+     <div className="max-w-3xl">
       <h2 className="text-lg font-semibold mb-1">市場溫度計</h2>
       <p className="text-xs text-text-secondary mb-5">
         以趨勢（攻擊／防守）為主，搭配頂部過熱、恐慌買進兩個 contrarian 訊號。
@@ -204,12 +236,19 @@ export default function ThermometerPage() {
       <div className="mb-5 flex flex-col sm:flex-row gap-3">
         {/* 趨勢 */}
         <div className="flex-1 rounded-lg border p-3 flex items-center gap-3"
-          style={{ borderColor: data.stance_color, backgroundColor: data.stance_color + "1a" }}>
-          <span className="text-4xl font-bold" style={{ color: data.stance_color }}>{data.stance}</span>
+          style={{ borderColor: stanceColor, backgroundColor: stanceColor + "1a" }}>
+          <span className="text-4xl font-bold" style={{ color: stanceColor }}>{stanceValue}</span>
           <div>
-            <div className="text-sm font-semibold">現在建議（趨勢）</div>
+            <div className="text-sm font-semibold">
+              現在建議（趨勢）
+              {liveTime && (
+                <span className="ml-1.5 px-1.5 py-0.5 rounded text-[10px] font-medium bg-surface-hover text-text-secondary">
+                  盤中 {liveTime}
+                </span>
+              )}
+            </div>
             <div className="text-xs text-text-secondary">
-              {data.stance_reason}　·　{data.stance === "防守" ? "短期轉弱，空手觀望" : "短期偏多，可進場"}
+              {stanceReason}　·　{stanceValue === "防守" ? "短期轉弱，空手觀望" : "短期偏多，可進場"}
             </div>
           </div>
         </div>
@@ -224,14 +263,25 @@ export default function ThermometerPage() {
             </div>
           </div>
         )}
-        {/* 頂部過熱（觸發才出現） */}
+        {/* 頂部過熱·外資（觸發才出現） */}
         {data.danger && (
           <div className="flex-1 rounded-lg border p-3 flex items-center gap-3"
             style={{ borderColor: "#ef4444", backgroundColor: "#ef44441a" }}>
             <span className="text-3xl font-bold text-negative">⚠</span>
             <div>
-              <div className="text-sm font-semibold text-negative">頂部過熱</div>
+              <div className="text-sm font-semibold text-negative">頂部過熱·外資</div>
               <div className="text-xs text-text-secondary">外資淨空創新低（減碼警訊）。★約 82% 假警報。</div>
+            </div>
+          </div>
+        )}
+        {/* 頂部過熱·融資（觸發才出現） */}
+        {data.margin_alert && (
+          <div className="flex-1 rounded-lg border p-3 flex items-center gap-3"
+            style={{ borderColor: "#f59e0b", backgroundColor: "#f59e0b1a" }}>
+            <span className="text-3xl font-bold" style={{ color: "#f59e0b" }}>⚠</span>
+            <div>
+              <div className="text-sm font-semibold" style={{ color: "#f59e0b" }}>頂部過熱·融資</div>
+              <div className="text-xs text-text-secondary">融資／成交量 布林 z ≥ +1.5σ（槓桿相對量能過熱）。★約 70% 假、獨家抓到 2025-03。</div>
             </div>
           </div>
         )}
@@ -283,15 +333,15 @@ export default function ThermometerPage() {
         </span>
       </div>
 
-      {/* 崩盤警示閘門（離散警報，非預測） */}
-      <div className={"mb-6 rounded border p-3 " + (data.alert ? "border-negative bg-negative/10" : "border-border")}>
+      {/* 頂部過熱·外資（離散警報，非預測） */}
+      <div className={"mb-3 rounded border p-3 " + (data.alert ? "border-negative bg-negative/10" : "border-border")}>
         <div className="flex items-center gap-2 mb-2">
           <span className={"px-2 py-0.5 rounded text-xs font-semibold " +
             (data.alert ? "bg-negative text-white" : "bg-surface-hover text-text-secondary")}>
-            {data.alert ? "⚠ 頂部過熱" : "未觸發"}
+            {data.alert ? "⚠ 頂部過熱·外資" : "未觸發"}
           </span>
           <span className="text-xs text-text-secondary">
-            頂部過熱訊號　{data.alert_conditions.filter((c) => c.met).length}/{data.alert_conditions.length} 條件
+            外資過熱訊號　{data.alert_conditions.filter((c) => c.met).length}/{data.alert_conditions.length} 條件
           </span>
         </div>
         <ul className="text-xs space-y-1">
@@ -305,6 +355,31 @@ export default function ThermometerPage() {
         <div className="text-xs text-text-secondary mt-2">
           外資淨空創 60 日新低時亮。
           <span className="text-text-primary">★已拿掉近高限制，下跌途中（如崩盤日）也會亮、非僅頂部</span>，僅供參考。
+        </div>
+      </div>
+
+      {/* 頂部過熱·融資（獨立第二燈，融資/成交量 布林 z） */}
+      <div className={"mb-6 rounded border p-3 " + (data.margin_alert ? "border-[#f59e0b] bg-[#f59e0b]/10" : "border-border")}>
+        <div className="flex items-center gap-2 mb-2">
+          <span className={"px-2 py-0.5 rounded text-xs font-semibold " +
+            (data.margin_alert ? "bg-[#f59e0b] text-black" : "bg-surface-hover text-text-secondary")}>
+            {data.margin_alert ? "⚠ 頂部過熱·融資" : "未觸發"}
+          </span>
+          <span className="text-xs text-text-secondary">
+            融資過熱訊號　{(data.margin_alert_conditions ?? []).filter((c) => c.met).length}/{(data.margin_alert_conditions ?? []).length} 條件
+          </span>
+        </div>
+        <ul className="text-xs space-y-1">
+          {(data.margin_alert_conditions ?? []).map((c) => (
+            <li key={c.name} className={c.met ? "text-text-primary" : "text-text-secondary"}>
+              <span className={c.met ? "text-[#f59e0b]" : "text-text-secondary/50"}>{c.met ? "✔" : "✗"}</span>{" "}
+              {c.name}
+            </li>
+          ))}
+        </ul>
+        <div className="text-xs text-text-secondary mt-2">
+          融資餘額／55 日均成交金額 的布林 z ≥ +1.5σ 時亮（先用成交量正規化、再 de-trend，抓槓桿相對量能的尖峰）。
+          <span className="text-text-primary">★與外資過熱互補、獨家抓到 2025-03 -23%</span>，但約 70% 假、非時間均勻，僅供參考。
         </div>
       </div>
 
@@ -352,13 +427,15 @@ export default function ThermometerPage() {
       </div>
 
       </details>
+     </div>
 
-      {/* history */}
+      {/* history — full width (max-w-5xl) so the sparkline reads wider */}
       <div>
         <div className="text-sm font-semibold mb-1">近一年定位極端度 vs 加權指數（線色＝當日評語）</div>
         <TrendCharts pts={data.history} />
       </div>
 
+     <div className="max-w-3xl">
       <details className="text-xs text-text-secondary mt-6">
         <summary className="cursor-pointer hover:text-text-primary">方法與限制</summary>
         <ul className="mt-2 space-y-1 list-disc pl-4">
@@ -368,6 +445,7 @@ export default function ThermometerPage() {
           <li>P/C 比與微台散戶已移除：兩者在頂部與底部皆極端（反指標、無方向鑑別力），平均進來只會稀釋分數。真正的操作訊號在儀表之外——頂部過熱看外資期貨創新低、攻防看 OBV＋多空排列、恐慌買進看融資急殺＋深跌。</li>
         </ul>
       </details>
+     </div>
     </div>
   );
 }

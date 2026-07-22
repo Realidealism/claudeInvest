@@ -203,6 +203,18 @@ def _build_futures(base_date: str) -> list[str] | None:
         return None
 
 
+def _build_stance(base_date: str) -> list[str] | None:
+    """市場溫度計攻防狀態（攻擊／防守）from thermometer.json. 🛡️ 防守 / ⚔️ 攻擊
+    (site uses green攻/red防; shield/sword avoids clashing with the 紅漲綠跌 breadth emoji)."""
+    d = _load("thermometer.json")
+    stance = (d or {}).get("stance")
+    if not stance:
+        return None
+    emoji = "🛡️" if stance == "防守" else "⚔️"
+    suf = _date_suffix(d.get("as_of"), base_date)
+    return [f"{emoji} 攻防狀態：{stance}{suf}".rstrip()]
+
+
 def _build_risk(base_date: str) -> list[str] | None:
     """美股/總經風險情緒：恐懼貪婪 + VIX + 殖利率曲線。"""
     lines: list[str] = []
@@ -287,6 +299,11 @@ def build_market_message() -> str:
     else:
         freshness = f"收盤 {base_date}"
     parts = [f"[市場概況] {base_date} {_weekday_zh(d)}\n資料：{freshness}"]
+
+    # 攻防狀態（市場溫度計）置頂
+    stance = _build_stance(base_date)
+    if stance:
+        parts.append("\n".join(stance))
 
     # 三尺度寬度。今日趨勢碼較前一交易日上升標 ↑、下降標 ↓（今天轉向）。
     width_lines = ["📊 市場寬度（漲/中/跌）"]

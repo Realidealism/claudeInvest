@@ -1123,7 +1123,25 @@ def export_intraday(out_dir: str | None = None):
         # intraday_snapshot._run_pass) and we re-emit vix.json here so
         # intraday_publish.bat can pick it up alongside the other JSONs.
         export_vix(cur, out)
+    # Live 溫度計 攻防 (only the stance updates intraday; the rest of
+    # thermometer.json stays close-only in export_all).
+    export_thermometer_stance(out)
     print("Intraday export done.")
+
+
+def export_thermometer_stance(out: Path):
+    """Passthrough of the intraday live-stance sidecar → thermometer_stance.json.
+    Written by intraday_snapshot each pass. The frontend uses it as the live 攻防
+    when its date is today, else falls back to thermometer.json's close stance."""
+    sidecar = Path(__file__).parent.parent / "data" / "thermometer_stance_intraday.json"
+    if not sidecar.exists():
+        return
+    try:
+        with open(sidecar, encoding="utf-8") as f:
+            stance = json.load(f)
+    except Exception:
+        return
+    _write(stance, out / "thermometer_stance.json")
 
 
 def export_positions(cur, out: Path):

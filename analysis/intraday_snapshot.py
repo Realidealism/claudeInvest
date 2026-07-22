@@ -451,6 +451,20 @@ def _save_breadth_sidecar(snapshot_date: date, snapshot_time: datetime,
     return counts
 
 
+def _save_stance_sidecar(stance: dict) -> None:
+    """Write the intraday live-stance dict to data/thermometer_stance_intraday.json
+    (write-then-replace). export_intraday passes it through to the frontend."""
+    import json
+    from pathlib import Path
+
+    sidecar = Path(__file__).parent.parent / "data" / "thermometer_stance_intraday.json"
+    sidecar.parent.mkdir(parents=True, exist_ok=True)
+    tmp = sidecar.with_suffix(".json.tmp")
+    with open(tmp, "w", encoding="utf-8") as f:
+        json.dump(stance, f, ensure_ascii=False, indent=2)
+    os.replace(tmp, sidecar)
+
+
 def _compute_volume_scale(now: datetime, *, final_pass: bool = False) -> float:
     """Build the market-wide h(t) curve once and return scale = 1/h.
 
@@ -539,6 +553,21 @@ def run(*, final_pass: bool = False) -> dict:
     tx = compute_and_save_tx_status(intraday=True, volume_scale=scale, now=now)
     if tx is not None:
         print(f"  TX futures unified state: {tx['state']} @ {tx['current_close']:.0f}")
+
+    # 攻防狀態 (intraday live 溫度計 stance) — same history + hysteresis as the
+    # daily gauge but with a forming last bar (short_trend_total from the breadth
+    # sidecar, obv_weak from a forming TXF bar). Only the stance updates intraday;
+    # the rest of the 溫度計 stays close-only. Non-fatal.
+    try:
+        from analysis.market_thermometer import build_intraday_stance
+        with get_cursor(commit=False) as cur:
+            stance = build_intraday_stance(cur, scale, now)
+        if stance is not None:
+            _save_stance_sidecar(stance)
+            print(f"  Intraday stance: {stance['stance']} "
+                  f"(short_trend={stance['short_trend']}, today={stance['is_today']})")
+    except Exception as e:
+        print(f"  [WARN] intraday stance failed (non-fatal): {e}")
 
     print(f"  Total wall time: {time.time() - t0:.1f}s")
     return {

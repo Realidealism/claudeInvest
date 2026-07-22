@@ -17,7 +17,7 @@ diluted the score. The actionable signals live outside this gauge — 頂部過�
 
 from __future__ import annotations
 
-from datetime import date
+from datetime import date, datetime
 
 import numpy as np
 import pandas as pd
@@ -44,6 +44,12 @@ PANIC_SPEED_CHG = -6.0  # 指數 10 日跌 <= -6% (fast washout; +9.3%/71% vs +6
 # 離散警戒燈 (discrete alarm, NOT a prediction): the validated crash gate. 近高 +
 # 外資淨空創 60日新低 + 低P/C自滿. Precision 2.98x but ~71% false — a caution flag only.
 ALERT_LOW_WIN = 60   # foreign net-OI fresh N-day net-short low (swept: 60 > 40)
+# 融資過熱 (independent 2nd top flag): Bollinger z of 融資餘額/55MA成交金額. Normalizing 融資
+# by turnover then de-trending gives 2.17x@+1.5σ (matches 外資期貨) with fixed persistence,
+# and uniquely caught the 2025-03 -23% top that 外資期貨 missed. NOT OR-merged with fresh_low
+# (that diluted clean years); shown as a separate flag. ~70% false, non-uniform, caution only.
+# tmp/_overheat_mt_bollinger.py, _overheat_optimize.py.
+MARGIN_OVERHEAT_Z = 1.5
 TOP_LOOKBACK = 3     # 攻防 entry: 過熱 within the last 3 trading days counts
 STANCE_EXIT_DAYS = 3  # 攻防 exit: 排列 連續 N 天回到中性以上(short_trend>=0) 才解除防守
 # 大台期貨 OBV 弱勢 = ScoreBoard short-scope OBV in bearish state (trend<0), aligned with
@@ -71,15 +77,46 @@ def _roll_pctl(s: pd.Series, win: int) -> pd.Series:
     return s.rolling(win, min_periods=win).apply(lambda w: (w <= w.iloc[-1]).mean(), raw=False)
 
 
-def build_thermometer(cur, today: date | None = None) -> dict:
+def compute_stance(short_trend, hot_wide) -> np.ndarray:
+    """攻防 stateful hysteresis → per-day defensive[] boolean array.
+
+    enter 防守: 加寬過熱 (hot_wide within TOP_LOOKBACK days) AND 排列翻空 (short_trend<0)
+    exit 防守: 排列回多方 (short_trend>0) 單日, OR 連續 STANCE_EXIT_DAYS 天中性以上 (>=0)
+    hot_wide = fresh_low OR obv_weak (OBV widens entry to cover secondary declines).
+    Shared by the daily gauge and the intraday live-stance builder so a
+    forming last bar produces the exact same latch as the close recompute."""
+    st = pd.Series(np.asarray(short_trend))
+    hw = pd.Series(np.asarray(hot_wide))
+    fl3 = (hw.rolling(TOP_LOOKBACK, min_periods=1).max() > 0).to_numpy()
+    stv = st.to_numpy()
+    rec3 = (st.rolling(STANCE_EXIT_DAYS, min_periods=STANCE_EXIT_DAYS).min() >= 0).fillna(False)
+    rec = (rec3 | (st > 0)).to_numpy()
+    out = np.zeros(len(st), dtype=bool)
+    state = False
+    for i in range(len(st)):
+        if not state:
+            if fl3[i] and stv[i] < 0:
+                state = True
+        elif rec[i]:
+            state = False
+        out[i] = state
+    return out
+
+
+def _load_merged_frame(cur) -> pd.DataFrame:
+    """Merged daily frame (margin / foreign net_oi / TAIEX / short 排列 total /
+    大台期貨 OHLCV) on the common trading-date spine. Shared by the daily gauge
+    and the intraday stance builder so both run the OBV + hysteresis over the
+    identical history. 排列 uses short_trend_total (normal ∪ forming base) —
+    matches the intraday breadth sidecar so the close boundary doesn't jump."""
     cur.execute("SELECT trade_date, margin_balance_value FROM tw.margin_summary ORDER BY trade_date")
     mg = pd.DataFrame(cur.fetchall())
     cur.execute("""SELECT trade_date, net_oi FROM tw.taifex_inst_futures
                    WHERE product='臺股期貨' AND investor='外資及陸資' ORDER BY trade_date""")
     fu = pd.DataFrame(cur.fetchall())
-    cur.execute("SELECT trade_date, close_price FROM tw.index_prices WHERE index_id='TAIEX' ORDER BY trade_date")
+    cur.execute("SELECT trade_date, close_price, turnover FROM tw.index_prices WHERE index_id='TAIEX' ORDER BY trade_date")
     ix = pd.DataFrame(cur.fetchall())
-    cur.execute("SELECT trade_date, short_trend FROM tw.market_breadth ORDER BY trade_date")
+    cur.execute("SELECT trade_date, short_trend_total FROM tw.market_breadth ORDER BY trade_date")
     br = pd.DataFrame(cur.fetchall())
     # 大台期貨 front-month OHLCV (per day = non-spread 一般 contract with MAX volume)
     cur.execute("""SELECT DISTINCT ON (trade_date) trade_date, contract_month,
@@ -92,8 +129,9 @@ def build_thermometer(cur, today: date | None = None) -> dict:
     mg["d"] = pd.to_datetime(mg["trade_date"]); mg["mgn"] = mg["margin_balance_value"].astype(float)
     fu["d"] = pd.to_datetime(fu["trade_date"]); fu["noi"] = fu["net_oi"].astype(float)
     ix["d"] = pd.to_datetime(ix["trade_date"]); ix["tx"] = ix["close_price"].astype(float)
+    ix["to"] = ix["turnover"].astype(float).ffill()   # a few null-turnover days would else NaN the whole 55d window
     ix["pct_from_high"] = (ix["tx"] / ix["tx"].rolling(HI_WINDOW).max() - 1) * 100
-    br["d"] = pd.to_datetime(br["trade_date"]); br["st"] = br["short_trend"].astype(int)
+    br["d"] = pd.to_datetime(br["trade_date"]); br["st"] = br["short_trend_total"].astype(int)
     tv["d"] = pd.to_datetime(tv["trade_date"])
     for _k in ("o", "h", "l", "c", "v"):
         tv[_k] = tv[_k].astype(float)
@@ -102,9 +140,13 @@ def build_thermometer(cur, today: date | None = None) -> dict:
     tv["roll"] = tv["contract_month"] != tv["contract_month"].shift(1)
     tv["ref"] = np.where(tv["roll"], tv["o"], tv["c"].shift(1))
     tv.loc[0, "ref"] = tv.loc[0, "c"]
-    m = (mg[["d", "mgn"]].merge(fu[["d", "noi"]], on="d")
-         .merge(ix[["d", "pct_from_high", "tx"]], on="d").merge(br[["d", "st"]], on="d")
-         .merge(tv[["d", "o", "h", "l", "c", "v", "ref"]], on="d").sort_values("d").reset_index(drop=True))
+    return (mg[["d", "mgn"]].merge(fu[["d", "noi"]], on="d")
+            .merge(ix[["d", "pct_from_high", "tx", "to"]], on="d").merge(br[["d", "st"]], on="d")
+            .merge(tv[["d", "o", "h", "l", "c", "v", "ref"]], on="d").sort_values("d").reset_index(drop=True))
+
+
+def build_thermometer(cur, today: date | None = None) -> dict:
+    m = _load_merged_frame(cur)
     # 大台期貨 OBV — aligned with ScoreBoard OBV machinery (analysis.obv), short scope only
     _obv = calculate_obv(m["c"].to_numpy(np.float32), m["ref"].to_numpy(np.float32),
                          m["h"].to_numpy(np.float32), m["l"].to_numpy(np.float32),
@@ -115,19 +157,7 @@ def build_thermometer(cur, today: date | None = None) -> dict:
     # 攻防狀態 (stateful hysteresis): enter 防守 when 加寬過熱(3日內) AND 排列翻空(short_trend<0);
     # exit 防守 when 排列 回多方(short_trend>0) 單日, OR 連續 STANCE_EXIT_DAYS 天回到中性以上
     # (short_trend>=0). OBV widens entry to cover secondary declines.
-    _fl3 = (m["hot_wide"].rolling(TOP_LOOKBACK, min_periods=1).max() > 0).to_numpy()
-    _st = m["st"].to_numpy()
-    _rec3 = (m["st"].rolling(STANCE_EXIT_DAYS, min_periods=STANCE_EXIT_DAYS).min() >= 0).fillna(False)
-    _rec = (_rec3 | (m["st"] > 0)).to_numpy()
-    _def = np.zeros(len(m), dtype=bool); _state = False
-    for _i in range(len(m)):
-        if not _state:
-            if _fl3[_i] and _st[_i] < 0:
-                _state = True
-        elif _rec[_i]:
-            _state = False
-        _def[_i] = _state
-    m["defensive"] = _def
+    m["defensive"] = compute_stance(m["st"].to_numpy(), m["hot_wide"].to_numpy())
     m["mchg5"] = m["mgn"].pct_change(PANIC_MARGIN_WIN) * 100
     m["ret10"] = m["tx"].pct_change(PANIC_SPEED_WIN) * 100
     m["panic"] = ((m["pct_from_high"] <= PANIC_PFH) & (m["mchg5"] <= PANIC_MARGIN_CHG)
@@ -137,6 +167,11 @@ def build_thermometer(cur, today: date | None = None) -> dict:
     sd = m["mgn"].rolling(MARGIN_MA_WIN).std()
     m["margin_z"] = (m["mgn"] - ma) / sd                        # deviation from 55d trend in σ
     m["margin_hot"] = ((m["margin_z"] + 2) / 4).clip(0, 1) * 100  # −2σ→0, 均線→50, +2σ→100
+    # 融資過熱: Bollinger z of 融資餘額/55MA成交金額 (normalize by turnover, then de-trend). z is
+    # scale-invariant so 融資/成交金額 unit mismatch is harmless. Independent 2nd top flag.
+    _mt = m["mgn"] / m["to"].rolling(MARGIN_MA_WIN).mean()
+    m["mt_z"] = (_mt - _mt.rolling(MARGIN_MA_WIN).mean()) / _mt.rolling(MARGIN_MA_WIN).std()
+    m["margin_overheat"] = m["mt_z"] >= MARGIN_OVERHEAT_Z
     m["futures_hot"] = (1 - _roll_pctl(m["noi"], FUT_WIN)) * 100   # more net-short -> hotter
     # 定位極端度 = 外資期貨 + 融資 only. P/C 與微台散戶在頂/底皆極端(反指標無方向鑑別力),
     # 只會稀釋分數, 已移除 (see memory project_market_thermometer 2026-07-21).
@@ -163,6 +198,7 @@ def build_thermometer(cur, today: date | None = None) -> dict:
                         "tx": round(r.tx), "label": lbl, "color": col,
                         "stance": "防守" if r.defensive else "攻擊",
                         "panic": bool(r.panic),
+                        "m_alert": bool(r.margin_overheat),
                         "c": {"futures": _r1(r.futures_hot), "margin": _r1(r.margin_hot)}})
 
     pfh = last["pct_from_high"]
@@ -187,6 +223,11 @@ def build_thermometer(cur, today: date | None = None) -> dict:
         "alert_conditions": [
             {"name": f"外資淨空創 {ALERT_LOW_WIN} 日新低", "met": a_fresh},
         ],
+        "margin_alert": bool(last["margin_overheat"]),
+        "margin_alert_conditions": [
+            {"name": f"融資/成交量 布林 z ≥ +{MARGIN_OVERHEAT_Z:.1f}σ（現 {last['mt_z']:+.1f}σ）",
+             "met": bool(last["margin_overheat"])},
+        ],
         "panic": bool(last["panic"]),
         "panic_conditions": [
             {"name": f"深跌（距 {HI_WINDOW} 日高 ≤ {PANIC_PFH:.0f}%）", "met": bool(last["pct_from_high"] <= PANIC_PFH)},
@@ -195,6 +236,93 @@ def build_thermometer(cur, today: date | None = None) -> dict:
         ],
         "components": components,
         "history": history,
+    }
+
+
+def _intraday_short_trend_total() -> tuple[int, str] | None:
+    """Live short-scope 排列 trend (total base) from the breadth sidecar that
+    intraday_snapshot writes each pass. Returns (TREND_CODE, sidecar_date) or None."""
+    import json
+    from pathlib import Path
+    sidecar = Path(__file__).parent.parent / "data" / "breadth_intraday.json"
+    if not sidecar.exists():
+        return None
+    try:
+        with open(sidecar, encoding="utf-8") as f:
+            ib = json.load(f)
+    except Exception:
+        return None
+    total = ib.get("total") or ib.get("active")
+    if not total:
+        return None
+    from analysis.market_breadth import classify_trend, TREND_CODE
+    up = ib["short_up"] / total * 100
+    dn = ib["short_down"] / total * 100
+    return TREND_CODE[classify_trend(up, dn, 100 - up - dn)], str(ib.get("trade_date"))
+
+
+def _tx_forming_bar(volume_scale: float, now: datetime) -> tuple | None:
+    """Today's forming 大台 bar (o,h,l,c,v) with h(t)-projected volume, taken as
+    the last bar of tx_status.build_tx_data (which fetches the live cnyes TXF
+    quote and scales its volume). Returns None if no live bar for today."""
+    try:
+        from analysis.tx_status import build_tx_data
+        res = build_tx_data(intraday=True, volume_scale=volume_scale, now=now)
+    except Exception:
+        return None
+    data = res[0] if isinstance(res, tuple) else res
+    if data is None or len(data.dates) == 0 or data.dates[-1] != now.date():
+        return None
+    return (float(data.open[-1]), float(data.high[-1]), float(data.low[-1]),
+            float(data.close[-1]), float(data.volume[-1]))
+
+
+def build_intraday_stance(cur, volume_scale: float, now: datetime) -> dict | None:
+    """Live 攻防 for the current intraday pass. Same history + hysteresis as the
+    daily gauge (_load_merged_frame + compute_stance) but with a forming last bar:
+    short_trend_total from the breadth sidecar, obv_weak from the daily TXF series
+    with today's forming bar grafted on, fresh_low from the last available foreign
+    net_oi (stale — only the OR side of entry; obv_weak carries it live)."""
+    m = _load_merged_frame(cur)
+    if m.empty:
+        return None
+
+    today = now.date()
+    ts = pd.Timestamp(today)
+    sc = _intraday_short_trend_total()
+    forming = _tx_forming_bar(volume_scale, now)
+    if forming is not None and ts not in set(m["d"]):
+        o, h, l, c, v = forming
+        row = {col: np.nan for col in m.columns}
+        row["d"] = ts
+        row["o"], row["h"], row["l"], row["c"], row["v"] = o, h, l, c, v
+        row["ref"] = m["c"].iloc[-1]                       # prev front-month close
+        row["noi"] = m["noi"].iloc[-1]                     # stale (foreign net_oi is close-only)
+        row["st"] = (sc[0] if sc is not None and sc[1] == today.isoformat()
+                     else int(m["st"].iloc[-1]))
+        m = pd.concat([m, pd.DataFrame([row])], ignore_index=True)
+
+    _obv = calculate_obv(m["c"].to_numpy(np.float32), m["ref"].to_numpy(np.float32),
+                         m["h"].to_numpy(np.float32), m["l"].to_numpy(np.float32),
+                         m["v"].to_numpy(np.float32), **PERIOD_PARAMS["short"])
+    m["obv_weak"] = _obv.trend < 0
+    m["fresh_low"] = m["noi"] <= m["noi"].rolling(ALERT_LOW_WIN).min() + 1e-9
+    m["hot_wide"] = m["fresh_low"].fillna(False) | m["obv_weak"]
+    defensive = compute_stance(m["st"].to_numpy(), m["hot_wide"].to_numpy())
+
+    last = m.iloc[-1]
+    is_def = bool(defensive[-1])
+    st_last = int(last["st"])
+    return {
+        "as_of": last["d"].date().isoformat(),
+        "snapshot_time": now.isoformat(),
+        "is_today": bool(last["d"].date() == today),
+        "stance": "防守" if is_def else "攻擊",
+        "stance_color": "#ef4444" if is_def else "#22c55e",
+        "stance_reason": (f"頂部過熱後排列翻空、續守中（排列：{ST_LABELS.get(st_last, '?')}，"
+                          f"回多方或連續 {STANCE_EXIT_DAYS} 天中性以上才解除）"
+                          if is_def else f"排列中性以上（{ST_LABELS.get(st_last, '?')}）"),
+        "short_trend": st_last,
     }
 
 
