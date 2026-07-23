@@ -361,6 +361,7 @@ def build_thermometer(cur, today: date | None = None) -> dict:
                         "l_alert": bool(r.limitup_overheat),
                         "lb_alert": bool(r.limitup_bear),
                         "tv_alert": bool(r.top_vote),
+                        "tv_n": int(r.top_vote_n),
                         "warn": bool(r.warn),
                         "c": {"futures": _r1(r.futures_hot), "margin": _r1(r.margin_hot)}})
 

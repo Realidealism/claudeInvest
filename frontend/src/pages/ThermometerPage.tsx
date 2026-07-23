@@ -19,13 +19,13 @@ interface HistPoint {
   l_alert: boolean;
   lb_alert: boolean;
   tv_alert: boolean;
+  tv_n?: number;   // optional: JSON from a pre-rebuild exe won't have it (vn() defaults to 0)
   warn: boolean;
   c: Record<string, number | null>;
 }
 
-const WARN_COLOR = "#ec4899";     // 加速惡化警示 (桃紅, drawn as dots on the index line)
-const LIMITUP_COLOR = "#a855f7";  // 頂部過熱·漲停 (紫)
-const LB_COLOR = "#38bdf8";       // 頂部過熱·漲停配合空方排列 (淺藍, dots on the index line)
+const WARN_COLOR = "#ec4899";     // 加速惡化警示 (badge card)
+const LIMITUP_COLOR = "#a855f7";  // 頂部過熱·漲停 (badge card)
 
 const STANCE_COLOR: Record<string, string> = { 攻擊: "#22c55e", 防守: "#ef4444" };
 
@@ -135,82 +135,57 @@ function TrendCharts({ pts }: { pts: HistPoint[] }) {
       className="text-text-secondary" strokeWidth={1} vectorEffect="non-scaling-stroke" opacity={0.55} />
   );
 
-  // 定位極端度 (fixed 0-100; line coloured per-day by regime)
-  const tY = (v: number) => padT + (1 - v / 100) * (H - padT);
+  // 四正交過熱投票 (0-4; >=3 → 高點防守). Bars per day, coloured by count.
+  const tY = (v: number) => padT + (1 - v / 4) * (H - padT);
+  const voteColor = (nn: number) => (nn >= 3 ? "#ef4444" : nn === 2 ? "#f59e0b" : "#8a8a9a");
+  const vn = (p: HistPoint) => p.tv_n ?? 0;   // tolerate pre-rebuild JSON without tv_n
   // index (auto min-max)
   const txs = pts.map((p) => p.tx);
   const lo = Math.min(...txs), hiv = Math.max(...txs);
   const pY = (v: number) => padT + (1 - (v - lo) / (hiv - lo || 1)) * (H - padT);
-  // 極端度線色：頂部過熱且已防守=紅、頂部過熱但仍攻擊=橘(警示：過熱亮了但攻防未轉防守)、無訊號=灰
-  const tempColor = (p: HistPoint) =>
-    p.label === "頂部過熱" && p.stance !== "防守" ? "#f59e0b" : p.color;
 
   return (
     <div>
       <div className="text-xs text-text-secondary mb-1">
         {pts[cur].date}　<span className="font-medium" style={{ color: STANCE_COLOR[pts[cur].stance] }}>{pts[cur].stance}</span>
-        　極端度 <span className="font-medium tabular-nums" style={{ color: tempColor(pts[cur]) }}>{pts[cur].score}</span>
-        　<span className="font-medium" style={{ color: tempColor(pts[cur]) }}>{pts[cur].label}{pts[cur].label === "頂部過熱" && pts[cur].stance !== "防守" ? "·未防守" : ""}</span>
+        　過熱投票 <span className="font-medium tabular-nums" style={{ color: voteColor(vn(pts[cur])) }}>{vn(pts[cur])}/4</span>
+        {vn(pts[cur]) >= 3 && <span className="font-medium" style={{ color: "#ef4444" }}>　高信念頂部</span>}
         　加權 <span className="text-text-primary font-medium tabular-nums">{pts[cur].tx.toLocaleString()}</span>
         {hi === null && <span className="ml-1">（最新；滑過看每日）</span>}
       </div>
 
-      {/* temperature */}
+      {/* 四正交過熱投票 0-4 (drives 高點防守) */}
       <div className="relative" style={{ height: H }} onMouseLeave={() => setHi(null)} onMouseMove={onMove}>
         <svg viewBox={`0 0 1000 ${H}`} className="w-full" style={{ height: H }} preserveAspectRatio="none">
-          {[60, 80].map((y) => (
-            <line key={y} x1={0} x2={1000} y1={tY(y)} y2={tY(y)} stroke="currentColor" className="text-border" strokeWidth={1} vectorEffect="non-scaling-stroke" opacity={0.5} />
-          ))}
-          {pts.slice(1).map((p, i) => (
-            <line key={i} x1={xOf(i)} y1={tY(pts[i].score)} x2={xOf(i + 1)} y2={tY(p.score)}
-              stroke={tempColor(p)} strokeWidth={1.8} vectorEffect="non-scaling-stroke" />
-          ))}
+          {/* ≥3 = 高點防守 觸發線 */}
+          <line x1={0} x2={1000} y1={tY(3)} y2={tY(3)} stroke="#ef4444" strokeWidth={1}
+            strokeDasharray="4 3" vectorEffect="non-scaling-stroke" opacity={0.6} />
+          {pts.map((p, i) => vn(p) > 0 ? (
+            <line key={"v" + i} x1={xOf(i)} x2={xOf(i)} y1={tY(0)} y2={tY(vn(p))}
+              stroke={voteColor(vn(p))} strokeWidth={2} vectorEffect="non-scaling-stroke" opacity={0.9} />
+          ) : null)}
           {crosshair}
-          <circle cx={xOf(cur)} cy={tY(pts[cur].score)} r={3.5} fill={tempColor(pts[cur])} vectorEffect="non-scaling-stroke" />
+          <circle cx={xOf(cur)} cy={tY(vn(pts[cur]))} r={3} fill={voteColor(vn(pts[cur]))} vectorEffect="non-scaling-stroke" />
         </svg>
-        {[60, 80].map((y) => (
+        {[1, 2, 3, 4].map((y) => (
           <span key={y} className="absolute right-0.5 text-[9px] text-text-secondary" style={{ top: tY(y), transform: "translateY(-50%)" }}>{y}</span>
         ))}
-        <span className="absolute left-0.5 top-0.5 text-[9px] text-text-secondary">極端度</span>
+        <span className="absolute left-0.5 top-0.5 text-[9px] text-text-secondary">過熱投票（0–4；紅虛線＝≥3 高點防守）</span>
       </div>
 
-      {/* 加權指數 */}
+      {/* 加權指數（線 綠攻·紅防） */}
       <div className="relative mt-1" style={{ height: H }} onMouseLeave={() => setHi(null)} onMouseMove={onMove}>
         <svg viewBox={`0 0 1000 ${H}`} className="w-full" style={{ height: H }} preserveAspectRatio="none">
-          {pts.map((p, i) => p.label === "頂部過熱" ? (
-            <line key={"tp" + i} x1={xOf(i)} x2={xOf(i)} y1={0} y2={9} stroke="#ef4444"
-              strokeWidth={2} vectorEffect="non-scaling-stroke" opacity={0.8} />
-          ) : null)}
-          {pts.map((p, i) => p.m_alert ? (
-            <line key={"mp" + i} x1={xOf(i)} x2={xOf(i)} y1={11} y2={20} stroke="#f59e0b"
-              strokeWidth={2} vectorEffect="non-scaling-stroke" opacity={0.8} />
-          ) : null)}
-          {pts.map((p, i) => p.l_alert ? (
-            <line key={"lp" + i} x1={xOf(i)} x2={xOf(i)} y1={22} y2={31} stroke={LIMITUP_COLOR}
-              strokeWidth={2} vectorEffect="non-scaling-stroke" opacity={0.8} />
-          ) : null)}
-          {pts.map((p, i) => p.panic ? (
-            <line key={"pk" + i} x1={xOf(i)} x2={xOf(i)} y1={0} y2={H} stroke="#facc15"
-              strokeWidth={2} vectorEffect="non-scaling-stroke" opacity={0.55} />
-          ) : null)}
           {pts.slice(1).map((p, i) => (
             <line key={i} x1={xOf(i)} y1={pY(pts[i].tx)} x2={xOf(i + 1)} y2={pY(p.tx)}
               stroke={STANCE_COLOR[p.stance] ?? "#e5e5e5"} strokeWidth={1.5} vectorEffect="non-scaling-stroke" />
           ))}
-          {/* 頂部過熱·漲停配合空方排列：淺藍點畫在加權指數線上 */}
-          {pts.map((p, i) => p.lb_alert ? (
-            <circle key={"lb" + i} cx={xOf(i)} cy={pY(p.tx)} r={2.6} fill={LB_COLOR} vectorEffect="non-scaling-stroke" />
-          ) : null)}
-          {/* 加速惡化警示：桃紅點畫在加權指數線上 */}
-          {pts.map((p, i) => p.warn ? (
-            <circle key={"wn" + i} cx={xOf(i)} cy={pY(p.tx)} r={2.6} fill={WARN_COLOR} vectorEffect="non-scaling-stroke" />
-          ) : null)}
           {crosshair}
           <circle cx={xOf(cur)} cy={pY(pts[cur].tx)} r={3.5} fill={STANCE_COLOR[pts[cur].stance] ?? "#e5e5e5"} vectorEffect="non-scaling-stroke" />
         </svg>
         <span className="absolute right-0.5 text-[9px] text-text-secondary" style={{ top: pY(hiv), transform: "translateY(-50%)" }}>{Math.round(hiv).toLocaleString()}</span>
         <span className="absolute right-0.5 text-[9px] text-text-secondary" style={{ top: pY(lo), transform: "translateY(-50%)" }}>{Math.round(lo).toLocaleString()}</span>
-        <span className="absolute left-0.5 top-0.5 text-[9px] text-text-secondary">加權指數（線 綠攻·紅防；紅刻＝外資過熱、橙刻＝融資過熱、紫刻＝漲停過熱、淺藍點＝漲停配合空方排列、桃紅點＝加速惡化警示、黃豎線＝恐慌買進）</span>
+        <span className="absolute left-0.5 top-0.5 text-[9px] text-text-secondary">加權指數（線 綠＝攻擊、紅＝防守）</span>
       </div>
 
       <div className="flex justify-between text-[10px] text-text-secondary mt-1">
@@ -587,7 +562,7 @@ export default function ThermometerPage() {
 
       {/* history — full width (max-w-5xl) so the sparkline reads wider */}
       <div>
-        <div className="text-sm font-semibold mb-1">近一年定位極端度 vs 加權指數（極端度線：紅＝過熱且防守、橘＝過熱但仍攻擊、灰＝無頂部訊號）</div>
+        <div className="text-sm font-semibold mb-1">近一年 四正交過熱投票 vs 加權指數（投票 ≥3＝高信念頂部，觸發高點防守；指數線 綠＝攻擊、紅＝防守）</div>
         <TrendCharts pts={data.history} />
       </div>
 
