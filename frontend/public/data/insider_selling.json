@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-07-22T21:47:09",
+  "updated_at": "2026-07-23T21:45:04",
   "events": [
     {
       "type": "transfer",
@@ -306,10 +306,10 @@
       "stock_id": "4987",
       "company_name": "科誠",
       "date": "2026-05-27",
-      "insider_role": "經理人本人",
-      "insider_name": "謝立龍",
+      "insider_role": "董事本人",
+      "insider_name": "胡漢良",
       "method": "洽特定人",
-      "shares": 21823,
+      "shares": 25300,
       "security_kind": null,
       "period": "115/05/27\r\n~\r\n115/05/29"
     },
@@ -318,10 +318,10 @@
       "stock_id": "4987",
       "company_name": "科誠",
       "date": "2026-05-27",
-      "insider_role": "董事本人",
-      "insider_name": "胡漢良",
+      "insider_role": "經理人本人",
+      "insider_name": "謝立龍",
       "method": "洽特定人",
-      "shares": 25300,
+      "shares": 21823,
       "security_kind": null,
       "period": "115/05/27\r\n~\r\n115/05/29"
     },
@@ -1104,35 +1104,11 @@
       "shares": null,
       "security_kind": "普通股",
       "period": null
-    },
-    {
-      "type": "transfer",
-      "stock_id": "6859",
-      "company_name": "伯特光",
-      "date": "2026-04-23",
-      "insider_role": "董事利用他人名義持有者",
-      "insider_name": "SWIFT PRECISION COMPANY LIMITED",
-      "method": "洽特定人",
-      "shares": 5000229,
-      "security_kind": null,
-      "period": "115/04/23\r\n~\r\n115/04/25"
-    },
-    {
-      "type": "placement",
-      "stock_id": "2724",
-      "company_name": "藝舍-KY",
-      "date": "2026-04-23",
-      "insider_role": null,
-      "insider_name": null,
-      "method": null,
-      "shares": null,
-      "security_kind": "普通股",
-      "period": null
     }
   ],
   "stats": {
-    "transfer_events_30d": 13,
-    "transfer_stocks_30d": 11,
+    "transfer_events_30d": 10,
+    "transfer_stocks_30d": 8,
     "placement_events_30d": 2
   }
 }
