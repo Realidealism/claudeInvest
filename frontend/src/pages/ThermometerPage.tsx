@@ -176,6 +176,11 @@ function TrendCharts({ pts }: { pts: HistPoint[] }) {
       {/* 加權指數（線 綠攻·紅防） */}
       <div className="relative mt-1" style={{ height: H }} onMouseLeave={() => setHi(null)} onMouseMove={onMove}>
         <svg viewBox={`0 0 1000 ${H}`} className="w-full" style={{ height: H }} preserveAspectRatio="none">
+          {/* 恐慌買進（V 底 contrarian）：黃豎線 */}
+          {pts.map((p, i) => p.panic ? (
+            <line key={"pk" + i} x1={xOf(i)} x2={xOf(i)} y1={0} y2={H} stroke="#facc15"
+              strokeWidth={2} vectorEffect="non-scaling-stroke" opacity={0.55} />
+          ) : null)}
           {pts.slice(1).map((p, i) => (
             <line key={i} x1={xOf(i)} y1={pY(pts[i].tx)} x2={xOf(i + 1)} y2={pY(p.tx)}
               stroke={STANCE_COLOR[p.stance] ?? "#e5e5e5"} strokeWidth={1.5} vectorEffect="non-scaling-stroke" />
@@ -185,7 +190,7 @@ function TrendCharts({ pts }: { pts: HistPoint[] }) {
         </svg>
         <span className="absolute right-0.5 text-[9px] text-text-secondary" style={{ top: pY(hiv), transform: "translateY(-50%)" }}>{Math.round(hiv).toLocaleString()}</span>
         <span className="absolute right-0.5 text-[9px] text-text-secondary" style={{ top: pY(lo), transform: "translateY(-50%)" }}>{Math.round(lo).toLocaleString()}</span>
-        <span className="absolute left-0.5 top-0.5 text-[9px] text-text-secondary">加權指數（線 綠＝攻擊、紅＝防守）</span>
+        <span className="absolute left-0.5 top-0.5 text-[9px] text-text-secondary">加權指數（線 綠＝攻擊、紅＝防守；黃豎線＝恐慌買進）</span>
       </div>
 
       <div className="flex justify-between text-[10px] text-text-secondary mt-1">
