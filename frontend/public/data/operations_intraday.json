@@ -1,14 +1,21 @@
 {
   "snapshot_date": "2026-07-23",
-  "snapshot_time": "2026-07-23T01:52:02.097360+00:00",
+  "snapshot_time": "2026-07-23T02:01:15.983349+00:00",
   "signals": {
     "pick": [],
     "touch": [
       {
+        "ticker": "1503",
+        "name": "士電",
+        "market": "TWSE",
+        "turnover": 189745920.0,
+        "streak": 1
+      },
+      {
         "ticker": "6695",
         "name": "芯鼎",
         "market": "TWSE",
-        "turnover": 30567660.0,
+        "turnover": 30255014.0,
         "streak": 1
       }
     ],
@@ -17,38 +24,46 @@
         "ticker": "1326",
         "name": "台化",
         "market": "TWSE",
-        "turnover": 14981180416.0,
+        "turnover": 15305537536.0,
         "streak": 1
       },
       {
         "ticker": "1301",
         "name": "台塑",
         "market": "TWSE",
-        "turnover": 14861576192.0,
+        "turnover": 14792625152.0,
         "streak": 1
       },
       {
         "ticker": "6505",
         "name": "台塑化",
         "market": "TWSE",
-        "turnover": 11285200896.0,
+        "turnover": 10985124864.0,
         "streak": 1
       },
       {
         "ticker": "1434",
         "name": "福懋",
         "market": "TWSE",
-        "turnover": 721888192.0,
+        "turnover": 720959936.0,
         "streak": 1
       }
     ],
-    "sell": [],
+    "sell": [
+      {
+        "ticker": "1215",
+        "name": "卜蜂",
+        "market": "TWSE",
+        "turnover": 101829224.0,
+        "streak": 1
+      }
+    ],
     "buy_flee": [
       {
         "ticker": "2204",
         "name": "中華",
         "market": "TWSE",
-        "turnover": 67855208.0,
+        "turnover": 67235352.0,
         "streak": 1
       }
     ],
