@@ -76,6 +76,13 @@ WARN_SD_CHG_WIN = 3
 WARN_SD_CHG = 6.0
 TOP_LOOKBACK = 3     # 攻防 entry: 過熱 within the last 3 trading days counts
 STANCE_EXIT_DAYS = 3  # 攻防 exit: 排列 連續 N 天回到中性以上(short_trend>=0) 才解除防守
+# 高點防守 (top-defense override): top_vote (4-orthogonal overheat >=3) 一亮就防守, 不等排列
+# 翻空 — 這是「提早在高點防守」的來源. 進場記下當日 TAIEX 收盤=頂位, 用價格論點持有: 只在價格
+# 仍在頂位之下(下跌中)才續守, 一旦漲回頂上(向上趨勢)或 early_reattack(底部)才轉攻. STANCE_TOP_MINHOLD
+# 是頭幾天的抗抖動寬限. 採用驗證: 危險近高防守 12%→51% (drop-8%; -10/-12 更達 66/67%), 過熱頂
+# (2024/26) 100%覆蓋且提早 17-18 天進防守, 非過熱型(COVID/慢熊)不受傷, mh=4-8 plateau, 逐年均勻
+# (2021/24/25/26 皆升), long-on-attack 累報酬 +145%→+195% 而 maxDD 持平. tmp/_stance_adopt_check.py.
+STANCE_TOP_MINHOLD = 5
 # 攻防 早退轉攻 (2026-07-23): 外資期貨淨多創 EARLY_LONG_WIN 日新高 AND 空頭排列占比升速放緩
 # (二階差<0, DECEL_WIN 窗). 讓防守在「排列尚未轉正」時提早解除——外資翻多到近期極端、同時空頭
 # 恐慌的漲勢在收斂(力竭)時搶先轉攻. 受控對照 added fwd5 +2.16% vs 純等排列轉正 still +0.26%,
@@ -127,19 +134,21 @@ def _roll_pctl(s: pd.Series, win: int) -> pd.Series:
     return s.rolling(win, min_periods=win).apply(lambda w: (w <= w.iloc[-1]).mean(), raw=False)
 
 
-def compute_stance(short_trend, hot_wide, early_exit=None, reattack_safe=None) -> np.ndarray:
-    """攻防 stateful hysteresis → per-day defensive[] boolean array.
+def compute_stance(short_trend, hot_wide, early_exit=None, reattack_safe=None,
+                   top_vote=None, price=None, top_minhold=STANCE_TOP_MINHOLD) -> np.ndarray:
+    """攻防 stateful hysteresis → per-day defensive[] boolean array. Two ways to defend:
 
-    enter 防守: 加寬過熱 (hot_wide within TOP_LOOKBACK days) AND 排列翻空 (short_trend<0)
-    exit 防守: 排列回多方 (short_trend>0) 單日, OR 連續 STANCE_EXIT_DAYS 天中性以上 (>=0),
-               OR early_exit[i] (外資翻多且空頭力竭的提早轉攻, 見 _early_reattack)
-    early_exit 後的安全帶: 一旦 early_exit 觸發轉攻, 只要 reattack_safe[i] 仍成立 (外資淨多
-               還在 60 日高點的 band 內, 見 _reattack_safe) 就抑制 obv_weak 的重新進場, 消除
-               單日早退造成的閃爍; net_oi 掉出 band 即解除保護、回歸正常進場. reattack_safe
-               為 None 時退化成單日強制早退 (無安全帶).
-    hot_wide = fresh_low OR obv_weak (OBV widens entry to cover secondary declines).
-    Shared by the daily gauge and the intraday live-stance builder so a
-    forming last bar produces the exact same latch as the close recompute."""
+    高點防守 (top mode, needs top_vote+price): top_vote (4-orthogonal overheat >=3) within
+        TOP_LOOKBACK days → defend AT the high (bypasses 排列翻空), recording 頂位=price. Held
+        by a price thesis: stays 防守 while price <= 頂位 (下跌中); exits 攻擊 when price rises
+        back above 頂位 (向上趨勢) or early_exit (底部). top_minhold days grace absorbs noise.
+    向下趨勢防守 (trend mode): 加寬過熱 (hot_wide within TOP_LOOKBACK) AND 排列翻空 (short_trend<0);
+        exits 攻擊 on 排列回多方 (>0 單日 / 連續 STANCE_EXIT_DAYS 天 >=0) or early_exit.
+    early_exit 後安全帶 (reattack_safe): 外資淨多仍在 60 日高 band 內時抑制 obv_weak 重新進場.
+
+    top_vote/price None → legacy trend-only stance (bit-identical to the pre-top-defense
+    behaviour). Shared by the daily gauge and the intraday live-stance builder so a forming
+    last bar produces the exact same latch as the close recompute."""
     st = pd.Series(np.asarray(short_trend))
     hw = pd.Series(np.asarray(hot_wide))
     fl3 = (hw.rolling(TOP_LOOKBACK, min_periods=1).max() > 0).to_numpy()
@@ -150,19 +159,36 @@ def compute_stance(short_trend, hot_wide, early_exit=None, reattack_safe=None) -
           else np.asarray(early_exit, dtype=bool))
     safe = (np.zeros(len(st), dtype=bool) if reattack_safe is None
             else np.asarray(reattack_safe, dtype=bool))
+    if top_vote is None or price is None:
+        tv3 = np.zeros(len(st), dtype=bool)
+        px = np.zeros(len(st))
+    else:
+        tv3 = (pd.Series(np.asarray(top_vote)).rolling(TOP_LOOKBACK, min_periods=1).max() > 0).to_numpy()
+        px = np.asarray(price, dtype=float)
     out = np.zeros(len(st), dtype=bool)
     state = False
     supp = False   # 早退安全帶: 保護攻擊狀態不被 obv_weak 重新拉回防守
+    mode = None    # 'top' (高點防守, 價格論點持有) | 'trend' (向下趨勢防守)
+    entry = 0.0    # 頂位 = top mode 進場當日 price
+    mh = 0         # top mode 抗抖動寬限剩餘天數
     for i in range(len(st)):
         if supp and not safe[i]:
             supp = False              # 論點破 (net_oi 掉出 band) → 解除保護
         if not state:
-            if (not supp) and fl3[i] and stv[i] < 0:
-                state = True
-        elif rec[i] or ee[i]:
-            state = False
+            if tv3[i]:
+                state = True; mode = "top"; entry = px[i]; mh = top_minhold  # 高點防守
+            elif (not supp) and fl3[i] and stv[i] < 0:
+                state = True; mode = "trend"                                 # 向下趨勢防守
+        else:
             if ee[i]:
-                supp = True           # 早退觸發 → 啟動安全帶
+                state = False; mode = None; supp = True   # 底部 → 攻擊 + 啟動安全帶
+            elif mode == "top":
+                if mh > 0:
+                    mh -= 1                                # 抗抖動寬限
+                elif px[i] > entry:
+                    state = False; mode = None            # 漲回頂上 (向上趨勢) → 攻擊
+            elif rec[i]:
+                state = False; mode = None                # 排列回多方 (向上趨勢) → 攻擊
         out[i] = state
     return out
 
@@ -263,31 +289,14 @@ def build_thermometer(cur, today: date | None = None) -> dict:
     m["obv_weak"] = _obv.trend < 0   # short-scope OBV 空頭 latch = 量能轉弱 (持續狀態, 撐過整段下跌)
     m["fresh_low"] = m["noi"] <= m["noi"].rolling(ALERT_LOW_WIN).min() + 1e-9  # 頂部過熱 badge (窄, 2.17x)
     m["hot_wide"] = m["fresh_low"] | m["obv_weak"]   # 加寬弱勢 (外資期貨 OR OBV弱) for stance entry
-    # 攻防狀態 (stateful hysteresis): enter 防守 when 加寬過熱(3日內) AND 排列翻空(short_trend<0);
-    # exit 防守 when 排列 回多方(short_trend>0) 單日, OR 連續 STANCE_EXIT_DAYS 天回到中性以上
-    # (short_trend>=0). OBV widens entry to cover secondary declines.
-    m["defensive"] = compute_stance(m["st"].to_numpy(), m["hot_wide"].to_numpy(),
-                                    _early_reattack(m), _reattack_safe(m))
-    m["mchg5"] = m["mgn"].pct_change(PANIC_MARGIN_WIN) * 100
-    m["ret10"] = m["tx"].pct_change(PANIC_SPEED_WIN) * 100
-    m["panic"] = ((m["pct_from_high"] <= PANIC_PFH) & (m["mchg5"] <= PANIC_MARGIN_CHG)
-                  & (m["ret10"] <= PANIC_SPEED_CHG))   # 深跌 + 融資斷頭急殺 + 快殺
-
-    ma = m["mgn"].rolling(MARGIN_MA_WIN).mean()
-    sd = m["mgn"].rolling(MARGIN_MA_WIN).std()
-    m["margin_z"] = (m["mgn"] - ma) / sd                        # deviation from 55d trend in σ
-    m["margin_hot"] = ((m["margin_z"] + 2) / 4).clip(0, 1) * 100  # −2σ→0, 均線→50, +2σ→100
-    # 融資過熱: Bollinger z of 融資餘額/55MA成交金額 (normalize by turnover, then de-trend). z is
-    # scale-invariant so 融資/成交金額 unit mismatch is harmless. Independent 2nd top flag.
-    _mt = m["mgn"] / m["to"].rolling(MARGIN_MA_WIN).mean()
+    # ── 四正交過熱訊號 + 高信念頂部 (top_vote) — computed before 攻防 so it can drive 高點防守 ──
+    _mt = m["mgn"] / m["to"].rolling(MARGIN_MA_WIN).mean()   # 融資/成交金額 (turnover-normalized)
     m["mt_z"] = (_mt - _mt.rolling(MARGIN_MA_WIN).mean()) / _mt.rolling(MARGIN_MA_WIN).std()
-    m["margin_overheat"] = m["mt_z"] >= MARGIN_OVERHEAT_Z
-    # 頂部過熱·漲停: de-trended z of 漲停佔比 (retail froth). Independent 3rd top flag.
+    m["margin_overheat"] = m["mt_z"] >= MARGIN_OVERHEAT_Z                                  # E voter
     _lz = (m["lim"] - m["lim"].rolling(LIMITUP_MA_WIN).mean()) / m["lim"].rolling(LIMITUP_MA_WIN).std()
     m["lim_z"] = _lz
-    m["limitup_overheat"] = m["lim_z"] >= LIMITUP_OVERHEAT_Z
-    # 漲停過熱 配合 空方排列 (排列翻空): high-conviction top (漲停 froth + breadth rolling over).
-    m["limitup_bear"] = m["limitup_overheat"] & (m["st"] < 0)
+    m["limitup_overheat"] = m["lim_z"] >= LIMITUP_OVERHEAT_Z                               # D voter
+    m["limitup_bear"] = m["limitup_overheat"] & (m["st"] < 0)   # 漲停過熱 + 排列翻空 (高信心頂 badge)
     # 外資選擇權避險偏空 (B voter): bull(買權−賣權淨OI) 落在 252日底 1/3. NaN pre-2023-06 -> False.
     m["opt_bull_pctl"] = m["opt_bull"].rolling(OPT_PCTL_WIN, min_periods=OPT_PCTL_MIN).apply(
         lambda w: np.mean(w[~np.isnan(w)] <= w[-1]) if (not np.isnan(w[-1]) and np.isfinite(w).sum() >= OPT_PCTL_MIN) else np.nan,
@@ -300,6 +309,22 @@ def build_thermometer(cur, today: date | None = None) -> dict:
                        + m["limitup_overheat"].fillna(False).astype(int)
                        + m["margin_overheat"].fillna(False).astype(int))
     m["top_vote"] = m["top_vote_n"] >= TOP_VOTE_K
+    # 攻防狀態 (stateful hysteresis): 高點防守 (top_vote 一亮就防守, 價格論點持有) + 向下趨勢防守
+    # (加寬過熱 AND 排列翻空); 轉攻 = 漲回頂上(向上趨勢) / 排列回多 / early_reattack(底部). 見 compute_stance.
+    m["defensive"] = compute_stance(m["st"].to_numpy(), m["hot_wide"].to_numpy(),
+                                    _early_reattack(m), _reattack_safe(m),
+                                    top_vote=m["top_vote"].to_numpy(), price=m["tx"].to_numpy())
+    m["mchg5"] = m["mgn"].pct_change(PANIC_MARGIN_WIN) * 100
+    m["ret10"] = m["tx"].pct_change(PANIC_SPEED_WIN) * 100
+    m["panic"] = ((m["pct_from_high"] <= PANIC_PFH) & (m["mchg5"] <= PANIC_MARGIN_CHG)
+                  & (m["ret10"] <= PANIC_SPEED_CHG))   # 深跌 + 融資斷頭急殺 + 快殺
+
+    ma = m["mgn"].rolling(MARGIN_MA_WIN).mean()
+    sd = m["mgn"].rolling(MARGIN_MA_WIN).std()
+    m["margin_z"] = (m["mgn"] - ma) / sd                        # deviation from 55d trend in σ
+    m["margin_hot"] = ((m["margin_z"] + 2) / 4).clip(0, 1) * 100  # −2σ→0, 均線→50, +2σ→100
+    # (mt_z/margin_overheat, lim_z/limitup_overheat, limitup_bear, opt_bearish, top_vote are
+    #  computed above — before 攻防 — so top_vote can drive the 高點防守 override.)
     # 加速惡化警示: 頂部過熱燈(近3日) AND 排列未翻空(st>=0) AND short空頭排列3日急升. Bridges the
     # stance lag (fires while still 攻擊, before 排列 flips). Caution flag, ~half false.
     m["top3"] = ((m["fresh_low"] | m["margin_overheat"]).rolling(TOP_LOOKBACK, min_periods=1).max() > 0)
@@ -352,8 +377,9 @@ def build_thermometer(cur, today: date | None = None) -> dict:
         "danger": danger,
         "stance": "防守" if defensive else "攻擊",
         "stance_color": "#ef4444" if defensive else "#22c55e",
-        "stance_reason": (f"頂部過熱後排列翻空、續守中（排列：{ST_LABELS.get(int(last['st']), '?')}，回多方／連續 {STANCE_EXIT_DAYS} 天中性以上／外資翻多且空頭力竭 任一則解除）"
-                          if defensive else f"排列中性以上（{ST_LABELS.get(int(last['st']), '?')}）"),
+        "stance_reason": (f"防守中（排列：{ST_LABELS.get(int(last['st']), '?')}）：高點防守（高信念頂部）或向下趨勢；"
+                          f"漲回頂位之上／排列回多方／外資翻多且空頭力竭 任一則轉攻"
+                          if defensive else f"攻擊中（排列：{ST_LABELS.get(int(last['st']), '?')}，中性以上）"),
         "near_high": a_near,
         "pct_from_high": round(float(pfh), 1),
         "hi_window": HI_WINDOW,
@@ -468,6 +494,9 @@ def build_intraday_stance(cur, volume_scale: float, now: datetime) -> dict | Non
         row["o"], row["h"], row["l"], row["c"], row["v"] = o, h, l, c, v
         row["ref"] = m["c"].iloc[-1]                       # prev front-month close
         row["noi"] = m["noi"].iloc[-1]                     # stale (foreign net_oi is close-only)
+        row["tx"] = m["tx"].iloc[-1]                        # stale TAIEX close for the 高點防守 price gate
+        # opt_bull / mgn / lim stay NaN on the forming bar (close-only) → B/D/E voters False;
+        # top_vote latches from recent closes via TOP_LOOKBACK, so 高點防守 holds live.
         if sc is not None and sc[2] == today.isoformat():
             row["st"] = sc[0]
             row["sd_pct"] = sc[1]                           # live 空頭排列占比 for 升速放緩
@@ -481,8 +510,21 @@ def build_intraday_stance(cur, volume_scale: float, now: datetime) -> dict | Non
     m["obv_weak"] = _obv.trend < 0
     m["fresh_low"] = m["noi"] <= m["noi"].rolling(ALERT_LOW_WIN).min() + 1e-9
     m["hot_wide"] = m["fresh_low"].fillna(False) | m["obv_weak"]
+    # top_vote for 高點防守 (same voters as the daily gauge; forming bar's B/D/E are NaN→False,
+    # so top_vote latches from recent closes and the daily gauge's 頂位 holds intraday).
+    _mt = m["mgn"] / m["to"].rolling(MARGIN_MA_WIN).mean()
+    m["margin_overheat"] = ((_mt - _mt.rolling(MARGIN_MA_WIN).mean()) / _mt.rolling(MARGIN_MA_WIN).std()) >= MARGIN_OVERHEAT_Z
+    m["limitup_overheat"] = ((m["lim"] - m["lim"].rolling(LIMITUP_MA_WIN).mean()) / m["lim"].rolling(LIMITUP_MA_WIN).std()) >= LIMITUP_OVERHEAT_Z
+    _obp = m["opt_bull"].rolling(OPT_PCTL_WIN, min_periods=OPT_PCTL_MIN).apply(
+        lambda w: np.mean(w[~np.isnan(w)] <= w[-1]) if (not np.isnan(w[-1]) and np.isfinite(w).sum() >= OPT_PCTL_MIN) else np.nan,
+        raw=True)
+    m["opt_bearish"] = (_obp <= OPT_BEARISH_PCTL).fillna(False)
+    m["top_vote"] = (m["fresh_low"].fillna(False).astype(int) + m["opt_bearish"].astype(int)
+                     + m["limitup_overheat"].fillna(False).astype(int)
+                     + m["margin_overheat"].fillna(False).astype(int)) >= TOP_VOTE_K
     defensive = compute_stance(m["st"].to_numpy(), m["hot_wide"].to_numpy(),
-                               _early_reattack(m), _reattack_safe(m))
+                               _early_reattack(m), _reattack_safe(m),
+                               top_vote=m["top_vote"].to_numpy(), price=m["tx"].to_numpy())
 
     last = m.iloc[-1]
     is_def = bool(defensive[-1])
@@ -493,9 +535,9 @@ def build_intraday_stance(cur, volume_scale: float, now: datetime) -> dict | Non
         "is_today": bool(last["d"].date() == today),
         "stance": "防守" if is_def else "攻擊",
         "stance_color": "#ef4444" if is_def else "#22c55e",
-        "stance_reason": (f"頂部過熱後排列翻空、續守中（排列：{ST_LABELS.get(st_last, '?')}，"
-                          f"回多方／連續 {STANCE_EXIT_DAYS} 天中性以上／外資翻多且空頭力竭 任一則解除）"
-                          if is_def else f"排列中性以上（{ST_LABELS.get(st_last, '?')}）"),
+        "stance_reason": (f"防守中（排列：{ST_LABELS.get(st_last, '?')}）：高點防守（高信念頂部）或向下趨勢；"
+                          f"漲回頂位之上／排列回多方／外資翻多且空頭力竭 任一則轉攻"
+                          if is_def else f"攻擊中（排列：{ST_LABELS.get(st_last, '?')}，中性以上）"),
         "short_trend": st_last,
     }
 
