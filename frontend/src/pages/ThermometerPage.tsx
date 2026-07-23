@@ -16,8 +16,16 @@ interface HistPoint {
   stance: string;
   panic: boolean;
   m_alert: boolean;
+  l_alert: boolean;
+  lb_alert: boolean;
+  tv_alert: boolean;
+  warn: boolean;
   c: Record<string, number | null>;
 }
+
+const WARN_COLOR = "#ec4899";     // 加速惡化警示 (桃紅, drawn as dots on the index line)
+const LIMITUP_COLOR = "#a855f7";  // 頂部過熱·漲停 (紫)
+const LB_COLOR = "#38bdf8";       // 頂部過熱·漲停配合空方排列 (淺藍, dots on the index line)
 
 const STANCE_COLOR: Record<string, string> = { 攻擊: "#22c55e", 防守: "#ef4444" };
 
@@ -83,6 +91,16 @@ interface ThermoData {
   alert_conditions: { name: string; met: boolean }[];
   margin_alert: boolean;
   margin_alert_conditions: { name: string; met: boolean }[];
+  limitup_alert: boolean;
+  limitup_alert_conditions: { name: string; met: boolean }[];
+  limitup_bear_alert: boolean;
+  limitup_bear_conditions: { name: string; met: boolean }[];
+  top_vote: boolean;
+  top_vote_n: number;
+  top_vote_k: number;
+  top_vote_conditions: { name: string; met: boolean }[];
+  warn: boolean;
+  warn_conditions: { name: string; met: boolean }[];
   panic: boolean;
   panic_conditions: { name: string; met: boolean }[];
   components: Component[];
@@ -123,13 +141,16 @@ function TrendCharts({ pts }: { pts: HistPoint[] }) {
   const txs = pts.map((p) => p.tx);
   const lo = Math.min(...txs), hiv = Math.max(...txs);
   const pY = (v: number) => padT + (1 - (v - lo) / (hiv - lo || 1)) * (H - padT);
+  // 極端度線色：頂部過熱且已防守=紅、頂部過熱但仍攻擊=橘(警示：過熱亮了但攻防未轉防守)、無訊號=灰
+  const tempColor = (p: HistPoint) =>
+    p.label === "頂部過熱" && p.stance !== "防守" ? "#f59e0b" : p.color;
 
   return (
     <div>
       <div className="text-xs text-text-secondary mb-1">
         {pts[cur].date}　<span className="font-medium" style={{ color: STANCE_COLOR[pts[cur].stance] }}>{pts[cur].stance}</span>
-        　極端度 <span className="font-medium tabular-nums" style={{ color: pts[cur].color }}>{pts[cur].score}</span>
-        　<span className="font-medium" style={{ color: pts[cur].color }}>{pts[cur].label}</span>
+        　極端度 <span className="font-medium tabular-nums" style={{ color: tempColor(pts[cur]) }}>{pts[cur].score}</span>
+        　<span className="font-medium" style={{ color: tempColor(pts[cur]) }}>{pts[cur].label}{pts[cur].label === "頂部過熱" && pts[cur].stance !== "防守" ? "·未防守" : ""}</span>
         　加權 <span className="text-text-primary font-medium tabular-nums">{pts[cur].tx.toLocaleString()}</span>
         {hi === null && <span className="ml-1">（最新；滑過看每日）</span>}
       </div>
@@ -142,10 +163,10 @@ function TrendCharts({ pts }: { pts: HistPoint[] }) {
           ))}
           {pts.slice(1).map((p, i) => (
             <line key={i} x1={xOf(i)} y1={tY(pts[i].score)} x2={xOf(i + 1)} y2={tY(p.score)}
-              stroke={p.color} strokeWidth={1.8} vectorEffect="non-scaling-stroke" />
+              stroke={tempColor(p)} strokeWidth={1.8} vectorEffect="non-scaling-stroke" />
           ))}
           {crosshair}
-          <circle cx={xOf(cur)} cy={tY(pts[cur].score)} r={3.5} fill={pts[cur].color} vectorEffect="non-scaling-stroke" />
+          <circle cx={xOf(cur)} cy={tY(pts[cur].score)} r={3.5} fill={tempColor(pts[cur])} vectorEffect="non-scaling-stroke" />
         </svg>
         {[60, 80].map((y) => (
           <span key={y} className="absolute right-0.5 text-[9px] text-text-secondary" style={{ top: tY(y), transform: "translateY(-50%)" }}>{y}</span>
@@ -164,6 +185,10 @@ function TrendCharts({ pts }: { pts: HistPoint[] }) {
             <line key={"mp" + i} x1={xOf(i)} x2={xOf(i)} y1={11} y2={20} stroke="#f59e0b"
               strokeWidth={2} vectorEffect="non-scaling-stroke" opacity={0.8} />
           ) : null)}
+          {pts.map((p, i) => p.l_alert ? (
+            <line key={"lp" + i} x1={xOf(i)} x2={xOf(i)} y1={22} y2={31} stroke={LIMITUP_COLOR}
+              strokeWidth={2} vectorEffect="non-scaling-stroke" opacity={0.8} />
+          ) : null)}
           {pts.map((p, i) => p.panic ? (
             <line key={"pk" + i} x1={xOf(i)} x2={xOf(i)} y1={0} y2={H} stroke="#facc15"
               strokeWidth={2} vectorEffect="non-scaling-stroke" opacity={0.55} />
@@ -172,12 +197,20 @@ function TrendCharts({ pts }: { pts: HistPoint[] }) {
             <line key={i} x1={xOf(i)} y1={pY(pts[i].tx)} x2={xOf(i + 1)} y2={pY(p.tx)}
               stroke={STANCE_COLOR[p.stance] ?? "#e5e5e5"} strokeWidth={1.5} vectorEffect="non-scaling-stroke" />
           ))}
+          {/* 頂部過熱·漲停配合空方排列：淺藍點畫在加權指數線上 */}
+          {pts.map((p, i) => p.lb_alert ? (
+            <circle key={"lb" + i} cx={xOf(i)} cy={pY(p.tx)} r={2.6} fill={LB_COLOR} vectorEffect="non-scaling-stroke" />
+          ) : null)}
+          {/* 加速惡化警示：桃紅點畫在加權指數線上 */}
+          {pts.map((p, i) => p.warn ? (
+            <circle key={"wn" + i} cx={xOf(i)} cy={pY(p.tx)} r={2.6} fill={WARN_COLOR} vectorEffect="non-scaling-stroke" />
+          ) : null)}
           {crosshair}
           <circle cx={xOf(cur)} cy={pY(pts[cur].tx)} r={3.5} fill={STANCE_COLOR[pts[cur].stance] ?? "#e5e5e5"} vectorEffect="non-scaling-stroke" />
         </svg>
         <span className="absolute right-0.5 text-[9px] text-text-secondary" style={{ top: pY(hiv), transform: "translateY(-50%)" }}>{Math.round(hiv).toLocaleString()}</span>
         <span className="absolute right-0.5 text-[9px] text-text-secondary" style={{ top: pY(lo), transform: "translateY(-50%)" }}>{Math.round(lo).toLocaleString()}</span>
-        <span className="absolute left-0.5 top-0.5 text-[9px] text-text-secondary">加權指數（線 綠攻·紅防；紅刻＝外資過熱、橙刻＝融資過熱、黃豎線＝恐慌買進）</span>
+        <span className="absolute left-0.5 top-0.5 text-[9px] text-text-secondary">加權指數（線 綠攻·紅防；紅刻＝外資過熱、橙刻＝融資過熱、紫刻＝漲停過熱、淺藍點＝漲停配合空方排列、桃紅點＝加速惡化警示、黃豎線＝恐慌買進）</span>
       </div>
 
       <div className="flex justify-between text-[10px] text-text-secondary mt-1">
@@ -270,7 +303,7 @@ export default function ThermometerPage() {
             <span className="text-3xl font-bold text-negative">⚠</span>
             <div>
               <div className="text-sm font-semibold text-negative">頂部過熱·外資</div>
-              <div className="text-xs text-text-secondary">外資淨空創新低（減碼警訊）。★約 82% 假警報。</div>
+              <div className="text-xs text-text-secondary">外資淨空創新低（淨空最重、加碼放空）。★約 82% 假警報。</div>
             </div>
           </div>
         )}
@@ -282,6 +315,28 @@ export default function ThermometerPage() {
             <div>
               <div className="text-sm font-semibold" style={{ color: "#f59e0b" }}>頂部過熱·融資</div>
               <div className="text-xs text-text-secondary">融資／成交量 布林 z ≥ +1.5σ（槓桿相對量能過熱）。★約 70% 假、獨家抓到 2025-03。</div>
+            </div>
+          </div>
+        )}
+        {/* 頂部過熱·漲停（觸發才出現） */}
+        {data.limitup_alert && (
+          <div className="flex-1 rounded-lg border p-3 flex items-center gap-3"
+            style={{ borderColor: LIMITUP_COLOR, backgroundColor: LIMITUP_COLOR + "1a" }}>
+            <span className="text-3xl font-bold" style={{ color: LIMITUP_COLOR }}>⚠</span>
+            <div>
+              <div className="text-sm font-semibold" style={{ color: LIMITUP_COLOR }}>頂部過熱·漲停</div>
+              <div className="text-xs text-text-secondary">漲停家數佔比乖離過高＝散戶投機過熱。★時間均勻、抓到 4/5 崩盤峰含 2024-07／2026-02。</div>
+            </div>
+          </div>
+        )}
+        {/* 加速惡化警示（觸發才出現）— 頂部過熱且排列尚未翻空但空頭排列急升 */}
+        {data.warn && (
+          <div className="flex-1 rounded-lg border p-3 flex items-center gap-3"
+            style={{ borderColor: WARN_COLOR, backgroundColor: WARN_COLOR + "1a" }}>
+            <span className="text-3xl font-bold" style={{ color: WARN_COLOR }}>⚠</span>
+            <div>
+              <div className="text-sm font-semibold" style={{ color: WARN_COLOR }}>加速惡化警示</div>
+              <div className="text-xs text-text-secondary">過熱中、排列尚未翻空，但短空頭排列急升＝可能正要轉弱。★約半數為假，早於攻防翻防守的預警。</div>
             </div>
           </div>
         )}
@@ -353,7 +408,7 @@ export default function ThermometerPage() {
           ))}
         </ul>
         <div className="text-xs text-text-secondary mt-2">
-          外資淨空創 60 日新低時亮。
+          外資淨空創 78 日新低（淨空最重）時亮。
           <span className="text-text-primary">★已拿掉近高限制，下跌途中（如崩盤日）也會亮、非僅頂部</span>，僅供參考。
         </div>
       </div>
@@ -380,6 +435,107 @@ export default function ThermometerPage() {
         <div className="text-xs text-text-secondary mt-2">
           融資餘額／55 日均成交金額 的布林 z ≥ +1.5σ 時亮（先用成交量正規化、再 de-trend，抓槓桿相對量能的尖峰）。
           <span className="text-text-primary">★與外資過熱互補、獨家抓到 2025-03 -23%</span>，但約 70% 假、非時間均勻，僅供參考。
+        </div>
+      </div>
+
+      {/* 頂部過熱·漲停（第 3 盞獨立燈，漲停佔比 90 日乖離 z） */}
+      <div className={"mb-6 rounded border p-3 " + (data.limitup_alert ? "border-[#a855f7] bg-[#a855f7]/10" : "border-border")}>
+        <div className="flex items-center gap-2 mb-2">
+          <span className={"px-2 py-0.5 rounded text-xs font-semibold " +
+            (data.limitup_alert ? "bg-[#a855f7] text-white" : "bg-surface-hover text-text-secondary")}>
+            {data.limitup_alert ? "⚠ 頂部過熱·漲停" : "未觸發"}
+          </span>
+          <span className="text-xs text-text-secondary">
+            漲停過熱訊號　{(data.limitup_alert_conditions ?? []).filter((c) => c.met).length}/{(data.limitup_alert_conditions ?? []).length} 條件
+          </span>
+        </div>
+        <ul className="text-xs space-y-1">
+          {(data.limitup_alert_conditions ?? []).map((c) => (
+            <li key={c.name} className={c.met ? "text-text-primary" : "text-text-secondary"}>
+              <span className={c.met ? "text-[#a855f7]" : "text-text-secondary/50"}>{c.met ? "✔" : "✗"}</span>{" "}
+              {c.name}
+            </li>
+          ))}
+        </ul>
+        <div className="text-xs text-text-secondary mt-2">
+          漲停家數佔比對 90 日均線的乖離 z ≥ +1.0σ 時亮（散戶投機過熱）。
+          <span className="text-text-primary">★與外資／融資完全正交、時間均勻（9 年 6–7 年有效）、抓到 4/5 崩盤峰（含 2024-07／2026-02，僅漏 2022 慢熊）</span>，lift ~1.5x，仍屬過半假的參考燈。
+        </div>
+      </div>
+
+      {/* 頂部過熱·漲停配合空方排列（高信心頂：漲停過熱 + 排列翻空） */}
+      <div className={"mb-6 rounded border p-3 " + (data.limitup_bear_alert ? "border-[#38bdf8] bg-[#38bdf8]/10" : "border-border")}>
+        <div className="flex items-center gap-2 mb-2">
+          <span className={"px-2 py-0.5 rounded text-xs font-semibold " +
+            (data.limitup_bear_alert ? "bg-[#38bdf8] text-black" : "bg-surface-hover text-text-secondary")}>
+            {data.limitup_bear_alert ? "⚠ 漲停過熱＋排列翻空" : "未觸發"}
+          </span>
+          <span className="text-xs text-text-secondary">
+            高信心頂部訊號　{(data.limitup_bear_conditions ?? []).filter((c) => c.met).length}/{(data.limitup_bear_conditions ?? []).length} 條件
+          </span>
+        </div>
+        <ul className="text-xs space-y-1">
+          {(data.limitup_bear_conditions ?? []).map((c) => (
+            <li key={c.name} className={c.met ? "text-text-primary" : "text-text-secondary"}>
+              <span className={c.met ? "text-[#38bdf8]" : "text-text-secondary/50"}>{c.met ? "✔" : "✗"}</span>{" "}
+              {c.name}
+            </li>
+          ))}
+        </ul>
+        <div className="text-xs text-text-secondary mt-2">
+          漲停過熱 AND 排列翻空（short 排列＜0）同時成立才亮＝漲停 froth 出現時廣度已滾落＝出貨型頂部。
+          <span className="text-text-primary">★用空方排列過濾漲停燈：亮燈後接大回檔的比例從 24% 升到 41%，且五次崩盤全覆蓋</span>，比單看漲停乾淨許多。
+        </div>
+      </div>
+
+      {/* 高信念頂部：四正交過熱訊號投票（>=3 of 4） */}
+      <div className={"mb-6 rounded border p-3 " + (data.top_vote ? "border-[#f43f5e] bg-[#f43f5e]/10" : "border-border")}>
+        <div className="flex items-center gap-2 mb-2">
+          <span className={"px-2 py-0.5 rounded text-xs font-semibold " +
+            (data.top_vote ? "bg-[#f43f5e] text-white" : "bg-surface-hover text-text-secondary")}>
+            {data.top_vote ? "⚠ 高信念頂部" : "未觸發"}
+          </span>
+          <span className="text-xs text-text-secondary">
+            四正交過熱訊號投票　{data.top_vote_n ?? (data.top_vote_conditions ?? []).filter((c) => c.met).length}/4（≥{data.top_vote_k ?? 3} 亮燈）
+          </span>
+        </div>
+        <ul className="text-xs space-y-1">
+          {(data.top_vote_conditions ?? []).map((c) => (
+            <li key={c.name} className={c.met ? "text-text-primary" : "text-text-secondary"}>
+              <span className={c.met ? "text-[#f43f5e]" : "text-text-secondary/50"}>{c.met ? "✔" : "✗"}</span>{" "}
+              {c.name}
+            </li>
+          ))}
+        </ul>
+        <div className="text-xs text-text-secondary mt-2">
+          外資期貨、外資選擇權、漲停、融資 四個互相正交的過熱面向，≥3 個同時繃緊才亮。
+          <span className="text-text-primary">★近高日接 ≥8–10% 有感回檔的比例 12.7%→約 59%（4.6x），剔除 2024 單一事件後仍 3.6x、前後半皆成立、抓到 2021／24／26 三波頂；243 組門檻擾動全過穩健檢驗。</span>
+          {" "}但屬<span className="text-text-primary">高信念、低 recall</span>：只針對有感回檔（非最深崩盤），且結構上會漏 2020 COVID（外生無堆積）與 2022 慢熊。加碼確認用，不保證見頂。
+        </div>
+      </div>
+
+      {/* 加速惡化警示（頂部過熱 + 排列未翻空 + 短空頭排列急升，補攻防時滯） */}
+      <div className={"mb-6 rounded border p-3 " + (data.warn ? "border-[#f97316] bg-[#f97316]/10" : "border-border")}>
+        <div className="flex items-center gap-2 mb-2">
+          <span className={"px-2 py-0.5 rounded text-xs font-semibold " +
+            (data.warn ? "bg-[#f97316] text-black" : "bg-surface-hover text-text-secondary")}>
+            {data.warn ? "⚠ 加速惡化警示" : "未觸發"}
+          </span>
+          <span className="text-xs text-text-secondary">
+            早於攻防的預警　{(data.warn_conditions ?? []).filter((c) => c.met).length}/{(data.warn_conditions ?? []).length} 條件
+          </span>
+        </div>
+        <ul className="text-xs space-y-1">
+          {(data.warn_conditions ?? []).map((c) => (
+            <li key={c.name} className={c.met ? "text-text-primary" : "text-text-secondary"}>
+              <span className={c.met ? "text-[#f97316]" : "text-text-secondary/50"}>{c.met ? "✔" : "✗"}</span>{" "}
+              {c.name}
+            </li>
+          ))}
+        </ul>
+        <div className="text-xs text-text-secondary mt-2">
+          三條件全亮才觸發：頂部過熱燈亮、short 排列還沒翻空（stance 仍攻擊）、但短空頭排列 3 日急升 ≥ +6pp。
+          <span className="text-text-primary">★攻防要等排列翻空才轉防守，這個在翻空前就先示警</span>（抓到 2025-02／2026-02 的時滯回檔），但約半數為假，僅供提早警覺。
         </div>
       </div>
 
@@ -431,7 +587,7 @@ export default function ThermometerPage() {
 
       {/* history — full width (max-w-5xl) so the sparkline reads wider */}
       <div>
-        <div className="text-sm font-semibold mb-1">近一年定位極端度 vs 加權指數（線色＝當日評語）</div>
+        <div className="text-sm font-semibold mb-1">近一年定位極端度 vs 加權指數（極端度線：紅＝過熱且防守、橘＝過熱但仍攻擊、灰＝無頂部訊號）</div>
         <TrendCharts pts={data.history} />
       </div>
 
@@ -439,10 +595,11 @@ export default function ThermometerPage() {
       <details className="text-xs text-text-secondary mt-6">
         <summary className="cursor-pointer hover:text-text-primary">方法與限制</summary>
         <ul className="mt-2 space-y-1 list-disc pl-4">
-          <li>外資期貨定位：外資臺股期貨淨未平倉在近 90 日的百分位（越淨空越熱）。此為唯一撐過公平偽訊號測試的組件（1.47x）。</li>
+          <li>外資期貨定位：外資臺股期貨淨未平倉在近 78 日的百分位（越淨空越熱）。此為唯一撐過公平偽訊號測試的組件（1.47x）。</li>
           <li>融資水位：融資餘額金額對 55 日均線的乖離（Bollinger z，−2σ→0、均線→50、+2σ→100）。衡量偏離趨勢多少，不受長多水位長期偏高影響。</li>
           <li>定位極端度＝上述兩組件等權平均。★這是狀態描述非計時訊號——歷史上偏熱也常不崩（如 2020 COVID 為外生衝擊，儀表當時僅中性）。</li>
           <li>P/C 比與微台散戶已移除：兩者在頂部與底部皆極端（反指標、無方向鑑別力），平均進來只會稀釋分數。真正的操作訊號在儀表之外——頂部過熱看外資期貨創新低、攻防看 OBV＋多空排列、恐慌買進看融資急殺＋深跌。</li>
+          <li>攻防進出場：頂部過熱（外資淨空創新低或大台 OBV 轉弱）且短期多空排列翻空 → 轉防守；排列回多方／連續 3 天中性以上 → 解除。<span className="text-text-primary">另加一條提早轉攻</span>：外資期貨淨多創 60 日新高且空頭排列升速放緩（占比二階差翻負＝恐慌力竭）時，不必死等排列轉正就先轉攻——回測早退多出的攻擊日前向 5 日 +2.2%（對照續守 +0.3%）、時間均勻 0% 反彈陷阱，避開 2022 磨熊／2025 關稅崩兩次接刀且保住 2020-03 COVID 底。轉攻後只要外資淨多仍在近高帶內就維持攻擊（避免一天攻一天守的閃爍），外資一縮手（淨多掉出高點帶）即回歸正常防守判斷。</li>
         </ul>
       </details>
      </div>

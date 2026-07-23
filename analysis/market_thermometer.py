@@ -25,8 +25,10 @@ import pandas as pd
 from analysis.obv import calculate_obv, PERIOD_PARAMS
 
 MARGIN_MA_WIN = 55  # 融資餘額金額 55日均線 ±2σ 乖離 (Bollinger z; deviation-from-trend, 不受長多水位長期偏高影響)
-FUT_WIN = 90       # 外資期貨 net_oi percentile lookback (swept 2026-07-21: 90 best, bottom-decile
-                   # gate 1.53x vs 120's 1.33x, same 6/6 cover; tmp/_fut_window_sweep.py)
+FUT_WIN = 78       # 外資期貨 net_oi percentile lookback. Unified with ALERT_LOW_WIN (2026-07-23)
+                   # for one net_oi horizon: re-swept, 78 ties the prior 90 for crash separation
+                   # (bottom-decile gate 1.54x vs 90's 1.52x, both 6/6) so aligning is free.
+                   # tmp/_fut_window_sweep.py, _toplight_win_precision.py.
 HI_WINDOW = 55     # 位階 context: index near its 55-day high
 NEAR_HIGH_TOL = 2.0  # within 2% of the 55d high counts as 近高
 # 攻防狀態: short-timeframe 多空頭排列 (market_breadth.short_trend, -2..+2). 攻擊 =
@@ -42,29 +44,77 @@ PANIC_MARGIN_CHG = -2.0  # 融資 5 日跌 <= -2% (斷頭急殺)
 PANIC_SPEED_WIN = 10  # 快殺 window (V-bottoms plunge fast; filters slow grinding bears)
 PANIC_SPEED_CHG = -6.0  # 指數 10 日跌 <= -6% (fast washout; +9.3%/71% vs +6.9%/68%)
 # 離散警戒燈 (discrete alarm, NOT a prediction): the validated crash gate. 近高 +
-# 外資淨空創 60日新低 + 低P/C自滿. Precision 2.98x but ~71% false — a caution flag only.
-ALERT_LOW_WIN = 60   # foreign net-OI fresh N-day net-short low (swept: 60 > 40)
+# 外資淨空創 78日新低 + 低P/C自滿. Precision 2.98x but ~71% false — a caution flag only.
+ALERT_LOW_WIN = 78   # foreign net-OI fresh N-day net-short low. Swept 2026-07-23: 78 lifts
+                     # 頂部過熱 precision 1.62→1.71x at the same 6/6 crash coverage, sitting back
+                     # from the 86-day coverage cliff (86→5/6); gain is a uniform false-alarm
+                     # cleanup across 2019/2021/2024 (not one event) and holds across 4 crash
+                     # definitions. Stance unaffected (791→790, obv_weak dominates hot_wide).
+                     # tmp/_toplight_win_precision.py, _stance_win55_probe.py.
 # 融資過熱 (independent 2nd top flag): Bollinger z of 融資餘額/55MA成交金額. Normalizing 融資
 # by turnover then de-trending gives 2.17x@+1.5σ (matches 外資期貨) with fixed persistence,
 # and uniquely caught the 2025-03 -23% top that 外資期貨 missed. NOT OR-merged with fresh_low
 # (that diluted clean years); shown as a separate flag. ~70% false, non-uniform, caution only.
 # tmp/_overheat_mt_bollinger.py, _overheat_optimize.py.
 MARGIN_OVERHEAT_Z = 1.5
+# 頂部過熱·漲停 (3rd independent top flag): de-trended z of 漲停佔比 (limit-up share).
+# Retail-froth overheat, orthogonal to 外資期貨/融資 (corr ~0). W=90/z≥1.0 sits on a
+# broad sweep plateau (W55-120 × z1.0-1.5 all 1.5-1.9x, uniform 5-7/9 yrs) and is hot at
+# 4/5 crash peaks (2020/2021/2024/2026-02; cold only at the 2022 slow bear). Modest
+# ~1.5x lift, TIME-UNIFORM — cleaner than 融資過熱. tmp/_limitup_sweep.py.
+LIMITUP_MA_WIN = 90
+LIMITUP_OVERHEAT_Z = 1.0
+# 頂部過熱·漲停 配合 空方排列 (high-conviction top): 漲停過熱 AND 排列翻空 (short_trend<0).
+# 漲停 froth WHILE breadth has rolled over to bear = narrow-leader mania into a rolling top =
+# distribution. Filters 漲停's 76% false down to ~41% precision (episode → 大回檔 ≥8%/40d)
+# with NO loss of crash coverage (all of 2020/21/22/24/25). tmp/_limitup_x_shortarr.py.
+# 加速惡化警示 (caution flag, NOT a prediction): 頂部過熱 present AND 排列尚未翻空
+# (short_trend>=0) AND short 空頭排列(占比) 3日急升 ≥ +6pp. Fires in the lag window
+# BEFORE stance flips 防守, at real tops (2021-04/2024-07/2025-02/2026-02) but ~half
+# false (fwd20 median ≈ baseline) — a heads-up, not a signal. tmp/_warn_validate.py.
+WARN_SD_CHG_WIN = 3
+WARN_SD_CHG = 6.0
 TOP_LOOKBACK = 3     # 攻防 entry: 過熱 within the last 3 trading days counts
 STANCE_EXIT_DAYS = 3  # 攻防 exit: 排列 連續 N 天回到中性以上(short_trend>=0) 才解除防守
+# 攻防 早退轉攻 (2026-07-23): 外資期貨淨多創 EARLY_LONG_WIN 日新高 AND 空頭排列占比升速放緩
+# (二階差<0, DECEL_WIN 窗). 讓防守在「排列尚未轉正」時提早解除——外資翻多到近期極端、同時空頭
+# 恐慌的漲勢在收斂(力竭)時搶先轉攻. 受控對照 added fwd5 +2.16% vs 純等排列轉正 still +0.26%,
+# 時間均勻(plateau w3-5×thr±5σ皆 +1.8~2.3%), 0% 反彈陷阱; 濾掉 2022 磨熊/2025 關稅崩兩次接刀且
+# 保住 2020-03 COVID 底 +11.8%. 用二階差(升速)而非水位: V 底空頭占比仍在高檔, 只是漲不動了.
+# tmp/_stance_early_exit_probe.py, _stance_decel_sweep.py.
+EARLY_LONG_WIN = 60
+DECEL_WIN = 5
+# 早退後的「安全帶」(2026-07-23): 觸發後只要外資淨多還在其 60 日高點的 EARLY_BAND_FRAC 區間內
+# (band = 高點 − frac×(高−低), 用區間比例故負值也成立), 就不准 obv_weak 把攻防重新拉回防守;
+# 外資一縮手(net_oi 掉出 band)保護即解除、回歸正常進場. 修掉單日強制早退的閃爍(閃格 13→8)且
+# thesis-gated 比盲數 K 天更早在真續崩時縮手. 5% 是閃格曲線膝點(更緊<5% 退回 11 閃格、報酬不變),
+# 報酬持平(fwd5 +2.12%/0% 陷阱/5-7 正年). tmp/_stance_band_probe.py.
+EARLY_BAND_FRAC = 0.05
 # 大台期貨 OBV 弱勢 = ScoreBoard short-scope OBV in bearish state (trend<0), aligned with
 # analysis.obv (short scope only). We use the persistent latched trend, NOT signal_down:
 # the sparse down-cross event misses declines with no fresh cross (2026-07-09~16 reopened
 # the stance gap), while trend<0 stays weak through the whole decline. The latched-trend
 # form was rejected UPSTREAM only for cross-sectional scoring (cross-timeframe redundancy),
 # which doesn't apply to a single market dial. tmp/_txf_obv_build_faithful.py.
+# 高信念頂部 (top_vote): >=3 of 4 orthogonal overheat channels agree. Single AND-pairs
+# overfit one event (2024), but a k-of-n VOTE is robust because each channel catches a
+# different episode. Voters: A 外資期貨 fresh_low, B 外資選擇權避險偏空, D 漲停過熱, E 融資過熱
+# (retail-froth was dropped — weakest voter, and 小台 froth degrades as retail migrates to
+# 微台). >=3of4 lifts near-high 大回檔 rate 12.7%→~59% (4.6x), survives ex-2024 (3.6x), both
+# halves positive, catches 2021/24/26; 243-config threshold sweep passes the robust gate.
+# Caveat surfaced in UI: high-conviction LOW-recall, for ≥8-10% pullbacks (not deep crashes),
+# blind to 2020 COVID (exogenous) and 2022 slow bear. tmp/_ensemble_test.py, _ensemble_sweep.py.
+OPT_PCTL_WIN = 252       # 外資選擇權 bull(買權−賣權淨OI) 百分位窗
+OPT_PCTL_MIN = 120       # min obs before a percentile is emitted (options start 2023-06)
+OPT_BEARISH_PCTL = 0.33  # bull 落在 252日底 1/3 = 避險偏空 (B voter)
+TOP_VOTE_K = 3           # 高信念頂部門檻: A/B/D/E 四個過熱訊號 >=K 同時亮
 HISTORY_DAYS = 250 # sparkline length
 
 def _regime(score: float, near_high: bool, fresh_low: bool) -> tuple[str, str, bool]:
     """(label, colour, is_danger). 頂部過熱 (the real top warning) is 外資期貨-driven:
     among near-high days, foreign net-OI (期) is the ONLY component that separates
     tops from ordinary highs (融資/P/C/散戶 are high at almost every high). So the
-    red danger = 近高 AND 外資淨空創 60 日新低 (catches 5/6 tops incl. the recent
+    red danger = 近高 AND 外資淨空創 78 日新低 (catches 5/6 tops incl. the recent
     wave; still ~82% false — top prediction is inherently hard). The composite score
     stays a descriptive 定位極端度. Below the high we make no bottom claim."""
     if fresh_low:
@@ -77,11 +127,16 @@ def _roll_pctl(s: pd.Series, win: int) -> pd.Series:
     return s.rolling(win, min_periods=win).apply(lambda w: (w <= w.iloc[-1]).mean(), raw=False)
 
 
-def compute_stance(short_trend, hot_wide) -> np.ndarray:
+def compute_stance(short_trend, hot_wide, early_exit=None, reattack_safe=None) -> np.ndarray:
     """攻防 stateful hysteresis → per-day defensive[] boolean array.
 
     enter 防守: 加寬過熱 (hot_wide within TOP_LOOKBACK days) AND 排列翻空 (short_trend<0)
-    exit 防守: 排列回多方 (short_trend>0) 單日, OR 連續 STANCE_EXIT_DAYS 天中性以上 (>=0)
+    exit 防守: 排列回多方 (short_trend>0) 單日, OR 連續 STANCE_EXIT_DAYS 天中性以上 (>=0),
+               OR early_exit[i] (外資翻多且空頭力竭的提早轉攻, 見 _early_reattack)
+    early_exit 後的安全帶: 一旦 early_exit 觸發轉攻, 只要 reattack_safe[i] 仍成立 (外資淨多
+               還在 60 日高點的 band 內, 見 _reattack_safe) 就抑制 obv_weak 的重新進場, 消除
+               單日早退造成的閃爍; net_oi 掉出 band 即解除保護、回歸正常進場. reattack_safe
+               為 None 時退化成單日強制早退 (無安全帶).
     hot_wide = fresh_low OR obv_weak (OBV widens entry to cover secondary declines).
     Shared by the daily gauge and the intraday live-stance builder so a
     forming last bar produces the exact same latch as the close recompute."""
@@ -91,16 +146,45 @@ def compute_stance(short_trend, hot_wide) -> np.ndarray:
     stv = st.to_numpy()
     rec3 = (st.rolling(STANCE_EXIT_DAYS, min_periods=STANCE_EXIT_DAYS).min() >= 0).fillna(False)
     rec = (rec3 | (st > 0)).to_numpy()
+    ee = (np.zeros(len(st), dtype=bool) if early_exit is None
+          else np.asarray(early_exit, dtype=bool))
+    safe = (np.zeros(len(st), dtype=bool) if reattack_safe is None
+            else np.asarray(reattack_safe, dtype=bool))
     out = np.zeros(len(st), dtype=bool)
     state = False
+    supp = False   # 早退安全帶: 保護攻擊狀態不被 obv_weak 重新拉回防守
     for i in range(len(st)):
+        if supp and not safe[i]:
+            supp = False              # 論點破 (net_oi 掉出 band) → 解除保護
         if not state:
-            if fl3[i] and stv[i] < 0:
+            if (not supp) and fl3[i] and stv[i] < 0:
                 state = True
-        elif rec[i]:
+        elif rec[i] or ee[i]:
             state = False
+            if ee[i]:
+                supp = True           # 早退觸發 → 啟動安全帶
         out[i] = state
     return out
+
+
+def _early_reattack(m: pd.DataFrame) -> np.ndarray:
+    """早退轉攻 trigger for compute_stance: 外資期貨淨多創 EARLY_LONG_WIN 日新高 AND 空頭
+    排列占比升速放緩 (二階差 over DECEL_WIN < 0). Lets 防守 flip to 攻擊 before 排列 fully
+    recovers, when foreign net-OI hits a fresh long extreme while the bear-breadth surge
+    is losing steam. NaN (e.g. a forming intraday bar with no live sd_pct) -> False."""
+    fresh_long = m["noi"] >= m["noi"].rolling(EARLY_LONG_WIN).max() - 1e-9
+    decel = (m["sd_pct"] - 2 * m["sd_pct"].shift(DECEL_WIN)
+             + m["sd_pct"].shift(2 * DECEL_WIN)) < 0
+    return (fresh_long & decel).fillna(False).to_numpy()
+
+
+def _reattack_safe(m: pd.DataFrame) -> np.ndarray:
+    """早退安全帶: 外資淨多仍在其 EARLY_LONG_WIN 日高點的 EARLY_BAND_FRAC 區間內. Band 用
+    60 日區間比例 (高 − frac×(高−低)) 而非 net_oi 的百分比, 故 net_oi 為負也成立. While true
+    after an early reattack, obv_weak may not re-drag the stance into 防守. NaN -> False."""
+    mx = m["noi"].rolling(EARLY_LONG_WIN).max()
+    mn = m["noi"].rolling(EARLY_LONG_WIN).min()
+    return (m["noi"] >= mx - EARLY_BAND_FRAC * (mx - mn)).fillna(False).to_numpy()
 
 
 def _load_merged_frame(cur) -> pd.DataFrame:
@@ -114,9 +198,12 @@ def _load_merged_frame(cur) -> pd.DataFrame:
     cur.execute("""SELECT trade_date, net_oi FROM tw.taifex_inst_futures
                    WHERE product='臺股期貨' AND investor='外資及陸資' ORDER BY trade_date""")
     fu = pd.DataFrame(cur.fetchall())
-    cur.execute("SELECT trade_date, close_price, turnover FROM tw.index_prices WHERE index_id='TAIEX' ORDER BY trade_date")
+    cur.execute("""SELECT trade_date, close_price, turnover,
+                          advance, advance_limit, decline, unchanged
+                   FROM tw.index_prices WHERE index_id='TAIEX' ORDER BY trade_date""")
     ix = pd.DataFrame(cur.fetchall())
-    cur.execute("SELECT trade_date, short_trend_total FROM tw.market_breadth ORDER BY trade_date")
+    cur.execute("""SELECT trade_date, short_trend_total, short_down_total, total_stocks
+                   FROM tw.market_breadth ORDER BY trade_date""")
     br = pd.DataFrame(cur.fetchall())
     # 大台期貨 front-month OHLCV (per day = non-spread 一般 contract with MAX volume)
     cur.execute("""SELECT DISTINCT ON (trade_date) trade_date, contract_month,
@@ -126,12 +213,25 @@ def _load_merged_frame(cur) -> pd.DataFrame:
                      AND volume IS NOT NULL AND close_price IS NOT NULL
                    ORDER BY trade_date, volume DESC""")
     tv = pd.DataFrame(cur.fetchall())
+    # 外資臺指選擇權 net 買權/賣權未平倉 (B voter). bull = net_call_oi − net_put_oi;
+    # low = foreign hedged/bearish. Live source is DB tw.taifex_inst_options (2023-06+),
+    # verified bit-identical to the FinMind series the ensemble was validated on.
+    cur.execute("""SELECT trade_date, call_put, net_oi FROM tw.taifex_inst_options
+                   WHERE product LIKE '臺指%%' AND investor LIKE '外資%%' ORDER BY trade_date""")
+    op = pd.DataFrame(cur.fetchall())
     mg["d"] = pd.to_datetime(mg["trade_date"]); mg["mgn"] = mg["margin_balance_value"].astype(float)
     fu["d"] = pd.to_datetime(fu["trade_date"]); fu["noi"] = fu["net_oi"].astype(float)
     ix["d"] = pd.to_datetime(ix["trade_date"]); ix["tx"] = ix["close_price"].astype(float)
     ix["to"] = ix["turnover"].astype(float).ffill()   # a few null-turnover days would else NaN the whole 55d window
     ix["pct_from_high"] = (ix["tx"] / ix["tx"].rolling(HI_WINDOW).max() - 1) * 100
+    # 漲停佔比 (%): limit-up count as a share of traded stocks — speculative froth.
+    # ffill the rare missing-count day (4 in the series) so it doesn't NaN the 90d z window.
+    _traded = (ix["advance"].fillna(0) + ix["decline"].fillna(0) + ix["unchanged"].fillna(0)).astype(float)
+    ix["lim"] = (ix["advance_limit"].astype(float) / _traded.replace(0, np.nan) * 100).ffill()
     br["d"] = pd.to_datetime(br["trade_date"]); br["st"] = br["short_trend_total"].astype(int)
+    # short 空頭排列 占比 (total base): rising fast = deterioration accelerating
+    br["sd_pct"] = (br["short_down_total"].astype(float)
+                    / br["total_stocks"].replace(0, np.nan).astype(float) * 100)
     tv["d"] = pd.to_datetime(tv["trade_date"])
     for _k in ("o", "h", "l", "c", "v"):
         tv[_k] = tv[_k].astype(float)
@@ -140,9 +240,18 @@ def _load_merged_frame(cur) -> pd.DataFrame:
     tv["roll"] = tv["contract_month"] != tv["contract_month"].shift(1)
     tv["ref"] = np.where(tv["roll"], tv["o"], tv["c"].shift(1))
     tv.loc[0, "ref"] = tv.loc[0, "c"]
+    if not op.empty:
+        op["d"] = pd.to_datetime(op["trade_date"])
+        opv = op.pivot_table(index="d", columns="call_put", values="net_oi")
+        opt = (opv.get("C", pd.Series(dtype=float)).astype(float)
+               - opv.get("P", pd.Series(dtype=float)).astype(float)).rename("opt_bull").reset_index()
+    else:
+        opt = pd.DataFrame({"d": pd.Series(dtype="datetime64[ns]"), "opt_bull": pd.Series(dtype=float)})
     return (mg[["d", "mgn"]].merge(fu[["d", "noi"]], on="d")
-            .merge(ix[["d", "pct_from_high", "tx", "to"]], on="d").merge(br[["d", "st"]], on="d")
-            .merge(tv[["d", "o", "h", "l", "c", "v", "ref"]], on="d").sort_values("d").reset_index(drop=True))
+            .merge(ix[["d", "pct_from_high", "tx", "to", "lim"]], on="d").merge(br[["d", "st", "sd_pct"]], on="d")
+            .merge(tv[["d", "o", "h", "l", "c", "v", "ref"]], on="d")
+            .merge(opt, on="d", how="left")   # LEFT: keep full history; opt_bull NaN pre-2023-06
+            .sort_values("d").reset_index(drop=True))
 
 
 def build_thermometer(cur, today: date | None = None) -> dict:
@@ -157,7 +266,8 @@ def build_thermometer(cur, today: date | None = None) -> dict:
     # 攻防狀態 (stateful hysteresis): enter 防守 when 加寬過熱(3日內) AND 排列翻空(short_trend<0);
     # exit 防守 when 排列 回多方(short_trend>0) 單日, OR 連續 STANCE_EXIT_DAYS 天回到中性以上
     # (short_trend>=0). OBV widens entry to cover secondary declines.
-    m["defensive"] = compute_stance(m["st"].to_numpy(), m["hot_wide"].to_numpy())
+    m["defensive"] = compute_stance(m["st"].to_numpy(), m["hot_wide"].to_numpy(),
+                                    _early_reattack(m), _reattack_safe(m))
     m["mchg5"] = m["mgn"].pct_change(PANIC_MARGIN_WIN) * 100
     m["ret10"] = m["tx"].pct_change(PANIC_SPEED_WIN) * 100
     m["panic"] = ((m["pct_from_high"] <= PANIC_PFH) & (m["mchg5"] <= PANIC_MARGIN_CHG)
@@ -172,6 +282,30 @@ def build_thermometer(cur, today: date | None = None) -> dict:
     _mt = m["mgn"] / m["to"].rolling(MARGIN_MA_WIN).mean()
     m["mt_z"] = (_mt - _mt.rolling(MARGIN_MA_WIN).mean()) / _mt.rolling(MARGIN_MA_WIN).std()
     m["margin_overheat"] = m["mt_z"] >= MARGIN_OVERHEAT_Z
+    # 頂部過熱·漲停: de-trended z of 漲停佔比 (retail froth). Independent 3rd top flag.
+    _lz = (m["lim"] - m["lim"].rolling(LIMITUP_MA_WIN).mean()) / m["lim"].rolling(LIMITUP_MA_WIN).std()
+    m["lim_z"] = _lz
+    m["limitup_overheat"] = m["lim_z"] >= LIMITUP_OVERHEAT_Z
+    # 漲停過熱 配合 空方排列 (排列翻空): high-conviction top (漲停 froth + breadth rolling over).
+    m["limitup_bear"] = m["limitup_overheat"] & (m["st"] < 0)
+    # 外資選擇權避險偏空 (B voter): bull(買權−賣權淨OI) 落在 252日底 1/3. NaN pre-2023-06 -> False.
+    m["opt_bull_pctl"] = m["opt_bull"].rolling(OPT_PCTL_WIN, min_periods=OPT_PCTL_MIN).apply(
+        lambda w: np.mean(w[~np.isnan(w)] <= w[-1]) if (not np.isnan(w[-1]) and np.isfinite(w).sum() >= OPT_PCTL_MIN) else np.nan,
+        raw=True)
+    m["opt_bearish"] = (m["opt_bull_pctl"] <= OPT_BEARISH_PCTL).fillna(False)
+    # 高信念頂部 (top_vote): >=TOP_VOTE_K of {A 外資期貨fresh_low, B 外資選擇權避險偏空,
+    # D 漲停過熱, E 融資過熱}. Robust k-of-n vote over orthogonal channels (see const comment).
+    m["top_vote_n"] = (m["fresh_low"].fillna(False).astype(int)
+                       + m["opt_bearish"].astype(int)
+                       + m["limitup_overheat"].fillna(False).astype(int)
+                       + m["margin_overheat"].fillna(False).astype(int))
+    m["top_vote"] = m["top_vote_n"] >= TOP_VOTE_K
+    # 加速惡化警示: 頂部過熱燈(近3日) AND 排列未翻空(st>=0) AND short空頭排列3日急升. Bridges the
+    # stance lag (fires while still 攻擊, before 排列 flips). Caution flag, ~half false.
+    m["top3"] = ((m["fresh_low"] | m["margin_overheat"]).rolling(TOP_LOOKBACK, min_periods=1).max() > 0)
+    m["sd_chg"] = m["sd_pct"] - m["sd_pct"].shift(WARN_SD_CHG_WIN)
+    m["warn"] = (m["top3"].to_numpy() & (m["st"].to_numpy() >= 0)
+                 & (m["sd_chg"].to_numpy() >= WARN_SD_CHG))
     m["futures_hot"] = (1 - _roll_pctl(m["noi"], FUT_WIN)) * 100   # more net-short -> hotter
     # 定位極端度 = 外資期貨 + 融資 only. P/C 與微台散戶在頂/底皆極端(反指標無方向鑑別力),
     # 只會稀釋分數, 已移除 (see memory project_market_thermometer 2026-07-21).
@@ -199,6 +333,10 @@ def build_thermometer(cur, today: date | None = None) -> dict:
                         "stance": "防守" if r.defensive else "攻擊",
                         "panic": bool(r.panic),
                         "m_alert": bool(r.margin_overheat),
+                        "l_alert": bool(r.limitup_overheat),
+                        "lb_alert": bool(r.limitup_bear),
+                        "tv_alert": bool(r.top_vote),
+                        "warn": bool(r.warn),
                         "c": {"futures": _r1(r.futures_hot), "margin": _r1(r.margin_hot)}})
 
     pfh = last["pct_from_high"]
@@ -214,19 +352,50 @@ def build_thermometer(cur, today: date | None = None) -> dict:
         "danger": danger,
         "stance": "防守" if defensive else "攻擊",
         "stance_color": "#ef4444" if defensive else "#22c55e",
-        "stance_reason": (f"頂部過熱後排列翻空、續守中（排列：{ST_LABELS.get(int(last['st']), '?')}，回多方或連續 {STANCE_EXIT_DAYS} 天中性以上才解除）"
+        "stance_reason": (f"頂部過熱後排列翻空、續守中（排列：{ST_LABELS.get(int(last['st']), '?')}，回多方／連續 {STANCE_EXIT_DAYS} 天中性以上／外資翻多且空頭力竭 任一則解除）"
                           if defensive else f"排列中性以上（{ST_LABELS.get(int(last['st']), '?')}）"),
         "near_high": a_near,
         "pct_from_high": round(float(pfh), 1),
         "hi_window": HI_WINDOW,
         "alert": a_fresh,
         "alert_conditions": [
-            {"name": f"外資淨空創 {ALERT_LOW_WIN} 日新低", "met": a_fresh},
+            {"name": f"外資淨空創 {ALERT_LOW_WIN} 日新低（淨空最重）", "met": a_fresh},
         ],
         "margin_alert": bool(last["margin_overheat"]),
         "margin_alert_conditions": [
             {"name": f"融資/成交量 布林 z ≥ +{MARGIN_OVERHEAT_Z:.1f}σ（現 {last['mt_z']:+.1f}σ）",
              "met": bool(last["margin_overheat"])},
+        ],
+        "limitup_alert": bool(last["limitup_overheat"]),
+        "limitup_alert_conditions": [
+            {"name": f"漲停佔比 {LIMITUP_MA_WIN} 日乖離 z ≥ +{LIMITUP_OVERHEAT_Z:.1f}σ（現 {last['lim_z']:+.1f}σ、漲停 {last['lim']:.1f}%）",
+             "met": bool(last["limitup_overheat"])},
+        ],
+        "limitup_bear_alert": bool(last["limitup_bear"]),
+        "limitup_bear_conditions": [
+            {"name": f"漲停過熱（漲停佔比 {LIMITUP_MA_WIN} 日乖離 z ≥ +{LIMITUP_OVERHEAT_Z:.1f}σ，現 {last['lim_z']:+.1f}σ）",
+             "met": bool(last["limitup_overheat"])},
+            {"name": f"排列翻空（short 排列：{ST_LABELS.get(int(last['st']), '?')}）",
+             "met": bool(last["st"] < 0)},
+        ],
+        "top_vote": bool(last["top_vote"]),
+        "top_vote_n": int(last["top_vote_n"]),
+        "top_vote_k": TOP_VOTE_K,
+        "top_vote_conditions": [
+            {"name": f"外資期貨淨空創 {ALERT_LOW_WIN} 日新低", "met": bool(last["fresh_low"])},
+            {"name": (f"外資選擇權避險偏空（買賣權淨OI {OPT_PCTL_WIN} 日百分位 ≤ {OPT_BEARISH_PCTL:.0%}，現 {last['opt_bull_pctl']:.0%}）"
+                      if pd.notna(last["opt_bull_pctl"]) else "外資選擇權避險偏空（資料不足）"),
+             "met": bool(last["opt_bearish"])},
+            {"name": f"漲停過熱（{LIMITUP_MA_WIN} 日乖離 z ≥ +{LIMITUP_OVERHEAT_Z:.1f}σ）", "met": bool(last["limitup_overheat"])},
+            {"name": f"融資過熱（{MARGIN_MA_WIN} 日 z ≥ +{MARGIN_OVERHEAT_Z:.1f}σ）", "met": bool(last["margin_overheat"])},
+        ],
+        "warn": bool(last["warn"]),
+        "warn_conditions": [
+            {"name": f"頂部過熱燈亮（近 {TOP_LOOKBACK} 日）", "met": bool(last["top3"])},
+            {"name": f"排列尚未翻空（short 排列：{ST_LABELS.get(int(last['st']), '?')}）",
+             "met": bool(last["st"] >= 0)},
+            {"name": f"short 空頭排列 {WARN_SD_CHG_WIN} 日急升 ≥ +{WARN_SD_CHG:.0f}pp（現 {last['sd_chg']:+.1f}pp）",
+             "met": bool(last["sd_chg"] >= WARN_SD_CHG)},
         ],
         "panic": bool(last["panic"]),
         "panic_conditions": [
@@ -239,9 +408,10 @@ def build_thermometer(cur, today: date | None = None) -> dict:
     }
 
 
-def _intraday_short_trend_total() -> tuple[int, str] | None:
-    """Live short-scope 排列 trend (total base) from the breadth sidecar that
-    intraday_snapshot writes each pass. Returns (TREND_CODE, sidecar_date) or None."""
+def _intraday_short_trend_total() -> tuple[int, float, str] | None:
+    """Live short-scope 排列 (total base) from the breadth sidecar that
+    intraday_snapshot writes each pass. Returns (TREND_CODE, 空頭排列占比%, sidecar_date)
+    or None. 空頭排列占比 feeds the 升速放緩 early-reattack test on the forming bar."""
     import json
     from pathlib import Path
     sidecar = Path(__file__).parent.parent / "data" / "breadth_intraday.json"
@@ -258,7 +428,7 @@ def _intraday_short_trend_total() -> tuple[int, str] | None:
     from analysis.market_breadth import classify_trend, TREND_CODE
     up = ib["short_up"] / total * 100
     dn = ib["short_down"] / total * 100
-    return TREND_CODE[classify_trend(up, dn, 100 - up - dn)], str(ib.get("trade_date"))
+    return TREND_CODE[classify_trend(up, dn, 100 - up - dn)], dn, str(ib.get("trade_date"))
 
 
 def _tx_forming_bar(volume_scale: float, now: datetime) -> tuple | None:
@@ -298,8 +468,11 @@ def build_intraday_stance(cur, volume_scale: float, now: datetime) -> dict | Non
         row["o"], row["h"], row["l"], row["c"], row["v"] = o, h, l, c, v
         row["ref"] = m["c"].iloc[-1]                       # prev front-month close
         row["noi"] = m["noi"].iloc[-1]                     # stale (foreign net_oi is close-only)
-        row["st"] = (sc[0] if sc is not None and sc[1] == today.isoformat()
-                     else int(m["st"].iloc[-1]))
+        if sc is not None and sc[2] == today.isoformat():
+            row["st"] = sc[0]
+            row["sd_pct"] = sc[1]                           # live 空頭排列占比 for 升速放緩
+        else:
+            row["st"] = int(m["st"].iloc[-1])              # sd_pct stays NaN -> no live early exit
         m = pd.concat([m, pd.DataFrame([row])], ignore_index=True)
 
     _obv = calculate_obv(m["c"].to_numpy(np.float32), m["ref"].to_numpy(np.float32),
@@ -308,7 +481,8 @@ def build_intraday_stance(cur, volume_scale: float, now: datetime) -> dict | Non
     m["obv_weak"] = _obv.trend < 0
     m["fresh_low"] = m["noi"] <= m["noi"].rolling(ALERT_LOW_WIN).min() + 1e-9
     m["hot_wide"] = m["fresh_low"].fillna(False) | m["obv_weak"]
-    defensive = compute_stance(m["st"].to_numpy(), m["hot_wide"].to_numpy())
+    defensive = compute_stance(m["st"].to_numpy(), m["hot_wide"].to_numpy(),
+                               _early_reattack(m), _reattack_safe(m))
 
     last = m.iloc[-1]
     is_def = bool(defensive[-1])
@@ -320,7 +494,7 @@ def build_intraday_stance(cur, volume_scale: float, now: datetime) -> dict | Non
         "stance": "防守" if is_def else "攻擊",
         "stance_color": "#ef4444" if is_def else "#22c55e",
         "stance_reason": (f"頂部過熱後排列翻空、續守中（排列：{ST_LABELS.get(st_last, '?')}，"
-                          f"回多方或連續 {STANCE_EXIT_DAYS} 天中性以上才解除）"
+                          f"回多方／連續 {STANCE_EXIT_DAYS} 天中性以上／外資翻多且空頭力竭 任一則解除）"
                           if is_def else f"排列中性以上（{ST_LABELS.get(st_last, '?')}）"),
         "short_trend": st_last,
     }
