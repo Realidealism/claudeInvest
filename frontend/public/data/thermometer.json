@@ -1,20 +1,81 @@
 {
-  "as_of": "2026-07-21",
-  "score": 71.7,
+  "as_of": "2026-07-22",
+  "score": 69.8,
   "bucket": "無頂部訊號",
   "bucket_color": "#8a8a9a",
   "danger": false,
   "stance": "防守",
   "stance_color": "#ef4444",
-  "stance_reason": "頂部過熱後排列翻空、續守中（排列：強空，回多方或連續 3 天中性以上才解除）",
+  "stance_reason": "頂部過熱後排列翻空、續守中（排列：強空，回多方／連續 3 天中性以上／外資翻多且空頭力竭 任一則解除）",
   "near_high": false,
-  "pct_from_high": -7.3,
+  "pct_from_high": -6.1,
   "hi_window": 55,
   "alert": false,
   "alert_conditions": [
     {
-      "name": "外資淨空創 60 日新低",
+      "name": "外資淨空創 78 日新低（淨空最重）",
       "met": false
+    }
+  ],
+  "margin_alert": false,
+  "margin_alert_conditions": [
+    {
+      "name": "融資/成交量 布林 z ≥ +1.5σ（現 -1.7σ）",
+      "met": false
+    }
+  ],
+  "limitup_alert": false,
+  "limitup_alert_conditions": [
+    {
+      "name": "漲停佔比 90 日乖離 z ≥ +1.0σ（現 -0.2σ、漲停 2.8%）",
+      "met": false
+    }
+  ],
+  "limitup_bear_alert": false,
+  "limitup_bear_conditions": [
+    {
+      "name": "漲停過熱（漲停佔比 90 日乖離 z ≥ +1.0σ，現 -0.2σ）",
+      "met": false
+    },
+    {
+      "name": "排列翻空（short 排列：強空）",
+      "met": true
+    }
+  ],
+  "top_vote": false,
+  "top_vote_n": 0,
+  "top_vote_k": 3,
+  "top_vote_conditions": [
+    {
+      "name": "外資期貨淨空創 78 日新低",
+      "met": false
+    },
+    {
+      "name": "外資選擇權避險偏空（買賣權淨OI 252 日百分位 ≤ 33%，現 37%）",
+      "met": false
+    },
+    {
+      "name": "漲停過熱（90 日乖離 z ≥ +1.0σ）",
+      "met": false
+    },
+    {
+      "name": "融資過熱（55 日 z ≥ +1.5σ）",
+      "met": false
+    }
+  ],
+  "warn": false,
+  "warn_conditions": [
+    {
+      "name": "頂部過熱燈亮（近 3 日）",
+      "met": false
+    },
+    {
+      "name": "排列尚未翻空（short 排列：強空）",
+      "met": false
+    },
+    {
+      "name": "short 空頭排列 3 日急升 ≥ +6pp（現 +8.4pp）",
+      "met": true
     }
   ],
   "panic": false,
@@ -36,560 +97,752 @@
     {
       "key": "futures",
       "name": "外資期貨定位",
-      "hot": 83.3,
-      "detail": "外資臺股期貨淨未平倉 -78,490 口（90日百分位越低越淨空＝越熱）"
+      "hot": 76.9,
+      "detail": "外資臺股期貨淨未平倉 -76,595 口（78日百分位越低越淨空＝越熱）"
     },
     {
       "key": "margin",
       "name": "融資水位",
-      "hot": 60.1,
-      "detail": "融資餘額金額 5,765億（距 55 日均 +0.41σ；+2σ=過熱）"
+      "hot": 62.6,
+      "detail": "融資餘額金額 5,828億（距 55 日均 +0.50σ；+2σ=過熱）"
     }
   ],
   "history": [
     {
-      "date": "2025-07-09",
-      "score": 82.6,
-      "tx": 22527,
-      "label": "頂部過熱",
-      "color": "#ef4444",
-      "stance": "防守",
-      "panic": false,
-      "c": {
-        "futures": 98.9,
-        "margin": 66.3
-      }
-    },
-    {
       "date": "2025-07-10",
-      "score": 83.7,
+      "score": 83.3,
       "tx": 22693,
       "label": "無頂部訊號",
       "color": "#8a8a9a",
       "stance": "防守",
       "panic": false,
+      "m_alert": false,
+      "l_alert": false,
+      "lb_alert": false,
+      "tv_alert": false,
+      "warn": false,
       "c": {
-        "futures": 95.6,
+        "futures": 94.9,
         "margin": 71.8
       }
     },
     {
       "date": "2025-07-11",
-      "score": 83.6,
+      "score": 83.3,
       "tx": 22751,
       "label": "無頂部訊號",
       "color": "#8a8a9a",
       "stance": "防守",
       "panic": false,
+      "m_alert": false,
+      "l_alert": false,
+      "lb_alert": false,
+      "tv_alert": false,
+      "warn": false,
       "c": {
-        "futures": 96.7,
+        "futures": 96.2,
         "margin": 70.5
       }
     },
     {
       "date": "2025-07-14",
-      "score": 85.1,
+      "score": 85.0,
       "tx": 22615,
       "label": "頂部過熱",
       "color": "#ef4444",
       "stance": "防守",
       "panic": false,
+      "m_alert": false,
+      "l_alert": false,
+      "lb_alert": false,
+      "tv_alert": false,
+      "warn": false,
       "c": {
-        "futures": 98.9,
+        "futures": 98.7,
         "margin": 71.3
       }
     },
     {
       "date": "2025-07-15",
-      "score": 86.0,
+      "score": 85.4,
       "tx": 22836,
       "label": "無頂部訊號",
       "color": "#8a8a9a",
       "stance": "防守",
       "panic": false,
+      "m_alert": false,
+      "l_alert": false,
+      "lb_alert": false,
+      "tv_alert": false,
+      "warn": false,
       "c": {
-        "futures": 92.2,
+        "futures": 91.0,
         "margin": 79.9
       }
     },
     {
       "date": "2025-07-16",
-      "score": 84.3,
+      "score": 83.5,
       "tx": 23043,
       "label": "無頂部訊號",
       "color": "#8a8a9a",
       "stance": "防守",
       "panic": false,
+      "m_alert": false,
+      "l_alert": false,
+      "lb_alert": false,
+      "tv_alert": false,
+      "warn": false,
       "c": {
-        "futures": 88.9,
+        "futures": 87.2,
         "margin": 79.7
       }
     },
     {
       "date": "2025-07-17",
-      "score": 84.6,
+      "score": 83.5,
       "tx": 23113,
       "label": "無頂部訊號",
       "color": "#8a8a9a",
       "stance": "攻擊",
       "panic": false,
+      "m_alert": false,
+      "l_alert": false,
+      "lb_alert": false,
+      "tv_alert": false,
+      "warn": false,
       "c": {
-        "futures": 85.6,
+        "futures": 83.3,
         "margin": 83.6
       }
     },
     {
       "date": "2025-07-18",
-      "score": 82.2,
+      "score": 80.8,
       "tx": 23383,
       "label": "無頂部訊號",
       "color": "#8a8a9a",
       "stance": "攻擊",
       "panic": false,
+      "m_alert": false,
+      "l_alert": false,
+      "lb_alert": false,
+      "tv_alert": false,
+      "warn": false,
       "c": {
-        "futures": 81.1,
+        "futures": 78.2,
         "margin": 83.3
       }
     },
     {
       "date": "2025-07-21",
-      "score": 83.7,
+      "score": 82.0,
       "tx": 23341,
       "label": "無頂部訊號",
       "color": "#8a8a9a",
       "stance": "攻擊",
       "panic": false,
+      "m_alert": false,
+      "l_alert": false,
+      "lb_alert": false,
+      "tv_alert": false,
+      "warn": false,
       "c": {
-        "futures": 78.9,
+        "futures": 75.6,
         "margin": 88.5
       }
     },
     {
       "date": "2025-07-22",
-      "score": 69.4,
+      "score": 67.3,
       "tx": 22988,
       "label": "無頂部訊號",
       "color": "#8a8a9a",
       "stance": "攻擊",
       "panic": false,
+      "m_alert": false,
+      "l_alert": false,
+      "lb_alert": false,
+      "tv_alert": false,
+      "warn": false,
       "c": {
-        "futures": 73.3,
+        "futures": 69.2,
         "margin": 65.4
       }
     },
     {
       "date": "2025-07-23",
-      "score": 80.6,
+      "score": 79.1,
       "tx": 23319,
       "label": "無頂部訊號",
       "color": "#8a8a9a",
       "stance": "攻擊",
       "panic": false,
+      "m_alert": false,
+      "l_alert": false,
+      "lb_alert": false,
+      "tv_alert": false,
+      "warn": false,
       "c": {
-        "futures": 80.0,
+        "futures": 76.9,
         "margin": 81.2
       }
     },
     {
       "date": "2025-07-24",
-      "score": 83.5,
+      "score": 81.9,
       "tx": 23374,
       "label": "無頂部訊號",
       "color": "#8a8a9a",
       "stance": "攻擊",
       "panic": false,
+      "m_alert": false,
+      "l_alert": false,
+      "lb_alert": false,
+      "tv_alert": false,
+      "warn": false,
       "c": {
-        "futures": 80.0,
+        "futures": 76.9,
         "margin": 87.0
       }
     },
     {
       "date": "2025-07-25",
-      "score": 83.1,
+      "score": 81.4,
       "tx": 23364,
       "label": "無頂部訊號",
       "color": "#8a8a9a",
       "stance": "攻擊",
       "panic": false,
+      "m_alert": false,
+      "l_alert": false,
+      "lb_alert": false,
+      "tv_alert": false,
+      "warn": false,
       "c": {
-        "futures": 77.8,
+        "futures": 74.4,
         "margin": 88.5
       }
     },
     {
       "date": "2025-07-28",
-      "score": 80.5,
+      "score": 78.2,
       "tx": 23413,
       "label": "無頂部訊號",
       "color": "#8a8a9a",
       "stance": "攻擊",
       "panic": false,
+      "m_alert": false,
+      "l_alert": false,
+      "lb_alert": false,
+      "tv_alert": false,
+      "warn": false,
       "c": {
-        "futures": 70.0,
+        "futures": 65.4,
         "margin": 90.9
       }
     },
     {
       "date": "2025-07-29",
-      "score": 73.0,
+      "score": 69.7,
       "tx": 23202,
       "label": "無頂部訊號",
       "color": "#8a8a9a",
       "stance": "攻擊",
       "panic": false,
+      "m_alert": false,
+      "l_alert": false,
+      "lb_alert": false,
+      "tv_alert": false,
+      "warn": false,
       "c": {
-        "futures": 57.8,
+        "futures": 51.3,
         "margin": 88.2
       }
     },
     {
       "date": "2025-07-30",
-      "score": 69.0,
+      "score": 65.0,
       "tx": 23462,
       "label": "無頂部訊號",
       "color": "#8a8a9a",
       "stance": "攻擊",
       "panic": false,
+      "m_alert": false,
+      "l_alert": false,
+      "lb_alert": false,
+      "tv_alert": false,
+      "warn": false,
       "c": {
-        "futures": 47.8,
+        "futures": 39.7,
         "margin": 90.3
       }
     },
     {
       "date": "2025-07-31",
-      "score": 66.1,
+      "score": 62.8,
       "tx": 23543,
       "label": "無頂部訊號",
       "color": "#8a8a9a",
       "stance": "防守",
       "panic": false,
+      "m_alert": false,
+      "l_alert": false,
+      "lb_alert": false,
+      "tv_alert": false,
+      "warn": false,
       "c": {
-        "futures": 32.2,
+        "futures": 25.6,
         "margin": 100.0
       }
     },
     {
       "date": "2025-08-01",
-      "score": 77.2,
+      "score": 73.7,
       "tx": 23434,
       "label": "無頂部訊號",
       "color": "#8a8a9a",
       "stance": "防守",
       "panic": false,
+      "m_alert": false,
+      "l_alert": false,
+      "lb_alert": false,
+      "tv_alert": false,
+      "warn": false,
       "c": {
-        "futures": 54.4,
+        "futures": 47.4,
         "margin": 100.0
       }
     },
     {
       "date": "2025-08-04",
-      "score": 76.1,
+      "score": 72.4,
       "tx": 23379,
       "label": "無頂部訊號",
       "color": "#8a8a9a",
       "stance": "攻擊",
       "panic": false,
+      "m_alert": false,
+      "l_alert": false,
+      "lb_alert": false,
+      "tv_alert": false,
+      "warn": false,
       "c": {
-        "futures": 52.2,
+        "futures": 44.9,
         "margin": 100.0
       }
     },
     {
       "date": "2025-08-05",
-      "score": 65.6,
+      "score": 61.5,
       "tx": 23661,
       "label": "無頂部訊號",
       "color": "#8a8a9a",
       "stance": "攻擊",
       "panic": false,
+      "m_alert": false,
+      "l_alert": false,
+      "lb_alert": false,
+      "tv_alert": false,
+      "warn": false,
       "c": {
-        "futures": 31.1,
+        "futures": 23.1,
         "margin": 100.0
       }
     },
     {
       "date": "2025-08-06",
-      "score": 67.2,
+      "score": 62.8,
       "tx": 23447,
       "label": "無頂部訊號",
       "color": "#8a8a9a",
       "stance": "攻擊",
       "panic": false,
+      "m_alert": false,
+      "l_alert": false,
+      "lb_alert": false,
+      "tv_alert": false,
+      "warn": false,
       "c": {
-        "futures": 34.4,
+        "futures": 25.6,
         "margin": 100.0
       }
     },
     {
       "date": "2025-08-07",
-      "score": 65.6,
+      "score": 60.3,
       "tx": 24004,
       "label": "無頂部訊號",
       "color": "#8a8a9a",
       "stance": "攻擊",
       "panic": false,
+      "m_alert": false,
+      "l_alert": false,
+      "lb_alert": false,
+      "tv_alert": false,
+      "warn": false,
       "c": {
-        "futures": 31.1,
+        "futures": 20.5,
         "margin": 100.0
       }
     },
     {
       "date": "2025-08-08",
-      "score": 71.7,
+      "score": 67.3,
       "tx": 24021,
       "label": "無頂部訊號",
       "color": "#8a8a9a",
       "stance": "攻擊",
       "panic": false,
+      "m_alert": false,
+      "l_alert": false,
+      "lb_alert": false,
+      "tv_alert": false,
+      "warn": false,
       "c": {
-        "futures": 43.3,
+        "futures": 34.6,
         "margin": 100.0
       }
     },
     {
       "date": "2025-08-11",
-      "score": 65.6,
+      "score": 60.3,
       "tx": 24136,
       "label": "無頂部訊號",
       "color": "#8a8a9a",
       "stance": "攻擊",
       "panic": false,
+      "m_alert": false,
+      "l_alert": false,
+      "lb_alert": false,
+      "tv_alert": false,
+      "warn": false,
       "c": {
-        "futures": 31.1,
+        "futures": 20.5,
         "margin": 100.0
       }
     },
     {
       "date": "2025-08-12",
-      "score": 64.4,
+      "score": 59.0,
       "tx": 24158,
       "label": "無頂部訊號",
       "color": "#8a8a9a",
       "stance": "攻擊",
       "panic": false,
+      "m_alert": false,
+      "l_alert": false,
+      "lb_alert": false,
+      "tv_alert": false,
+      "warn": false,
       "c": {
-        "futures": 28.9,
+        "futures": 17.9,
         "margin": 100.0
       }
     },
     {
       "date": "2025-08-13",
-      "score": 62.8,
+      "score": 57.1,
       "tx": 24370,
       "label": "無頂部訊號",
       "color": "#8a8a9a",
       "stance": "攻擊",
       "panic": false,
+      "m_alert": false,
+      "l_alert": false,
+      "lb_alert": false,
+      "tv_alert": false,
+      "warn": false,
       "c": {
-        "futures": 25.6,
+        "futures": 14.1,
         "margin": 100.0
       }
     },
     {
       "date": "2025-08-14",
-      "score": 63.3,
+      "score": 57.7,
       "tx": 24238,
       "label": "無頂部訊號",
       "color": "#8a8a9a",
       "stance": "攻擊",
       "panic": false,
+      "m_alert": false,
+      "l_alert": false,
+      "lb_alert": false,
+      "tv_alert": false,
+      "warn": false,
       "c": {
-        "futures": 26.7,
+        "futures": 15.4,
         "margin": 100.0
       }
     },
     {
       "date": "2025-08-15",
-      "score": 62.8,
+      "score": 57.1,
       "tx": 24334,
       "label": "無頂部訊號",
       "color": "#8a8a9a",
       "stance": "攻擊",
       "panic": false,
+      "m_alert": false,
+      "l_alert": false,
+      "lb_alert": false,
+      "tv_alert": false,
+      "warn": false,
       "c": {
-        "futures": 25.6,
+        "futures": 14.1,
         "margin": 100.0
       }
     },
     {
       "date": "2025-08-18",
-      "score": 58.3,
+      "score": 52.6,
       "tx": 24483,
       "label": "無頂部訊號",
       "color": "#8a8a9a",
       "stance": "攻擊",
       "panic": false,
+      "m_alert": false,
+      "l_alert": true,
+      "lb_alert": false,
+      "tv_alert": false,
+      "warn": false,
       "c": {
-        "futures": 16.7,
+        "futures": 5.1,
         "margin": 100.0
       }
     },
     {
       "date": "2025-08-19",
-      "score": 60.6,
+      "score": 54.5,
       "tx": 24354,
       "label": "無頂部訊號",
       "color": "#8a8a9a",
       "stance": "攻擊",
       "panic": false,
+      "m_alert": false,
+      "l_alert": false,
+      "lb_alert": false,
+      "tv_alert": false,
+      "warn": false,
       "c": {
-        "futures": 21.1,
+        "futures": 9.0,
         "margin": 100.0
       }
     },
     {
       "date": "2025-08-20",
-      "score": 63.9,
+      "score": 58.3,
       "tx": 23625,
       "label": "無頂部訊號",
       "color": "#8a8a9a",
       "stance": "攻擊",
       "panic": false,
-      "c": {
-        "futures": 27.8,
-        "margin": 100.0
-      }
-    },
-    {
-      "date": "2025-08-21",
-      "score": 58.3,
-      "tx": 23962,
-      "label": "無頂部訊號",
-      "color": "#8a8a9a",
-      "stance": "攻擊",
-      "panic": false,
+      "m_alert": false,
+      "l_alert": false,
+      "lb_alert": false,
+      "tv_alert": false,
+      "warn": false,
       "c": {
         "futures": 16.7,
         "margin": 100.0
       }
     },
     {
+      "date": "2025-08-21",
+      "score": 51.9,
+      "tx": 23962,
+      "label": "無頂部訊號",
+      "color": "#8a8a9a",
+      "stance": "攻擊",
+      "panic": false,
+      "m_alert": false,
+      "l_alert": true,
+      "lb_alert": false,
+      "tv_alert": false,
+      "warn": false,
+      "c": {
+        "futures": 3.8,
+        "margin": 100.0
+      }
+    },
+    {
       "date": "2025-08-22",
-      "score": 53.9,
+      "score": 50.0,
       "tx": 23764,
       "label": "無頂部訊號",
       "color": "#8a8a9a",
       "stance": "防守",
       "panic": false,
+      "m_alert": false,
+      "l_alert": false,
+      "lb_alert": false,
+      "tv_alert": false,
+      "warn": false,
       "c": {
-        "futures": 7.8,
+        "futures": 0.0,
         "margin": 100.0
       }
     },
     {
       "date": "2025-08-25",
-      "score": 52.8,
+      "score": 50.0,
       "tx": 24277,
       "label": "無頂部訊號",
       "color": "#8a8a9a",
       "stance": "攻擊",
       "panic": false,
+      "m_alert": false,
+      "l_alert": true,
+      "lb_alert": false,
+      "tv_alert": false,
+      "warn": false,
       "c": {
-        "futures": 5.6,
+        "futures": 0.0,
         "margin": 100.0
       }
     },
     {
       "date": "2025-08-26",
-      "score": 55.6,
+      "score": 51.3,
       "tx": 24305,
       "label": "無頂部訊號",
       "color": "#8a8a9a",
       "stance": "攻擊",
       "panic": false,
+      "m_alert": false,
+      "l_alert": true,
+      "lb_alert": false,
+      "tv_alert": false,
+      "warn": false,
       "c": {
-        "futures": 11.1,
+        "futures": 2.6,
         "margin": 100.0
       }
     },
     {
       "date": "2025-08-27",
-      "score": 52.2,
+      "score": 50.0,
       "tx": 24520,
       "label": "無頂部訊號",
       "color": "#8a8a9a",
       "stance": "攻擊",
       "panic": false,
+      "m_alert": false,
+      "l_alert": true,
+      "lb_alert": false,
+      "tv_alert": false,
+      "warn": false,
       "c": {
-        "futures": 4.4,
+        "futures": 0.0,
         "margin": 100.0
       }
     },
     {
       "date": "2025-08-28",
-      "score": 53.9,
+      "score": 51.3,
       "tx": 24236,
       "label": "無頂部訊號",
       "color": "#8a8a9a",
       "stance": "攻擊",
       "panic": false,
+      "m_alert": false,
+      "l_alert": true,
+      "lb_alert": false,
+      "tv_alert": false,
+      "warn": false,
       "c": {
-        "futures": 7.8,
+        "futures": 2.6,
         "margin": 100.0
       }
     },
     {
       "date": "2025-08-29",
-      "score": 55.0,
+      "score": 51.9,
       "tx": 24233,
       "label": "無頂部訊號",
       "color": "#8a8a9a",
       "stance": "攻擊",
       "panic": false,
+      "m_alert": false,
+      "l_alert": true,
+      "lb_alert": false,
+      "tv_alert": false,
+      "warn": false,
       "c": {
-        "futures": 10.0,
+        "futures": 3.8,
         "margin": 100.0
       }
     },
     {
       "date": "2025-09-01",
-      "score": 55.6,
+      "score": 52.6,
       "tx": 24072,
       "label": "無頂部訊號",
       "color": "#8a8a9a",
       "stance": "攻擊",
       "panic": false,
+      "m_alert": false,
+      "l_alert": false,
+      "lb_alert": false,
+      "tv_alert": false,
+      "warn": false,
       "c": {
-        "futures": 11.1,
+        "futures": 5.1,
         "margin": 100.0
       }
     },
     {
       "date": "2025-09-02",
-      "score": 50.2,
+      "score": 49.1,
       "tx": 24017,
       "label": "無頂部訊號",
       "color": "#8a8a9a",
       "stance": "攻擊",
       "panic": false,
+      "m_alert": false,
+      "l_alert": false,
+      "lb_alert": false,
+      "tv_alert": false,
+      "warn": false,
       "c": {
-        "futures": 2.2,
+        "futures": 0.0,
         "margin": 98.2
       }
     },
     {
       "date": "2025-09-03",
-      "score": 51.9,
+      "score": 51.0,
       "tx": 24100,
       "label": "無頂部訊號",
       "color": "#8a8a9a",
       "stance": "防守",
       "panic": false,
+      "m_alert": false,
+      "l_alert": true,
+      "lb_alert": true,
+      "tv_alert": false,
+      "warn": false,
       "c": {
-        "futures": 4.4,
+        "futures": 2.6,
         "margin": 99.4
       }
     },
     {
       "date": "2025-09-04",
-      "score": 50.0,
+      "score": 48.8,
       "tx": 24180,
       "label": "無頂部訊號",
       "color": "#8a8a9a",
       "stance": "防守",
       "panic": false,
+      "m_alert": false,
+      "l_alert": true,
+      "lb_alert": true,
+      "tv_alert": false,
+      "warn": false,
       "c": {
-        "futures": 2.2,
+        "futures": 0.0,
         "margin": 97.7
       }
     },
@@ -601,6 +854,11 @@
       "color": "#8a8a9a",
       "stance": "攻擊",
       "panic": false,
+      "m_alert": false,
+      "l_alert": false,
+      "lb_alert": false,
+      "tv_alert": false,
+      "warn": false,
       "c": {
         "futures": 0.0,
         "margin": 100.0
@@ -614,8 +872,13 @@
       "color": "#8a8a9a",
       "stance": "攻擊",
       "panic": false,
+      "m_alert": false,
+      "l_alert": false,
+      "lb_alert": false,
+      "tv_alert": false,
+      "warn": false,
       "c": {
-        "futures": 1.1,
+        "futures": 1.3,
         "margin": 100.0
       }
     },
@@ -627,6 +890,11 @@
       "color": "#8a8a9a",
       "stance": "攻擊",
       "panic": false,
+      "m_alert": false,
+      "l_alert": false,
+      "lb_alert": false,
+      "tv_alert": false,
+      "warn": false,
       "c": {
         "futures": 0.0,
         "margin": 99.8
@@ -640,6 +908,11 @@
       "color": "#8a8a9a",
       "stance": "攻擊",
       "panic": false,
+      "m_alert": false,
+      "l_alert": true,
+      "lb_alert": false,
+      "tv_alert": false,
+      "warn": false,
       "c": {
         "futures": 0.0,
         "margin": 100.0
@@ -653,6 +926,11 @@
       "color": "#8a8a9a",
       "stance": "攻擊",
       "panic": false,
+      "m_alert": false,
+      "l_alert": false,
+      "lb_alert": false,
+      "tv_alert": false,
+      "warn": false,
       "c": {
         "futures": 0.0,
         "margin": 92.1
@@ -660,66 +938,91 @@
     },
     {
       "date": "2025-09-12",
-      "score": 46.0,
+      "score": 46.2,
       "tx": 25475,
       "label": "無頂部訊號",
       "color": "#8a8a9a",
       "stance": "攻擊",
       "panic": false,
+      "m_alert": false,
+      "l_alert": false,
+      "lb_alert": false,
+      "tv_alert": false,
+      "warn": false,
       "c": {
-        "futures": 2.2,
+        "futures": 2.6,
         "margin": 89.8
       }
     },
     {
       "date": "2025-09-15",
-      "score": 45.2,
+      "score": 45.6,
       "tx": 25357,
       "label": "無頂部訊號",
       "color": "#8a8a9a",
       "stance": "攻擊",
       "panic": false,
+      "m_alert": false,
+      "l_alert": false,
+      "lb_alert": false,
+      "tv_alert": false,
+      "warn": false,
       "c": {
-        "futures": 4.4,
+        "futures": 5.1,
         "margin": 86.0
       }
     },
     {
       "date": "2025-09-16",
-      "score": 44.7,
+      "score": 44.8,
       "tx": 25630,
       "label": "無頂部訊號",
       "color": "#8a8a9a",
       "stance": "攻擊",
       "panic": false,
+      "m_alert": false,
+      "l_alert": true,
+      "lb_alert": true,
+      "tv_alert": false,
+      "warn": false,
       "c": {
-        "futures": 2.2,
+        "futures": 2.6,
         "margin": 87.1
       }
     },
     {
       "date": "2025-09-17",
-      "score": 44.9,
+      "score": 45.3,
       "tx": 25438,
       "label": "無頂部訊號",
       "color": "#8a8a9a",
       "stance": "攻擊",
       "panic": false,
+      "m_alert": false,
+      "l_alert": false,
+      "lb_alert": false,
+      "tv_alert": false,
+      "warn": false,
       "c": {
-        "futures": 5.6,
+        "futures": 6.4,
         "margin": 84.2
       }
     },
     {
       "date": "2025-09-18",
-      "score": 44.5,
+      "score": 44.8,
       "tx": 25769,
       "label": "無頂部訊號",
       "color": "#8a8a9a",
       "stance": "攻擊",
       "panic": false,
+      "m_alert": false,
+      "l_alert": true,
+      "lb_alert": true,
+      "tv_alert": false,
+      "warn": false,
       "c": {
-        "futures": 3.3,
+        "futures": 3.8,
         "margin": 85.7
       }
     },
@@ -731,21 +1034,31 @@
       "color": "#8a8a9a",
       "stance": "攻擊",
       "panic": false,
+      "m_alert": false,
+      "l_alert": false,
+      "lb_alert": false,
+      "tv_alert": false,
+      "warn": false,
       "c": {
-        "futures": 1.1,
+        "futures": 1.3,
         "margin": 87.4
       }
     },
     {
       "date": "2025-09-22",
-      "score": 46.2,
+      "score": 46.3,
       "tx": 25881,
       "label": "無頂部訊號",
       "color": "#8a8a9a",
       "stance": "攻擊",
       "panic": false,
+      "m_alert": false,
+      "l_alert": false,
+      "lb_alert": false,
+      "tv_alert": false,
+      "warn": false,
       "c": {
-        "futures": 1.1,
+        "futures": 1.3,
         "margin": 91.3
       }
     },
@@ -757,6 +1070,11 @@
       "color": "#8a8a9a",
       "stance": "攻擊",
       "panic": false,
+      "m_alert": false,
+      "l_alert": false,
+      "lb_alert": false,
+      "tv_alert": false,
+      "warn": false,
       "c": {
         "futures": 0.0,
         "margin": 90.2
@@ -764,833 +1082,1153 @@
     },
     {
       "date": "2025-09-24",
-      "score": 51.8,
+      "score": 52.7,
       "tx": 26197,
       "label": "無頂部訊號",
       "color": "#8a8a9a",
       "stance": "攻擊",
       "panic": false,
+      "m_alert": false,
+      "l_alert": false,
+      "lb_alert": false,
+      "tv_alert": false,
+      "warn": false,
       "c": {
-        "futures": 12.2,
+        "futures": 14.1,
         "margin": 91.4
       }
     },
     {
       "date": "2025-09-25",
-      "score": 52.5,
+      "score": 53.6,
       "tx": 26024,
       "label": "無頂部訊號",
       "color": "#8a8a9a",
       "stance": "攻擊",
       "panic": false,
+      "m_alert": false,
+      "l_alert": false,
+      "lb_alert": false,
+      "tv_alert": false,
+      "warn": false,
       "c": {
-        "futures": 14.4,
+        "futures": 16.7,
         "margin": 90.6
       }
     },
     {
       "date": "2025-09-26",
-      "score": 52.5,
+      "score": 54.1,
       "tx": 25580,
       "label": "無頂部訊號",
       "color": "#8a8a9a",
       "stance": "防守",
       "panic": false,
+      "m_alert": false,
+      "l_alert": false,
+      "lb_alert": false,
+      "tv_alert": false,
+      "warn": false,
       "c": {
-        "futures": 21.1,
+        "futures": 24.4,
         "margin": 83.8
       }
     },
     {
       "date": "2025-09-30",
-      "score": 51.9,
+      "score": 53.1,
       "tx": 25821,
       "label": "無頂部訊號",
       "color": "#8a8a9a",
       "stance": "防守",
       "panic": false,
+      "m_alert": false,
+      "l_alert": false,
+      "lb_alert": false,
+      "tv_alert": false,
+      "warn": false,
       "c": {
-        "futures": 15.6,
+        "futures": 17.9,
         "margin": 88.3
       }
     },
     {
       "date": "2025-10-01",
-      "score": 52.9,
+      "score": 54.3,
       "tx": 25983,
       "label": "無頂部訊號",
       "color": "#8a8a9a",
       "stance": "防守",
       "panic": false,
+      "m_alert": false,
+      "l_alert": false,
+      "lb_alert": false,
+      "tv_alert": false,
+      "warn": false,
       "c": {
-        "futures": 17.8,
+        "futures": 20.5,
         "margin": 88.0
       }
     },
     {
       "date": "2025-10-02",
-      "score": 54.7,
+      "score": 56.2,
       "tx": 26378,
       "label": "無頂部訊號",
       "color": "#8a8a9a",
       "stance": "防守",
       "panic": false,
+      "m_alert": false,
+      "l_alert": false,
+      "lb_alert": false,
+      "tv_alert": false,
+      "warn": false,
       "c": {
-        "futures": 18.9,
+        "futures": 21.8,
         "margin": 90.6
       }
     },
     {
       "date": "2025-10-03",
-      "score": 53.2,
+      "score": 54.2,
       "tx": 26761,
       "label": "無頂部訊號",
       "color": "#8a8a9a",
       "stance": "防守",
       "panic": false,
+      "m_alert": false,
+      "l_alert": false,
+      "lb_alert": false,
+      "tv_alert": false,
+      "warn": false,
       "c": {
-        "futures": 13.3,
+        "futures": 15.4,
         "margin": 93.1
       }
     },
     {
       "date": "2025-10-07",
-      "score": 57.7,
+      "score": 59.4,
       "tx": 27212,
       "label": "無頂部訊號",
       "color": "#8a8a9a",
       "stance": "防守",
       "panic": false,
+      "m_alert": false,
+      "l_alert": false,
+      "lb_alert": false,
+      "tv_alert": false,
+      "warn": false,
       "c": {
-        "futures": 22.2,
+        "futures": 25.6,
         "margin": 93.3
       }
     },
     {
       "date": "2025-10-08",
-      "score": 64.4,
+      "score": 67.2,
       "tx": 27064,
       "label": "無頂部訊號",
       "color": "#8a8a9a",
       "stance": "防守",
       "panic": false,
+      "m_alert": false,
+      "l_alert": false,
+      "lb_alert": false,
+      "tv_alert": false,
+      "warn": false,
       "c": {
-        "futures": 36.7,
+        "futures": 42.3,
         "margin": 92.0
       }
     },
     {
       "date": "2025-10-09",
-      "score": 64.0,
+      "score": 66.6,
       "tx": 27302,
       "label": "無頂部訊號",
       "color": "#8a8a9a",
       "stance": "防守",
       "panic": false,
+      "m_alert": false,
+      "l_alert": false,
+      "lb_alert": false,
+      "tv_alert": false,
+      "warn": false,
       "c": {
-        "futures": 34.4,
+        "futures": 39.7,
         "margin": 93.5
       }
     },
     {
       "date": "2025-10-13",
-      "score": 64.3,
+      "score": 67.3,
       "tx": 26923,
       "label": "無頂部訊號",
       "color": "#8a8a9a",
       "stance": "防守",
       "panic": false,
+      "m_alert": false,
+      "l_alert": false,
+      "lb_alert": false,
+      "tv_alert": false,
+      "warn": false,
       "c": {
-        "futures": 40.0,
+        "futures": 46.2,
         "margin": 88.5
       }
     },
     {
       "date": "2025-10-14",
-      "score": 55.3,
+      "score": 57.9,
       "tx": 26793,
       "label": "無頂部訊號",
       "color": "#8a8a9a",
       "stance": "防守",
       "panic": false,
+      "m_alert": false,
+      "l_alert": false,
+      "lb_alert": false,
+      "tv_alert": false,
+      "warn": false,
       "c": {
-        "futures": 34.4,
+        "futures": 39.7,
         "margin": 76.1
       }
     },
     {
       "date": "2025-10-15",
-      "score": 49.0,
+      "score": 50.2,
       "tx": 27276,
       "label": "無頂部訊號",
       "color": "#8a8a9a",
       "stance": "防守",
       "panic": false,
+      "m_alert": false,
+      "l_alert": false,
+      "lb_alert": false,
+      "tv_alert": false,
+      "warn": false,
       "c": {
-        "futures": 15.6,
+        "futures": 17.9,
         "margin": 82.5
       }
     },
     {
       "date": "2025-10-16",
-      "score": 54.5,
+      "score": 56.0,
       "tx": 27648,
       "label": "無頂部訊號",
       "color": "#8a8a9a",
       "stance": "防守",
       "panic": false,
+      "m_alert": false,
+      "l_alert": false,
+      "lb_alert": false,
+      "tv_alert": false,
+      "warn": false,
       "c": {
-        "futures": 20.0,
+        "futures": 23.1,
         "margin": 88.9
       }
     },
     {
       "date": "2025-10-17",
-      "score": 58.8,
+      "score": 61.1,
       "tx": 27302,
       "label": "無頂部訊號",
       "color": "#8a8a9a",
       "stance": "防守",
       "panic": false,
+      "m_alert": false,
+      "l_alert": false,
+      "lb_alert": false,
+      "tv_alert": false,
+      "warn": false,
       "c": {
-        "futures": 30.0,
+        "futures": 34.6,
         "margin": 87.7
       }
     },
     {
       "date": "2025-10-20",
-      "score": 61.5,
+      "score": 63.8,
       "tx": 27689,
       "label": "無頂部訊號",
       "color": "#8a8a9a",
       "stance": "防守",
       "panic": false,
+      "m_alert": false,
+      "l_alert": false,
+      "lb_alert": false,
+      "tv_alert": false,
+      "warn": false,
       "c": {
-        "futures": 30.0,
+        "futures": 34.6,
         "margin": 93.0
       }
     },
     {
       "date": "2025-10-21",
-      "score": 58.6,
+      "score": 60.4,
       "tx": 27752,
       "label": "無頂部訊號",
       "color": "#8a8a9a",
       "stance": "防守",
       "panic": false,
+      "m_alert": false,
+      "l_alert": true,
+      "lb_alert": true,
+      "tv_alert": false,
+      "warn": false,
       "c": {
-        "futures": 23.3,
+        "futures": 26.9,
         "margin": 93.9
       }
     },
     {
       "date": "2025-10-22",
-      "score": 65.4,
+      "score": 68.2,
       "tx": 27649,
       "label": "無頂部訊號",
       "color": "#8a8a9a",
       "stance": "攻擊",
       "panic": false,
+      "m_alert": false,
+      "l_alert": false,
+      "lb_alert": false,
+      "tv_alert": false,
+      "warn": false,
       "c": {
-        "futures": 35.6,
+        "futures": 41.0,
         "margin": 95.3
       }
     },
     {
       "date": "2025-10-23",
-      "score": 60.6,
+      "score": 62.8,
       "tx": 27532,
       "label": "無頂部訊號",
       "color": "#8a8a9a",
       "stance": "攻擊",
       "panic": false,
+      "m_alert": false,
+      "l_alert": false,
+      "lb_alert": false,
+      "tv_alert": false,
+      "warn": false,
       "c": {
-        "futures": 27.8,
+        "futures": 32.1,
         "margin": 93.5
       }
     },
     {
       "date": "2025-10-27",
-      "score": 61.9,
+      "score": 64.0,
       "tx": 27994,
       "label": "無頂部訊號",
       "color": "#8a8a9a",
       "stance": "攻擊",
       "panic": false,
+      "m_alert": false,
+      "l_alert": false,
+      "lb_alert": false,
+      "tv_alert": false,
+      "warn": false,
       "c": {
-        "futures": 26.7,
+        "futures": 30.8,
         "margin": 97.2
       }
     },
     {
       "date": "2025-10-28",
-      "score": 70.3,
+      "score": 73.7,
       "tx": 27949,
       "label": "無頂部訊號",
       "color": "#8a8a9a",
       "stance": "防守",
       "panic": false,
+      "m_alert": false,
+      "l_alert": false,
+      "lb_alert": false,
+      "tv_alert": false,
+      "warn": false,
       "c": {
-        "futures": 44.4,
+        "futures": 51.3,
         "margin": 96.2
       }
     },
     {
       "date": "2025-10-29",
-      "score": 65.0,
+      "score": 67.3,
       "tx": 28295,
       "label": "無頂部訊號",
       "color": "#8a8a9a",
       "stance": "防守",
       "panic": false,
+      "m_alert": false,
+      "l_alert": false,
+      "lb_alert": false,
+      "tv_alert": false,
+      "warn": false,
       "c": {
-        "futures": 30.0,
+        "futures": 34.6,
         "margin": 100.0
       }
     },
     {
       "date": "2025-10-30",
-      "score": 63.4,
+      "score": 65.8,
       "tx": 28288,
       "label": "無頂部訊號",
       "color": "#8a8a9a",
       "stance": "防守",
       "panic": false,
+      "m_alert": false,
+      "l_alert": false,
+      "lb_alert": false,
+      "tv_alert": false,
+      "warn": false,
       "c": {
-        "futures": 31.1,
+        "futures": 35.9,
         "margin": 95.8
       }
     },
     {
       "date": "2025-10-31",
-      "score": 60.6,
+      "score": 62.3,
       "tx": 28233,
       "label": "無頂部訊號",
       "color": "#8a8a9a",
       "stance": "防守",
       "panic": false,
+      "m_alert": false,
+      "l_alert": false,
+      "lb_alert": false,
+      "tv_alert": false,
+      "warn": false,
       "c": {
-        "futures": 22.2,
+        "futures": 25.6,
         "margin": 99.0
       }
     },
     {
       "date": "2025-11-03",
-      "score": 74.4,
+      "score": 78.2,
       "tx": 28335,
       "label": "無頂部訊號",
       "color": "#8a8a9a",
       "stance": "防守",
       "panic": false,
+      "m_alert": false,
+      "l_alert": false,
+      "lb_alert": false,
+      "tv_alert": false,
+      "warn": false,
       "c": {
-        "futures": 48.9,
+        "futures": 56.4,
         "margin": 100.0
       }
     },
     {
       "date": "2025-11-04",
-      "score": 71.0,
+      "score": 74.7,
       "tx": 28117,
       "label": "無頂部訊號",
       "color": "#8a8a9a",
       "stance": "防守",
       "panic": false,
+      "m_alert": false,
+      "l_alert": false,
+      "lb_alert": false,
+      "tv_alert": false,
+      "warn": false,
       "c": {
-        "futures": 48.9,
+        "futures": 56.4,
         "margin": 93.0
       }
     },
     {
       "date": "2025-11-05",
-      "score": 75.4,
+      "score": 79.7,
       "tx": 27717,
       "label": "無頂部訊號",
       "color": "#8a8a9a",
       "stance": "防守",
       "panic": false,
+      "m_alert": false,
+      "l_alert": false,
+      "lb_alert": false,
+      "tv_alert": false,
+      "warn": false,
       "c": {
-        "futures": 55.6,
+        "futures": 64.1,
         "margin": 95.3
       }
     },
     {
       "date": "2025-11-06",
-      "score": 76.7,
+      "score": 80.8,
       "tx": 27899,
       "label": "無頂部訊號",
       "color": "#8a8a9a",
       "stance": "防守",
       "panic": false,
+      "m_alert": false,
+      "l_alert": false,
+      "lb_alert": false,
+      "tv_alert": false,
+      "warn": false,
       "c": {
-        "futures": 53.3,
+        "futures": 61.5,
         "margin": 100.0
       }
     },
     {
       "date": "2025-11-07",
-      "score": 77.4,
+      "score": 81.8,
       "tx": 27651,
       "label": "無頂部訊號",
       "color": "#8a8a9a",
       "stance": "防守",
       "panic": false,
+      "m_alert": false,
+      "l_alert": false,
+      "lb_alert": false,
+      "tv_alert": false,
+      "warn": false,
       "c": {
-        "futures": 56.7,
+        "futures": 65.4,
         "margin": 98.2
       }
     },
     {
       "date": "2025-11-10",
-      "score": 78.1,
+      "score": 82.4,
       "tx": 27870,
       "label": "無頂部訊號",
       "color": "#8a8a9a",
       "stance": "防守",
       "panic": false,
+      "m_alert": false,
+      "l_alert": false,
+      "lb_alert": false,
+      "tv_alert": false,
+      "warn": false,
       "c": {
-        "futures": 56.7,
+        "futures": 65.4,
         "margin": 99.5
       }
     },
     {
       "date": "2025-11-11",
-      "score": 78.0,
+      "score": 82.5,
       "tx": 27785,
       "label": "無頂部訊號",
       "color": "#8a8a9a",
       "stance": "防守",
       "panic": false,
+      "m_alert": false,
+      "l_alert": false,
+      "lb_alert": false,
+      "tv_alert": false,
+      "warn": false,
       "c": {
-        "futures": 58.9,
+        "futures": 67.9,
         "margin": 97.0
       }
     },
     {
       "date": "2025-11-12",
-      "score": 76.9,
+      "score": 81.1,
       "tx": 27947,
       "label": "無頂部訊號",
       "color": "#8a8a9a",
       "stance": "防守",
       "panic": false,
+      "m_alert": false,
+      "l_alert": false,
+      "lb_alert": false,
+      "tv_alert": false,
+      "warn": false,
       "c": {
-        "futures": 54.4,
+        "futures": 62.8,
         "margin": 99.4
       }
     },
     {
       "date": "2025-11-13",
-      "score": 79.3,
+      "score": 83.9,
       "tx": 27904,
       "label": "無頂部訊號",
       "color": "#8a8a9a",
       "stance": "防守",
       "panic": false,
+      "m_alert": false,
+      "l_alert": true,
+      "lb_alert": true,
+      "tv_alert": false,
+      "warn": false,
       "c": {
-        "futures": 60.0,
+        "futures": 69.2,
         "margin": 98.6
       }
     },
     {
       "date": "2025-11-14",
-      "score": 81.3,
+      "score": 86.7,
       "tx": 27398,
       "label": "無頂部訊號",
       "color": "#8a8a9a",
       "stance": "防守",
       "panic": false,
+      "m_alert": false,
+      "l_alert": false,
+      "lb_alert": false,
+      "tv_alert": false,
+      "warn": false,
       "c": {
-        "futures": 70.0,
+        "futures": 80.8,
         "margin": 92.6
       }
     },
     {
       "date": "2025-11-17",
-      "score": 76.1,
+      "score": 80.8,
       "tx": 27447,
       "label": "無頂部訊號",
       "color": "#8a8a9a",
       "stance": "防守",
       "panic": false,
+      "m_alert": false,
+      "l_alert": false,
+      "lb_alert": false,
+      "tv_alert": false,
+      "warn": false,
       "c": {
-        "futures": 61.1,
+        "futures": 70.5,
         "margin": 91.1
       }
     },
     {
       "date": "2025-11-18",
-      "score": 78.2,
+      "score": 83.8,
       "tx": 26756,
-      "label": "頂部過熱",
-      "color": "#ef4444",
+      "label": "無頂部訊號",
+      "color": "#8a8a9a",
       "stance": "防守",
       "panic": false,
+      "m_alert": false,
+      "l_alert": false,
+      "lb_alert": false,
+      "tv_alert": false,
+      "warn": false,
       "c": {
-        "futures": 73.3,
+        "futures": 84.6,
         "margin": 83.0
       }
     },
     {
       "date": "2025-11-19",
-      "score": 70.9,
+      "score": 75.5,
       "tx": 26580,
       "label": "無頂部訊號",
       "color": "#8a8a9a",
       "stance": "防守",
       "panic": false,
+      "m_alert": false,
+      "l_alert": false,
+      "lb_alert": false,
+      "tv_alert": false,
+      "warn": false,
       "c": {
-        "futures": 60.0,
+        "futures": 69.2,
         "margin": 81.7
       }
     },
     {
       "date": "2025-11-20",
-      "score": 56.6,
+      "score": 58.7,
       "tx": 27426,
       "label": "無頂部訊號",
       "color": "#8a8a9a",
       "stance": "防守",
       "panic": false,
+      "m_alert": false,
+      "l_alert": false,
+      "lb_alert": false,
+      "tv_alert": false,
+      "warn": false,
       "c": {
-        "futures": 27.8,
+        "futures": 32.1,
         "margin": 85.4
       }
     },
     {
       "date": "2025-11-21",
-      "score": 72.4,
+      "score": 77.7,
       "tx": 26435,
       "label": "無頂部訊號",
       "color": "#8a8a9a",
       "stance": "防守",
       "panic": false,
+      "m_alert": false,
+      "l_alert": false,
+      "lb_alert": false,
+      "tv_alert": false,
+      "warn": false,
       "c": {
-        "futures": 68.9,
+        "futures": 79.5,
         "margin": 75.9
       }
     },
     {
       "date": "2025-11-24",
-      "score": 70.5,
+      "score": 75.3,
       "tx": 26504,
       "label": "無頂部訊號",
       "color": "#8a8a9a",
       "stance": "防守",
       "panic": false,
+      "m_alert": false,
+      "l_alert": false,
+      "lb_alert": false,
+      "tv_alert": false,
+      "warn": false,
       "c": {
-        "futures": 62.2,
+        "futures": 71.8,
         "margin": 78.9
       }
     },
     {
       "date": "2025-11-25",
-      "score": 69.7,
+      "score": 73.9,
       "tx": 26912,
       "label": "無頂部訊號",
       "color": "#8a8a9a",
       "stance": "防守",
       "panic": false,
+      "m_alert": false,
+      "l_alert": false,
+      "lb_alert": false,
+      "tv_alert": false,
+      "warn": false,
       "c": {
-        "futures": 54.4,
+        "futures": 62.8,
         "margin": 85.0
       }
     },
     {
       "date": "2025-11-26",
-      "score": 67.8,
+      "score": 71.8,
       "tx": 27410,
       "label": "無頂部訊號",
       "color": "#8a8a9a",
       "stance": "防守",
       "panic": false,
+      "m_alert": false,
+      "l_alert": false,
+      "lb_alert": false,
+      "tv_alert": false,
+      "warn": false,
       "c": {
-        "futures": 52.2,
+        "futures": 60.3,
         "margin": 83.4
       }
     },
     {
       "date": "2025-11-27",
-      "score": 69.3,
+      "score": 73.4,
       "tx": 27555,
       "label": "無頂部訊號",
       "color": "#8a8a9a",
       "stance": "防守",
       "panic": false,
+      "m_alert": false,
+      "l_alert": false,
+      "lb_alert": false,
+      "tv_alert": false,
+      "warn": false,
       "c": {
-        "futures": 52.2,
+        "futures": 60.3,
         "margin": 86.5
       }
     },
     {
       "date": "2025-11-28",
-      "score": 67.0,
+      "score": 70.4,
       "tx": 27626,
       "label": "無頂部訊號",
       "color": "#8a8a9a",
       "stance": "攻擊",
       "panic": false,
+      "m_alert": false,
+      "l_alert": false,
+      "lb_alert": false,
+      "tv_alert": false,
+      "warn": false,
       "c": {
-        "futures": 44.4,
+        "futures": 51.3,
         "margin": 89.6
       }
     },
     {
       "date": "2025-12-01",
-      "score": 73.9,
+      "score": 78.2,
       "tx": 27343,
       "label": "無頂部訊號",
       "color": "#8a8a9a",
       "stance": "攻擊",
       "panic": false,
+      "m_alert": false,
+      "l_alert": false,
+      "lb_alert": false,
+      "tv_alert": false,
+      "warn": false,
       "c": {
-        "futures": 56.7,
+        "futures": 65.4,
         "margin": 91.1
       }
     },
     {
       "date": "2025-12-02",
-      "score": 72.2,
+      "score": 76.4,
       "tx": 27564,
       "label": "無頂部訊號",
       "color": "#8a8a9a",
       "stance": "攻擊",
       "panic": false,
+      "m_alert": false,
+      "l_alert": false,
+      "lb_alert": false,
+      "tv_alert": false,
+      "warn": false,
       "c": {
-        "futures": 54.4,
+        "futures": 62.8,
         "margin": 89.9
       }
     },
     {
       "date": "2025-12-03",
-      "score": 74.8,
+      "score": 79.4,
       "tx": 27793,
       "label": "無頂部訊號",
       "color": "#8a8a9a",
       "stance": "攻擊",
       "panic": false,
+      "m_alert": false,
+      "l_alert": false,
+      "lb_alert": false,
+      "tv_alert": false,
+      "warn": false,
       "c": {
-        "futures": 58.9,
+        "futures": 67.9,
         "margin": 90.8
       }
     },
     {
       "date": "2025-12-04",
-      "score": 75.6,
+      "score": 80.3,
       "tx": 27796,
       "label": "無頂部訊號",
       "color": "#8a8a9a",
       "stance": "攻擊",
       "panic": false,
+      "m_alert": false,
+      "l_alert": false,
+      "lb_alert": false,
+      "tv_alert": false,
+      "warn": false,
       "c": {
-        "futures": 60.0,
+        "futures": 69.2,
         "margin": 91.3
       }
     },
     {
       "date": "2025-12-05",
-      "score": 68.9,
+      "score": 72.6,
       "tx": 27981,
       "label": "無頂部訊號",
       "color": "#8a8a9a",
       "stance": "攻擊",
       "panic": false,
+      "m_alert": false,
+      "l_alert": false,
+      "lb_alert": false,
+      "tv_alert": false,
+      "warn": false,
       "c": {
-        "futures": 47.8,
+        "futures": 55.1,
         "margin": 90.1
       }
     },
     {
       "date": "2025-12-08",
-      "score": 71.7,
+      "score": 75.8,
       "tx": 28304,
       "label": "無頂部訊號",
       "color": "#8a8a9a",
       "stance": "攻擊",
       "panic": false,
+      "m_alert": false,
+      "l_alert": false,
+      "lb_alert": false,
+      "tv_alert": false,
+      "warn": false,
       "c": {
-        "futures": 52.2,
+        "futures": 60.3,
         "margin": 91.3
       }
     },
     {
       "date": "2025-12-09",
-      "score": 83.7,
+      "score": 89.4,
       "tx": 28183,
       "label": "無頂部訊號",
       "color": "#8a8a9a",
       "stance": "攻擊",
       "panic": false,
+      "m_alert": false,
+      "l_alert": false,
+      "lb_alert": false,
+      "tv_alert": false,
+      "warn": false,
       "c": {
-        "futures": 74.4,
+        "futures": 85.9,
         "margin": 93.0
       }
     },
     {
       "date": "2025-12-10",
-      "score": 75.2,
+      "score": 79.7,
       "tx": 28401,
       "label": "無頂部訊號",
       "color": "#8a8a9a",
       "stance": "攻擊",
       "panic": false,
+      "m_alert": false,
+      "l_alert": false,
+      "lb_alert": false,
+      "tv_alert": false,
+      "warn": false,
       "c": {
-        "futures": 57.8,
+        "futures": 66.7,
         "margin": 92.7
       }
     },
     {
       "date": "2025-12-11",
-      "score": 81.6,
+      "score": 86.6,
       "tx": 28025,
       "label": "無頂部訊號",
       "color": "#8a8a9a",
       "stance": "攻擊",
       "panic": false,
+      "m_alert": false,
+      "l_alert": false,
+      "lb_alert": false,
+      "tv_alert": false,
+      "warn": false,
       "c": {
-        "futures": 73.3,
+        "futures": 83.3,
         "margin": 89.9
       }
     },
     {
       "date": "2025-12-12",
-      "score": 76.7,
+      "score": 81.4,
       "tx": 28198,
       "label": "無頂部訊號",
       "color": "#8a8a9a",
       "stance": "攻擊",
       "panic": false,
+      "m_alert": false,
+      "l_alert": false,
+      "lb_alert": false,
+      "tv_alert": false,
+      "warn": false,
       "c": {
-        "futures": 61.1,
+        "futures": 70.5,
         "margin": 92.2
       }
     },
     {
       "date": "2025-12-15",
-      "score": 91.0,
+      "score": 95.2,
       "tx": 27867,
       "label": "無頂部訊號",
       "color": "#8a8a9a",
       "stance": "攻擊",
       "panic": false,
+      "m_alert": false,
+      "l_alert": false,
+      "lb_alert": false,
+      "tv_alert": false,
+      "warn": false,
       "c": {
-        "futures": 87.8,
+        "futures": 96.2,
         "margin": 94.2
       }
     },
     {
       "date": "2025-12-16",
-      "score": 89.1,
+      "score": 92.2,
       "tx": 27537,
       "label": "無頂部訊號",
       "color": "#8a8a9a",
       "stance": "攻擊",
       "panic": false,
+      "m_alert": false,
+      "l_alert": false,
+      "lb_alert": false,
+      "tv_alert": false,
+      "warn": false,
       "c": {
-        "futures": 90.0,
+        "futures": 96.2,
         "margin": 88.3
       }
     },
     {
       "date": "2025-12-17",
-      "score": 76.4,
+      "score": 79.8,
       "tx": 27525,
       "label": "無頂部訊號",
       "color": "#8a8a9a",
       "stance": "防守",
       "panic": false,
+      "m_alert": false,
+      "l_alert": false,
+      "lb_alert": false,
+      "tv_alert": false,
+      "warn": false,
       "c": {
-        "futures": 61.1,
+        "futures": 67.9,
         "margin": 91.7
       }
     },
     {
       "date": "2025-12-18",
-      "score": 75.4,
+      "score": 78.1,
       "tx": 27469,
       "label": "無頂部訊號",
       "color": "#8a8a9a",
       "stance": "防守",
       "panic": false,
+      "m_alert": false,
+      "l_alert": false,
+      "lb_alert": false,
+      "tv_alert": false,
+      "warn": false,
       "c": {
-        "futures": 60.0,
+        "futures": 65.4,
         "margin": 90.8
       }
     },
     {
       "date": "2025-12-19",
-      "score": 62.1,
+      "score": 64.6,
       "tx": 27696,
       "label": "無頂部訊號",
       "color": "#8a8a9a",
       "stance": "防守",
       "panic": false,
+      "m_alert": false,
+      "l_alert": false,
+      "lb_alert": false,
+      "tv_alert": false,
+      "warn": false,
       "c": {
-        "futures": 33.3,
+        "futures": 38.5,
         "margin": 90.8
       }
     },
     {
       "date": "2025-12-22",
-      "score": 67.2,
+      "score": 69.2,
       "tx": 28150,
       "label": "無頂部訊號",
       "color": "#8a8a9a",
       "stance": "防守",
       "panic": false,
+      "m_alert": false,
+      "l_alert": false,
+      "lb_alert": false,
+      "tv_alert": false,
+      "warn": false,
       "c": {
-        "futures": 42.2,
+        "futures": 46.2,
         "margin": 92.2
       }
     },
     {
       "date": "2025-12-23",
-      "score": 67.0,
+      "score": 69.5,
       "tx": 28310,
       "label": "無頂部訊號",
       "color": "#8a8a9a",
       "stance": "攻擊",
       "panic": false,
+      "m_alert": true,
+      "l_alert": false,
+      "lb_alert": false,
+      "tv_alert": false,
+      "warn": false,
       "c": {
-        "futures": 40.0,
+        "futures": 44.9,
         "margin": 94.1
       }
     },
     {
       "date": "2025-12-24",
-      "score": 64.3,
+      "score": 67.0,
       "tx": 28372,
       "label": "無頂部訊號",
       "color": "#8a8a9a",
       "stance": "攻擊",
       "panic": false,
+      "m_alert": true,
+      "l_alert": false,
+      "lb_alert": false,
+      "tv_alert": false,
+      "warn": false,
       "c": {
-        "futures": 34.4,
+        "futures": 39.7,
         "margin": 94.2
       }
     },
     {
       "date": "2025-12-26",
-      "score": 60.0,
+      "score": 62.0,
       "tx": 28556,
       "label": "無頂部訊號",
       "color": "#8a8a9a",
       "stance": "攻擊",
       "panic": false,
+      "m_alert": true,
+      "l_alert": false,
+      "lb_alert": false,
+      "tv_alert": false,
+      "warn": false,
       "c": {
-        "futures": 25.6,
+        "futures": 29.5,
         "margin": 94.5
       }
     },
     {
       "date": "2025-12-29",
-      "score": 56.6,
+      "score": 58.3,
       "tx": 28811,
       "label": "無頂部訊號",
       "color": "#8a8a9a",
       "stance": "攻擊",
       "panic": false,
+      "m_alert": true,
+      "l_alert": true,
+      "lb_alert": false,
+      "tv_alert": false,
+      "warn": false,
       "c": {
-        "futures": 21.1,
+        "futures": 24.4,
         "margin": 92.2
       }
     },
@@ -1602,6 +2240,11 @@
       "color": "#8a8a9a",
       "stance": "攻擊",
       "panic": false,
+      "m_alert": true,
+      "l_alert": false,
+      "lb_alert": false,
+      "tv_alert": false,
+      "warn": true,
       "c": {
         "futures": 50.0,
         "margin": 92.6
@@ -1615,411 +2258,571 @@
       "color": "#8a8a9a",
       "stance": "攻擊",
       "panic": false,
+      "m_alert": true,
+      "l_alert": false,
+      "lb_alert": false,
+      "tv_alert": false,
+      "warn": false,
       "c": {
-        "futures": 41.1,
+        "futures": 41.0,
         "margin": 93.9
       }
     },
     {
       "date": "2026-01-02",
-      "score": 60.9,
+      "score": 61.5,
       "tx": 29350,
       "label": "無頂部訊號",
       "color": "#8a8a9a",
       "stance": "攻擊",
       "panic": false,
+      "m_alert": true,
+      "l_alert": true,
+      "lb_alert": false,
+      "tv_alert": false,
+      "warn": false,
       "c": {
-        "futures": 24.4,
+        "futures": 25.6,
         "margin": 97.4
       }
     },
     {
       "date": "2026-01-05",
-      "score": 71.7,
+      "score": 70.5,
       "tx": 30105,
       "label": "無頂部訊號",
       "color": "#8a8a9a",
       "stance": "攻擊",
       "panic": false,
+      "m_alert": true,
+      "l_alert": true,
+      "lb_alert": true,
+      "tv_alert": false,
+      "warn": false,
       "c": {
-        "futures": 43.3,
+        "futures": 41.0,
         "margin": 100.0
       }
     },
     {
       "date": "2026-01-06",
-      "score": 88.3,
+      "score": 86.5,
       "tx": 30576,
       "label": "無頂部訊號",
       "color": "#8a8a9a",
       "stance": "攻擊",
       "panic": false,
+      "m_alert": true,
+      "l_alert": true,
+      "lb_alert": false,
+      "tv_alert": false,
+      "warn": false,
       "c": {
-        "futures": 76.7,
+        "futures": 73.1,
         "margin": 100.0
       }
     },
     {
       "date": "2026-01-07",
-      "score": 87.2,
+      "score": 85.3,
       "tx": 30435,
       "label": "無頂部訊號",
       "color": "#8a8a9a",
       "stance": "攻擊",
       "panic": false,
+      "m_alert": true,
+      "l_alert": true,
+      "lb_alert": false,
+      "tv_alert": false,
+      "warn": false,
       "c": {
-        "futures": 74.4,
+        "futures": 70.5,
         "margin": 100.0
       }
     },
     {
       "date": "2026-01-08",
-      "score": 72.9,
+      "score": 70.8,
       "tx": 30361,
       "label": "無頂部訊號",
       "color": "#8a8a9a",
       "stance": "攻擊",
       "panic": false,
+      "m_alert": false,
+      "l_alert": false,
+      "lb_alert": false,
+      "tv_alert": false,
+      "warn": false,
       "c": {
-        "futures": 48.9,
+        "futures": 44.9,
         "margin": 96.8
       }
     },
     {
       "date": "2026-01-09",
-      "score": 74.1,
+      "score": 71.3,
       "tx": 30289,
       "label": "無頂部訊號",
       "color": "#8a8a9a",
       "stance": "攻擊",
       "panic": false,
+      "m_alert": false,
+      "l_alert": false,
+      "lb_alert": false,
+      "tv_alert": false,
+      "warn": false,
       "c": {
-        "futures": 54.4,
+        "futures": 48.7,
         "margin": 93.8
       }
     },
     {
       "date": "2026-01-12",
-      "score": 77.7,
+      "score": 74.3,
       "tx": 30567,
       "label": "無頂部訊號",
       "color": "#8a8a9a",
       "stance": "攻擊",
       "panic": false,
+      "m_alert": false,
+      "l_alert": true,
+      "lb_alert": false,
+      "tv_alert": false,
+      "warn": false,
       "c": {
-        "futures": 56.7,
+        "futures": 50.0,
         "margin": 98.7
       }
     },
     {
       "date": "2026-01-13",
-      "score": 87.8,
+      "score": 86.3,
       "tx": 30707,
       "label": "無頂部訊號",
       "color": "#8a8a9a",
       "stance": "攻擊",
       "panic": false,
+      "m_alert": false,
+      "l_alert": true,
+      "lb_alert": false,
+      "tv_alert": false,
+      "warn": false,
       "c": {
-        "futures": 80.0,
+        "futures": 76.9,
         "margin": 95.6
       }
     },
     {
       "date": "2026-01-14",
-      "score": 96.5,
+      "score": 96.1,
       "tx": 30942,
       "label": "無頂部訊號",
       "color": "#8a8a9a",
       "stance": "攻擊",
       "panic": false,
+      "m_alert": false,
+      "l_alert": true,
+      "lb_alert": false,
+      "tv_alert": false,
+      "warn": false,
       "c": {
-        "futures": 95.6,
+        "futures": 94.9,
         "margin": 97.4
       }
     },
     {
       "date": "2026-01-15",
-      "score": 97.7,
+      "score": 97.6,
       "tx": 30811,
       "label": "頂部過熱",
       "color": "#ef4444",
       "stance": "攻擊",
       "panic": false,
+      "m_alert": false,
+      "l_alert": true,
+      "lb_alert": false,
+      "tv_alert": false,
+      "warn": false,
       "c": {
-        "futures": 98.9,
+        "futures": 98.7,
         "margin": 96.4
       }
     },
     {
       "date": "2026-01-16",
-      "score": 95.8,
+      "score": 95.2,
       "tx": 31409,
       "label": "無頂部訊號",
       "color": "#8a8a9a",
       "stance": "攻擊",
       "panic": false,
+      "m_alert": false,
+      "l_alert": true,
+      "lb_alert": false,
+      "tv_alert": false,
+      "warn": false,
       "c": {
-        "futures": 92.2,
+        "futures": 91.0,
         "margin": 99.5
       }
     },
     {
       "date": "2026-01-19",
-      "score": 96.7,
+      "score": 96.2,
       "tx": 31639,
       "label": "無頂部訊號",
       "color": "#8a8a9a",
       "stance": "攻擊",
       "panic": false,
+      "m_alert": false,
+      "l_alert": true,
+      "lb_alert": false,
+      "tv_alert": false,
+      "warn": false,
       "c": {
-        "futures": 93.3,
+        "futures": 92.3,
         "margin": 100.0
       }
     },
     {
       "date": "2026-01-20",
-      "score": 93.9,
+      "score": 92.9,
       "tx": 31760,
       "label": "無頂部訊號",
       "color": "#8a8a9a",
       "stance": "攻擊",
       "panic": false,
+      "m_alert": false,
+      "l_alert": true,
+      "lb_alert": false,
+      "tv_alert": false,
+      "warn": false,
       "c": {
-        "futures": 87.8,
+        "futures": 85.9,
         "margin": 100.0
       }
     },
     {
       "date": "2026-01-21",
-      "score": 64.6,
+      "score": 59.3,
       "tx": 31246,
       "label": "無頂部訊號",
       "color": "#8a8a9a",
       "stance": "攻擊",
       "panic": false,
+      "m_alert": false,
+      "l_alert": true,
+      "lb_alert": false,
+      "tv_alert": false,
+      "warn": false,
       "c": {
-        "futures": 32.2,
+        "futures": 21.8,
         "margin": 96.9
       }
     },
     {
       "date": "2026-01-22",
-      "score": 63.6,
+      "score": 58.7,
       "tx": 31746,
       "label": "無頂部訊號",
       "color": "#8a8a9a",
       "stance": "攻擊",
       "panic": false,
+      "m_alert": false,
+      "l_alert": true,
+      "lb_alert": false,
+      "tv_alert": false,
+      "warn": false,
       "c": {
-        "futures": 27.8,
+        "futures": 17.9,
         "margin": 99.4
       }
     },
     {
       "date": "2026-01-23",
-      "score": 58.9,
+      "score": 53.2,
       "tx": 31962,
       "label": "無頂部訊號",
       "color": "#8a8a9a",
       "stance": "攻擊",
       "panic": false,
+      "m_alert": false,
+      "l_alert": true,
+      "lb_alert": false,
+      "tv_alert": false,
+      "warn": false,
       "c": {
-        "futures": 17.8,
+        "futures": 6.4,
         "margin": 100.0
       }
     },
     {
       "date": "2026-01-26",
-      "score": 73.3,
+      "score": 69.2,
       "tx": 32065,
       "label": "無頂部訊號",
       "color": "#8a8a9a",
       "stance": "攻擊",
       "panic": false,
+      "m_alert": false,
+      "l_alert": true,
+      "lb_alert": false,
+      "tv_alert": false,
+      "warn": false,
       "c": {
-        "futures": 46.7,
+        "futures": 38.5,
         "margin": 100.0
       }
     },
     {
       "date": "2026-01-27",
-      "score": 68.9,
+      "score": 64.1,
       "tx": 32318,
       "label": "無頂部訊號",
       "color": "#8a8a9a",
       "stance": "攻擊",
       "panic": false,
+      "m_alert": false,
+      "l_alert": true,
+      "lb_alert": false,
+      "tv_alert": false,
+      "warn": false,
       "c": {
-        "futures": 37.8,
+        "futures": 28.2,
         "margin": 100.0
       }
     },
     {
       "date": "2026-01-28",
-      "score": 77.8,
+      "score": 74.4,
       "tx": 32804,
       "label": "無頂部訊號",
       "color": "#8a8a9a",
       "stance": "攻擊",
       "panic": false,
+      "m_alert": false,
+      "l_alert": true,
+      "lb_alert": false,
+      "tv_alert": false,
+      "warn": false,
       "c": {
-        "futures": 55.6,
+        "futures": 48.7,
         "margin": 100.0
       }
     },
     {
       "date": "2026-01-29",
-      "score": 92.2,
+      "score": 91.3,
       "tx": 32536,
       "label": "無頂部訊號",
       "color": "#8a8a9a",
       "stance": "攻擊",
       "panic": false,
+      "m_alert": false,
+      "l_alert": false,
+      "lb_alert": false,
+      "tv_alert": false,
+      "warn": false,
       "c": {
-        "futures": 87.8,
+        "futures": 85.9,
         "margin": 96.6
       }
     },
     {
       "date": "2026-01-30",
-      "score": 91.0,
+      "score": 89.9,
       "tx": 32064,
       "label": "無頂部訊號",
       "color": "#8a8a9a",
       "stance": "攻擊",
       "panic": false,
+      "m_alert": false,
+      "l_alert": false,
+      "lb_alert": false,
+      "tv_alert": false,
+      "warn": false,
       "c": {
-        "futures": 85.6,
+        "futures": 83.3,
         "margin": 96.4
       }
     },
     {
       "date": "2026-02-02",
-      "score": 69.7,
+      "score": 67.1,
       "tx": 31624,
       "label": "無頂部訊號",
       "color": "#8a8a9a",
       "stance": "防守",
       "panic": false,
+      "m_alert": false,
+      "l_alert": false,
+      "lb_alert": false,
+      "tv_alert": false,
+      "warn": false,
       "c": {
-        "futures": 50.0,
+        "futures": 44.9,
         "margin": 89.4
       }
     },
     {
       "date": "2026-02-03",
-      "score": 66.0,
+      "score": 63.4,
       "tx": 32195,
       "label": "無頂部訊號",
       "color": "#8a8a9a",
       "stance": "防守",
       "panic": false,
+      "m_alert": false,
+      "l_alert": false,
+      "lb_alert": false,
+      "tv_alert": false,
+      "warn": false,
       "c": {
-        "futures": 41.1,
+        "futures": 35.9,
         "margin": 91.0
       }
     },
     {
       "date": "2026-02-04",
-      "score": 62.8,
+      "score": 60.3,
       "tx": 32290,
       "label": "無頂部訊號",
       "color": "#8a8a9a",
       "stance": "防守",
       "panic": false,
+      "m_alert": false,
+      "l_alert": true,
+      "lb_alert": true,
+      "tv_alert": false,
+      "warn": false,
       "c": {
-        "futures": 34.4,
+        "futures": 29.5,
         "margin": 91.1
       }
     },
     {
       "date": "2026-02-05",
-      "score": 65.9,
+      "score": 64.1,
       "tx": 31801,
       "label": "無頂部訊號",
       "color": "#8a8a9a",
       "stance": "防守",
       "panic": false,
+      "m_alert": false,
+      "l_alert": false,
+      "lb_alert": false,
+      "tv_alert": false,
+      "warn": false,
       "c": {
-        "futures": 43.3,
+        "futures": 39.7,
         "margin": 88.5
       }
     },
     {
       "date": "2026-02-06",
-      "score": 52.6,
+      "score": 50.2,
       "tx": 31783,
       "label": "無頂部訊號",
       "color": "#8a8a9a",
       "stance": "防守",
       "panic": false,
+      "m_alert": false,
+      "l_alert": false,
+      "lb_alert": false,
+      "tv_alert": false,
+      "warn": false,
       "c": {
-        "futures": 26.7,
+        "futures": 21.8,
         "margin": 78.6
       }
     },
     {
       "date": "2026-02-09",
-      "score": 46.2,
+      "score": 43.4,
       "tx": 32405,
       "label": "無頂部訊號",
       "color": "#8a8a9a",
       "stance": "防守",
       "panic": false,
+      "m_alert": false,
+      "l_alert": false,
+      "lb_alert": false,
+      "tv_alert": false,
+      "warn": false,
       "c": {
-        "futures": 13.3,
+        "futures": 7.7,
         "margin": 79.1
       }
     },
     {
       "date": "2026-02-10",
-      "score": 49.9,
+      "score": 48.0,
       "tx": 33073,
       "label": "無頂部訊號",
       "color": "#8a8a9a",
       "stance": "防守",
       "panic": false,
+      "m_alert": false,
+      "l_alert": false,
+      "lb_alert": false,
+      "tv_alert": false,
+      "warn": false,
       "c": {
-        "futures": 24.4,
+        "futures": 20.5,
         "margin": 75.4
       }
     },
     {
       "date": "2026-02-11",
-      "score": 59.4,
+      "score": 57.4,
       "tx": 33606,
       "label": "無頂部訊號",
       "color": "#8a8a9a",
       "stance": "防守",
       "panic": false,
+      "m_alert": false,
+      "l_alert": false,
+      "lb_alert": false,
+      "tv_alert": false,
+      "warn": false,
       "c": {
-        "futures": 48.9,
+        "futures": 44.9,
         "margin": 69.9
       }
     },
     {
       "date": "2026-02-23",
-      "score": 74.6,
+      "score": 73.3,
       "tx": 33773,
       "label": "無頂部訊號",
       "color": "#8a8a9a",
       "stance": "防守",
       "panic": false,
+      "m_alert": false,
+      "l_alert": true,
+      "lb_alert": true,
+      "tv_alert": false,
+      "warn": false,
       "c": {
-        "futures": 75.6,
+        "futures": 73.1,
         "margin": 73.6
       }
     },
     {
       "date": "2026-02-24",
-      "score": 71.0,
+      "score": 69.4,
       "tx": 34701,
       "label": "無頂部訊號",
       "color": "#8a8a9a",
       "stance": "攻擊",
       "panic": false,
+      "m_alert": false,
+      "l_alert": true,
+      "lb_alert": false,
+      "tv_alert": false,
+      "warn": false,
       "c": {
-        "futures": 63.3,
+        "futures": 60.3,
         "margin": 78.6
       }
     },
@@ -2031,21 +2834,31 @@
       "color": "#ef4444",
       "stance": "攻擊",
       "panic": false,
+      "m_alert": false,
+      "l_alert": true,
+      "lb_alert": false,
+      "tv_alert": true,
+      "warn": false,
       "c": {
-        "futures": 98.9,
+        "futures": 98.7,
         "margin": 83.8
       }
     },
     {
       "date": "2026-02-26",
-      "score": 94.4,
+      "score": 94.3,
       "tx": 35414,
       "label": "頂部過熱",
       "color": "#ef4444",
       "stance": "攻擊",
       "panic": false,
+      "m_alert": false,
+      "l_alert": true,
+      "lb_alert": false,
+      "tv_alert": true,
+      "warn": false,
       "c": {
-        "futures": 98.9,
+        "futures": 98.7,
         "margin": 89.9
       }
     },
@@ -2057,463 +2870,643 @@
       "color": "#ef4444",
       "stance": "攻擊",
       "panic": false,
+      "m_alert": false,
+      "l_alert": true,
+      "lb_alert": false,
+      "tv_alert": true,
+      "warn": false,
       "c": {
-        "futures": 98.9,
+        "futures": 98.7,
         "margin": 90.4
       }
     },
     {
       "date": "2026-03-03",
-      "score": 89.5,
+      "score": 89.3,
       "tx": 34324,
       "label": "無頂部訊號",
       "color": "#8a8a9a",
       "stance": "攻擊",
       "panic": false,
+      "m_alert": false,
+      "l_alert": false,
+      "lb_alert": false,
+      "tv_alert": false,
+      "warn": true,
       "c": {
-        "futures": 97.8,
+        "futures": 97.4,
         "margin": 81.2
       }
     },
     {
       "date": "2026-03-04",
-      "score": 85.3,
+      "score": 85.2,
       "tx": 32829,
       "label": "頂部過熱",
       "color": "#ef4444",
       "stance": "防守",
       "panic": false,
+      "m_alert": false,
+      "l_alert": false,
+      "lb_alert": false,
+      "tv_alert": false,
+      "warn": false,
       "c": {
-        "futures": 98.9,
+        "futures": 98.7,
         "margin": 71.6
       }
     },
     {
       "date": "2026-03-05",
-      "score": 85.2,
+      "score": 85.0,
       "tx": 33673,
       "label": "無頂部訊號",
       "color": "#8a8a9a",
       "stance": "防守",
       "panic": false,
+      "m_alert": false,
+      "l_alert": false,
+      "lb_alert": false,
+      "tv_alert": false,
+      "warn": false,
       "c": {
-        "futures": 96.7,
+        "futures": 96.2,
         "margin": 73.8
       }
     },
     {
       "date": "2026-03-06",
-      "score": 85.8,
+      "score": 85.4,
       "tx": 33600,
       "label": "無頂部訊號",
       "color": "#8a8a9a",
       "stance": "防守",
       "panic": false,
+      "m_alert": false,
+      "l_alert": true,
+      "lb_alert": true,
+      "tv_alert": false,
+      "warn": false,
       "c": {
-        "futures": 94.4,
+        "futures": 93.6,
         "margin": 77.1
       }
     },
     {
       "date": "2026-03-09",
-      "score": 79.6,
+      "score": 79.2,
       "tx": 32110,
       "label": "無頂部訊號",
       "color": "#8a8a9a",
       "stance": "防守",
       "panic": false,
+      "m_alert": false,
+      "l_alert": false,
+      "lb_alert": false,
+      "tv_alert": false,
+      "warn": false,
       "c": {
-        "futures": 95.6,
+        "futures": 94.9,
         "margin": 63.6
       }
     },
     {
       "date": "2026-03-10",
-      "score": 75.3,
+      "score": 74.7,
       "tx": 32772,
       "label": "無頂部訊號",
       "color": "#8a8a9a",
       "stance": "防守",
       "panic": false,
+      "m_alert": false,
+      "l_alert": false,
+      "lb_alert": false,
+      "tv_alert": false,
+      "warn": false,
       "c": {
-        "futures": 92.2,
+        "futures": 91.0,
         "margin": 58.3
       }
     },
     {
       "date": "2026-03-11",
-      "score": 81.6,
+      "score": 81.2,
       "tx": 34114,
       "label": "無頂部訊號",
       "color": "#8a8a9a",
       "stance": "防守",
       "panic": false,
+      "m_alert": false,
+      "l_alert": true,
+      "lb_alert": true,
+      "tv_alert": false,
+      "warn": false,
       "c": {
-        "futures": 95.6,
+        "futures": 94.9,
         "margin": 67.6
       }
     },
     {
       "date": "2026-03-12",
-      "score": 85.0,
+      "score": 84.9,
       "tx": 33582,
       "label": "頂部過熱",
       "color": "#ef4444",
       "stance": "防守",
       "panic": false,
+      "m_alert": false,
+      "l_alert": true,
+      "lb_alert": true,
+      "tv_alert": true,
+      "warn": false,
       "c": {
-        "futures": 98.9,
+        "futures": 98.7,
         "margin": 71.1
       }
     },
     {
       "date": "2026-03-13",
-      "score": 84.7,
+      "score": 84.0,
       "tx": 33400,
       "label": "無頂部訊號",
       "color": "#8a8a9a",
-      "stance": "攻擊",
+      "stance": "防守",
       "panic": false,
+      "m_alert": false,
+      "l_alert": true,
+      "lb_alert": true,
+      "tv_alert": false,
+      "warn": false,
       "c": {
-        "futures": 91.1,
+        "futures": 89.7,
         "margin": 78.3
       }
     },
     {
       "date": "2026-03-16",
-      "score": 87.7,
+      "score": 86.8,
       "tx": 33343,
       "label": "無頂部訊號",
       "color": "#8a8a9a",
       "stance": "防守",
       "panic": false,
+      "m_alert": false,
+      "l_alert": true,
+      "lb_alert": true,
+      "tv_alert": false,
+      "warn": false,
       "c": {
-        "futures": 88.9,
+        "futures": 87.2,
         "margin": 86.5
       }
     },
     {
       "date": "2026-03-17",
-      "score": 86.4,
+      "score": 85.3,
       "tx": 33837,
       "label": "無頂部訊號",
       "color": "#8a8a9a",
       "stance": "攻擊",
       "panic": false,
+      "m_alert": false,
+      "l_alert": true,
+      "lb_alert": false,
+      "tv_alert": false,
+      "warn": false,
       "c": {
-        "futures": 85.6,
+        "futures": 83.3,
         "margin": 87.2
       }
     },
     {
       "date": "2026-03-18",
-      "score": 87.2,
+      "score": 86.4,
       "tx": 34349,
       "label": "無頂部訊號",
       "color": "#8a8a9a",
       "stance": "攻擊",
       "panic": false,
+      "m_alert": false,
+      "l_alert": true,
+      "lb_alert": false,
+      "tv_alert": false,
+      "warn": false,
       "c": {
-        "futures": 80.0,
+        "futures": 78.2,
         "margin": 94.5
       }
     },
     {
       "date": "2026-03-19",
-      "score": 94.8,
+      "score": 94.3,
       "tx": 33690,
       "label": "無頂部訊號",
       "color": "#8a8a9a",
       "stance": "攻擊",
       "panic": false,
+      "m_alert": false,
+      "l_alert": true,
+      "lb_alert": false,
+      "tv_alert": false,
+      "warn": false,
       "c": {
-        "futures": 93.3,
+        "futures": 92.3,
         "margin": 96.2
       }
     },
     {
       "date": "2026-03-20",
-      "score": 87.9,
+      "score": 86.8,
       "tx": 33544,
       "label": "無頂部訊號",
       "color": "#8a8a9a",
       "stance": "攻擊",
       "panic": false,
+      "m_alert": false,
+      "l_alert": false,
+      "lb_alert": false,
+      "tv_alert": false,
+      "warn": false,
       "c": {
-        "futures": 85.6,
+        "futures": 83.3,
         "margin": 90.2
       }
     },
     {
       "date": "2026-03-23",
-      "score": 84.3,
+      "score": 83.3,
       "tx": 32722,
       "label": "無頂部訊號",
       "color": "#8a8a9a",
       "stance": "防守",
       "panic": false,
+      "m_alert": false,
+      "l_alert": false,
+      "lb_alert": false,
+      "tv_alert": false,
+      "warn": false,
       "c": {
-        "futures": 86.7,
+        "futures": 84.6,
         "margin": 82.0
       }
     },
     {
       "date": "2026-03-24",
-      "score": 75.5,
+      "score": 74.8,
       "tx": 32612,
       "label": "無頂部訊號",
       "color": "#8a8a9a",
       "stance": "防守",
       "panic": false,
+      "m_alert": false,
+      "l_alert": false,
+      "lb_alert": false,
+      "tv_alert": false,
+      "warn": false,
       "c": {
-        "futures": 74.4,
+        "futures": 73.1,
         "margin": 76.6
       }
     },
     {
       "date": "2026-03-25",
-      "score": 82.5,
+      "score": 81.1,
       "tx": 33439,
       "label": "無頂部訊號",
       "color": "#8a8a9a",
       "stance": "防守",
       "panic": false,
+      "m_alert": false,
+      "l_alert": true,
+      "lb_alert": true,
+      "tv_alert": false,
+      "warn": false,
       "c": {
-        "futures": 81.1,
+        "futures": 78.2,
         "margin": 83.9
       }
     },
     {
       "date": "2026-03-26",
-      "score": 81.1,
+      "score": 79.9,
       "tx": 33338,
       "label": "無頂部訊號",
       "color": "#8a8a9a",
       "stance": "防守",
       "panic": false,
+      "m_alert": false,
+      "l_alert": false,
+      "lb_alert": false,
+      "tv_alert": false,
+      "warn": false,
       "c": {
-        "futures": 85.6,
+        "futures": 83.3,
         "margin": 76.6
       }
     },
     {
       "date": "2026-03-27",
-      "score": 84.5,
+      "score": 83.7,
       "tx": 33113,
       "label": "無頂部訊號",
       "color": "#8a8a9a",
       "stance": "防守",
       "panic": false,
+      "m_alert": false,
+      "l_alert": false,
+      "lb_alert": false,
+      "tv_alert": false,
+      "warn": false,
       "c": {
-        "futures": 88.9,
+        "futures": 87.2,
         "margin": 80.1
       }
     },
     {
       "date": "2026-03-30",
-      "score": 81.2,
+      "score": 80.0,
       "tx": 32518,
       "label": "無頂部訊號",
       "color": "#8a8a9a",
       "stance": "防守",
       "panic": false,
+      "m_alert": false,
+      "l_alert": false,
+      "lb_alert": false,
+      "tv_alert": false,
+      "warn": false,
       "c": {
-        "futures": 84.4,
+        "futures": 82.1,
         "margin": 78.0
       }
     },
     {
       "date": "2026-03-31",
-      "score": 70.9,
+      "score": 69.6,
       "tx": 31723,
       "label": "無頂部訊號",
       "color": "#8a8a9a",
       "stance": "防守",
       "panic": true,
+      "m_alert": false,
+      "l_alert": false,
+      "lb_alert": false,
+      "tv_alert": false,
+      "warn": false,
       "c": {
-        "futures": 83.3,
+        "futures": 80.8,
         "margin": 58.4
       }
     },
     {
       "date": "2026-04-01",
-      "score": 59.5,
+      "score": 59.3,
       "tx": 33175,
       "label": "無頂部訊號",
       "color": "#8a8a9a",
       "stance": "防守",
       "panic": false,
+      "m_alert": false,
+      "l_alert": true,
+      "lb_alert": true,
+      "tv_alert": false,
+      "warn": false,
       "c": {
-        "futures": 55.6,
+        "futures": 55.1,
         "margin": 63.4
       }
     },
     {
       "date": "2026-04-02",
-      "score": 67.8,
+      "score": 66.3,
       "tx": 32572,
       "label": "無頂部訊號",
       "color": "#8a8a9a",
       "stance": "防守",
       "panic": false,
+      "m_alert": false,
+      "l_alert": false,
+      "lb_alert": false,
+      "tv_alert": false,
+      "warn": false,
       "c": {
-        "futures": 72.2,
+        "futures": 69.2,
         "margin": 63.3
       }
     },
     {
       "date": "2026-04-07",
-      "score": 61.6,
+      "score": 60.1,
       "tx": 33230,
       "label": "無頂部訊號",
       "color": "#8a8a9a",
       "stance": "防守",
       "panic": false,
+      "m_alert": false,
+      "l_alert": false,
+      "lb_alert": false,
+      "tv_alert": false,
+      "warn": false,
       "c": {
-        "futures": 55.6,
+        "futures": 52.6,
         "margin": 67.6
       }
     },
     {
       "date": "2026-04-08",
-      "score": 69.9,
+      "score": 68.0,
       "tx": 34761,
       "label": "無頂部訊號",
       "color": "#8a8a9a",
       "stance": "防守",
       "panic": false,
+      "m_alert": false,
+      "l_alert": true,
+      "lb_alert": true,
+      "tv_alert": false,
+      "warn": false,
       "c": {
-        "futures": 58.9,
+        "futures": 55.1,
         "margin": 80.9
       }
     },
     {
       "date": "2026-04-09",
-      "score": 74.7,
+      "score": 72.0,
       "tx": 34861,
       "label": "無頂部訊號",
       "color": "#8a8a9a",
       "stance": "攻擊",
       "panic": false,
+      "m_alert": false,
+      "l_alert": true,
+      "lb_alert": false,
+      "tv_alert": false,
+      "warn": false,
       "c": {
-        "futures": 65.6,
+        "futures": 60.3,
         "margin": 83.8
       }
     },
     {
       "date": "2026-04-10",
-      "score": 82.1,
+      "score": 79.9,
       "tx": 35418,
       "label": "無頂部訊號",
       "color": "#8a8a9a",
       "stance": "攻擊",
       "panic": false,
+      "m_alert": false,
+      "l_alert": true,
+      "lb_alert": false,
+      "tv_alert": false,
+      "warn": false,
       "c": {
-        "futures": 71.1,
+        "futures": 66.7,
         "margin": 93.1
       }
     },
     {
       "date": "2026-04-13",
-      "score": 88.3,
+      "score": 86.5,
       "tx": 35457,
       "label": "無頂部訊號",
       "color": "#8a8a9a",
       "stance": "攻擊",
       "panic": false,
+      "m_alert": false,
+      "l_alert": true,
+      "lb_alert": false,
+      "tv_alert": false,
+      "warn": false,
       "c": {
-        "futures": 76.7,
+        "futures": 73.1,
         "margin": 100.0
       }
     },
     {
       "date": "2026-04-14",
-      "score": 90.0,
+      "score": 88.5,
       "tx": 36296,
       "label": "無頂部訊號",
       "color": "#8a8a9a",
       "stance": "攻擊",
       "panic": false,
+      "m_alert": false,
+      "l_alert": false,
+      "lb_alert": false,
+      "tv_alert": false,
+      "warn": false,
       "c": {
-        "futures": 80.0,
+        "futures": 76.9,
         "margin": 100.0
       }
     },
     {
       "date": "2026-04-15",
-      "score": 90.0,
+      "score": 88.5,
       "tx": 36722,
       "label": "無頂部訊號",
       "color": "#8a8a9a",
       "stance": "攻擊",
       "panic": false,
+      "m_alert": false,
+      "l_alert": false,
+      "lb_alert": false,
+      "tv_alert": false,
+      "warn": false,
       "c": {
-        "futures": 80.0,
+        "futures": 76.9,
         "margin": 100.0
       }
     },
     {
       "date": "2026-04-16",
-      "score": 93.9,
+      "score": 92.9,
       "tx": 37132,
       "label": "無頂部訊號",
       "color": "#8a8a9a",
       "stance": "攻擊",
       "panic": false,
+      "m_alert": false,
+      "l_alert": false,
+      "lb_alert": false,
+      "tv_alert": false,
+      "warn": false,
       "c": {
-        "futures": 87.8,
+        "futures": 85.9,
         "margin": 100.0
       }
     },
     {
       "date": "2026-04-17",
-      "score": 97.8,
+      "score": 97.4,
       "tx": 36804,
       "label": "無頂部訊號",
       "color": "#8a8a9a",
       "stance": "攻擊",
       "panic": false,
+      "m_alert": false,
+      "l_alert": true,
+      "lb_alert": false,
+      "tv_alert": false,
+      "warn": false,
       "c": {
-        "futures": 95.6,
+        "futures": 94.9,
         "margin": 100.0
       }
     },
     {
       "date": "2026-04-20",
-      "score": 98.9,
+      "score": 98.7,
       "tx": 36959,
       "label": "無頂部訊號",
       "color": "#8a8a9a",
       "stance": "攻擊",
       "panic": false,
+      "m_alert": false,
+      "l_alert": true,
+      "lb_alert": false,
+      "tv_alert": false,
+      "warn": false,
       "c": {
-        "futures": 97.8,
+        "futures": 97.4,
         "margin": 100.0
       }
     },
     {
       "date": "2026-04-21",
-      "score": 97.8,
+      "score": 97.4,
       "tx": 37605,
       "label": "無頂部訊號",
       "color": "#8a8a9a",
       "stance": "攻擊",
       "panic": false,
+      "m_alert": false,
+      "l_alert": true,
+      "lb_alert": false,
+      "tv_alert": false,
+      "warn": false,
       "c": {
-        "futures": 95.6,
+        "futures": 94.9,
         "margin": 100.0
       }
     },
     {
       "date": "2026-04-22",
-      "score": 98.3,
+      "score": 98.1,
       "tx": 37878,
       "label": "無頂部訊號",
       "color": "#8a8a9a",
       "stance": "攻擊",
       "panic": false,
+      "m_alert": false,
+      "l_alert": true,
+      "lb_alert": false,
+      "tv_alert": false,
+      "warn": false,
       "c": {
-        "futures": 96.7,
+        "futures": 96.2,
         "margin": 100.0
       }
     },
@@ -2525,21 +3518,31 @@
       "color": "#ef4444",
       "stance": "攻擊",
       "panic": false,
+      "m_alert": false,
+      "l_alert": false,
+      "lb_alert": false,
+      "tv_alert": false,
+      "warn": false,
       "c": {
-        "futures": 98.9,
+        "futures": 98.7,
         "margin": 100.0
       }
     },
     {
       "date": "2026-04-24",
-      "score": 93.3,
+      "score": 92.3,
       "tx": 38932,
       "label": "無頂部訊號",
       "color": "#8a8a9a",
       "stance": "攻擊",
       "panic": false,
+      "m_alert": false,
+      "l_alert": false,
+      "lb_alert": false,
+      "tv_alert": false,
+      "warn": true,
       "c": {
-        "futures": 86.7,
+        "futures": 84.6,
         "margin": 100.0
       }
     },
@@ -2551,8 +3554,13 @@
       "color": "#ef4444",
       "stance": "攻擊",
       "panic": false,
+      "m_alert": false,
+      "l_alert": false,
+      "lb_alert": false,
+      "tv_alert": false,
+      "warn": true,
       "c": {
-        "futures": 98.9,
+        "futures": 98.7,
         "margin": 100.0
       }
     },
@@ -2564,8 +3572,13 @@
       "color": "#ef4444",
       "stance": "攻擊",
       "panic": false,
+      "m_alert": false,
+      "l_alert": true,
+      "lb_alert": false,
+      "tv_alert": true,
+      "warn": true,
       "c": {
-        "futures": 98.9,
+        "futures": 98.7,
         "margin": 100.0
       }
     },
@@ -2577,34 +3590,49 @@
       "color": "#ef4444",
       "stance": "攻擊",
       "panic": false,
+      "m_alert": false,
+      "l_alert": true,
+      "lb_alert": false,
+      "tv_alert": true,
+      "warn": false,
       "c": {
-        "futures": 98.9,
+        "futures": 98.7,
         "margin": 100.0
       }
     },
     {
       "date": "2026-04-30",
-      "score": 97.8,
+      "score": 97.4,
       "tx": 38927,
       "label": "無頂部訊號",
       "color": "#8a8a9a",
       "stance": "防守",
       "panic": false,
+      "m_alert": false,
+      "l_alert": false,
+      "lb_alert": false,
+      "tv_alert": false,
+      "warn": false,
       "c": {
-        "futures": 95.6,
+        "futures": 94.9,
         "margin": 100.0
       }
     },
     {
       "date": "2026-05-04",
-      "score": 96.7,
+      "score": 96.2,
       "tx": 40705,
       "label": "無頂部訊號",
       "color": "#8a8a9a",
       "stance": "攻擊",
       "panic": false,
+      "m_alert": false,
+      "l_alert": true,
+      "lb_alert": false,
+      "tv_alert": false,
+      "warn": false,
       "c": {
-        "futures": 93.3,
+        "futures": 92.3,
         "margin": 100.0
       }
     },
@@ -2616,8 +3644,13 @@
       "color": "#ef4444",
       "stance": "攻擊",
       "panic": false,
+      "m_alert": false,
+      "l_alert": true,
+      "lb_alert": false,
+      "tv_alert": true,
+      "warn": false,
       "c": {
-        "futures": 98.9,
+        "futures": 98.7,
         "margin": 100.0
       }
     },
@@ -2629,8 +3662,13 @@
       "color": "#ef4444",
       "stance": "攻擊",
       "panic": false,
+      "m_alert": false,
+      "l_alert": false,
+      "lb_alert": false,
+      "tv_alert": false,
+      "warn": false,
       "c": {
-        "futures": 98.9,
+        "futures": 98.7,
         "margin": 100.0
       }
     },
@@ -2642,8 +3680,13 @@
       "color": "#ef4444",
       "stance": "攻擊",
       "panic": false,
+      "m_alert": false,
+      "l_alert": true,
+      "lb_alert": false,
+      "tv_alert": true,
+      "warn": false,
       "c": {
-        "futures": 98.9,
+        "futures": 98.7,
         "margin": 100.0
       }
     },
@@ -2655,190 +3698,265 @@
       "color": "#ef4444",
       "stance": "攻擊",
       "panic": false,
+      "m_alert": false,
+      "l_alert": false,
+      "lb_alert": false,
+      "tv_alert": false,
+      "warn": false,
       "c": {
-        "futures": 98.9,
+        "futures": 98.7,
         "margin": 100.0
       }
     },
     {
       "date": "2026-05-11",
-      "score": 98.9,
+      "score": 98.7,
       "tx": 41790,
       "label": "無頂部訊號",
       "color": "#8a8a9a",
       "stance": "攻擊",
       "panic": false,
+      "m_alert": false,
+      "l_alert": false,
+      "lb_alert": false,
+      "tv_alert": false,
+      "warn": false,
       "c": {
-        "futures": 97.8,
+        "futures": 97.4,
         "margin": 100.0
       }
     },
     {
       "date": "2026-05-12",
-      "score": 98.3,
+      "score": 98.1,
       "tx": 41898,
       "label": "無頂部訊號",
       "color": "#8a8a9a",
       "stance": "攻擊",
       "panic": false,
+      "m_alert": false,
+      "l_alert": false,
+      "lb_alert": false,
+      "tv_alert": false,
+      "warn": true,
       "c": {
-        "futures": 96.7,
+        "futures": 96.2,
         "margin": 100.0
       }
     },
     {
       "date": "2026-05-13",
-      "score": 97.8,
+      "score": 97.4,
       "tx": 41374,
       "label": "無頂部訊號",
       "color": "#8a8a9a",
       "stance": "攻擊",
       "panic": false,
+      "m_alert": false,
+      "l_alert": false,
+      "lb_alert": false,
+      "tv_alert": false,
+      "warn": false,
       "c": {
-        "futures": 95.6,
+        "futures": 94.9,
         "margin": 100.0
       }
     },
     {
       "date": "2026-05-14",
-      "score": 96.7,
+      "score": 96.2,
       "tx": 41752,
       "label": "無頂部訊號",
       "color": "#8a8a9a",
       "stance": "攻擊",
       "panic": false,
+      "m_alert": false,
+      "l_alert": false,
+      "lb_alert": false,
+      "tv_alert": false,
+      "warn": false,
       "c": {
-        "futures": 93.3,
+        "futures": 92.3,
         "margin": 100.0
       }
     },
     {
       "date": "2026-05-15",
-      "score": 94.5,
+      "score": 93.8,
       "tx": 41172,
       "label": "無頂部訊號",
       "color": "#8a8a9a",
       "stance": "防守",
       "panic": false,
+      "m_alert": false,
+      "l_alert": false,
+      "lb_alert": false,
+      "tv_alert": false,
+      "warn": false,
       "c": {
-        "futures": 91.1,
+        "futures": 89.7,
         "margin": 97.9
       }
     },
     {
       "date": "2026-05-18",
-      "score": 93.3,
+      "score": 92.3,
       "tx": 40892,
       "label": "無頂部訊號",
       "color": "#8a8a9a",
       "stance": "防守",
       "panic": false,
+      "m_alert": false,
+      "l_alert": false,
+      "lb_alert": false,
+      "tv_alert": false,
+      "warn": false,
       "c": {
-        "futures": 86.7,
+        "futures": 84.6,
         "margin": 100.0
       }
     },
     {
       "date": "2026-05-19",
-      "score": 91.0,
+      "score": 89.9,
       "tx": 40176,
       "label": "無頂部訊號",
       "color": "#8a8a9a",
       "stance": "防守",
       "panic": false,
+      "m_alert": false,
+      "l_alert": false,
+      "lb_alert": false,
+      "tv_alert": false,
+      "warn": false,
       "c": {
-        "futures": 86.7,
+        "futures": 84.6,
         "margin": 95.3
       }
     },
     {
       "date": "2026-05-20",
-      "score": 87.4,
+      "score": 85.8,
       "tx": 40021,
       "label": "無頂部訊號",
       "color": "#8a8a9a",
       "stance": "防守",
       "panic": false,
+      "m_alert": false,
+      "l_alert": false,
+      "lb_alert": false,
+      "tv_alert": false,
+      "warn": false,
       "c": {
-        "futures": 78.9,
+        "futures": 75.6,
         "margin": 95.9
       }
     },
     {
       "date": "2026-05-21",
-      "score": 91.4,
+      "score": 90.2,
       "tx": 41368,
       "label": "無頂部訊號",
       "color": "#8a8a9a",
       "stance": "防守",
       "panic": false,
+      "m_alert": false,
+      "l_alert": true,
+      "lb_alert": true,
+      "tv_alert": false,
+      "warn": false,
       "c": {
-        "futures": 84.4,
+        "futures": 82.1,
         "margin": 98.4
       }
     },
     {
       "date": "2026-05-22",
-      "score": 93.9,
+      "score": 92.9,
       "tx": 42268,
       "label": "無頂部訊號",
       "color": "#8a8a9a",
       "stance": "攻擊",
       "panic": false,
+      "m_alert": false,
+      "l_alert": true,
+      "lb_alert": false,
+      "tv_alert": false,
+      "warn": false,
       "c": {
-        "futures": 87.8,
+        "futures": 85.9,
         "margin": 100.0
       }
     },
     {
       "date": "2026-05-25",
-      "score": 97.2,
+      "score": 96.8,
       "tx": 43644,
       "label": "無頂部訊號",
       "color": "#8a8a9a",
       "stance": "攻擊",
       "panic": false,
+      "m_alert": true,
+      "l_alert": true,
+      "lb_alert": false,
+      "tv_alert": true,
+      "warn": false,
       "c": {
-        "futures": 94.4,
+        "futures": 93.6,
         "margin": 100.0
       }
     },
     {
       "date": "2026-05-26",
-      "score": 98.9,
+      "score": 98.7,
       "tx": 43525,
       "label": "無頂部訊號",
       "color": "#8a8a9a",
       "stance": "攻擊",
       "panic": false,
+      "m_alert": true,
+      "l_alert": false,
+      "lb_alert": false,
+      "tv_alert": false,
+      "warn": false,
       "c": {
-        "futures": 97.8,
+        "futures": 97.4,
         "margin": 100.0
       }
     },
     {
       "date": "2026-05-27",
-      "score": 99.4,
+      "score": 99.3,
       "tx": 44257,
       "label": "頂部過熱",
       "color": "#ef4444",
       "stance": "攻擊",
       "panic": false,
+      "m_alert": false,
+      "l_alert": false,
+      "lb_alert": false,
+      "tv_alert": false,
+      "warn": false,
       "c": {
-        "futures": 98.9,
+        "futures": 98.7,
         "margin": 99.9
       }
     },
     {
       "date": "2026-05-28",
-      "score": 97.9,
+      "score": 97.8,
       "tx": 43636,
       "label": "頂部過熱",
       "color": "#ef4444",
       "stance": "攻擊",
       "panic": false,
+      "m_alert": false,
+      "l_alert": false,
+      "lb_alert": false,
+      "tv_alert": false,
+      "warn": true,
       "c": {
-        "futures": 98.9,
+        "futures": 98.7,
         "margin": 96.9
       }
     },
@@ -2850,8 +3968,13 @@
       "color": "#ef4444",
       "stance": "攻擊",
       "panic": false,
+      "m_alert": false,
+      "l_alert": false,
+      "lb_alert": false,
+      "tv_alert": false,
+      "warn": true,
       "c": {
-        "futures": 98.9,
+        "futures": 98.7,
         "margin": 100.0
       }
     },
@@ -2863,8 +3986,13 @@
       "color": "#ef4444",
       "stance": "攻擊",
       "panic": false,
+      "m_alert": false,
+      "l_alert": true,
+      "lb_alert": false,
+      "tv_alert": true,
+      "warn": false,
       "c": {
-        "futures": 98.9,
+        "futures": 98.7,
         "margin": 100.0
       }
     },
@@ -2876,425 +4004,608 @@
       "color": "#ef4444",
       "stance": "攻擊",
       "panic": false,
+      "m_alert": false,
+      "l_alert": true,
+      "lb_alert": false,
+      "tv_alert": true,
+      "warn": false,
       "c": {
-        "futures": 98.9,
+        "futures": 98.7,
         "margin": 100.0
       }
     },
     {
       "date": "2026-06-03",
-      "score": 98.9,
+      "score": 98.7,
       "tx": 46459,
       "label": "無頂部訊號",
       "color": "#8a8a9a",
       "stance": "攻擊",
       "panic": false,
+      "m_alert": false,
+      "l_alert": true,
+      "lb_alert": false,
+      "tv_alert": false,
+      "warn": false,
       "c": {
-        "futures": 97.8,
+        "futures": 97.4,
         "margin": 100.0
       }
     },
     {
       "date": "2026-06-04",
-      "score": 99.2,
+      "score": 99.1,
       "tx": 45677,
       "label": "頂部過熱",
       "color": "#ef4444",
       "stance": "攻擊",
       "panic": false,
+      "m_alert": false,
+      "l_alert": false,
+      "lb_alert": false,
+      "tv_alert": false,
+      "warn": false,
       "c": {
-        "futures": 98.9,
+        "futures": 98.7,
         "margin": 99.5
       }
     },
     {
       "date": "2026-06-05",
-      "score": 96.2,
+      "score": 96.1,
       "tx": 45071,
       "label": "無頂部訊號",
       "color": "#8a8a9a",
       "stance": "攻擊",
       "panic": false,
+      "m_alert": false,
+      "l_alert": false,
+      "lb_alert": false,
+      "tv_alert": false,
+      "warn": false,
       "c": {
-        "futures": 97.8,
+        "futures": 97.4,
         "margin": 94.7
       }
     },
     {
       "date": "2026-06-08",
-      "score": 90.5,
+      "score": 90.1,
       "tx": 43503,
       "label": "無頂部訊號",
       "color": "#8a8a9a",
       "stance": "攻擊",
       "panic": false,
+      "m_alert": false,
+      "l_alert": false,
+      "lb_alert": false,
+      "tv_alert": false,
+      "warn": true,
       "c": {
-        "futures": 94.4,
+        "futures": 93.6,
         "margin": 86.6
       }
     },
     {
       "date": "2026-06-09",
-      "score": 91.2,
+      "score": 90.6,
       "tx": 44704,
       "label": "無頂部訊號",
       "color": "#8a8a9a",
       "stance": "攻擊",
       "panic": false,
+      "m_alert": false,
+      "l_alert": true,
+      "lb_alert": false,
+      "tv_alert": false,
+      "warn": false,
       "c": {
-        "futures": 92.2,
+        "futures": 91.0,
         "margin": 90.1
       }
     },
     {
       "date": "2026-06-10",
-      "score": 87.1,
+      "score": 86.5,
       "tx": 43226,
       "label": "無頂部訊號",
       "color": "#8a8a9a",
-      "stance": "攻擊",
+      "stance": "防守",
       "panic": false,
+      "m_alert": false,
+      "l_alert": false,
+      "lb_alert": false,
+      "tv_alert": false,
+      "warn": false,
       "c": {
-        "futures": 92.2,
+        "futures": 91.0,
         "margin": 81.9
       }
     },
     {
       "date": "2026-06-11",
-      "score": 86.9,
+      "score": 86.4,
       "tx": 43149,
       "label": "無頂部訊號",
       "color": "#8a8a9a",
       "stance": "防守",
       "panic": false,
+      "m_alert": false,
+      "l_alert": false,
+      "lb_alert": false,
+      "tv_alert": false,
+      "warn": false,
       "c": {
-        "futures": 92.2,
+        "futures": 91.0,
         "margin": 81.7
       }
     },
     {
       "date": "2026-06-12",
-      "score": 88.5,
+      "score": 88.0,
       "tx": 44169,
       "label": "無頂部訊號",
       "color": "#8a8a9a",
       "stance": "防守",
       "panic": false,
+      "m_alert": false,
+      "l_alert": false,
+      "lb_alert": false,
+      "tv_alert": false,
+      "warn": false,
       "c": {
-        "futures": 93.3,
+        "futures": 92.3,
         "margin": 83.6
       }
     },
     {
       "date": "2026-06-15",
-      "score": 91.3,
+      "score": 90.8,
       "tx": 45397,
       "label": "無頂部訊號",
       "color": "#8a8a9a",
       "stance": "防守",
       "panic": false,
+      "m_alert": false,
+      "l_alert": true,
+      "lb_alert": true,
+      "tv_alert": false,
+      "warn": false,
       "c": {
-        "futures": 94.4,
+        "futures": 93.6,
         "margin": 88.1
       }
     },
     {
       "date": "2026-06-16",
-      "score": 92.7,
+      "score": 92.6,
       "tx": 45809,
       "label": "頂部過熱",
       "color": "#ef4444",
       "stance": "攻擊",
       "panic": false,
+      "m_alert": false,
+      "l_alert": false,
+      "lb_alert": false,
+      "tv_alert": false,
+      "warn": false,
       "c": {
-        "futures": 98.9,
+        "futures": 98.7,
         "margin": 86.4
       }
     },
     {
       "date": "2026-06-17",
-      "score": 92.7,
+      "score": 92.4,
       "tx": 45877,
       "label": "無頂部訊號",
       "color": "#8a8a9a",
       "stance": "攻擊",
       "panic": false,
+      "m_alert": false,
+      "l_alert": false,
+      "lb_alert": false,
+      "tv_alert": false,
+      "warn": false,
       "c": {
-        "futures": 95.6,
+        "futures": 94.9,
         "margin": 89.9
       }
     },
     {
       "date": "2026-06-18",
-      "score": 93.7,
+      "score": 93.3,
       "tx": 46465,
       "label": "無頂部訊號",
       "color": "#8a8a9a",
       "stance": "攻擊",
       "panic": false,
+      "m_alert": false,
+      "l_alert": true,
+      "lb_alert": false,
+      "tv_alert": false,
+      "warn": false,
       "c": {
-        "futures": 95.6,
+        "futures": 94.9,
         "margin": 91.8
       }
     },
     {
       "date": "2026-06-22",
-      "score": 96.8,
+      "score": 96.7,
       "tx": 47742,
       "label": "頂部過熱",
       "color": "#ef4444",
       "stance": "攻擊",
       "panic": false,
+      "m_alert": false,
+      "l_alert": true,
+      "lb_alert": false,
+      "tv_alert": true,
+      "warn": false,
       "c": {
-        "futures": 98.9,
+        "futures": 98.7,
         "margin": 94.8
       }
     },
     {
       "date": "2026-06-23",
-      "score": 94.0,
+      "score": 93.9,
       "tx": 47101,
       "label": "頂部過熱",
       "color": "#ef4444",
       "stance": "攻擊",
       "panic": false,
+      "m_alert": false,
+      "l_alert": false,
+      "lb_alert": false,
+      "tv_alert": false,
+      "warn": false,
       "c": {
-        "futures": 98.9,
+        "futures": 98.7,
         "margin": 89.0
       }
     },
     {
       "date": "2026-06-25",
-      "score": 96.5,
+      "score": 96.4,
       "tx": 46255,
       "label": "頂部過熱",
       "color": "#ef4444",
       "stance": "防守",
       "panic": false,
+      "m_alert": false,
+      "l_alert": false,
+      "lb_alert": false,
+      "tv_alert": false,
+      "warn": false,
       "c": {
-        "futures": 98.9,
+        "futures": 98.7,
         "margin": 94.2
       }
     },
     {
       "date": "2026-06-26",
-      "score": 90.9,
+      "score": 90.7,
       "tx": 44572,
       "label": "無頂部訊號",
       "color": "#8a8a9a",
       "stance": "防守",
       "panic": false,
+      "m_alert": false,
+      "l_alert": false,
+      "lb_alert": false,
+      "tv_alert": false,
+      "warn": false,
       "c": {
-        "futures": 96.7,
+        "futures": 96.2,
         "margin": 85.1
       }
     },
     {
       "date": "2026-06-29",
-      "score": 91.6,
+      "score": 91.4,
       "tx": 45000,
       "label": "無頂部訊號",
       "color": "#8a8a9a",
       "stance": "防守",
       "panic": false,
+      "m_alert": false,
+      "l_alert": false,
+      "lb_alert": false,
+      "tv_alert": false,
+      "warn": false,
       "c": {
-        "futures": 97.8,
+        "futures": 97.4,
         "margin": 85.4
       }
     },
     {
       "date": "2026-06-30",
-      "score": 95.0,
+      "score": 94.9,
       "tx": 46126,
       "label": "頂部過熱",
       "color": "#ef4444",
       "stance": "防守",
       "panic": false,
+      "m_alert": false,
+      "l_alert": true,
+      "lb_alert": true,
+      "tv_alert": true,
+      "warn": false,
       "c": {
-        "futures": 98.9,
+        "futures": 98.7,
         "margin": 91.1
       }
     },
     {
       "date": "2026-07-01",
-      "score": 93.9,
+      "score": 93.8,
       "tx": 47019,
       "label": "頂部過熱",
       "color": "#ef4444",
       "stance": "防守",
       "panic": false,
+      "m_alert": false,
+      "l_alert": false,
+      "lb_alert": false,
+      "tv_alert": false,
+      "warn": false,
       "c": {
-        "futures": 98.9,
+        "futures": 98.7,
         "margin": 88.9
       }
     },
     {
       "date": "2026-07-02",
-      "score": 95.5,
+      "score": 95.4,
       "tx": 46744,
       "label": "頂部過熱",
       "color": "#ef4444",
       "stance": "防守",
       "panic": false,
+      "m_alert": false,
+      "l_alert": true,
+      "lb_alert": true,
+      "tv_alert": true,
+      "warn": false,
       "c": {
-        "futures": 98.9,
+        "futures": 98.7,
         "margin": 92.1
       }
     },
     {
       "date": "2026-07-03",
-      "score": 95.0,
+      "score": 94.7,
       "tx": 46781,
       "label": "無頂部訊號",
       "color": "#8a8a9a",
       "stance": "攻擊",
       "panic": false,
+      "m_alert": false,
+      "l_alert": true,
+      "lb_alert": false,
+      "tv_alert": false,
+      "warn": false,
       "c": {
-        "futures": 95.6,
+        "futures": 94.9,
         "margin": 94.5
       }
     },
     {
       "date": "2026-07-06",
-      "score": 93.2,
+      "score": 92.7,
       "tx": 46556,
       "label": "無頂部訊號",
       "color": "#8a8a9a",
       "stance": "攻擊",
       "panic": false,
+      "m_alert": false,
+      "l_alert": false,
+      "lb_alert": false,
+      "tv_alert": false,
+      "warn": false,
       "c": {
-        "futures": 93.3,
+        "futures": 92.3,
         "margin": 93.1
       }
     },
     {
       "date": "2026-07-07",
-      "score": 88.0,
+      "score": 87.4,
       "tx": 45479,
       "label": "無頂部訊號",
       "color": "#8a8a9a",
       "stance": "攻擊",
       "panic": false,
+      "m_alert": false,
+      "l_alert": false,
+      "lb_alert": false,
+      "tv_alert": false,
+      "warn": false,
       "c": {
-        "futures": 92.2,
+        "futures": 91.0,
         "margin": 83.7
       }
     },
     {
       "date": "2026-07-08",
-      "score": 89.7,
+      "score": 89.4,
       "tx": 45734,
       "label": "無頂部訊號",
       "color": "#8a8a9a",
       "stance": "攻擊",
       "panic": false,
+      "m_alert": false,
+      "l_alert": false,
+      "lb_alert": false,
+      "tv_alert": false,
+      "warn": false,
       "c": {
-        "futures": 95.6,
+        "futures": 94.9,
         "margin": 83.8
       }
     },
     {
       "date": "2026-07-09",
-      "score": 88.7,
+      "score": 88.1,
       "tx": 45355,
       "label": "無頂部訊號",
       "color": "#8a8a9a",
       "stance": "防守",
       "panic": false,
+      "m_alert": false,
+      "l_alert": false,
+      "lb_alert": false,
+      "tv_alert": false,
+      "warn": false,
       "c": {
-        "futures": 92.2,
+        "futures": 91.0,
         "margin": 85.2
       }
     },
     {
       "date": "2026-07-13",
-      "score": 89.0,
+      "score": 88.6,
       "tx": 45381,
       "label": "無頂部訊號",
       "color": "#8a8a9a",
       "stance": "防守",
       "panic": false,
+      "m_alert": false,
+      "l_alert": false,
+      "lb_alert": false,
+      "tv_alert": false,
+      "warn": false,
       "c": {
-        "futures": 94.4,
+        "futures": 93.6,
         "margin": 83.6
       }
     },
     {
       "date": "2026-07-14",
-      "score": 86.7,
+      "score": 86.4,
       "tx": 44738,
       "label": "無頂部訊號",
       "color": "#8a8a9a",
       "stance": "防守",
       "panic": false,
+      "m_alert": false,
+      "l_alert": false,
+      "lb_alert": false,
+      "tv_alert": false,
+      "warn": false,
       "c": {
-        "futures": 96.7,
+        "futures": 96.2,
         "margin": 76.7
       }
     },
     {
       "date": "2026-07-15",
-      "score": 83.8,
+      "score": 82.8,
       "tx": 45632,
       "label": "無頂部訊號",
       "color": "#8a8a9a",
       "stance": "防守",
       "panic": false,
+      "m_alert": false,
+      "l_alert": false,
+      "lb_alert": false,
+      "tv_alert": false,
+      "warn": false,
       "c": {
-        "futures": 86.7,
+        "futures": 84.6,
         "margin": 80.9
       }
     },
     {
       "date": "2026-07-16",
-      "score": 89.0,
+      "score": 88.8,
       "tx": 45625,
       "label": "無頂部訊號",
       "color": "#8a8a9a",
       "stance": "防守",
       "panic": false,
+      "m_alert": false,
+      "l_alert": false,
+      "lb_alert": false,
+      "tv_alert": false,
+      "warn": false,
       "c": {
-        "futures": 97.8,
+        "futures": 97.4,
         "margin": 80.2
       }
     },
     {
       "date": "2026-07-17",
-      "score": 82.9,
+      "score": 82.8,
       "tx": 42671,
       "label": "頂部過熱",
       "color": "#ef4444",
       "stance": "防守",
       "panic": true,
+      "m_alert": false,
+      "l_alert": false,
+      "lb_alert": false,
+      "tv_alert": false,
+      "warn": false,
       "c": {
-        "futures": 98.9,
+        "futures": 98.7,
         "margin": 66.9
       }
     },
     {
       "date": "2026-07-20",
-      "score": 70.3,
+      "score": 69.0,
       "tx": 42450,
       "label": "無頂部訊號",
       "color": "#8a8a9a",
       "stance": "防守",
       "panic": true,
+      "m_alert": false,
+      "l_alert": false,
+      "lb_alert": false,
+      "tv_alert": false,
+      "warn": false,
       "c": {
-        "futures": 83.3,
+        "futures": 80.8,
         "margin": 57.2
       }
     },
     {
       "date": "2026-07-21",
-      "score": 71.7,
+      "score": 70.5,
       "tx": 44233,
       "label": "無頂部訊號",
       "color": "#8a8a9a",
       "stance": "防守",
       "panic": false,
+      "m_alert": false,
+      "l_alert": false,
+      "lb_alert": false,
+      "tv_alert": false,
+      "warn": false,
       "c": {
-        "futures": 83.3,
+        "futures": 80.8,
         "margin": 60.1
+      }
+    },
+    {
+      "date": "2026-07-22",
+      "score": 69.8,
+      "tx": 44826,
+      "label": "無頂部訊號",
+      "color": "#8a8a9a",
+      "stance": "防守",
+      "panic": false,
+      "m_alert": false,
+      "l_alert": false,
+      "lb_alert": false,
+      "tv_alert": false,
+      "warn": false,
+      "c": {
+        "futures": 76.9,
+        "margin": 62.6
       }
     }
   ]
