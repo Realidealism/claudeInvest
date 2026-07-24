@@ -1,5 +1,5 @@
 {
-  "latest_date": "2026-07-23",
+  "latest_date": "2026-07-24",
   "us": {
     "symbol": "^VIX",
     "label": "美股 VIX",
@@ -1029,14 +1029,14 @@
     "label": "台指 VIX",
     "source": "TAIFEX",
     "latest": {
-      "close": 35.91,
-      "rating": "low",
-      "intraday_time": "134015"
+      "close": 37.02,
+      "rating": "elevated",
+      "intraday_time": "090000"
     },
     "thresholds": {
-      "p20": 34.0,
+      "p20": 34.02,
       "p50": 36.56,
-      "p80": 38.62
+      "p80": 38.6
     },
     "series": [
       {
@@ -1433,7 +1433,11 @@
       },
       {
         "date": "2026-07-23",
-        "close": 35.91
+        "close": 35.74
+      },
+      {
+        "date": "2026-07-24",
+        "close": 37.02
       }
     ]
   }
