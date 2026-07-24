@@ -1,6 +1,6 @@
 {
-  "as_of": "2026-07-23",
-  "score": 67.4,
+  "as_of": "2026-07-24",
+  "score": 65.6,
   "bucket": "無頂部訊號",
   "bucket_color": "#8a8a9a",
   "danger": false,
@@ -8,7 +8,7 @@
   "stance_color": "#ef4444",
   "stance_reason": "防守中（排列：強空）：高點防守（高信念頂部）或向下趨勢；漲回頂位之上／排列回多方／外資翻多且空頭力竭／恐慌急殺 V 任一則轉攻",
   "near_high": false,
-  "pct_from_high": -6.1,
+  "pct_from_high": -8.6,
   "hi_window": 55,
   "alert": false,
   "alert_conditions": [
@@ -20,21 +20,21 @@
   "margin_alert": false,
   "margin_alert_conditions": [
     {
-      "name": "融資/成交量 布林 z ≥ +1.5σ（現 -1.6σ）",
+      "name": "融資/成交量 布林 z ≥ +1.5σ（現 -1.7σ）",
       "met": false
     }
   ],
   "limitup_alert": false,
   "limitup_alert_conditions": [
     {
-      "name": "漲停佔比 90 日乖離 z ≥ +1.0σ（現 -1.6σ、漲停 0.7%）",
+      "name": "漲停佔比 90 日乖離 z ≥ +1.0σ（現 -1.5σ、漲停 0.7%）",
       "met": false
     }
   ],
   "limitup_bear_alert": false,
   "limitup_bear_conditions": [
     {
-      "name": "漲停過熱（漲停佔比 90 日乖離 z ≥ +1.0σ，現 -1.6σ）",
+      "name": "漲停過熱（漲停佔比 90 日乖離 z ≥ +1.0σ，現 -1.5σ）",
       "met": false
     },
     {
@@ -51,7 +51,7 @@
       "met": false
     },
     {
-      "name": "外資選擇權避險偏空（買賣權淨OI 252 日百分位 ≤ 33%，現 35%）",
+      "name": "外資選擇權避險偏空（買賣權淨OI 252 日百分位 ≤ 33%，現 38%）",
       "met": false
     },
     {
@@ -74,7 +74,7 @@
       "met": false
     },
     {
-      "name": "short 空頭排列 3 日急升 ≥ +6pp（現 -9.3pp）",
+      "name": "short 空頭排列 3 日急升 ≥ +6pp（現 -13.1pp）",
       "met": false
     }
   ],
@@ -82,11 +82,11 @@
   "panic_conditions": [
     {
       "name": "深跌（距 55 日高 ≤ -8%）",
-      "met": false
+      "met": true
     },
     {
       "name": "融資 5 日急殺（≤ -2%）",
-      "met": true
+      "met": false
     },
     {
       "name": "快殺（指數 10 日跌 ≤ -6%）",
@@ -98,35 +98,16 @@
       "key": "futures",
       "name": "外資期貨定位",
       "hot": 73.1,
-      "detail": "外資臺股期貨淨未平倉 -75,198 口（78日百分位越低越淨空＝越熱）"
+      "detail": "外資臺股期貨淨未平倉 -76,260 口（78日百分位越低越淨空＝越熱）"
     },
     {
       "key": "margin",
       "name": "融資水位",
-      "hot": 61.8,
-      "detail": "融資餘額金額 5,826億（距 55 日均 +0.47σ；+2σ=過熱）"
+      "hot": 58.1,
+      "detail": "融資餘額金額 5,771億（距 55 日均 +0.32σ；+2σ=過熱）"
     }
   ],
   "history": [
-    {
-      "date": "2025-07-11",
-      "score": 83.3,
-      "tx": 22751,
-      "label": "無頂部訊號",
-      "color": "#8a8a9a",
-      "stance": "防守",
-      "panic": false,
-      "m_alert": false,
-      "l_alert": false,
-      "lb_alert": false,
-      "tv_alert": false,
-      "tv_n": 0,
-      "warn": false,
-      "c": {
-        "futures": 96.2,
-        "margin": 70.5
-      }
-    },
     {
       "date": "2025-07-14",
       "score": 85.0,
@@ -4856,6 +4837,25 @@
       "c": {
         "futures": 73.1,
         "margin": 61.8
+      }
+    },
+    {
+      "date": "2026-07-24",
+      "score": 65.6,
+      "tx": 43655,
+      "label": "無頂部訊號",
+      "color": "#8a8a9a",
+      "stance": "防守",
+      "panic": false,
+      "m_alert": false,
+      "l_alert": false,
+      "lb_alert": false,
+      "tv_alert": false,
+      "tv_n": 0,
+      "warn": false,
+      "c": {
+        "futures": 73.1,
+        "margin": 58.1
       }
     }
   ]
