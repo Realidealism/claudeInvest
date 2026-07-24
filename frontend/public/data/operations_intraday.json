@@ -1,42 +1,43 @@
 {
-  "snapshot_date": "2026-07-23",
-  "snapshot_time": "2026-07-23T05:40:21.587824+00:00",
+  "snapshot_date": "2026-07-24",
+  "snapshot_time": "2026-07-24T01:15:11.975564+00:00",
   "signals": {
-    "pick": [],
-    "touch": [],
+    "pick": [
+      {
+        "ticker": "8033",
+        "name": "雷虎",
+        "market": "TWSE",
+        "turnover": 2846023424.0,
+        "streak": 1
+      }
+    ],
+    "touch": [
+      {
+        "ticker": "1325",
+        "name": "恆大",
+        "market": "TWSE",
+        "turnover": 44948964.0,
+        "streak": 1
+      }
+    ],
     "buy": [
       {
-        "ticker": "8039",
-        "name": "台虹",
+        "ticker": "6669",
+        "name": "緯穎",
         "market": "TWSE",
-        "turnover": 11633692672.0,
-        "streak": 3
-      },
-      {
-        "ticker": "1301",
-        "name": "台塑",
-        "market": "TWSE",
-        "turnover": 11010817024.0,
+        "turnover": 17302855680.0,
         "streak": 1
       },
       {
-        "ticker": "6505",
-        "name": "台塑化",
-        "market": "TWSE",
-        "turnover": 8787183616.0,
+        "ticker": "3577",
+        "name": "泓格",
+        "market": "TPEx",
+        "turnover": 1086326912.0,
         "streak": 1
       }
     ],
     "sell": [],
-    "buy_flee": [
-      {
-        "ticker": "2204",
-        "name": "中華",
-        "market": "TWSE",
-        "turnover": 111704400.0,
-        "streak": 1
-      }
-    ],
+    "buy_flee": [],
     "sell_flee": []
   }
 }
