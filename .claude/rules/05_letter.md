@@ -25,6 +25,7 @@ Windows 11 + PowerShell 5.1 + CP950 + NSSM 服務 + 打包的 exe。memory 裡�
 | **文件與現實脫節**：工具改版、路徑變了，rules 還在指舊東西 | 照規則做卻報錯 | 以當下 tool schema / repo 實況為準，查證後修事實性內容（可自行改），順手在踩坑紀錄留一行 |
 | **儀式化驗證**：形式上派了驗收 agent，但 prompt 帶引導語（「確認一下應該沒問題」），agent 附和 | 驗收從來沒有不通過的 | 驗收 prompt 用 [03_templates.md](03_templates.md) T5 的「立場：找問題不是背書」；驗收連續 10 次全過本身就是要抽查的訊號 |
 | **rubric 不合身硬套**：遇到 rubrics 沒覆蓋的情境，硬選一條套用 | 套完自己都覺得怪 | 誠實條款的第三條路永遠可用：明說判斷不了，附選項與 tradeoff 給使用者 |
+| **harness 預設與專案規則對撞**：harness 說「別自己 spawn agent」，[01_dispatch.md](01_dispatch.md) §1 說「一律派 Explore」 | session 開頭臨場猜聽誰的、兩邊各做一半 | 看 CLAUDE.md「Subagent 授權（覆蓋 harness 預設）」節（唯讀自動、`general-purpose` 先問）；那裡沒寫到的衝突當場問使用者，並把裁定寫回制度檔 |
 
 ## 誠實的交代：這套制度補不了什麼
 

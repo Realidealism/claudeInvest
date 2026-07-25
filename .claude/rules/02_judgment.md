@@ -4,12 +4,14 @@
 
 ## Rubric 1：何時升級模型 / 找第二意見
 
+> 主模型已是 opus 時，「升級」的實體是 **fresh-context 對抗審查**（同級模型 + 不知前情 + 找問題立場），不是換更強的模型；判準與時機不變（見 [01_dispatch.md](01_dispatch.md) §0）。
+
 **升級訊號（任一命中即升，配合 [01_dispatch.md](01_dispatch.md) §5）**：
 - 問題本質是「取捨」而非「執行」：多個方案各有利弊、或驗收標準本身需要先被定義
 - 數字都算對了，但「該不該採用」拿不準（統計顯著 vs 過擬合、增益來源乾不乾淨）
 - 同一子任務失敗 2 次，且兩次失敗原因**不同**（原因相同是執行問題，修就好；原因不同代表理解錯了）
 
-**正例**：v351 的門檻掃描結果單調遞增，機械上看該採用最緊值；但增益全來自 2020 崩盤的深空贏單——「sweep 單調 ≠ 可採用，必須時間均勻」是品味判斷，這種問題該派 opus 第二意見而不是自己拍板（project_v351_baseline）。
+**正例**：v351 的門檻掃描結果單調遞增，機械上看該採用最緊值；但增益全來自 2020 崩盤的深空贏單——「sweep 單調 ≠ 可採用，必須時間均勻」是品味判斷，這種問題該派 fresh-context 第二意見而不是自己拍板（project_v351_baseline）。
 **反例（不該升級）**：把已驗證的 give-back 條件複製到另一個訊號並跑回測——純執行，sonnet 足夠；升級只是變慢變貴。
 
 ## Rubric 2：何時算「真的完成」
@@ -25,6 +27,8 @@
 **反例**：只看單一訊號 PF 上升就宣告改良成功。合池 PF 才是真實評估，單訊號 PF 升可能是把爛單推給別的訊號（feedback_signal_portfolio_eval）。
 
 ## Rubric 3：何時停下來問使用者
+
+> 本 Rubric 的必問/不必問清單，即 CLAUDE.md「Grill-Me 規劃協議」的入樹過濾器：必問類進逼問樹逐題解，不必問類不進樹、自己決定。
 
 **必問（任一命中）**：
 - 動作不可逆或影響超出任務範圍：刪檔、改 DB schema、動 production .bat/NSSM 服務、git 破壞性操作、對外發送
@@ -62,7 +66,7 @@
 ## 誠實條款
 
 拆解、驗證、多樣本評審補得了**執行品質**；**模糊題與品味判斷**補不了。遇到品味題（該不該採用、兩個都對選哪個、命名/文案/美感）依序：
-1. 派 `opus` 第二意見，prompt 附正反雙方論據
+1. 派 **fresh-context 對抗審查**（model 用 `opus`；主模型即 opus 時是平調，價值在對方沒有沉沒成本），prompt 附正反雙方論據
 2. 仍拿不準 → 生成 2–3 個獨立答案，派 fresh agent 評審選優
 3. 仍分歧 → 明說「這題超出我能可靠判斷的範圍」，附選項與 tradeoff 給使用者裁決
 
@@ -73,8 +77,10 @@
 <!-- 格式：- YYYY-MM-DD | 情境一句話 | 當時錯誤假設 | 正確做法 | 一般化規則（觸發條件→動作） -->
 
 - 2026-07-06 | 背景 agent 首次回報是「已派出/仍在執行/等使用者要求」等角色混淆空回報，同 session 發生 3 次 | 以為 agent 收到 prompt 就會執行 | 用 SendMessage 回一句「你自己就是執行者，沒有別人在跑，立即親自執行原 prompt」即可復工 | 收到空回報或角色混淆回報 → 先 SendMessage 糾正一次再考慮重派（重派會丟掉它已讀的 context）。追記 2026-07-08：高頻失效模式（7/7-7/8 再發 5+ 次，另一變體是「等通知」但通知不會來）——凡 agent 回報「等待/背景執行中」，主對話用產出檔時間戳查實況，完成即主動 SendMessage 驅動，不等它自醒
-- 2026-07-07 | 派 agent 背景跑 60 分鐘 panel rebuild | 以為 timeout=3600000 夠用、以為 waiter/Monitor 會喚醒 agent 接續 | rebuild 在 98% 被 tool timeout 精準砍掉；後兩次 rebuild 完成後 agent 未被喚醒，pipeline 各停擺 18h/5h，靠主對話查產出檔時間戳才發現 | 背景指令預期 >10 分鐘 → detached（Start-Process）啟動不帶 timeout；主對話用「產出檔 LastWriteTime＋程序存活」主動查進度，不依賴 agent 的完成通知鏈
+- 2026-07-07 | 派 agent 背景跑 60 分鐘 panel rebuild | 以為 timeout=3600000 夠用、以為 waiter/Monitor 會喚醒 agent 接續 | rebuild 在 98% 被 tool timeout 精準砍掉；後兩次 rebuild 完成後 agent 未被喚醒，pipeline 各停擺 18h/5h，靠主對話查產出檔時間戳才發現 | 背景指令預期 >10 分鐘 → detached（Start-Process）啟動不帶 timeout；主對話用「產出檔 LastWriteTime＋程序存活」主動查進度，不依賴 agent 的完成通知鏈。**已由 2026-07-21 那條修正**：`Start-Process` 只用於 run_in_background **之外**的直接啟動；走 run_in_background 時指令直接寫本體，不可再套 `Start-Process`／`&`／`nohup`（同樣是 fork-and-return 假完成）
 - 2026-07-07 | ScoreBoard 拔 cell 三 phase 驗證後 regime 九格近全綠，看似 clean win | 以為 regime 格全正＝增益乾淨 | 逐年拆解揭穿：增益集中在被框架誤標為 bear 的 2021 多頭年，最近兩完整年實為負 | 評分系統採用決策 → 必跑逐年 Δspread 拆解（零 rebuild）；增益集中單一年份或近年轉負即不採用（等同訊號工廠時間均勻檢查，Rubric 5）
 - 2026-07-11 | 使用者問「微台 cap 上限 40 拿掉會不會更好」，直接開回測 sweep（hi 50/60/80/9999）| 以為是沒測過的新問題 | memory `project_microtaiex_daytrade` 兩天前（07-09）已封存「全域 cap 重掃：現行 mult0.5/hi40 就在效率前緣，放寬 net 增益全是假的」，整輪 sweep 只是重現舊結論 | 動手回測任何訊號/防守參數前 → 先讀該子專案的 memory **檔案全文**，不能只看 MEMORY.md 的索引行（索引行一句話塞不下具體參數結論，正是漏掉封存的破口）。Rubric 4 的「提案命中封存即停」要能生效，前提是真的去讀了封存
 - 2026-07-11 | RS 相對強度 probe 的 within-decile 表出現 D9 -7.00pp，據此向使用者提案「高分股+RS破底」進訊號工廠當防守 | 以為極端格的大數字＝強訊號 | 該格 n < 1000（8.7 年 190 萬列 panel）；使用者追問「為什麼窗口用 123」→ 掃 N 才發現單調無 plateau、長窗口半數年份樣本不足、效果全靠 2026 薄樣本；有統計力的短窗口符號還是反的 | 引用 cohort/sweep/regime 表的任何一格前 → **先看該格的 n**；n 小的極端值不得寫進提案，表格產出一律連 n 一起印。另：**借來的參數不算參數**——沿用他處（別的序列/別的子系統）的最佳窗口前，必須在本序列上重掃，否則挑選理由隨舊用途一起失效
 - 2026-07-11 | 加完 ScoreBoard 波動 cell 後跑 `_score_panel 6` 做 smoke test，直接覆蓋掉 2026-07-07 的 production panel（244MB → 1.25MB）| 以為「只是 6 檔的 smoke test」無害，跳過 skill `cross-sectional-scoring` 工作流第 1 步的備份 | `_score_panel.py` 的 `OUTPUT` 是寫死的共用路徑，帶不帶 limit 參數都寫同一個檔；本次因為接著就要 rebuild、且 baseline 可用新 panel 的欄位算術（total_long − 新cell）取得而僥倖無損 | 執行任何會寫入**共用產出路徑**的腳本前（**smoke test 也算**）→ 先備份該產出檔。「只是測試」不是跳過備份步驟的理由——腳本不知道你在測試。更一般化：照 skill 工作流做事時不得跳步，第 1 步是備份就先備份
+- 2026-07-21 | 用 Bash run_in_background 跑 PyInstaller，指令寫成 `nohup python -m PyInstaller … &` | 以為 harness 的「completed exit 0」通知代表 build 完成 | `&`（含 `nohup … &`）在 run_in_background 內造成**雙重背景**：外層 shell 立即 fork-and-return exit 0，harness 秒發假完成通知，PyInstaller 其實還在跑（exe 未覆寫、TOC 缺模組險誤判失敗）| **run_in_background 的指令直接寫本體，不要再加 `&` 或 `nohup`**——harness 自己會背景化並在**真正結束**時通知。要等長指令完成 → 用另一個 run_in_background 的 until 迴圈盯**產出檔實際變更**（如 exe mtime 變今天）而非中間 log 字樣（PyInstaller 的「PYZ completed successfully」是中間步驟不是完成）
+- 2026-07-25 | Opus 5 harness 的系統指令「除非使用者要求否則不要 spawn subagent」與 [01_dispatch.md](01_dispatch.md) §1「>3 檔一律派 Explore」硬規則對撞，session 開頭要臨場賭聽誰的 | 以為專案規則自動高於 harness 預設 | 使用者裁定分類授權：唯讀（`Explore`、驗收 read-back）與背景長指令自動派、`general-purpose` 改檔/對外查先問；授權來源寫進 CLAUDE.md「Subagent 授權（覆蓋 harness 預設）」節 | harness 預設與專案規則衝突時 → **不自行猜優先序**，查 CLAUDE.md 有無明示授權；沒有就當場問使用者並把裁定寫回制度檔

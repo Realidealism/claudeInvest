@@ -4,6 +4,8 @@
 
 ## 問題 1（最漏 token）：MEMORY.md 歷史 baseline 膨脹
 
+> **路徑**：本專案 rules 檔中的 `memory/` 與 `MEMORY.md` 一律指 `C:\Users\Real\.claude\projects\c--Claude-Invest\memory\`（**不在 repo 內**，repo 根目錄沒有這兩者）。找不到就等於失敗封存清單失效，見問題 3。
+
 **證據**：2026-07-05 盤點時 MEMORY.md 14.8KB / ~70 行，其中 29 行是 v152–v352 標「(歷史)」的 baseline 條目。MEMORY.md 每個 session 開頭全量載入，等於每次白付數千 tokens 讀已被取代的版本紀錄。版本正史本來就在 SQLite（`data/signal_versions.db`，用 `python -m signal_backtest._versions list` 查）。
 
 **根因**：每採用一版就新增一行索引，舊版的行從不收攏。

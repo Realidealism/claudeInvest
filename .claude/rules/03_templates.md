@@ -81,7 +81,7 @@
 > 驗收：每個結論附文件 URL 或原始碼 檔案:行號；查不到就寫「查無」。
 > 回報：兩節，各為 結論+證據+信心；總長 ≤50 行。
 
-## T5 審查（subagent_type: general-purpose，model: opus；fresh context——prompt 不含實作過程與「我覺得沒問題」）
+## T5 審查（subagent_type: general-purpose，model: `opus`；fresh context——prompt 不含實作過程與「我覺得沒問題」。主模型即 opus 時這是平調不是升級，價值在對方沒有沉沒成本，見 [01_dispatch.md](01_dispatch.md) §0）
 
 ```
 背景：【被審物是什麼、要用在哪、風險等級】
