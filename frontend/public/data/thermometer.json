@@ -6,7 +6,8 @@
   "danger": false,
   "stance": "防守",
   "stance_color": "#ef4444",
-  "stance_reason": "防守中（排列：強空）：高點防守（高信念頂部）或向下趨勢；漲回頂位之上／排列回多方／外資翻多且空頭力竭／恐慌急殺 V 任一則轉攻",
+  "stance_reason": "防守中（排列：強空）：高點防守（高信念頂部）／向下趨勢／波段停滯（過熱背景下跌破 5 日高）；漲回頂位之上／站回 5 日高／指數站回 13 日高／排列回多方／外資翻多且空頭力竭／恐慌急殺 V 任一則轉攻",
+  "swing": false,
   "near_high": false,
   "pct_from_high": -8.6,
   "hi_window": 55,
@@ -55,7 +56,7 @@
       "met": false
     },
     {
-      "name": "漲停過熱（90 日乖離 z ≥ +1.0σ）",
+      "name": "漲停過熱（90 日乖離 z ≥ +1.5σ，投票用門檻比漲停燈的 +1.0σ 嚴；現 -1.5σ）",
       "met": false
     },
     {
@@ -122,6 +123,7 @@
       "tv_alert": false,
       "tv_n": 1,
       "warn": false,
+      "swing": false,
       "c": {
         "futures": 98.7,
         "margin": 71.3
@@ -133,7 +135,7 @@
       "tx": 22836,
       "label": "無頂部訊號",
       "color": "#8a8a9a",
-      "stance": "防守",
+      "stance": "攻擊",
       "panic": false,
       "m_alert": false,
       "l_alert": false,
@@ -141,6 +143,7 @@
       "tv_alert": false,
       "tv_n": 0,
       "warn": false,
+      "swing": false,
       "c": {
         "futures": 91.0,
         "margin": 79.9
@@ -160,6 +163,7 @@
       "tv_alert": false,
       "tv_n": 0,
       "warn": false,
+      "swing": false,
       "c": {
         "futures": 87.2,
         "margin": 79.7
@@ -179,6 +183,7 @@
       "tv_alert": false,
       "tv_n": 0,
       "warn": false,
+      "swing": false,
       "c": {
         "futures": 83.3,
         "margin": 83.6
@@ -198,6 +203,7 @@
       "tv_alert": false,
       "tv_n": 0,
       "warn": false,
+      "swing": false,
       "c": {
         "futures": 78.2,
         "margin": 83.3
@@ -217,6 +223,7 @@
       "tv_alert": false,
       "tv_n": 0,
       "warn": false,
+      "swing": false,
       "c": {
         "futures": 75.6,
         "margin": 88.5
@@ -236,6 +243,7 @@
       "tv_alert": false,
       "tv_n": 0,
       "warn": false,
+      "swing": false,
       "c": {
         "futures": 69.2,
         "margin": 65.4
@@ -255,6 +263,7 @@
       "tv_alert": false,
       "tv_n": 0,
       "warn": false,
+      "swing": false,
       "c": {
         "futures": 76.9,
         "margin": 81.2
@@ -274,6 +283,7 @@
       "tv_alert": false,
       "tv_n": 0,
       "warn": false,
+      "swing": false,
       "c": {
         "futures": 76.9,
         "margin": 87.0
@@ -293,6 +303,7 @@
       "tv_alert": false,
       "tv_n": 0,
       "warn": false,
+      "swing": false,
       "c": {
         "futures": 74.4,
         "margin": 88.5
@@ -312,6 +323,7 @@
       "tv_alert": false,
       "tv_n": 0,
       "warn": false,
+      "swing": false,
       "c": {
         "futures": 65.4,
         "margin": 90.9
@@ -331,6 +343,7 @@
       "tv_alert": false,
       "tv_n": 0,
       "warn": false,
+      "swing": false,
       "c": {
         "futures": 51.3,
         "margin": 88.2
@@ -350,6 +363,7 @@
       "tv_alert": false,
       "tv_n": 0,
       "warn": false,
+      "swing": false,
       "c": {
         "futures": 39.7,
         "margin": 90.3
@@ -369,6 +383,7 @@
       "tv_alert": false,
       "tv_n": 0,
       "warn": false,
+      "swing": false,
       "c": {
         "futures": 25.6,
         "margin": 100.0
@@ -388,6 +403,7 @@
       "tv_alert": false,
       "tv_n": 0,
       "warn": false,
+      "swing": false,
       "c": {
         "futures": 47.4,
         "margin": 100.0
@@ -407,6 +423,7 @@
       "tv_alert": false,
       "tv_n": 0,
       "warn": false,
+      "swing": false,
       "c": {
         "futures": 44.9,
         "margin": 100.0
@@ -426,6 +443,7 @@
       "tv_alert": false,
       "tv_n": 0,
       "warn": false,
+      "swing": false,
       "c": {
         "futures": 23.1,
         "margin": 100.0
@@ -445,6 +463,7 @@
       "tv_alert": false,
       "tv_n": 0,
       "warn": false,
+      "swing": false,
       "c": {
         "futures": 25.6,
         "margin": 100.0
@@ -464,6 +483,7 @@
       "tv_alert": false,
       "tv_n": 0,
       "warn": false,
+      "swing": false,
       "c": {
         "futures": 20.5,
         "margin": 100.0
@@ -483,6 +503,7 @@
       "tv_alert": false,
       "tv_n": 0,
       "warn": false,
+      "swing": false,
       "c": {
         "futures": 34.6,
         "margin": 100.0
@@ -502,6 +523,7 @@
       "tv_alert": false,
       "tv_n": 0,
       "warn": false,
+      "swing": false,
       "c": {
         "futures": 20.5,
         "margin": 100.0
@@ -521,6 +543,7 @@
       "tv_alert": false,
       "tv_n": 0,
       "warn": false,
+      "swing": false,
       "c": {
         "futures": 17.9,
         "margin": 100.0
@@ -540,6 +563,7 @@
       "tv_alert": false,
       "tv_n": 0,
       "warn": false,
+      "swing": false,
       "c": {
         "futures": 14.1,
         "margin": 100.0
@@ -559,6 +583,7 @@
       "tv_alert": false,
       "tv_n": 0,
       "warn": false,
+      "swing": false,
       "c": {
         "futures": 15.4,
         "margin": 100.0
@@ -578,6 +603,7 @@
       "tv_alert": false,
       "tv_n": 0,
       "warn": false,
+      "swing": false,
       "c": {
         "futures": 14.1,
         "margin": 100.0
@@ -597,6 +623,7 @@
       "tv_alert": false,
       "tv_n": 1,
       "warn": false,
+      "swing": false,
       "c": {
         "futures": 5.1,
         "margin": 100.0
@@ -616,6 +643,7 @@
       "tv_alert": false,
       "tv_n": 0,
       "warn": false,
+      "swing": false,
       "c": {
         "futures": 9.0,
         "margin": 100.0
@@ -635,6 +663,7 @@
       "tv_alert": false,
       "tv_n": 0,
       "warn": false,
+      "swing": false,
       "c": {
         "futures": 16.7,
         "margin": 100.0
@@ -652,8 +681,9 @@
       "l_alert": true,
       "lb_alert": false,
       "tv_alert": false,
-      "tv_n": 1,
+      "tv_n": 0,
       "warn": false,
+      "swing": false,
       "c": {
         "futures": 3.8,
         "margin": 100.0
@@ -673,6 +703,7 @@
       "tv_alert": false,
       "tv_n": 0,
       "warn": false,
+      "swing": false,
       "c": {
         "futures": 0.0,
         "margin": 100.0
@@ -692,6 +723,7 @@
       "tv_alert": false,
       "tv_n": 1,
       "warn": false,
+      "swing": false,
       "c": {
         "futures": 0.0,
         "margin": 100.0
@@ -711,6 +743,7 @@
       "tv_alert": false,
       "tv_n": 1,
       "warn": false,
+      "swing": false,
       "c": {
         "futures": 2.6,
         "margin": 100.0
@@ -730,6 +763,7 @@
       "tv_alert": false,
       "tv_n": 1,
       "warn": false,
+      "swing": false,
       "c": {
         "futures": 0.0,
         "margin": 100.0
@@ -747,8 +781,9 @@
       "l_alert": true,
       "lb_alert": false,
       "tv_alert": false,
-      "tv_n": 1,
+      "tv_n": 0,
       "warn": false,
+      "swing": false,
       "c": {
         "futures": 2.6,
         "margin": 100.0
@@ -768,6 +803,7 @@
       "tv_alert": false,
       "tv_n": 1,
       "warn": false,
+      "swing": false,
       "c": {
         "futures": 3.8,
         "margin": 100.0
@@ -787,6 +823,7 @@
       "tv_alert": false,
       "tv_n": 0,
       "warn": false,
+      "swing": false,
       "c": {
         "futures": 5.1,
         "margin": 100.0
@@ -806,6 +843,7 @@
       "tv_alert": false,
       "tv_n": 0,
       "warn": false,
+      "swing": false,
       "c": {
         "futures": 0.0,
         "margin": 98.2
@@ -825,6 +863,7 @@
       "tv_alert": false,
       "tv_n": 1,
       "warn": false,
+      "swing": false,
       "c": {
         "futures": 2.6,
         "margin": 99.4
@@ -844,6 +883,7 @@
       "tv_alert": false,
       "tv_n": 1,
       "warn": false,
+      "swing": false,
       "c": {
         "futures": 0.0,
         "margin": 97.7
@@ -863,6 +903,7 @@
       "tv_alert": false,
       "tv_n": 0,
       "warn": false,
+      "swing": false,
       "c": {
         "futures": 0.0,
         "margin": 100.0
@@ -882,6 +923,7 @@
       "tv_alert": false,
       "tv_n": 0,
       "warn": false,
+      "swing": false,
       "c": {
         "futures": 1.3,
         "margin": 100.0
@@ -901,6 +943,7 @@
       "tv_alert": false,
       "tv_n": 0,
       "warn": false,
+      "swing": false,
       "c": {
         "futures": 0.0,
         "margin": 99.8
@@ -918,8 +961,9 @@
       "l_alert": true,
       "lb_alert": false,
       "tv_alert": false,
-      "tv_n": 1,
+      "tv_n": 0,
       "warn": false,
+      "swing": false,
       "c": {
         "futures": 0.0,
         "margin": 100.0
@@ -939,6 +983,7 @@
       "tv_alert": false,
       "tv_n": 0,
       "warn": false,
+      "swing": false,
       "c": {
         "futures": 0.0,
         "margin": 92.1
@@ -958,6 +1003,7 @@
       "tv_alert": false,
       "tv_n": 0,
       "warn": false,
+      "swing": false,
       "c": {
         "futures": 2.6,
         "margin": 89.8
@@ -977,6 +1023,7 @@
       "tv_alert": false,
       "tv_n": 0,
       "warn": false,
+      "swing": false,
       "c": {
         "futures": 5.1,
         "margin": 86.0
@@ -994,8 +1041,9 @@
       "l_alert": true,
       "lb_alert": true,
       "tv_alert": false,
-      "tv_n": 1,
+      "tv_n": 0,
       "warn": false,
+      "swing": false,
       "c": {
         "futures": 2.6,
         "margin": 87.1
@@ -1015,6 +1063,7 @@
       "tv_alert": false,
       "tv_n": 0,
       "warn": false,
+      "swing": false,
       "c": {
         "futures": 6.4,
         "margin": 84.2
@@ -1032,8 +1081,9 @@
       "l_alert": true,
       "lb_alert": true,
       "tv_alert": false,
-      "tv_n": 1,
+      "tv_n": 0,
       "warn": false,
+      "swing": false,
       "c": {
         "futures": 3.8,
         "margin": 85.7
@@ -1053,6 +1103,7 @@
       "tv_alert": false,
       "tv_n": 0,
       "warn": false,
+      "swing": false,
       "c": {
         "futures": 1.3,
         "margin": 87.4
@@ -1072,6 +1123,7 @@
       "tv_alert": false,
       "tv_n": 0,
       "warn": false,
+      "swing": false,
       "c": {
         "futures": 1.3,
         "margin": 91.3
@@ -1091,6 +1143,7 @@
       "tv_alert": false,
       "tv_n": 0,
       "warn": false,
+      "swing": false,
       "c": {
         "futures": 0.0,
         "margin": 90.2
@@ -1110,6 +1163,7 @@
       "tv_alert": false,
       "tv_n": 0,
       "warn": false,
+      "swing": false,
       "c": {
         "futures": 14.1,
         "margin": 91.4
@@ -1129,6 +1183,7 @@
       "tv_alert": false,
       "tv_n": 0,
       "warn": false,
+      "swing": false,
       "c": {
         "futures": 16.7,
         "margin": 90.6
@@ -1148,6 +1203,7 @@
       "tv_alert": false,
       "tv_n": 0,
       "warn": false,
+      "swing": false,
       "c": {
         "futures": 24.4,
         "margin": 83.8
@@ -1167,6 +1223,7 @@
       "tv_alert": false,
       "tv_n": 0,
       "warn": false,
+      "swing": false,
       "c": {
         "futures": 17.9,
         "margin": 88.3
@@ -1186,6 +1243,7 @@
       "tv_alert": false,
       "tv_n": 0,
       "warn": false,
+      "swing": false,
       "c": {
         "futures": 20.5,
         "margin": 88.0
@@ -1197,7 +1255,7 @@
       "tx": 26378,
       "label": "無頂部訊號",
       "color": "#8a8a9a",
-      "stance": "防守",
+      "stance": "攻擊",
       "panic": false,
       "m_alert": false,
       "l_alert": false,
@@ -1205,6 +1263,7 @@
       "tv_alert": false,
       "tv_n": 0,
       "warn": false,
+      "swing": false,
       "c": {
         "futures": 21.8,
         "margin": 90.6
@@ -1224,6 +1283,7 @@
       "tv_alert": false,
       "tv_n": 0,
       "warn": false,
+      "swing": false,
       "c": {
         "futures": 15.4,
         "margin": 93.1
@@ -1235,7 +1295,7 @@
       "tx": 27212,
       "label": "無頂部訊號",
       "color": "#8a8a9a",
-      "stance": "防守",
+      "stance": "攻擊",
       "panic": false,
       "m_alert": false,
       "l_alert": false,
@@ -1243,6 +1303,7 @@
       "tv_alert": false,
       "tv_n": 0,
       "warn": false,
+      "swing": false,
       "c": {
         "futures": 25.6,
         "margin": 93.3
@@ -1262,6 +1323,7 @@
       "tv_alert": false,
       "tv_n": 0,
       "warn": false,
+      "swing": false,
       "c": {
         "futures": 42.3,
         "margin": 92.0
@@ -1273,7 +1335,7 @@
       "tx": 27302,
       "label": "無頂部訊號",
       "color": "#8a8a9a",
-      "stance": "防守",
+      "stance": "攻擊",
       "panic": false,
       "m_alert": false,
       "l_alert": false,
@@ -1281,6 +1343,7 @@
       "tv_alert": false,
       "tv_n": 0,
       "warn": false,
+      "swing": false,
       "c": {
         "futures": 39.7,
         "margin": 93.5
@@ -1292,7 +1355,7 @@
       "tx": 26923,
       "label": "無頂部訊號",
       "color": "#8a8a9a",
-      "stance": "防守",
+      "stance": "攻擊",
       "panic": false,
       "m_alert": false,
       "l_alert": false,
@@ -1300,6 +1363,7 @@
       "tv_alert": false,
       "tv_n": 0,
       "warn": false,
+      "swing": false,
       "c": {
         "futures": 46.2,
         "margin": 88.5
@@ -1319,6 +1383,7 @@
       "tv_alert": false,
       "tv_n": 0,
       "warn": false,
+      "swing": false,
       "c": {
         "futures": 39.7,
         "margin": 76.1
@@ -1338,6 +1403,7 @@
       "tv_alert": false,
       "tv_n": 0,
       "warn": false,
+      "swing": false,
       "c": {
         "futures": 17.9,
         "margin": 82.5
@@ -1349,7 +1415,7 @@
       "tx": 27648,
       "label": "無頂部訊號",
       "color": "#8a8a9a",
-      "stance": "防守",
+      "stance": "攻擊",
       "panic": false,
       "m_alert": false,
       "l_alert": false,
@@ -1357,6 +1423,7 @@
       "tv_alert": false,
       "tv_n": 0,
       "warn": false,
+      "swing": false,
       "c": {
         "futures": 23.1,
         "margin": 88.9
@@ -1376,6 +1443,7 @@
       "tv_alert": false,
       "tv_n": 0,
       "warn": false,
+      "swing": false,
       "c": {
         "futures": 34.6,
         "margin": 87.7
@@ -1387,7 +1455,7 @@
       "tx": 27689,
       "label": "無頂部訊號",
       "color": "#8a8a9a",
-      "stance": "防守",
+      "stance": "攻擊",
       "panic": false,
       "m_alert": false,
       "l_alert": false,
@@ -1395,6 +1463,7 @@
       "tv_alert": false,
       "tv_n": 0,
       "warn": false,
+      "swing": false,
       "c": {
         "futures": 34.6,
         "margin": 93.0
@@ -1412,8 +1481,9 @@
       "l_alert": true,
       "lb_alert": true,
       "tv_alert": false,
-      "tv_n": 1,
+      "tv_n": 0,
       "warn": false,
+      "swing": false,
       "c": {
         "futures": 26.9,
         "margin": 93.9
@@ -1433,6 +1503,7 @@
       "tv_alert": false,
       "tv_n": 0,
       "warn": false,
+      "swing": false,
       "c": {
         "futures": 41.0,
         "margin": 95.3
@@ -1452,6 +1523,7 @@
       "tv_alert": false,
       "tv_n": 0,
       "warn": false,
+      "swing": false,
       "c": {
         "futures": 32.1,
         "margin": 93.5
@@ -1471,6 +1543,7 @@
       "tv_alert": false,
       "tv_n": 0,
       "warn": false,
+      "swing": false,
       "c": {
         "futures": 30.8,
         "margin": 97.2
@@ -1490,6 +1563,7 @@
       "tv_alert": false,
       "tv_n": 0,
       "warn": false,
+      "swing": false,
       "c": {
         "futures": 51.3,
         "margin": 96.2
@@ -1501,7 +1575,7 @@
       "tx": 28295,
       "label": "無頂部訊號",
       "color": "#8a8a9a",
-      "stance": "防守",
+      "stance": "攻擊",
       "panic": false,
       "m_alert": false,
       "l_alert": false,
@@ -1509,6 +1583,7 @@
       "tv_alert": false,
       "tv_n": 0,
       "warn": false,
+      "swing": false,
       "c": {
         "futures": 34.6,
         "margin": 100.0
@@ -1528,6 +1603,7 @@
       "tv_alert": false,
       "tv_n": 0,
       "warn": false,
+      "swing": false,
       "c": {
         "futures": 35.9,
         "margin": 95.8
@@ -1547,6 +1623,7 @@
       "tv_alert": false,
       "tv_n": 0,
       "warn": false,
+      "swing": false,
       "c": {
         "futures": 25.6,
         "margin": 99.0
@@ -1558,7 +1635,7 @@
       "tx": 28335,
       "label": "無頂部訊號",
       "color": "#8a8a9a",
-      "stance": "防守",
+      "stance": "攻擊",
       "panic": false,
       "m_alert": false,
       "l_alert": false,
@@ -1566,6 +1643,7 @@
       "tv_alert": false,
       "tv_n": 0,
       "warn": false,
+      "swing": false,
       "c": {
         "futures": 56.4,
         "margin": 100.0
@@ -1585,6 +1663,7 @@
       "tv_alert": false,
       "tv_n": 0,
       "warn": false,
+      "swing": false,
       "c": {
         "futures": 56.4,
         "margin": 93.0
@@ -1604,6 +1683,7 @@
       "tv_alert": false,
       "tv_n": 0,
       "warn": false,
+      "swing": false,
       "c": {
         "futures": 64.1,
         "margin": 95.3
@@ -1623,6 +1703,7 @@
       "tv_alert": false,
       "tv_n": 0,
       "warn": false,
+      "swing": false,
       "c": {
         "futures": 61.5,
         "margin": 100.0
@@ -1642,6 +1723,7 @@
       "tv_alert": false,
       "tv_n": 0,
       "warn": false,
+      "swing": false,
       "c": {
         "futures": 65.4,
         "margin": 98.2
@@ -1661,6 +1743,7 @@
       "tv_alert": false,
       "tv_n": 0,
       "warn": false,
+      "swing": false,
       "c": {
         "futures": 65.4,
         "margin": 99.5
@@ -1680,6 +1763,7 @@
       "tv_alert": false,
       "tv_n": 0,
       "warn": false,
+      "swing": false,
       "c": {
         "futures": 67.9,
         "margin": 97.0
@@ -1699,6 +1783,7 @@
       "tv_alert": false,
       "tv_n": 0,
       "warn": false,
+      "swing": false,
       "c": {
         "futures": 62.8,
         "margin": 99.4
@@ -1716,8 +1801,9 @@
       "l_alert": true,
       "lb_alert": true,
       "tv_alert": false,
-      "tv_n": 1,
+      "tv_n": 0,
       "warn": false,
+      "swing": false,
       "c": {
         "futures": 69.2,
         "margin": 98.6
@@ -1737,6 +1823,7 @@
       "tv_alert": false,
       "tv_n": 0,
       "warn": false,
+      "swing": false,
       "c": {
         "futures": 80.8,
         "margin": 92.6
@@ -1756,6 +1843,7 @@
       "tv_alert": false,
       "tv_n": 0,
       "warn": false,
+      "swing": false,
       "c": {
         "futures": 70.5,
         "margin": 91.1
@@ -1775,6 +1863,7 @@
       "tv_alert": false,
       "tv_n": 0,
       "warn": false,
+      "swing": false,
       "c": {
         "futures": 84.6,
         "margin": 83.0
@@ -1794,6 +1883,7 @@
       "tv_alert": false,
       "tv_n": 0,
       "warn": false,
+      "swing": false,
       "c": {
         "futures": 69.2,
         "margin": 81.7
@@ -1813,6 +1903,7 @@
       "tv_alert": false,
       "tv_n": 0,
       "warn": false,
+      "swing": false,
       "c": {
         "futures": 32.1,
         "margin": 85.4
@@ -1832,6 +1923,7 @@
       "tv_alert": false,
       "tv_n": 0,
       "warn": false,
+      "swing": false,
       "c": {
         "futures": 79.5,
         "margin": 75.9
@@ -1851,6 +1943,7 @@
       "tv_alert": false,
       "tv_n": 0,
       "warn": false,
+      "swing": false,
       "c": {
         "futures": 71.8,
         "margin": 78.9
@@ -1870,6 +1963,7 @@
       "tv_alert": false,
       "tv_n": 0,
       "warn": false,
+      "swing": false,
       "c": {
         "futures": 62.8,
         "margin": 85.0
@@ -1889,6 +1983,7 @@
       "tv_alert": false,
       "tv_n": 0,
       "warn": false,
+      "swing": false,
       "c": {
         "futures": 60.3,
         "margin": 83.4
@@ -1908,6 +2003,7 @@
       "tv_alert": false,
       "tv_n": 0,
       "warn": false,
+      "swing": false,
       "c": {
         "futures": 60.3,
         "margin": 86.5
@@ -1927,6 +2023,7 @@
       "tv_alert": false,
       "tv_n": 0,
       "warn": false,
+      "swing": false,
       "c": {
         "futures": 51.3,
         "margin": 89.6
@@ -1946,6 +2043,7 @@
       "tv_alert": false,
       "tv_n": 0,
       "warn": false,
+      "swing": false,
       "c": {
         "futures": 65.4,
         "margin": 91.1
@@ -1965,6 +2063,7 @@
       "tv_alert": false,
       "tv_n": 0,
       "warn": false,
+      "swing": false,
       "c": {
         "futures": 62.8,
         "margin": 89.9
@@ -1984,6 +2083,7 @@
       "tv_alert": false,
       "tv_n": 0,
       "warn": false,
+      "swing": false,
       "c": {
         "futures": 67.9,
         "margin": 90.8
@@ -2003,6 +2103,7 @@
       "tv_alert": false,
       "tv_n": 0,
       "warn": false,
+      "swing": false,
       "c": {
         "futures": 69.2,
         "margin": 91.3
@@ -2022,6 +2123,7 @@
       "tv_alert": false,
       "tv_n": 0,
       "warn": false,
+      "swing": false,
       "c": {
         "futures": 55.1,
         "margin": 90.1
@@ -2041,6 +2143,7 @@
       "tv_alert": false,
       "tv_n": 0,
       "warn": false,
+      "swing": false,
       "c": {
         "futures": 60.3,
         "margin": 91.3
@@ -2060,6 +2163,7 @@
       "tv_alert": false,
       "tv_n": 0,
       "warn": false,
+      "swing": false,
       "c": {
         "futures": 85.9,
         "margin": 93.0
@@ -2079,6 +2183,7 @@
       "tv_alert": false,
       "tv_n": 0,
       "warn": false,
+      "swing": false,
       "c": {
         "futures": 66.7,
         "margin": 92.7
@@ -2098,6 +2203,7 @@
       "tv_alert": false,
       "tv_n": 0,
       "warn": false,
+      "swing": false,
       "c": {
         "futures": 83.3,
         "margin": 89.9
@@ -2117,6 +2223,7 @@
       "tv_alert": false,
       "tv_n": 0,
       "warn": false,
+      "swing": false,
       "c": {
         "futures": 70.5,
         "margin": 92.2
@@ -2136,6 +2243,7 @@
       "tv_alert": false,
       "tv_n": 0,
       "warn": false,
+      "swing": false,
       "c": {
         "futures": 96.2,
         "margin": 94.2
@@ -2155,6 +2263,7 @@
       "tv_alert": false,
       "tv_n": 0,
       "warn": false,
+      "swing": false,
       "c": {
         "futures": 96.2,
         "margin": 88.3
@@ -2174,6 +2283,7 @@
       "tv_alert": false,
       "tv_n": 0,
       "warn": false,
+      "swing": false,
       "c": {
         "futures": 67.9,
         "margin": 91.7
@@ -2193,6 +2303,7 @@
       "tv_alert": false,
       "tv_n": 0,
       "warn": false,
+      "swing": false,
       "c": {
         "futures": 65.4,
         "margin": 90.8
@@ -2212,6 +2323,7 @@
       "tv_alert": false,
       "tv_n": 0,
       "warn": false,
+      "swing": false,
       "c": {
         "futures": 38.5,
         "margin": 90.8
@@ -2231,6 +2343,7 @@
       "tv_alert": false,
       "tv_n": 0,
       "warn": false,
+      "swing": false,
       "c": {
         "futures": 46.2,
         "margin": 92.2
@@ -2250,6 +2363,7 @@
       "tv_alert": false,
       "tv_n": 1,
       "warn": false,
+      "swing": false,
       "c": {
         "futures": 44.9,
         "margin": 94.1
@@ -2269,6 +2383,7 @@
       "tv_alert": false,
       "tv_n": 1,
       "warn": false,
+      "swing": false,
       "c": {
         "futures": 39.7,
         "margin": 94.2
@@ -2288,6 +2403,7 @@
       "tv_alert": false,
       "tv_n": 1,
       "warn": false,
+      "swing": false,
       "c": {
         "futures": 29.5,
         "margin": 94.5
@@ -2305,8 +2421,9 @@
       "l_alert": true,
       "lb_alert": false,
       "tv_alert": false,
-      "tv_n": 2,
+      "tv_n": 1,
       "warn": false,
+      "swing": false,
       "c": {
         "futures": 24.4,
         "margin": 92.2
@@ -2326,6 +2443,7 @@
       "tv_alert": false,
       "tv_n": 1,
       "warn": true,
+      "swing": false,
       "c": {
         "futures": 50.0,
         "margin": 92.6
@@ -2345,6 +2463,7 @@
       "tv_alert": false,
       "tv_n": 1,
       "warn": false,
+      "swing": false,
       "c": {
         "futures": 41.0,
         "margin": 93.9
@@ -2362,8 +2481,9 @@
       "l_alert": true,
       "lb_alert": false,
       "tv_alert": false,
-      "tv_n": 2,
+      "tv_n": 1,
       "warn": false,
+      "swing": false,
       "c": {
         "futures": 25.6,
         "margin": 97.4
@@ -2381,8 +2501,9 @@
       "l_alert": true,
       "lb_alert": true,
       "tv_alert": false,
-      "tv_n": 2,
+      "tv_n": 1,
       "warn": false,
+      "swing": false,
       "c": {
         "futures": 41.0,
         "margin": 100.0
@@ -2402,6 +2523,7 @@
       "tv_alert": false,
       "tv_n": 2,
       "warn": false,
+      "swing": false,
       "c": {
         "futures": 73.1,
         "margin": 100.0
@@ -2421,6 +2543,7 @@
       "tv_alert": false,
       "tv_n": 2,
       "warn": false,
+      "swing": false,
       "c": {
         "futures": 70.5,
         "margin": 100.0
@@ -2432,7 +2555,7 @@
       "tx": 30361,
       "label": "無頂部訊號",
       "color": "#8a8a9a",
-      "stance": "攻擊",
+      "stance": "防守",
       "panic": false,
       "m_alert": false,
       "l_alert": false,
@@ -2440,6 +2563,7 @@
       "tv_alert": false,
       "tv_n": 0,
       "warn": false,
+      "swing": true,
       "c": {
         "futures": 44.9,
         "margin": 96.8
@@ -2451,7 +2575,7 @@
       "tx": 30289,
       "label": "無頂部訊號",
       "color": "#8a8a9a",
-      "stance": "攻擊",
+      "stance": "防守",
       "panic": false,
       "m_alert": false,
       "l_alert": false,
@@ -2459,6 +2583,7 @@
       "tv_alert": false,
       "tv_n": 0,
       "warn": false,
+      "swing": true,
       "c": {
         "futures": 48.7,
         "margin": 93.8
@@ -2470,7 +2595,7 @@
       "tx": 30567,
       "label": "無頂部訊號",
       "color": "#8a8a9a",
-      "stance": "攻擊",
+      "stance": "防守",
       "panic": false,
       "m_alert": false,
       "l_alert": true,
@@ -2478,6 +2603,7 @@
       "tv_alert": false,
       "tv_n": 1,
       "warn": false,
+      "swing": false,
       "c": {
         "futures": 50.0,
         "margin": 98.7
@@ -2495,8 +2621,9 @@
       "l_alert": true,
       "lb_alert": false,
       "tv_alert": false,
-      "tv_n": 1,
+      "tv_n": 0,
       "warn": false,
+      "swing": false,
       "c": {
         "futures": 76.9,
         "margin": 95.6
@@ -2516,6 +2643,7 @@
       "tv_alert": false,
       "tv_n": 1,
       "warn": false,
+      "swing": false,
       "c": {
         "futures": 94.9,
         "margin": 97.4
@@ -2533,8 +2661,9 @@
       "l_alert": true,
       "lb_alert": false,
       "tv_alert": false,
-      "tv_n": 2,
+      "tv_n": 1,
       "warn": false,
+      "swing": false,
       "c": {
         "futures": 98.7,
         "margin": 96.4
@@ -2554,6 +2683,7 @@
       "tv_alert": false,
       "tv_n": 1,
       "warn": false,
+      "swing": false,
       "c": {
         "futures": 91.0,
         "margin": 99.5
@@ -2573,6 +2703,7 @@
       "tv_alert": false,
       "tv_n": 1,
       "warn": false,
+      "swing": false,
       "c": {
         "futures": 92.3,
         "margin": 100.0
@@ -2590,8 +2721,9 @@
       "l_alert": true,
       "lb_alert": false,
       "tv_alert": false,
-      "tv_n": 1,
+      "tv_n": 0,
       "warn": false,
+      "swing": false,
       "c": {
         "futures": 85.9,
         "margin": 100.0
@@ -2609,8 +2741,9 @@
       "l_alert": true,
       "lb_alert": false,
       "tv_alert": false,
-      "tv_n": 2,
+      "tv_n": 1,
       "warn": false,
+      "swing": false,
       "c": {
         "futures": 21.8,
         "margin": 96.9
@@ -2630,6 +2763,7 @@
       "tv_alert": false,
       "tv_n": 2,
       "warn": false,
+      "swing": false,
       "c": {
         "futures": 17.9,
         "margin": 99.4
@@ -2649,6 +2783,7 @@
       "tv_alert": false,
       "tv_n": 2,
       "warn": false,
+      "swing": false,
       "c": {
         "futures": 6.4,
         "margin": 100.0
@@ -2668,6 +2803,7 @@
       "tv_alert": false,
       "tv_n": 2,
       "warn": false,
+      "swing": false,
       "c": {
         "futures": 38.5,
         "margin": 100.0
@@ -2685,8 +2821,9 @@
       "l_alert": true,
       "lb_alert": false,
       "tv_alert": false,
-      "tv_n": 2,
+      "tv_n": 1,
       "warn": false,
+      "swing": false,
       "c": {
         "futures": 28.2,
         "margin": 100.0
@@ -2704,8 +2841,9 @@
       "l_alert": true,
       "lb_alert": false,
       "tv_alert": false,
-      "tv_n": 2,
+      "tv_n": 1,
       "warn": false,
+      "swing": false,
       "c": {
         "futures": 48.7,
         "margin": 100.0
@@ -2717,7 +2855,7 @@
       "tx": 32536,
       "label": "無頂部訊號",
       "color": "#8a8a9a",
-      "stance": "攻擊",
+      "stance": "防守",
       "panic": false,
       "m_alert": false,
       "l_alert": false,
@@ -2725,6 +2863,7 @@
       "tv_alert": false,
       "tv_n": 1,
       "warn": false,
+      "swing": true,
       "c": {
         "futures": 85.9,
         "margin": 96.6
@@ -2736,7 +2875,7 @@
       "tx": 32064,
       "label": "無頂部訊號",
       "color": "#8a8a9a",
-      "stance": "攻擊",
+      "stance": "防守",
       "panic": false,
       "m_alert": false,
       "l_alert": false,
@@ -2744,6 +2883,7 @@
       "tv_alert": false,
       "tv_n": 1,
       "warn": false,
+      "swing": true,
       "c": {
         "futures": 83.3,
         "margin": 96.4
@@ -2763,6 +2903,7 @@
       "tv_alert": false,
       "tv_n": 1,
       "warn": false,
+      "swing": false,
       "c": {
         "futures": 44.9,
         "margin": 89.4
@@ -2782,6 +2923,7 @@
       "tv_alert": false,
       "tv_n": 1,
       "warn": false,
+      "swing": false,
       "c": {
         "futures": 35.9,
         "margin": 91.0
@@ -2799,8 +2941,9 @@
       "l_alert": true,
       "lb_alert": true,
       "tv_alert": false,
-      "tv_n": 2,
+      "tv_n": 1,
       "warn": false,
+      "swing": false,
       "c": {
         "futures": 29.5,
         "margin": 91.1
@@ -2812,7 +2955,7 @@
       "tx": 31801,
       "label": "無頂部訊號",
       "color": "#8a8a9a",
-      "stance": "防守",
+      "stance": "攻擊",
       "panic": false,
       "m_alert": false,
       "l_alert": false,
@@ -2820,6 +2963,7 @@
       "tv_alert": false,
       "tv_n": 1,
       "warn": false,
+      "swing": false,
       "c": {
         "futures": 39.7,
         "margin": 88.5
@@ -2839,6 +2983,7 @@
       "tv_alert": false,
       "tv_n": 1,
       "warn": false,
+      "swing": false,
       "c": {
         "futures": 21.8,
         "margin": 78.6
@@ -2858,6 +3003,7 @@
       "tv_alert": false,
       "tv_n": 1,
       "warn": false,
+      "swing": false,
       "c": {
         "futures": 7.7,
         "margin": 79.1
@@ -2869,7 +3015,7 @@
       "tx": 33073,
       "label": "無頂部訊號",
       "color": "#8a8a9a",
-      "stance": "防守",
+      "stance": "攻擊",
       "panic": false,
       "m_alert": false,
       "l_alert": false,
@@ -2877,6 +3023,7 @@
       "tv_alert": false,
       "tv_n": 1,
       "warn": false,
+      "swing": false,
       "c": {
         "futures": 20.5,
         "margin": 75.4
@@ -2896,6 +3043,7 @@
       "tv_alert": false,
       "tv_n": 1,
       "warn": false,
+      "swing": false,
       "c": {
         "futures": 44.9,
         "margin": 69.9
@@ -2907,7 +3055,7 @@
       "tx": 33773,
       "label": "無頂部訊號",
       "color": "#8a8a9a",
-      "stance": "防守",
+      "stance": "攻擊",
       "panic": false,
       "m_alert": false,
       "l_alert": true,
@@ -2915,6 +3063,7 @@
       "tv_alert": false,
       "tv_n": 2,
       "warn": false,
+      "swing": false,
       "c": {
         "futures": 73.1,
         "margin": 73.6
@@ -2934,6 +3083,7 @@
       "tv_alert": false,
       "tv_n": 2,
       "warn": false,
+      "swing": false,
       "c": {
         "futures": 60.3,
         "margin": 78.6
@@ -2953,6 +3103,7 @@
       "tv_alert": true,
       "tv_n": 3,
       "warn": false,
+      "swing": false,
       "c": {
         "futures": 98.7,
         "margin": 83.8
@@ -2972,6 +3123,7 @@
       "tv_alert": true,
       "tv_n": 3,
       "warn": false,
+      "swing": false,
       "c": {
         "futures": 98.7,
         "margin": 89.9
@@ -2991,6 +3143,7 @@
       "tv_alert": true,
       "tv_n": 3,
       "warn": false,
+      "swing": true,
       "c": {
         "futures": 98.7,
         "margin": 90.4
@@ -3010,6 +3163,7 @@
       "tv_alert": false,
       "tv_n": 1,
       "warn": true,
+      "swing": true,
       "c": {
         "futures": 97.4,
         "margin": 81.2
@@ -3029,6 +3183,7 @@
       "tv_alert": false,
       "tv_n": 2,
       "warn": false,
+      "swing": true,
       "c": {
         "futures": 98.7,
         "margin": 71.6
@@ -3048,6 +3203,7 @@
       "tv_alert": false,
       "tv_n": 1,
       "warn": false,
+      "swing": true,
       "c": {
         "futures": 96.2,
         "margin": 73.8
@@ -3065,8 +3221,9 @@
       "l_alert": true,
       "lb_alert": true,
       "tv_alert": false,
-      "tv_n": 2,
+      "tv_n": 1,
       "warn": false,
+      "swing": true,
       "c": {
         "futures": 93.6,
         "margin": 77.1
@@ -3086,6 +3243,7 @@
       "tv_alert": false,
       "tv_n": 1,
       "warn": false,
+      "swing": true,
       "c": {
         "futures": 94.9,
         "margin": 63.6
@@ -3105,6 +3263,7 @@
       "tv_alert": false,
       "tv_n": 1,
       "warn": false,
+      "swing": true,
       "c": {
         "futures": 91.0,
         "margin": 58.3
@@ -3124,6 +3283,7 @@
       "tv_alert": false,
       "tv_n": 2,
       "warn": false,
+      "swing": false,
       "c": {
         "futures": 94.9,
         "margin": 67.6
@@ -3140,9 +3300,10 @@
       "m_alert": false,
       "l_alert": true,
       "lb_alert": true,
-      "tv_alert": true,
-      "tv_n": 3,
+      "tv_alert": false,
+      "tv_n": 2,
       "warn": false,
+      "swing": true,
       "c": {
         "futures": 98.7,
         "margin": 71.1
@@ -3162,6 +3323,7 @@
       "tv_alert": false,
       "tv_n": 2,
       "warn": false,
+      "swing": true,
       "c": {
         "futures": 89.7,
         "margin": 78.3
@@ -3181,6 +3343,7 @@
       "tv_alert": false,
       "tv_n": 2,
       "warn": false,
+      "swing": true,
       "c": {
         "futures": 87.2,
         "margin": 86.5
@@ -3200,6 +3363,7 @@
       "tv_alert": false,
       "tv_n": 2,
       "warn": false,
+      "swing": true,
       "c": {
         "futures": 83.3,
         "margin": 87.2
@@ -3219,6 +3383,7 @@
       "tv_alert": false,
       "tv_n": 2,
       "warn": false,
+      "swing": false,
       "c": {
         "futures": 78.2,
         "margin": 94.5
@@ -3236,8 +3401,9 @@
       "l_alert": true,
       "lb_alert": false,
       "tv_alert": false,
-      "tv_n": 2,
+      "tv_n": 1,
       "warn": false,
+      "swing": true,
       "c": {
         "futures": 92.3,
         "margin": 96.2
@@ -3257,6 +3423,7 @@
       "tv_alert": false,
       "tv_n": 1,
       "warn": false,
+      "swing": true,
       "c": {
         "futures": 83.3,
         "margin": 90.2
@@ -3276,6 +3443,7 @@
       "tv_alert": false,
       "tv_n": 1,
       "warn": false,
+      "swing": true,
       "c": {
         "futures": 84.6,
         "margin": 82.0
@@ -3295,6 +3463,7 @@
       "tv_alert": false,
       "tv_n": 1,
       "warn": false,
+      "swing": true,
       "c": {
         "futures": 73.1,
         "margin": 76.6
@@ -3312,8 +3481,9 @@
       "l_alert": true,
       "lb_alert": true,
       "tv_alert": false,
-      "tv_n": 2,
+      "tv_n": 1,
       "warn": false,
+      "swing": false,
       "c": {
         "futures": 78.2,
         "margin": 83.9
@@ -3333,6 +3503,7 @@
       "tv_alert": false,
       "tv_n": 1,
       "warn": false,
+      "swing": false,
       "c": {
         "futures": 83.3,
         "margin": 76.6
@@ -3352,6 +3523,7 @@
       "tv_alert": false,
       "tv_n": 1,
       "warn": false,
+      "swing": false,
       "c": {
         "futures": 87.2,
         "margin": 80.1
@@ -3371,6 +3543,7 @@
       "tv_alert": false,
       "tv_n": 1,
       "warn": false,
+      "swing": false,
       "c": {
         "futures": 82.1,
         "margin": 78.0
@@ -3390,6 +3563,7 @@
       "tv_alert": false,
       "tv_n": 1,
       "warn": false,
+      "swing": false,
       "c": {
         "futures": 80.8,
         "margin": 58.4
@@ -3407,8 +3581,9 @@
       "l_alert": true,
       "lb_alert": true,
       "tv_alert": false,
-      "tv_n": 2,
+      "tv_n": 1,
       "warn": false,
+      "swing": false,
       "c": {
         "futures": 55.1,
         "margin": 63.4
@@ -3428,6 +3603,7 @@
       "tv_alert": false,
       "tv_n": 1,
       "warn": false,
+      "swing": false,
       "c": {
         "futures": 69.2,
         "margin": 63.3
@@ -3447,6 +3623,7 @@
       "tv_alert": false,
       "tv_n": 1,
       "warn": false,
+      "swing": false,
       "c": {
         "futures": 52.6,
         "margin": 67.6
@@ -3458,7 +3635,7 @@
       "tx": 34761,
       "label": "無頂部訊號",
       "color": "#8a8a9a",
-      "stance": "防守",
+      "stance": "攻擊",
       "panic": false,
       "m_alert": false,
       "l_alert": true,
@@ -3466,6 +3643,7 @@
       "tv_alert": false,
       "tv_n": 2,
       "warn": false,
+      "swing": false,
       "c": {
         "futures": 55.1,
         "margin": 80.9
@@ -3477,14 +3655,15 @@
       "tx": 34861,
       "label": "無頂部訊號",
       "color": "#8a8a9a",
-      "stance": "防守",
+      "stance": "攻擊",
       "panic": false,
       "m_alert": false,
       "l_alert": true,
       "lb_alert": false,
       "tv_alert": false,
-      "tv_n": 2,
+      "tv_n": 1,
       "warn": false,
+      "swing": false,
       "c": {
         "futures": 60.3,
         "margin": 83.8
@@ -3502,8 +3681,9 @@
       "l_alert": true,
       "lb_alert": false,
       "tv_alert": false,
-      "tv_n": 2,
+      "tv_n": 1,
       "warn": false,
+      "swing": false,
       "c": {
         "futures": 66.7,
         "margin": 93.1
@@ -3523,6 +3703,7 @@
       "tv_alert": false,
       "tv_n": 2,
       "warn": false,
+      "swing": false,
       "c": {
         "futures": 73.1,
         "margin": 100.0
@@ -3542,6 +3723,7 @@
       "tv_alert": false,
       "tv_n": 1,
       "warn": false,
+      "swing": false,
       "c": {
         "futures": 76.9,
         "margin": 100.0
@@ -3561,6 +3743,7 @@
       "tv_alert": false,
       "tv_n": 0,
       "warn": false,
+      "swing": false,
       "c": {
         "futures": 76.9,
         "margin": 100.0
@@ -3580,6 +3763,7 @@
       "tv_alert": false,
       "tv_n": 1,
       "warn": false,
+      "swing": false,
       "c": {
         "futures": 85.9,
         "margin": 100.0
@@ -3591,14 +3775,15 @@
       "tx": 36804,
       "label": "無頂部訊號",
       "color": "#8a8a9a",
-      "stance": "攻擊",
+      "stance": "防守",
       "panic": false,
       "m_alert": false,
       "l_alert": true,
       "lb_alert": false,
       "tv_alert": false,
-      "tv_n": 2,
+      "tv_n": 1,
       "warn": false,
+      "swing": true,
       "c": {
         "futures": 94.9,
         "margin": 100.0
@@ -3610,7 +3795,7 @@
       "tx": 36959,
       "label": "無頂部訊號",
       "color": "#8a8a9a",
-      "stance": "攻擊",
+      "stance": "防守",
       "panic": false,
       "m_alert": false,
       "l_alert": true,
@@ -3618,6 +3803,7 @@
       "tv_alert": false,
       "tv_n": 2,
       "warn": false,
+      "swing": false,
       "c": {
         "futures": 97.4,
         "margin": 100.0
@@ -3637,6 +3823,7 @@
       "tv_alert": false,
       "tv_n": 2,
       "warn": false,
+      "swing": false,
       "c": {
         "futures": 94.9,
         "margin": 100.0
@@ -3656,6 +3843,7 @@
       "tv_alert": false,
       "tv_n": 2,
       "warn": false,
+      "swing": false,
       "c": {
         "futures": 96.2,
         "margin": 100.0
@@ -3675,6 +3863,7 @@
       "tv_alert": false,
       "tv_n": 2,
       "warn": false,
+      "swing": false,
       "c": {
         "futures": 98.7,
         "margin": 100.0
@@ -3694,6 +3883,7 @@
       "tv_alert": false,
       "tv_n": 1,
       "warn": true,
+      "swing": false,
       "c": {
         "futures": 84.6,
         "margin": 100.0
@@ -3713,6 +3903,7 @@
       "tv_alert": false,
       "tv_n": 2,
       "warn": true,
+      "swing": false,
       "c": {
         "futures": 98.7,
         "margin": 100.0
@@ -3724,14 +3915,15 @@
       "tx": 39522,
       "label": "頂部過熱",
       "color": "#ef4444",
-      "stance": "防守",
+      "stance": "攻擊",
       "panic": false,
       "m_alert": false,
       "l_alert": true,
       "lb_alert": false,
-      "tv_alert": true,
-      "tv_n": 3,
+      "tv_alert": false,
+      "tv_n": 2,
       "warn": true,
+      "swing": false,
       "c": {
         "futures": 98.7,
         "margin": 100.0
@@ -3748,9 +3940,10 @@
       "m_alert": false,
       "l_alert": true,
       "lb_alert": false,
-      "tv_alert": true,
-      "tv_n": 3,
+      "tv_alert": false,
+      "tv_n": 2,
       "warn": false,
+      "swing": true,
       "c": {
         "futures": 98.7,
         "margin": 100.0
@@ -3770,6 +3963,7 @@
       "tv_alert": false,
       "tv_n": 1,
       "warn": false,
+      "swing": true,
       "c": {
         "futures": 94.9,
         "margin": 100.0
@@ -3781,14 +3975,15 @@
       "tx": 40705,
       "label": "無頂部訊號",
       "color": "#8a8a9a",
-      "stance": "防守",
+      "stance": "攻擊",
       "panic": false,
       "m_alert": false,
       "l_alert": true,
       "lb_alert": false,
       "tv_alert": false,
-      "tv_n": 2,
+      "tv_n": 1,
       "warn": false,
+      "swing": false,
       "c": {
         "futures": 92.3,
         "margin": 100.0
@@ -3800,14 +3995,15 @@
       "tx": 40769,
       "label": "頂部過熱",
       "color": "#ef4444",
-      "stance": "防守",
+      "stance": "攻擊",
       "panic": false,
       "m_alert": false,
       "l_alert": true,
       "lb_alert": false,
-      "tv_alert": true,
-      "tv_n": 3,
+      "tv_alert": false,
+      "tv_n": 2,
       "warn": false,
+      "swing": false,
       "c": {
         "futures": 98.7,
         "margin": 100.0
@@ -3819,7 +4015,7 @@
       "tx": 41139,
       "label": "頂部過熱",
       "color": "#ef4444",
-      "stance": "防守",
+      "stance": "攻擊",
       "panic": false,
       "m_alert": false,
       "l_alert": false,
@@ -3827,6 +4023,7 @@
       "tv_alert": false,
       "tv_n": 2,
       "warn": false,
+      "swing": false,
       "c": {
         "futures": 98.7,
         "margin": 100.0
@@ -3843,9 +4040,10 @@
       "m_alert": false,
       "l_alert": true,
       "lb_alert": false,
-      "tv_alert": true,
-      "tv_n": 3,
+      "tv_alert": false,
+      "tv_n": 2,
       "warn": false,
+      "swing": false,
       "c": {
         "futures": 98.7,
         "margin": 100.0
@@ -3865,6 +4063,7 @@
       "tv_alert": false,
       "tv_n": 2,
       "warn": false,
+      "swing": true,
       "c": {
         "futures": 98.7,
         "margin": 100.0
@@ -3884,6 +4083,7 @@
       "tv_alert": false,
       "tv_n": 1,
       "warn": false,
+      "swing": false,
       "c": {
         "futures": 97.4,
         "margin": 100.0
@@ -3903,6 +4103,7 @@
       "tv_alert": false,
       "tv_n": 1,
       "warn": true,
+      "swing": false,
       "c": {
         "futures": 96.2,
         "margin": 100.0
@@ -3922,6 +4123,7 @@
       "tv_alert": false,
       "tv_n": 1,
       "warn": false,
+      "swing": true,
       "c": {
         "futures": 94.9,
         "margin": 100.0
@@ -3941,6 +4143,7 @@
       "tv_alert": false,
       "tv_n": 1,
       "warn": false,
+      "swing": false,
       "c": {
         "futures": 92.3,
         "margin": 100.0
@@ -3952,7 +4155,7 @@
       "tx": 41172,
       "label": "無頂部訊號",
       "color": "#8a8a9a",
-      "stance": "防守",
+      "stance": "攻擊",
       "panic": false,
       "m_alert": false,
       "l_alert": false,
@@ -3960,6 +4163,7 @@
       "tv_alert": false,
       "tv_n": 1,
       "warn": false,
+      "swing": false,
       "c": {
         "futures": 89.7,
         "margin": 97.9
@@ -3979,6 +4183,7 @@
       "tv_alert": false,
       "tv_n": 1,
       "warn": false,
+      "swing": false,
       "c": {
         "futures": 84.6,
         "margin": 100.0
@@ -3998,6 +4203,7 @@
       "tv_alert": false,
       "tv_n": 1,
       "warn": false,
+      "swing": false,
       "c": {
         "futures": 84.6,
         "margin": 95.3
@@ -4017,6 +4223,7 @@
       "tv_alert": false,
       "tv_n": 1,
       "warn": false,
+      "swing": false,
       "c": {
         "futures": 75.6,
         "margin": 95.9
@@ -4036,6 +4243,7 @@
       "tv_alert": false,
       "tv_n": 2,
       "warn": false,
+      "swing": false,
       "c": {
         "futures": 82.1,
         "margin": 98.4
@@ -4055,6 +4263,7 @@
       "tv_alert": false,
       "tv_n": 2,
       "warn": false,
+      "swing": false,
       "c": {
         "futures": 85.9,
         "margin": 100.0
@@ -4066,7 +4275,7 @@
       "tx": 43644,
       "label": "無頂部訊號",
       "color": "#8a8a9a",
-      "stance": "防守",
+      "stance": "攻擊",
       "panic": false,
       "m_alert": true,
       "l_alert": true,
@@ -4074,6 +4283,7 @@
       "tv_alert": true,
       "tv_n": 3,
       "warn": false,
+      "swing": false,
       "c": {
         "futures": 93.6,
         "margin": 100.0
@@ -4085,7 +4295,7 @@
       "tx": 43525,
       "label": "無頂部訊號",
       "color": "#8a8a9a",
-      "stance": "防守",
+      "stance": "攻擊",
       "panic": false,
       "m_alert": true,
       "l_alert": false,
@@ -4093,6 +4303,7 @@
       "tv_alert": false,
       "tv_n": 2,
       "warn": false,
+      "swing": false,
       "c": {
         "futures": 97.4,
         "margin": 100.0
@@ -4104,7 +4315,7 @@
       "tx": 44257,
       "label": "頂部過熱",
       "color": "#ef4444",
-      "stance": "防守",
+      "stance": "攻擊",
       "panic": false,
       "m_alert": false,
       "l_alert": false,
@@ -4112,6 +4323,7 @@
       "tv_alert": false,
       "tv_n": 2,
       "warn": false,
+      "swing": false,
       "c": {
         "futures": 98.7,
         "margin": 99.9
@@ -4131,6 +4343,7 @@
       "tv_alert": false,
       "tv_n": 2,
       "warn": true,
+      "swing": true,
       "c": {
         "futures": 98.7,
         "margin": 96.9
@@ -4142,7 +4355,7 @@
       "tx": 44733,
       "label": "頂部過熱",
       "color": "#ef4444",
-      "stance": "防守",
+      "stance": "攻擊",
       "panic": false,
       "m_alert": false,
       "l_alert": false,
@@ -4150,6 +4363,7 @@
       "tv_alert": false,
       "tv_n": 2,
       "warn": true,
+      "swing": false,
       "c": {
         "futures": 98.7,
         "margin": 100.0
@@ -4161,7 +4375,7 @@
       "tx": 45338,
       "label": "頂部過熱",
       "color": "#ef4444",
-      "stance": "防守",
+      "stance": "攻擊",
       "panic": false,
       "m_alert": false,
       "l_alert": true,
@@ -4169,6 +4383,7 @@
       "tv_alert": true,
       "tv_n": 3,
       "warn": false,
+      "swing": false,
       "c": {
         "futures": 98.7,
         "margin": 100.0
@@ -4185,9 +4400,10 @@
       "m_alert": false,
       "l_alert": true,
       "lb_alert": false,
-      "tv_alert": true,
-      "tv_n": 3,
+      "tv_alert": false,
+      "tv_n": 2,
       "warn": false,
+      "swing": false,
       "c": {
         "futures": 98.7,
         "margin": 100.0
@@ -4199,7 +4415,7 @@
       "tx": 46459,
       "label": "無頂部訊號",
       "color": "#8a8a9a",
-      "stance": "防守",
+      "stance": "攻擊",
       "panic": false,
       "m_alert": false,
       "l_alert": true,
@@ -4207,6 +4423,7 @@
       "tv_alert": false,
       "tv_n": 2,
       "warn": false,
+      "swing": false,
       "c": {
         "futures": 97.4,
         "margin": 100.0
@@ -4226,6 +4443,7 @@
       "tv_alert": false,
       "tv_n": 2,
       "warn": false,
+      "swing": true,
       "c": {
         "futures": 98.7,
         "margin": 99.5
@@ -4245,6 +4463,7 @@
       "tv_alert": false,
       "tv_n": 1,
       "warn": false,
+      "swing": true,
       "c": {
         "futures": 97.4,
         "margin": 94.7
@@ -4264,6 +4483,7 @@
       "tv_alert": false,
       "tv_n": 1,
       "warn": true,
+      "swing": true,
       "c": {
         "futures": 93.6,
         "margin": 86.6
@@ -4283,6 +4503,7 @@
       "tv_alert": false,
       "tv_n": 2,
       "warn": false,
+      "swing": true,
       "c": {
         "futures": 91.0,
         "margin": 90.1
@@ -4302,6 +4523,7 @@
       "tv_alert": false,
       "tv_n": 1,
       "warn": false,
+      "swing": true,
       "c": {
         "futures": 91.0,
         "margin": 81.9
@@ -4313,7 +4535,7 @@
       "tx": 43149,
       "label": "無頂部訊號",
       "color": "#8a8a9a",
-      "stance": "防守",
+      "stance": "攻擊",
       "panic": false,
       "m_alert": false,
       "l_alert": false,
@@ -4321,6 +4543,7 @@
       "tv_alert": false,
       "tv_n": 1,
       "warn": false,
+      "swing": true,
       "c": {
         "futures": 91.0,
         "margin": 81.7
@@ -4340,6 +4563,7 @@
       "tv_alert": false,
       "tv_n": 1,
       "warn": false,
+      "swing": true,
       "c": {
         "futures": 92.3,
         "margin": 83.6
@@ -4359,6 +4583,7 @@
       "tv_alert": false,
       "tv_n": 2,
       "warn": false,
+      "swing": false,
       "c": {
         "futures": 93.6,
         "margin": 88.1
@@ -4370,7 +4595,7 @@
       "tx": 45809,
       "label": "頂部過熱",
       "color": "#ef4444",
-      "stance": "防守",
+      "stance": "攻擊",
       "panic": false,
       "m_alert": false,
       "l_alert": false,
@@ -4378,6 +4603,7 @@
       "tv_alert": false,
       "tv_n": 2,
       "warn": false,
+      "swing": false,
       "c": {
         "futures": 98.7,
         "margin": 86.4
@@ -4389,7 +4615,7 @@
       "tx": 45877,
       "label": "無頂部訊號",
       "color": "#8a8a9a",
-      "stance": "防守",
+      "stance": "攻擊",
       "panic": false,
       "m_alert": false,
       "l_alert": false,
@@ -4397,6 +4623,7 @@
       "tv_alert": false,
       "tv_n": 1,
       "warn": false,
+      "swing": false,
       "c": {
         "futures": 94.9,
         "margin": 89.9
@@ -4416,6 +4643,7 @@
       "tv_alert": false,
       "tv_n": 2,
       "warn": false,
+      "swing": false,
       "c": {
         "futures": 94.9,
         "margin": 91.8
@@ -4435,6 +4663,7 @@
       "tv_alert": true,
       "tv_n": 3,
       "warn": false,
+      "swing": false,
       "c": {
         "futures": 98.7,
         "margin": 94.8
@@ -4454,6 +4683,7 @@
       "tv_alert": false,
       "tv_n": 2,
       "warn": false,
+      "swing": true,
       "c": {
         "futures": 98.7,
         "margin": 89.0
@@ -4473,6 +4703,7 @@
       "tv_alert": false,
       "tv_n": 2,
       "warn": false,
+      "swing": true,
       "c": {
         "futures": 98.7,
         "margin": 94.2
@@ -4492,6 +4723,7 @@
       "tv_alert": false,
       "tv_n": 1,
       "warn": false,
+      "swing": true,
       "c": {
         "futures": 96.2,
         "margin": 85.1
@@ -4511,6 +4743,7 @@
       "tv_alert": false,
       "tv_n": 1,
       "warn": false,
+      "swing": true,
       "c": {
         "futures": 97.4,
         "margin": 85.4
@@ -4530,6 +4763,7 @@
       "tv_alert": true,
       "tv_n": 3,
       "warn": false,
+      "swing": true,
       "c": {
         "futures": 98.7,
         "margin": 91.1
@@ -4549,6 +4783,7 @@
       "tv_alert": false,
       "tv_n": 2,
       "warn": false,
+      "swing": false,
       "c": {
         "futures": 98.7,
         "margin": 88.9
@@ -4565,9 +4800,10 @@
       "m_alert": false,
       "l_alert": true,
       "lb_alert": true,
-      "tv_alert": true,
-      "tv_n": 3,
+      "tv_alert": false,
+      "tv_n": 2,
       "warn": false,
+      "swing": true,
       "c": {
         "futures": 98.7,
         "margin": 92.1
@@ -4585,8 +4821,9 @@
       "l_alert": true,
       "lb_alert": false,
       "tv_alert": false,
-      "tv_n": 2,
+      "tv_n": 1,
       "warn": false,
+      "swing": true,
       "c": {
         "futures": 94.9,
         "margin": 94.5
@@ -4606,6 +4843,7 @@
       "tv_alert": false,
       "tv_n": 1,
       "warn": false,
+      "swing": true,
       "c": {
         "futures": 92.3,
         "margin": 93.1
@@ -4625,6 +4863,7 @@
       "tv_alert": false,
       "tv_n": 1,
       "warn": false,
+      "swing": true,
       "c": {
         "futures": 91.0,
         "margin": 83.7
@@ -4644,6 +4883,7 @@
       "tv_alert": false,
       "tv_n": 1,
       "warn": false,
+      "swing": true,
       "c": {
         "futures": 94.9,
         "margin": 83.8
@@ -4663,6 +4903,7 @@
       "tv_alert": false,
       "tv_n": 1,
       "warn": false,
+      "swing": false,
       "c": {
         "futures": 91.0,
         "margin": 85.2
@@ -4682,6 +4923,7 @@
       "tv_alert": false,
       "tv_n": 1,
       "warn": false,
+      "swing": false,
       "c": {
         "futures": 93.6,
         "margin": 83.6
@@ -4701,6 +4943,7 @@
       "tv_alert": false,
       "tv_n": 1,
       "warn": false,
+      "swing": false,
       "c": {
         "futures": 96.2,
         "margin": 76.7
@@ -4720,6 +4963,7 @@
       "tv_alert": false,
       "tv_n": 1,
       "warn": false,
+      "swing": false,
       "c": {
         "futures": 84.6,
         "margin": 80.9
@@ -4739,6 +4983,7 @@
       "tv_alert": false,
       "tv_n": 1,
       "warn": false,
+      "swing": false,
       "c": {
         "futures": 97.4,
         "margin": 80.2
@@ -4758,6 +5003,7 @@
       "tv_alert": false,
       "tv_n": 2,
       "warn": false,
+      "swing": true,
       "c": {
         "futures": 98.7,
         "margin": 66.9
@@ -4777,6 +5023,7 @@
       "tv_alert": false,
       "tv_n": 1,
       "warn": false,
+      "swing": true,
       "c": {
         "futures": 80.8,
         "margin": 57.2
@@ -4796,6 +5043,7 @@
       "tv_alert": false,
       "tv_n": 1,
       "warn": false,
+      "swing": true,
       "c": {
         "futures": 80.8,
         "margin": 60.1
@@ -4815,6 +5063,7 @@
       "tv_alert": false,
       "tv_n": 0,
       "warn": false,
+      "swing": true,
       "c": {
         "futures": 76.9,
         "margin": 62.6
@@ -4834,6 +5083,7 @@
       "tv_alert": false,
       "tv_n": 0,
       "warn": false,
+      "swing": false,
       "c": {
         "futures": 73.1,
         "margin": 61.8
@@ -4853,6 +5103,7 @@
       "tv_alert": false,
       "tv_n": 0,
       "warn": false,
+      "swing": false,
       "c": {
         "futures": 73.1,
         "margin": 58.1
