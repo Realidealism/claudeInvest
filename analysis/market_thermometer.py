@@ -148,22 +148,65 @@ TREND_EXIT_HI_WIN = 13
 # 才漲過頂位, 整段 V 型反彈 (+9.9%) 都站在防守邊. 指數站回 TREND_EXIT_HI_WIN 日高時, 「還在下跌中」
 # 這個論點本來就已作廢, 不必等它漲回原始進場價. 實測完全免費: 危險近高 recall 30%、-10% 36%、七個
 # 崩盤/頂部段覆蓋 (62/73/60/82/64/100/100%) 一格未動, 防守 40.2%→40.0%, 累報酬 +252.7%→+267.7%,
-# maxDD -22.4% 不變. 窗 5 會傷覆蓋 (2021-04 73→67%、2026-06 100→94%), 20 較鈍, 故沿用 10.
-# ★被否決 (勿重試): 「指數站在 10 日高上就不准任何腿進場」——報酬更好 (+289.5%) 但危險近高 recall
-# 30%→21%、-10% 36%→21%、2026-02/06 真頂覆蓋 100%→92/94%, 保護力塌掉. tmp/_top_exit_hi2.py.
+# maxDD -22.4% 不變. 窗 5 會傷覆蓋 (2021-04 73→67%、2026-06 100→94%), 20 較鈍.
+# ★上面這組實測是窗 = 10 時做的; 之後 TREND_EXIT_HI_WIN 才由 10 掃到 13 (見該常數的說明).
+# ★被否決 (勿重試): 「指數站在 TREND_EXIT_HI_WIN 日高上就不准任何腿進場」——報酬更好 (+289.5%)
+# 但危險近高 recall 30%→21%、-10% 36%→21%、2026-02/06 真頂覆蓋 100%→92/94%, 保護力塌掉 (同樣是
+# 窗 10 時測的). tmp/_top_exit_hi2.py.
 TOP_EXIT_ON_HI = True
-# 站在 TREND_EXIT_HI_WIN 日高上就不准進場 (BLOCK_ENTRY_AT_HI): 出場已經認「站回 10 日高」, 這條讓
-# 進場對稱——指數正在創 10 日新高時, 高點防守與趨勢腿都不新開防守 (波段層本來就要求跌破 5 日高,
-# 不受影響). 效果: 2026-04-08 (排列仍 -2 但指數單日 +4.6%) 轉攻擊, 防守 40.0%→38.0%, 累報酬
-# +267.7%→+289.5%, maxDD -22.4% 不變.
+# 站在 TREND_EXIT_HI_WIN 日高上就不准進場 (BLOCK_ENTRY_AT_HI): 出場已經認「站回 TREND_EXIT_HI_WIN
+# 日高」, 這條讓進場對稱——指數正在創 TREND_EXIT_HI_WIN 日新高時, 高點防守與趨勢腿都不新開防守
+# (波段層本來就要求跌破 5 日高, 不受影響). 效果: 2026-04-08 (排列仍 -2 但指數單日 +4.6%) 轉攻擊,
+# 防守 40.0%→38.0%, 累報酬 +267.7%→+289.5%, maxDD -22.4% 不變.
+# ★以下實測數字皆為窗 = 10 時所得 (該版本掃描後才改用 13), 要重現須連窗一起設回 10.
 # ★實測後關閉 (2026-07-25): 累報酬雖然 +267.7%→+289.5%, 但判斷品質每一項都變差 —
 #   危險近高防守 30%→21%、-10% 36%→21%, 2021-04 頂 73%→67%、2026-02 100%→92%、2026-06 100%→94%
-#   (頂部當天指數還在創 10 日新高, 防守要隔一天才進場); 攻擊日的 fwd10 中位 +1.27%→+1.23%、正比
+#   (頂部當天指數還在創新高, 防守要隔一天才進場); 攻擊日的 fwd10 中位 +1.27%→+1.23%、正比
 #   67%→65%, 之後 10 日踩到 -5% 的次數 55→63、-8% 的 5→9; 且 +22pp 報酬集中在 2024(+4.8pp)/
 #   2026(+3.6pp), 2023 反而 -1.1pp = 不時間均勻. 放行的 36 天用 5/10 日評分只有 10 天變好、16 天
 #   變差 (fwd10 中位 -1.68%, 正比僅 25%) — 賺的是頂部前最後幾根, 賠的是接下來兩週.
 #   設 True 可重現該版本. tmp/_top_exit_hi2.py, _blockentry_eval510.py, _ab_head2head.py.
 BLOCK_ENTRY_AT_HI = False
+# 三態化 (攻擊/觀望/防守, 2026-07-27): 攻防原本是二元, 邊界日必然來回跳 —— 全歷史 264 段裡有 75 段
+# 只有 1 天, 而 A 組(防守只1天)30 次裡 26 次是趨勢腿進場、其中 16 次隔天就被「站回 13 日高」放行.
+# 根因是趨勢腿進場看廣度(排列翻空)、出場看價格(trend_exit)兩個不同時鐘, 而它是唯一兩側都沒有滯後
+# 的腿 (高點防守有 minhold、恐慌有 hold、早退有安全帶、高點有重掛閘門). 且 5/10 日稽核已證趨勢腿
+# 484 天 fwd10 +0.85% (基準 +1.10%)、負比 42% ≈ 擲硬幣 —— 它本來就不配叫「防守」.
+# 修法不是再加滯後補丁, 而是把趨勢腿進場首日降級成「觀望」: 觀望 = 不加碼但續抱 (路徑相依, 曝險
+# 沿用前值), 所以 1 天的趨勢防守不再造成任何換倉, 而長段仍會在第 K+1 天升為真防守.
+# K=1 的掃描結果 (tmp/_stance_tri_sweep.py, 1980 日全樣本, 重播已驗 0/250 對 production):
+#   1 天閃爍段 75→20 (-73%)、換倉 263→211、每單位曝險年化 30.47→30.81、maxDD -22.7%→-22.6%;
+#   差異日 106 天且逐年均勻 (2018:6 / 2019:11 / 2020:15 / 2021:11 / 2022:11 / 2023:11 / 2024:14 /
+#   2025:23 / 2026:4) = 不是單一事件驅動.
+# ★代價 (誠實記錄): 危險近高 recall 29%→27% (-10% 版 32%→29%), 且只有 top_vote 抓不到、靠趨勢腿
+#   撐的兩段會掉 —— 2020 COVID 68%→59%、2022 慢熊 62%→57%; 其餘五段 (2021-04/2024-07/2025-04/
+#   2026-02/2026-06) 覆蓋一格未動, 因為高點防守不降級.
+# ★K 止於 1 的理由: K>=2 幾乎不再減少閃爍 (19/25/11 段) 只是拿保護力換報酬 (COVID 覆蓋每 +1K 掉
+#   約 5pp), 閃爍消除的邊際效益在 K=1 就吃完了.
+STANCE_TRI_TREND_K = 1
+# 波段停滯層不降級 (J=0): 掃描顯示只降波段層對閃爍幾乎無效 (75→69 段, 因為閃爍幾乎全在趨勢腿),
+# 卻要付 recall 29%→25%. 這層的 5 天上限本來就讓它短, 沒有降級的價值.
+# ★若日後要調 J>0 注意兩件事: (1) derive_tri_state 的 held 進場當日=1, 而 compute_stance 內部
+# 的 swing_held 進場當日=0 (它數的是「已續守幾天」), 兩者差 1 —— 拿 J 對照 SWING_MAX_HOLD=5 時
+# 會差一天; (2) _stance3_text 的觀望文案是照趨勢腿寫的 (寫死升級天數與趨勢腿的出場條件),
+# 波段腿也會產生觀望時要一併改文案.
+STANCE_TRI_SWING_J = 0
+# 觀望期的「條件式升級」(2026-07-27): 守滿 K 天不是無條件升為防守 —— 還要求指數已經真的跌破
+# 5 日高 STANCE_TRI_UPGRADE_DROP%, 否則續留觀望 (每天重新判定). 動機: 12-19~22 那種「排列還空、
+# 指數卻在漲」的段落, 舊版第 2 天就升級出場, 隔幾天排列回多又進場, 白守一趟還換兩次倉.
+# ★關鍵安全性質: 這個條件只能延後**每一段的第一次**升級 —— 一旦升級、曝險出場, 後面再回到觀望
+#   也維持空手. 而真跌勢裡升級當天指數不會還黏在 5 日高附近, 所以長段照常升級.
+# 實測 (tmp/_tri_cond_upgrade.py, _tri_cond_audit.py, 全樣本 1980 日, latch 完全不動):
+#   換倉 211→181、曝險 1 天閃爍段 20→12、每單位曝險年化 30.81→33.55 (前後半 13.20→15.55 /
+#   51.86→54.96 都升); ★危險近高 recall (27%/29%/25%)、七段 episode 覆蓋 (59/73/57/82/64/
+#   100/100%)、maxDD -22.6% **一格未動**.
+#   sweep 0.25~1.0 是 plateau (ape 33.35~33.81), 1.5 起才因傷 recall 反轉 (23%) → 非孤峰;
+#   差異日 26 天分布 6 年 (2020/21/23/24/25/26), |貢獻| 前 3 天佔 30% → 非單一事件;
+#   最長只延後 3 天出場 (X=1.0 會到 8 天, 尾部較差故不取).
+# ★誠實 caveat: 增益與波段層同源 —— 「過熱背景下貼著 5 日高＝拉回而非轉折, 這 8 年拉回後多半
+#   續漲」, 不是新的預測力; 26 個差異日也不算多.
+# 0.5 與 SWING_DROP 刻意同一把尺 (波段層也用「跌破 5 日高 0.5%」定義漲勢停滯).
+STANCE_TRI_UPGRADE_DROP = 0.5
 # 恐慌急殺早轉攻 (panic early re-attack): 防守中若「深跌 + 融資急殺 + 快殺 10日跌 <= STANCE_PANIC_EXIT_SPEED」
 # 就提早轉攻, 接急殺 V 底反彈. 用比顯示的恐慌買進(PANIC_SPEED_CHG=-6%)更嚴的 -10%, 因為這是 *自動*
 # 解除防守: -6% 會在 2022 慢熊自動接刀 (轉攻後 fwd20 -1%、防守涵蓋 60%->48%), -10% 只抓真急殺 V —
@@ -227,14 +270,16 @@ def compute_stance(short_trend, hot_wide, early_exit=None, reattack_safe=None,
                    panic_exit=None, panic_hold=STANCE_PANIC_HOLD,
                    top_reentry_win=None, swing=None, swing_exit=None,
                    trend_exit=None, block_entry_at_hi=False,
-                   swing_max_hold=None) -> np.ndarray:
+                   swing_max_hold=None, return_modes=False
+                   ) -> np.ndarray | tuple[np.ndarray, np.ndarray, np.ndarray]:
     """攻防 stateful hysteresis → per-day defensive[] boolean array. Two ways to defend:
 
     高點防守 (top mode, needs top_vote+price): top_vote (4-orthogonal overheat >=3) within
         TOP_LOOKBACK days → defend AT the high (bypasses 排列翻空), recording 頂位=price. Held
         by a price thesis: stays 防守 while price <= 頂位 (下跌中); exits 攻擊 when price rises
         back above 頂位, when price regains its TREND_EXIT_HI_WIN-day high (trend_exit — 深回檔
-        後頂位遙不可及時, 站回 10 日高就算論點作廢), or on early_exit (底部). top_minhold days grace absorbs noise.
+        後頂位遙不可及時, 站回 TREND_EXIT_HI_WIN 日高就算論點作廢), or on early_exit (底部).
+        top_minhold days grace absorbs noise.
     重掛閘門 (top_reentry_win): 頂位被漲過而解除後的 top_reentry_win 日內, 排列仍全面強多
         (short_trend>=2) 就不准 top_vote 重新掛上防守 — 擋掉噴出段「越漲越防守」的棘輪.
     進場對稱條件 (block_entry_at_hi): 指數正在創 TREND_EXIT_HI_WIN 日新高時, 高點防守與趨勢腿都
@@ -249,6 +294,9 @@ def compute_stance(short_trend, hot_wide, early_exit=None, reattack_safe=None,
     early_exit 後安全帶 (reattack_safe): 外資淨多仍在 60 日高 band 內時抑制 obv_weak 重新進場.
     恐慌急殺早轉攻 (panic_exit): 防守中若急殺 V (深跌+融資急殺+快殺<=-10%) → 立即轉攻接反彈,
         並 panic_hold 天抑制重新進場防閃爍. 優先於其他 exit.
+
+    return_modes=True → 額外回傳 (modes, held): 每日的防守腿別 ('top'/'trend'/'swing'/None) 與
+        段內已守天數 (進場當日=1), 供 derive_tri_state 做三態分級. 純 bookkeeping, 不影響 latch.
 
     top_vote/price None → legacy trend-only stance (bit-identical to the pre-top-defense
     behaviour); panic_exit None → no panic re-attack; top_reentry_win None → no re-latch
@@ -274,7 +322,7 @@ def compute_stance(short_trend, hot_wide, early_exit=None, reattack_safe=None,
            else np.asarray(swing_exit, dtype=bool))
     trx = (np.zeros(len(st), dtype=bool) if trend_exit is None
            else np.asarray(trend_exit, dtype=bool))
-    at_hi = trx if block_entry_at_hi else np.zeros(len(st), dtype=bool)  # 創 10 日新高 → 不新開防守
+    at_hi = trx if block_entry_at_hi else np.zeros(len(st), dtype=bool)  # 創 13 日新高 → 不新開防守
     swing_held = 0   # 波段防守已守天數 (swing_max_hold 用)
     if top_vote is None or price is None:
         tv3 = np.zeros(len(st), dtype=bool)
@@ -283,6 +331,9 @@ def compute_stance(short_trend, hot_wide, early_exit=None, reattack_safe=None,
         tv3 = (pd.Series(np.asarray(top_vote)).rolling(TOP_LOOKBACK, min_periods=1).max() > 0).to_numpy()
         px = np.asarray(price, dtype=float)
     out = np.zeros(len(st), dtype=bool)
+    modes_out = np.empty(len(st), dtype=object)   # 防守腿別 (bookkeeping for 三態)
+    held_out = np.zeros(len(st), dtype=int)       # 段內已守天數 (進場當日=1)
+    held = 0
     state = False
     supp = False   # 早退安全帶: 保護攻擊狀態不被 obv_weak 重新拉回防守
     mode = None    # 'top' (高點防守, 價格論點持有) | 'trend' (向下趨勢防守)
@@ -291,6 +342,7 @@ def compute_stance(short_trend, hot_wide, early_exit=None, reattack_safe=None,
     pcool = 0      # 恐慌急殺轉攻後的重新進場抑制天數
     inval = -(10 ** 9)  # 頂位被漲過 (論點證偽) 的最後一天 index, 供重掛閘門用
     for i in range(len(st)):
+        was = state
         if supp and not safe[i]:
             supp = False              # 論點破 (net_oi 掉出 band) → 解除保護
         if pcool > 0:
@@ -323,7 +375,62 @@ def compute_stance(short_trend, hot_wide, early_exit=None, reattack_safe=None,
             elif rec[i] or trx[i]:
                 state = False; mode = None                # 排列回多方 / 站回 13 日高 → 攻擊
         out[i] = state
-    return out
+        held = (held + 1 if was else 1) if state else 0
+        modes_out[i] = mode
+        held_out[i] = held
+    return (out, modes_out, held_out) if return_modes else out
+
+
+def derive_tri_state(defensive, modes, held, k=STANCE_TRI_TREND_K, j=STANCE_TRI_SWING_J,
+                     upgrade_ok=None):
+    """攻防二元 latch → 三態 (攻擊/觀望/防守) + 路徑相依曝險. 決策層不動, 這是輸出端加層.
+
+    高點防守 (top mode) 一律「防守」——5/10 日稽核證實它是唯一真在做事的腿 (fwd10 -2.94%、
+    10 日內踩 -8% 佔 37%). 趨勢腿與波段層在段內前 k / j 天只給「觀望」, 之後升為「防守」.
+    「觀望」= 不加碼但續抱 → 曝險沿用前一個非觀望狀態 (攻擊=持有 / 防守=空手), 故短暫的
+    趨勢防守不再造成換倉. 參數理由與代價見 STANCE_TRI_TREND_K / STANCE_TRI_SWING_J.
+    upgrade_ok (每日 bool, None=無條件) → 趨勢腿守滿 k 天後還要它成立才升為防守, 否則續留
+    觀望並逐日重判 (見 STANCE_TRI_UPGRADE_DROP). 只能延後每段的第一次升級 —— 升級後曝險已
+    出場, 之後即使回到觀望也維持空手.
+    回傳 (labels: list[str], exposure: np.ndarray[bool] True=持有)."""
+    labels: list[str] = []
+    exposure = np.zeros(len(defensive), dtype=bool)
+    cur = False
+    for i, d in enumerate(defensive):
+        if not d:
+            lab = "攻擊"
+        elif modes[i] == "trend":
+            lab = ("觀望" if held[i] <= k or (upgrade_ok is not None and not upgrade_ok[i])
+                   else "防守")
+        elif modes[i] == "swing":
+            lab = "觀望" if held[i] <= j else "防守"
+        else:
+            lab = "防守"
+        if lab == "攻擊":
+            cur = True
+        elif lab == "防守":
+            cur = False
+        labels.append(lab)
+        exposure[i] = cur
+    return labels, exposure
+
+
+STANCE3_COLOR = {"攻擊": "#22c55e", "觀望": "#eab308", "防守": "#ef4444"}
+
+
+def _stance3_text(lab: str, exposed: bool, st_last: int) -> str:
+    """三態的說明文字 (daily 與 intraday 共用)."""
+    arr = ST_LABELS.get(st_last, "?")
+    if lab == "攻擊":
+        return f"攻擊中（排列：{arr}，中性以上）"
+    if lab == "觀望":
+        return (f"觀望中（排列：{arr}）：防守剛觸發、還沒站住，先不加碼但"
+                f"{'續抱' if exposed else '續空手'}；要守超過 {STANCE_TRI_TREND_K} 天"
+                f"**且**指數跌破 {SWING_HI_WIN} 日高 {STANCE_TRI_UPGRADE_DROP}% 才升為防守，"
+                f"期間站回 {TREND_EXIT_HI_WIN} 日高／排列回多方則直接轉攻")
+    return (f"防守中（排列：{arr}）：高點防守（高信念頂部）／向下趨勢／"
+            f"波段停滯（過熱背景下跌破 {SWING_HI_WIN} 日高）；漲回頂位之上／站回 {SWING_HI_WIN} 日高／"
+            f"指數站回 {TREND_EXIT_HI_WIN} 日高／排列回多方／外資翻多且空頭力竭／恐慌急殺 V 任一則轉攻")
 
 
 def _early_reattack(m: pd.DataFrame) -> np.ndarray:
@@ -456,18 +563,24 @@ def build_thermometer(cur, today: date | None = None) -> dict:
         & (m["tx"] < _hi5 * (1 - SWING_DROP / 100))
     m["swing_exit"] = m["tx"] >= _hi5
     m["trend_exit"] = m["tx"] >= m["tx"].rolling(TREND_EXIT_HI_WIN, min_periods=1).max()
+    # 三態的條件式升級: 觀望要升防守, 指數必須真的跌破 5 日高 (跌勢展開) — 見 STANCE_TRI_UPGRADE_DROP
+    m["tri_upgrade"] = m["tx"] < _hi5 * (1 - STANCE_TRI_UPGRADE_DROP / 100)
     # 攻防狀態 (stateful hysteresis): 高點防守 (top_vote 一亮就防守, 價格論點持有) + 向下趨勢防守
     # (加寬過熱 AND 排列翻空); 轉攻 = 漲回頂上(向上趨勢) / 排列回多 / early_reattack(底部) /
     # 恐慌急殺 V(panic_exit). 見 compute_stance.
-    m["defensive"] = compute_stance(m["st"].to_numpy(), m["hot_wide"].to_numpy(),
-                                    _early_reattack(m), _reattack_safe(m),
-                                    top_vote=m["top_vote"].to_numpy(), price=m["tx"].to_numpy(),
-                                    panic_exit=m["panic_exit"].to_numpy(),
-                                    top_reentry_win=STANCE_TOP_REENTRY_WIN,
-                                    swing=m["swing"].to_numpy(), swing_exit=m["swing_exit"].to_numpy(),
-                                    trend_exit=m["trend_exit"].to_numpy(),
-                                    block_entry_at_hi=BLOCK_ENTRY_AT_HI,
-                                    swing_max_hold=SWING_MAX_HOLD)
+    _def, _modes, _held = compute_stance(m["st"].to_numpy(), m["hot_wide"].to_numpy(),
+                                         _early_reattack(m), _reattack_safe(m),
+                                         top_vote=m["top_vote"].to_numpy(), price=m["tx"].to_numpy(),
+                                         panic_exit=m["panic_exit"].to_numpy(),
+                                         top_reentry_win=STANCE_TOP_REENTRY_WIN,
+                                         swing=m["swing"].to_numpy(), swing_exit=m["swing_exit"].to_numpy(),
+                                         trend_exit=m["trend_exit"].to_numpy(),
+                                         block_entry_at_hi=BLOCK_ENTRY_AT_HI,
+                                         swing_max_hold=SWING_MAX_HOLD, return_modes=True)
+    m["defensive"] = _def
+    # 三態 (攻擊/觀望/防守) + 路徑相依曝險 — 輸出端加層, 不動上面的 latch 決策
+    m["stance3"], m["exposure"] = derive_tri_state(_def, _modes, _held,
+                                                   upgrade_ok=m["tri_upgrade"].to_numpy())
 
     ma = m["mgn"].rolling(MARGIN_MA_WIN).mean()
     sd = m["mgn"].rolling(MARGIN_MA_WIN).std()
@@ -506,6 +619,8 @@ def build_thermometer(cur, today: date | None = None) -> dict:
         history.append({"date": r.d.date().isoformat(), "score": round(r.score, 1),
                         "tx": round(r.tx), "label": lbl, "color": col,
                         "stance": "防守" if r.defensive else "攻擊",
+                        "s3": r.stance3,
+                        "x": bool(r.exposure),
                         "panic": bool(r.panic),
                         "m_alert": bool(r.margin_overheat),
                         "l_alert": bool(r.limitup_overheat),
@@ -527,12 +642,15 @@ def build_thermometer(cur, today: date | None = None) -> dict:
         "bucket": label,
         "bucket_color": color,
         "danger": danger,
+        # legacy 二元欄位 (deprecated): 保留給還沒更新的消費者, 新的一律讀 stance3/exposure —
+        # 三態下「防守」的第一天是觀望·續抱, 此時 legacy stance 會說防守而 exposure 說持有.
         "stance": "防守" if defensive else "攻擊",
         "stance_color": "#ef4444" if defensive else "#22c55e",
-        "stance_reason": (f"防守中（排列：{ST_LABELS.get(int(last['st']), '?')}）：高點防守（高信念頂部）／向下趨勢／"
-                          f"波段停滯（過熱背景下跌破 {SWING_HI_WIN} 日高）；漲回頂位之上／站回 {SWING_HI_WIN} 日高／指數站回 {TREND_EXIT_HI_WIN} 日高／"
-                          f"排列回多方／外資翻多且空頭力竭／恐慌急殺 V 任一則轉攻"
-                          if defensive else f"攻擊中（排列：{ST_LABELS.get(int(last['st']), '?')}，中性以上）"),
+        "stance_reason": _stance3_text("防守" if defensive else "攻擊", not defensive, int(last["st"])),
+        "stance3": last["stance3"],
+        "stance3_color": STANCE3_COLOR[last["stance3"]],
+        "stance3_reason": _stance3_text(last["stance3"], bool(last["exposure"]), int(last["st"])),
+        "exposure": "持有" if last["exposure"] else "空手",
         "swing": bool(last["swing"]),
         "near_high": a_near,
         "pct_from_high": round(float(pfh), 1),
@@ -695,32 +813,40 @@ def build_intraday_stance(cur, volume_scale: float, now: datetime) -> dict | Non
         & (m["tx"] < _hi5 * (1 - SWING_DROP / 100))
     m["swing_exit"] = m["tx"] >= _hi5
     m["trend_exit"] = m["tx"] >= m["tx"].rolling(TREND_EXIT_HI_WIN, min_periods=1).max()
+    m["tri_upgrade"] = m["tx"] < _hi5 * (1 - STANCE_TRI_UPGRADE_DROP / 100)
     if grafted and len(m) >= 2:
-        for _c in ("swing", "swing_exit", "trend_exit"):
+        # 這幾條都是拿 tx 做 rolling, 而 forming bar 的 tx 是前一日收盤 (盤中拿不到即時指數)
+        for _c in ("swing", "swing_exit", "trend_exit", "tri_upgrade"):
             m.loc[m.index[-1], _c] = bool(m[_c].iloc[-2])
-    defensive = compute_stance(m["st"].to_numpy(), m["hot_wide"].to_numpy(),
-                               _early_reattack(m), _reattack_safe(m),
-                               top_vote=m["top_vote"].to_numpy(), price=m["tx"].to_numpy(),
-                               panic_exit=m["panic_exit"].to_numpy(),
-                               top_reentry_win=STANCE_TOP_REENTRY_WIN,
-                               swing=m["swing"].to_numpy(), swing_exit=m["swing_exit"].to_numpy(),
-                               trend_exit=m["trend_exit"].to_numpy(),
-                               block_entry_at_hi=BLOCK_ENTRY_AT_HI,
-                               swing_max_hold=SWING_MAX_HOLD)
+    defensive, _modes, _held = compute_stance(m["st"].to_numpy(), m["hot_wide"].to_numpy(),
+                                              _early_reattack(m), _reattack_safe(m),
+                                              top_vote=m["top_vote"].to_numpy(), price=m["tx"].to_numpy(),
+                                              panic_exit=m["panic_exit"].to_numpy(),
+                                              top_reentry_win=STANCE_TOP_REENTRY_WIN,
+                                              swing=m["swing"].to_numpy(), swing_exit=m["swing_exit"].to_numpy(),
+                                              trend_exit=m["trend_exit"].to_numpy(),
+                                              block_entry_at_hi=BLOCK_ENTRY_AT_HI,
+                                              swing_max_hold=SWING_MAX_HOLD, return_modes=True)
+    # 三態 + 路徑相依曝險: 整段歷史一起算, 故 forming bar 的觀望/曝險延續收盤 latch
+    _labels, _expo = derive_tri_state(defensive, _modes, _held,
+                                      upgrade_ok=m["tri_upgrade"].to_numpy())
 
     last = m.iloc[-1]
     is_def = bool(defensive[-1])
+    lab3 = _labels[-1]
+    exposed = bool(_expo[-1])
     st_last = int(last["st"])
     return {
         "as_of": last["d"].date().isoformat(),
         "snapshot_time": now.isoformat(),
         "is_today": bool(last["d"].date() == today),
-        "stance": "防守" if is_def else "攻擊",
+        "stance": "防守" if is_def else "攻擊",          # legacy 二元 (deprecated, 見 build_thermometer)
         "stance_color": "#ef4444" if is_def else "#22c55e",
-        "stance_reason": (f"防守中（排列：{ST_LABELS.get(st_last, '?')}）：高點防守（高信念頂部）／向下趨勢／"
-                          f"波段停滯（過熱背景下跌破 {SWING_HI_WIN} 日高）；漲回頂位之上／站回 {SWING_HI_WIN} 日高／指數站回 {TREND_EXIT_HI_WIN} 日高／"
-                          f"排列回多方／外資翻多且空頭力竭／恐慌急殺 V 任一則轉攻"
-                          if is_def else f"攻擊中（排列：{ST_LABELS.get(st_last, '?')}，中性以上）"),
+        "stance_reason": _stance3_text("防守" if is_def else "攻擊", not is_def, st_last),
+        "stance3": lab3,
+        "stance3_color": STANCE3_COLOR[lab3],
+        "stance3_reason": _stance3_text(lab3, exposed, st_last),
+        "exposure": "持有" if exposed else "空手",
         "short_trend": st_last,
     }
 

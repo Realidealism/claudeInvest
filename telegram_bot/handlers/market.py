@@ -204,15 +204,31 @@ def _build_futures(base_date: str) -> list[str] | None:
 
 
 def _build_stance(base_date: str) -> list[str] | None:
-    """市場溫度計攻防狀態（攻擊／防守）from thermometer.json. 🛡️ 防守 / ⚔️ 攻擊
-    (site uses green攻/red防; shield/sword avoids clashing with the 紅漲綠跌 breadth emoji)."""
-    d = _load("thermometer.json")
-    stance = (d or {}).get("stance")
+    """市場溫度計攻防狀態（攻擊／觀望／防守）+ 建議部位. 盤中優先讀 thermometer_stance.json 的
+    live stance (當日且比收盤新), 否則 fallback thermometer.json 的收盤 stance.
+    🛡️ 防守 / 👀 觀望 (不加碼但續抱) / ⚔️ 攻擊 (site uses green攻/yellow觀/red防; shield/sword
+    avoids clashing with the 紅漲綠跌 breadth emoji)."""
+    close = _load("thermometer.json") or {}
+    live = _load("thermometer_stance.json") or {}
+    close_date = close.get("as_of")
+    # 盤中: live 為今天且比收盤新, 且必須也帶三態 — 舊 exe 的 sidecar 只有二元 stance, 用它會把
+    # 「觀望·持有」退成「防守·空手」= 與收盤 latch 相反的部位建議; 缺 stance3 就退回收盤讀數.
+    use_live = bool(live.get("stance3") and live.get("is_today")
+                    and live.get("as_of") and close_date
+                    and live["as_of"] > close_date)
+    src = live if use_live else close
+    stance = src.get("stance3") or src.get("stance")   # 舊 JSON 沒有 stance3 → fallback 二元
     if not stance:
         return None
-    emoji = "🛡️" if stance == "防守" else "⚔️"
-    suf = _date_suffix(d.get("as_of"), base_date)
-    return [f"{emoji} 攻防狀態：{stance}{suf}".rstrip()]
+    emoji = {"防守": "🛡️", "觀望": "👀"}.get(stance, "⚔️")
+    pos = src.get("exposure")
+    stance = f"{stance}（部位 {pos}）" if pos else stance
+    if use_live:
+        st = live.get("snapshot_time") or ""
+        tag = f" 盤中{st[11:16]}" if len(st) >= 16 else ""
+    else:
+        tag = _date_suffix(close.get("as_of"), base_date)
+    return [f"{emoji} 攻防狀態：{stance}{tag}".rstrip()]
 
 
 def _build_risk(base_date: str) -> list[str] | None:

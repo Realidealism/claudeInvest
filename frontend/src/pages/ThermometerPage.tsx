@@ -14,6 +14,8 @@ interface HistPoint {
   label: string;
   color: string;
   stance: string;
+  s3?: string;     // 三態 (攻擊/觀望/防守); pre-rebuild JSON 沒有 → fallback 二元 stance
+  x?: boolean;     // 建議部位 (true=持有)
   panic: boolean;
   m_alert: boolean;
   l_alert: boolean;
@@ -27,7 +29,15 @@ interface HistPoint {
 const WARN_COLOR = "#ec4899";     // 加速惡化警示 (badge card)
 const LIMITUP_COLOR = "#a855f7";  // 頂部過熱·漲停 (badge card)
 
-const STANCE_COLOR: Record<string, string> = { 攻擊: "#22c55e", 防守: "#ef4444" };
+const STANCE_COLOR: Record<string, string> = { 攻擊: "#22c55e", 防守: "#ef4444", 觀望: "#eab308" };
+
+// 指數線色用「建議部位」上色 (觀望不換倉, 故沿用當時的部位色, 淡色表示觀望中)
+const s3Of = (p: HistPoint) => p.s3 ?? p.stance;
+const lineColor = (p: HistPoint) => {
+  const s = s3Of(p);
+  if (s === "觀望") return (p.x ?? true) ? "#86efac" : "#fca5a5";
+  return STANCE_COLOR[s] ?? "#e5e5e5";
+};
 
 const COMP_COLOR: Record<string, string> = {
   futures: "#3b82f6",
@@ -84,6 +94,10 @@ interface ThermoData {
   stance: string;
   stance_color: string;
   stance_reason: string;
+  stance3?: string;         // 三態 (攻擊/觀望/防守); 舊 JSON 沒有 → fallback 二元
+  stance3_color?: string;
+  stance3_reason?: string;
+  exposure?: string;        // 建議部位 (持有/空手)
   near_high: boolean;
   pct_from_high: number;
   hi_window: number;
@@ -147,7 +161,8 @@ function TrendCharts({ pts }: { pts: HistPoint[] }) {
   return (
     <div>
       <div className="text-xs text-text-secondary mb-1">
-        {pts[cur].date}　<span className="font-medium" style={{ color: STANCE_COLOR[pts[cur].stance] }}>{pts[cur].stance}</span>
+        {pts[cur].date}　<span className="font-medium" style={{ color: STANCE_COLOR[s3Of(pts[cur])] }}>{s3Of(pts[cur])}</span>
+        {pts[cur].s3 !== undefined && <span className="text-text-secondary">（{pts[cur].x ? "持有" : "空手"}）</span>}
         　過熱投票 <span className="font-medium tabular-nums" style={{ color: voteColor(vn(pts[cur])) }}>{vn(pts[cur])}/4</span>
         {vn(pts[cur]) >= 3 && <span className="font-medium" style={{ color: "#ef4444" }}>　高信念頂部</span>}
         　加權 <span className="text-text-primary font-medium tabular-nums">{pts[cur].tx.toLocaleString()}</span>
@@ -173,7 +188,7 @@ function TrendCharts({ pts }: { pts: HistPoint[] }) {
         <span className="absolute left-0.5 top-0.5 text-[9px] text-text-secondary">過熱投票（0–4；紅虛線＝≥3 高點防守）</span>
       </div>
 
-      {/* 加權指數（線 綠攻·紅防） */}
+      {/* 加權指數（線色＝建議部位；淡色＝觀望） */}
       <div className="relative mt-1" style={{ height: H }} onMouseLeave={() => setHi(null)} onMouseMove={onMove}>
         <svg viewBox={`0 0 1000 ${H}`} className="w-full" style={{ height: H }} preserveAspectRatio="none">
           {/* 恐慌買進（V 底 contrarian）：黃豎線 */}
@@ -183,14 +198,14 @@ function TrendCharts({ pts }: { pts: HistPoint[] }) {
           ) : null)}
           {pts.slice(1).map((p, i) => (
             <line key={i} x1={xOf(i)} y1={pY(pts[i].tx)} x2={xOf(i + 1)} y2={pY(p.tx)}
-              stroke={STANCE_COLOR[p.stance] ?? "#e5e5e5"} strokeWidth={1.5} vectorEffect="non-scaling-stroke" />
+              stroke={lineColor(p)} strokeWidth={1.5} vectorEffect="non-scaling-stroke" />
           ))}
           {crosshair}
-          <circle cx={xOf(cur)} cy={pY(pts[cur].tx)} r={3.5} fill={STANCE_COLOR[pts[cur].stance] ?? "#e5e5e5"} vectorEffect="non-scaling-stroke" />
+          <circle cx={xOf(cur)} cy={pY(pts[cur].tx)} r={3.5} fill={lineColor(pts[cur])} vectorEffect="non-scaling-stroke" />
         </svg>
         <span className="absolute right-0.5 text-[9px] text-text-secondary" style={{ top: pY(hiv), transform: "translateY(-50%)" }}>{Math.round(hiv).toLocaleString()}</span>
         <span className="absolute right-0.5 text-[9px] text-text-secondary" style={{ top: pY(lo), transform: "translateY(-50%)" }}>{Math.round(lo).toLocaleString()}</span>
-        <span className="absolute left-0.5 top-0.5 text-[9px] text-text-secondary">加權指數（線 綠＝攻擊、紅＝防守；黃豎線＝恐慌買進）</span>
+        <span className="absolute left-0.5 top-0.5 text-[9px] text-text-secondary">加權指數（線 綠＝攻擊、紅＝防守、淡色＝觀望（沿用當時部位）；黃豎線＝恐慌買進）</span>
       </div>
 
       <div className="flex justify-between text-[10px] text-text-secondary mt-1">
@@ -207,6 +222,10 @@ interface LiveStance {
   stance: string;
   stance_color: string;
   stance_reason: string;
+  stance3?: string;
+  stance3_color?: string;
+  stance3_reason?: string;
+  exposure?: string;
   short_trend: number;
 }
 
@@ -230,10 +249,15 @@ export default function ThermometerPage() {
   // reflected in thermometer.json (i.e. an in-session reading). After the
   // daily post-close export catches up, both dates match and we fall back to
   // the close stance (identical value, no misleading "盤中" time tag).
-  const showLive = !!live && live.is_today && live.as_of > data.as_of!;
-  const stanceValue = showLive ? live!.stance : data.stance;
-  const stanceColor = showLive ? live!.stance_color : data.stance_color;
-  const stanceReason = showLive ? live!.stance_reason : data.stance_reason;
+  // 盤中 sidecar 必須也帶三態 (stance3): 舊 exe 產出的 sidecar 只有二元 stance, 用它會讓
+  // banner 從「觀望·持有」退成「防守·空手」= 給出與收盤 latch 相反的部位建議. 缺 stance3 時
+  // 寧可退回收盤三態 (與加了盤中功能之前的行為相同), 待 intraday exe 重建後自動生效.
+  const showLive = !!live && live.is_today && live.as_of > data.as_of! && !!live.stance3;
+  const src = showLive ? live! : data;
+  const stanceValue = src.stance3 ?? src.stance;
+  const stanceColor = src.stance3_color ?? src.stance_color;
+  const stanceReason = src.stance3_reason ?? src.stance_reason;
+  const exposure = src.exposure;
   const liveTime = showLive ? live!.snapshot_time.slice(11, 16) : null;
 
   return (
@@ -254,6 +278,12 @@ export default function ThermometerPage() {
           <div>
             <div className="text-sm font-semibold">
               現在建議（趨勢）
+              {exposure && (
+                <span className="ml-1.5 px-1.5 py-0.5 rounded text-[10px] font-medium"
+                  style={{ backgroundColor: stanceColor + "26", color: stanceColor }}>
+                  部位 {exposure}
+                </span>
+              )}
               {liveTime && (
                 <span className="ml-1.5 px-1.5 py-0.5 rounded text-[10px] font-medium bg-surface-hover text-text-secondary">
                   盤中 {liveTime}
@@ -261,7 +291,7 @@ export default function ThermometerPage() {
               )}
             </div>
             <div className="text-xs text-text-secondary">
-              {stanceReason}　·　{stanceValue === "防守" ? "短期轉弱，空手觀望" : "短期偏多，可進場"}
+              {stanceReason}　·　{stanceValue === "防守" ? "短期轉弱，空手" : stanceValue === "觀望" ? "先不動作，等它站住或轉攻" : "短期偏多，可進場"}
             </div>
           </div>
         </div>
@@ -568,7 +598,7 @@ export default function ThermometerPage() {
 
       {/* history — full width (max-w-5xl) so the sparkline reads wider */}
       <div>
-        <div className="text-sm font-semibold mb-1">近一年 四正交過熱投票 vs 加權指數（投票 ≥3＝高信念頂部，觸發高點防守；指數線 綠＝攻擊、紅＝防守）</div>
+        <div className="text-sm font-semibold mb-1">近一年 四正交過熱投票 vs 加權指數（投票 ≥3＝高信念頂部，觸發高點防守；指數線 綠＝攻擊、紅＝防守、淡色＝觀望）</div>
         <TrendCharts pts={data.history} />
       </div>
 
@@ -582,7 +612,14 @@ export default function ThermometerPage() {
           <li>P/C 比與微台散戶已移除：兩者在頂部與底部皆極端（反指標、無方向鑑別力），平均進來只會稀釋分數。真正的操作訊號在儀表之外——頂部過熱看外資期貨創新低、攻防看 OBV＋多空排列、恐慌買進看融資急殺＋深跌。</li>
           <li>攻防進出場（防守＝高點／向下趨勢／波段停滯；攻擊＝底部＋向上趨勢）：
             <span className="text-text-primary">① 高點防守</span>——高信念頂部（四正交過熱投票 ≥3）一亮就轉防守，<span className="text-text-primary">不必死等排列翻空</span>，進場記下當日指數＝頂位，用價格論點持有：只要指數仍在頂位之下（下跌中）就續守，一旦漲回頂位之上（向上趨勢）<span className="text-text-primary">或指數站回 13 日高</span>才轉攻（深回檔後頂位會遙不可及——2026-02-25 進場的頂位 35413，指數跌到 31723 再彈回 34861 都還沒過頂位；站回 13 日高就算論點作廢，實測 recall 與七個崩盤段覆蓋一格未動、累報酬 +253%→+268%）。
-            <span className="text-text-primary">★被否決的變體</span>：曾試「指數創 10 日新高時連進場都擋掉」，累報酬更高（+290%）但危險近高防守 30%→21%、-10% 36%→21%，2026-06-22／2026-02-25 這種頂部當天不再防守，且增益集中 2024／2026 兩年，故不採用。</li>
+            <span className="text-text-primary">★被否決的變體</span>：曾試「指數創新高時連進場都擋掉」（測試時出場窗還是 10 日，之後才改 13），累報酬更高（+290%）但危險近高防守 30%→21%、-10% 36%→21%，2026-06-22／2026-02-25 這種頂部當天不再防守，且增益集中 2024／2026 兩年，故不採用。</li>
+          <li>三態（攻擊／<span className="text-text-primary">觀望</span>／防守）與「建議部位」：
+            向下趨勢腿<span className="text-text-primary">進場第 1 天只給「觀望」＝不加碼但續抱</span>（已空手則續空手）；要守超過 1 天<span className="text-text-primary">且指數真的跌破 5 日高 0.5%</span>才升為真防守，否則續留觀望逐日重判；高點防守一亮即防守、不降級。
+            這是為了修「剛轉態隔天又轉回去」——趨勢腿進場看多空排列、出場看價格（站回 13 日高）走兩個不同時鐘，全歷史 264 段裡有 75 段只有 1 天。
+            改用三態後<span className="text-text-primary">部位的 1 天閃爍 75 段→12 段、換倉 263→181 次</span>，每單位曝險年化 30.5→33.6（前後半都升）、maxDD −22.7%→−22.6%。
+            條件式升級只能延後<span className="text-text-primary">每一段的第一次</span>出場（升級後就算再回到觀望也維持空手），最長只延後 3 天，所以危險 recall、七段覆蓋、maxDD 與無條件版一格未動。
+            <span className="text-text-primary">★代價</span>：危險近高防守 29%→27%（−10% 版 32%→29%），且只有靠趨勢腿撐的兩段會掉——2020 COVID 68%→59%、2022 慢熊 62%→57%；2021-04／2024-07／2025-04／2026-02／2026-06 五段覆蓋一格未動（那些由高點防守承擔）。
+            升級天數止於 1 是因為再往上（2 天以上）幾乎不再減少閃爍，只是拿保護力換報酬。</li>
         </ul>
       </details>
      </div>
