@@ -1,6 +1,66 @@
 {
-  "updated_at": "2026-07-24T21:44:16",
+  "updated_at": "2026-07-27T21:46:40",
   "events": [
+    {
+      "type": "transfer",
+      "stock_id": "4130",
+      "company_name": "健亞",
+      "date": "2026-07-27",
+      "insider_role": "董事本人",
+      "insider_name": "行政院國家發展基金管理會",
+      "method": "洽特定人",
+      "shares": 30700406,
+      "security_kind": null,
+      "period": "115/07/27\r\n~\r\n115/07/29"
+    },
+    {
+      "type": "transfer",
+      "stock_id": "4130",
+      "company_name": "健亞",
+      "date": "2026-07-27",
+      "insider_role": "大股東本人",
+      "insider_name": "強生化學製藥廠股份有限公司",
+      "method": "洽特定人",
+      "shares": 38386839,
+      "security_kind": null,
+      "period": "115/07/27\r\n~\r\n115/07/29"
+    },
+    {
+      "type": "transfer",
+      "stock_id": "4130",
+      "company_name": "健亞",
+      "date": "2026-07-27",
+      "insider_role": "董事本人",
+      "insider_name": "陳正",
+      "method": "洽特定人",
+      "shares": 278402,
+      "security_kind": null,
+      "period": "115/07/27\r\n~\r\n115/07/29"
+    },
+    {
+      "type": "transfer",
+      "stock_id": "4130",
+      "company_name": "健亞",
+      "date": "2026-07-27",
+      "insider_role": "經理人本人",
+      "insider_name": "林惠玲",
+      "method": "洽特定人",
+      "shares": 31225,
+      "security_kind": null,
+      "period": "115/07/27\r\n~\r\n115/07/29"
+    },
+    {
+      "type": "transfer",
+      "stock_id": "4130",
+      "company_name": "健亞",
+      "date": "2026-07-27",
+      "insider_role": "董事本人",
+      "insider_name": "朱佳真",
+      "method": "洽特定人",
+      "shares": 164959,
+      "security_kind": null,
+      "period": "115/07/27\r\n~\r\n115/07/29"
+    },
     {
       "type": "transfer",
       "stock_id": "5283",
@@ -295,9 +355,9 @@
       "company_name": "全新",
       "date": "2026-06-03",
       "insider_role": "董事本人",
-      "insider_name": "陳懋常",
+      "insider_name": "陳建良",
       "method": "洽特定人",
-      "shares": 2043216,
+      "shares": 2125112,
       "security_kind": null,
       "period": "115/06/03\r\n~\r\n115/06/05"
     },
@@ -307,9 +367,9 @@
       "company_name": "全新",
       "date": "2026-06-03",
       "insider_role": "董事本人",
-      "insider_name": "陳建良",
+      "insider_name": "陳懋常",
       "method": "洽特定人",
-      "shares": 2125112,
+      "shares": 2043216,
       "security_kind": null,
       "period": "115/06/03\r\n~\r\n115/06/05"
     },
@@ -378,6 +438,18 @@
       "stock_id": "9960",
       "company_name": "邁達康",
       "date": "2026-05-25",
+      "insider_role": "董事本人",
+      "insider_name": "施姵瑜",
+      "method": "洽特定人",
+      "shares": 84180,
+      "security_kind": null,
+      "period": "115/05/25\r\n~\r\n115/05/27"
+    },
+    {
+      "type": "transfer",
+      "stock_id": "9960",
+      "company_name": "邁達康",
+      "date": "2026-05-25",
       "insider_role": "董事配偶",
       "insider_name": "吳之配偶",
       "method": "洽特定人",
@@ -394,18 +466,6 @@
       "insider_name": "黃瓊瑤",
       "method": "洽特定人",
       "shares": 411719,
-      "security_kind": null,
-      "period": "115/05/25\r\n~\r\n115/05/27"
-    },
-    {
-      "type": "transfer",
-      "stock_id": "9960",
-      "company_name": "邁達康",
-      "date": "2026-05-25",
-      "insider_role": "董事本人",
-      "insider_name": "施姵瑜",
-      "method": "洽特定人",
-      "shares": 84180,
       "security_kind": null,
       "period": "115/05/25\r\n~\r\n115/05/27"
     },
@@ -1092,23 +1152,11 @@
       "shares": null,
       "security_kind": "普通股",
       "period": null
-    },
-    {
-      "type": "placement",
-      "stock_id": "8277",
-      "company_name": "商丞",
-      "date": "2026-04-27",
-      "insider_role": null,
-      "insider_name": null,
-      "method": null,
-      "shares": null,
-      "security_kind": "普通股",
-      "period": null
     }
   ],
   "stats": {
     "transfer_events_30d": 12,
-    "transfer_stocks_30d": 8,
+    "transfer_stocks_30d": 6,
     "placement_events_30d": 2
   }
 }
