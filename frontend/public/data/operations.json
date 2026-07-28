@@ -1,104 +1,25 @@
 {
-  "snapshot_date": "2026-07-27",
+  "snapshot_date": "2026-07-28",
   "signals": {
-    "pick": [
+    "pick": [],
+    "touch": [],
+    "buy": [],
+    "sell": [
       {
-        "ticker": "4707",
-        "name": "磐亞",
-        "market": "TPEx",
-        "turnover": 319870976.0,
+        "ticker": "3376",
+        "name": "新日興",
+        "market": "TWSE",
+        "turnover": 385551552.0,
+        "streak": 1
+      },
+      {
+        "ticker": "1305",
+        "name": "華夏",
+        "market": "TWSE",
+        "turnover": 45222204.0,
         "streak": 1
       }
     ],
-    "touch": [
-      {
-        "ticker": "6139",
-        "name": "亞翔",
-        "market": "TWSE",
-        "turnover": 7887349248.0,
-        "streak": 1
-      },
-      {
-        "ticker": "3416",
-        "name": "融程電",
-        "market": "TWSE",
-        "turnover": 109771344.0,
-        "streak": 1
-      },
-      {
-        "ticker": "3652",
-        "name": "精聯",
-        "market": "TWSE",
-        "turnover": 7325570.0,
-        "streak": 1
-      }
-    ],
-    "buy": [
-      {
-        "ticker": "2886",
-        "name": "兆豐金",
-        "market": "TWSE",
-        "turnover": 1529304576.0,
-        "streak": 1
-      },
-      {
-        "ticker": "2892",
-        "name": "第一金",
-        "market": "TWSE",
-        "turnover": 1347074176.0,
-        "streak": 1
-      },
-      {
-        "ticker": "2801",
-        "name": "彰銀",
-        "market": "TWSE",
-        "turnover": 887621248.0,
-        "streak": 1
-      },
-      {
-        "ticker": "2834",
-        "name": "臺企銀",
-        "market": "TWSE",
-        "turnover": 839535168.0,
-        "streak": 1
-      },
-      {
-        "ticker": "2812",
-        "name": "台中銀",
-        "market": "TWSE",
-        "turnover": 730888640.0,
-        "streak": 1
-      },
-      {
-        "ticker": "5880",
-        "name": "合庫金",
-        "market": "TWSE",
-        "turnover": 601507008.0,
-        "streak": 1
-      },
-      {
-        "ticker": "2006",
-        "name": "東和鋼鐵",
-        "market": "TWSE",
-        "turnover": 230854736.0,
-        "streak": 1
-      },
-      {
-        "ticker": "2850",
-        "name": "新產",
-        "market": "TWSE",
-        "turnover": 189292768.0,
-        "streak": 1
-      },
-      {
-        "ticker": "6598",
-        "name": "ABC-KY",
-        "market": "TWSE",
-        "turnover": 38780108.0,
-        "streak": 1
-      }
-    ],
-    "sell": [],
     "buy_flee": [],
     "sell_flee": []
   }
