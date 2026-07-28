@@ -46,7 +46,8 @@ def buy_signal(data: "StockData") -> SignalSpec:
     lp_d1 = long_pct - _shift(long_pct, 1)
     vol_strong = data.volume_result.volume_status <= 2  # flood/big/high
     score_surge_with_vol = (lp_d1 > 15.0) & vol_strong
-    # v202h: K 棒特徵 exhaustion defense — 近期高 + 大量 + 長下影 → LL5
+    # v202h: K 棒特徵 exhaustion defense — 近期高 + 大量 + 長下影 → LL8
+    #   (sweep 29/30: 原 LL5 收緊淨負，LL8/LL13/整條刪除三者等價，同 blow-off top 封存結論)
     hh8 = rolling_highest(data.high, 8)
     near_high = data.high >= hh8
     long_lower_shadow = data.candle_result.shadow.lower
@@ -82,8 +83,8 @@ def buy_signal(data: "StockData") -> SignalSpec:
                     trigger=stagnant_long, source=rolling_lowest(data.low, 8)),
         DefenseRule(name="分數升>15+量強→8日低",
                     trigger=score_surge_with_vol, source=rolling_lowest(data.low, 8)),
-        DefenseRule(name="近期高+大量+長下影→5日低",
-                    trigger=exhaustion, source=rolling_lowest(data.low, 5)),
+        DefenseRule(name="近期高+大量+長下影→8日低",
+                    trigger=exhaustion, source=rolling_lowest(data.low, 8)),
         DefenseRule(name="人/走/召漲+量強→8日低",
                     trigger=extreme_exhaustion, source=rolling_lowest(data.low, 8)),
         DefenseRule(name="Chandelier21x6",
