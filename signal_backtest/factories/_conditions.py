@@ -21,6 +21,8 @@ hurt 空翻多, so it was reverted at v0.
 
 from __future__ import annotations
 
+from functools import lru_cache
+from pathlib import Path
 from typing import TYPE_CHECKING
 
 import numpy as np
@@ -146,6 +148,36 @@ def _transient_giveback_exit(
     )
     breach = data.close < chand.long_stop.astype(np.float32)
     return surge & stall & breach
+
+
+@lru_cache(maxsize=1)
+def _stance_block_dates() -> frozenset:
+    """(T-1) 溫度計攻防為「高點防守」或「趨勢防守」的日子 → buy 不進場。
+
+    Computed from analysis.market_thermometer.daily_stance_frame() — the same code
+    path (and therefore the same parameters) that produces the live thermometer, so
+    there is no snapshot to keep in sync. Cached once per process; the frame costs a
+    few DB queries plus one OBV pass.
+
+    The 波段層 (swing) is deliberately excluded: on its own it was worth -0.011 PF
+    while 高點防守 was +0.066 and 趨勢 +0.038 (sweep 15). Days before the stance
+    spine begins (2018-09) are simply absent, so 2016-2018 entries are unfiltered.
+    """
+    from analysis.market_thermometer import daily_stance_frame
+    from db.connection import get_cursor
+    with get_cursor(commit=False) as cur:
+        m = daily_stance_frame(cur)
+    days = [d.date() for d in m["d"]]
+    on = [bool(v) and s in ("top", "trend")
+          for v, s in zip(m["defensive"], m["mode"].fillna(""))]
+    return frozenset(days[i + 1] for i in range(len(days) - 1) if on[i])
+
+
+def _stance_blocked(data: "StockData") -> BoolArray:
+    """Per-bar mask: this bar falls on a stance-blocked day."""
+    blocked = _stance_block_dates()
+    return np.fromiter((d in blocked for d in data.dates),
+                       dtype=np.bool_, count=data.n)
 
 
 def _market_strongly_bullish(data: "StockData") -> BoolArray:
@@ -963,8 +995,16 @@ def buy_condition(data: "StockData") -> BoolArray:
     # 9. v131: ~pte (不在頂背離)
     rule_not_pte = ~data.macd.short.macd_convergence_pte
 
+    # v359: 溫度計攻防「高點防守 / 趨勢防守」日不進場 (T-1 stance)。
+    #   sweep id 12/15/16: buy PF 1.7386 → 1.8477, 勝率 37.8→38.7, maxL -32.4→-27.3,
+    #   逐年 2018-2026 零負年, maxG 1386 保住。腿別 ablation: 高點腿(四正交, breadth
+    #   看不到)只擋 530 筆就換 +0.066 是主要來源, 趨勢腿 +0.038, 波段層 -0.011 故排除。
+    #   不對稱: 同一過濾對 pick (1.359→1.296) 與 sell_flee (2.286→2.069) 皆負向 —
+    #   那兩個是抄底/轉折型, 弱市進場正是其 edge, 故只套 buy。
+    rule_not_defensive = ~_stance_blocked(data)
+
     return (rule_ma & rule_turn & rule_break & rule_vol & rule_knot
-            & rule_osc & rule_long_pct_gate & rule_not_pte)
+            & rule_osc & rule_long_pct_gate & rule_not_pte & rule_not_defensive)
 
 
 def sell_condition(data: "StockData") -> BoolArray:

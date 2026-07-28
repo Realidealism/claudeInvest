@@ -520,7 +520,16 @@ def _load_merged_frame(cur) -> pd.DataFrame:
             .sort_values("d").reset_index(drop=True))
 
 
-def build_thermometer(cur, today: date | None = None) -> dict:
+def daily_stance_frame(cur) -> pd.DataFrame:
+    """Full-history per-day 攻防 stance on the merged daily spine.
+
+    Returns the merged frame plus the latch outputs: defensive / mode
+    (top|trend|swing|None) / held / stance3 / exposure, and every voter column
+    the latch consumed. Split out of build_thermometer so the signal factory can
+    consume the exact same computation instead of a hand-produced snapshot —
+    build_thermometer now calls this and only adds the display-side score,
+    regime labels and the 250-day history on top.
+    """
     m = _load_merged_frame(cur)
     # 大台期貨 OBV — aligned with ScoreBoard OBV machinery (analysis.obv), short scope only
     _obv = calculate_obv(m["c"].to_numpy(np.float32), m["ref"].to_numpy(np.float32),
@@ -581,6 +590,13 @@ def build_thermometer(cur, today: date | None = None) -> dict:
     # 三態 (攻擊/觀望/防守) + 路徑相依曝險 — 輸出端加層, 不動上面的 latch 決策
     m["stance3"], m["exposure"] = derive_tri_state(_def, _modes, _held,
                                                    upgrade_ok=m["tri_upgrade"].to_numpy())
+    m["mode"] = _modes
+    m["held"] = _held
+    return m
+
+
+def build_thermometer(cur, today: date | None = None) -> dict:
+    m = daily_stance_frame(cur)
 
     ma = m["mgn"].rolling(MARGIN_MA_WIN).mean()
     sd = m["mgn"].rolling(MARGIN_MA_WIN).std()
