@@ -34,6 +34,8 @@ interface VixSide {
 interface VixData {
   latest_date: string | null;
   us: VixSide;
+  // Optional: a vix.json written by a not-yet-rebuilt exe has no vxsmh block.
+  vxsmh?: VixSide;
   tw: VixSide;
 }
 
@@ -191,7 +193,7 @@ export default function VixPage() {
       <div className="flex flex-wrap items-baseline gap-3">
         <h1 className="text-lg font-bold text-text-primary">VIX 波動率指數</h1>
         <span className="text-xs text-text-secondary">
-          美股 ^VIX 與台指 VIX（TAIFEX）　·　最新交易日：{data.latest_date ?? "—"}
+          美股 ^VIX、半導體 ^VXSMH 與台指 VIX　·　最新交易日：{data.latest_date ?? "—"}
         </span>
       </div>
 
@@ -202,7 +204,8 @@ export default function VixPage() {
         <span className="text-lime-400">p20~p50 偏低</span>　·
         <span className="text-orange-400">p50~p80 升高</span>　·
         <span className="text-red-400">&gt;p80 恐慌</span>。
-        US ^VIX 取自 CNN F&amp;G volatility 子指標，TW VIX 由 TAIFEX 每日收盤公告。
+        ^VIX（SPX 選擇權）與 ^VXSMH（SMH 半導體 ETF 選擇權）取自 Cboe 每日收盤，TW VIX 由 TAIFEX 公告。
+        VXSMH 水位結構上約為 VIX 的 2~3 倍，只可與自身分位比較、不可與 VIX 比大小。
       </div>
 
       <div className="grid grid-cols-1 gap-3">
@@ -212,6 +215,14 @@ export default function VixPage() {
           hoveredIdx={hoveredIdx}
           onMove={handleMove}
         />
+        {data.vxsmh && (
+          <SidePanel
+            side={data.vxsmh}
+            color="#a855f7"
+            hoveredIdx={hoveredIdx}
+            onMove={handleMove}
+          />
+        )}
         <SidePanel
           side={data.tw}
           color="#f59e0b"

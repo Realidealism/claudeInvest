@@ -1797,35 +1797,43 @@ def export_yield_curve(cur, out: Path):
 
 
 def export_vix(cur, out: Path):
-    """VIX page — last 252 trading days of US ^VIX (from CNN F&G's
-    volatility sub-indicator) and TAIFEX TWVIX, each with p20/p50/p80
-    rating thresholds computed over the same window."""
+    """VIX page — last 252 trading days of US ^VIX, TAIFEX TWVIX and Cboe
+    VXSMH (semiconductor ETF volatility), each with p20/p50/p80 rating
+    thresholds computed over the same window."""
 
-    # US ^VIX — reuse the value CNN F&G already scrapes daily into
-    # cnn_fear_greed.volatility_score (the raw VIX level, not the 0-100
-    # normalised rating).
-    cur.execute(
-        f"""
-        SELECT trade_date, volatility_score AS close
-        FROM tw.cnn_fear_greed
-        WHERE volatility_score IS NOT NULL
-        ORDER BY trade_date DESC
-        LIMIT {VIX_WINDOW_DAYS}
-        """
-    )
-    us_rows = list(reversed(cur.fetchall()))
-    us_series = [
-        {"date": r["trade_date"], "close": round(float(r["close"]), 2)}
-        for r in us_rows
-    ]
-    us_thr = _vix_thresholds([p["close"] for p in us_series])
-    us_latest = (
-        {
-            "close":  us_series[-1]["close"],
-            "rating": _vix_rating(us_series[-1]["close"], us_thr),
-        }
-        if us_series else None
-    )
+    def _cboe_side(symbol: str):
+        """Pull one Cboe series (scrapers.vix_cboe) and derive thresholds."""
+        cur.execute(
+            f"""
+            SELECT trade_date, close
+            FROM tw.vix_cboe
+            WHERE symbol = %s
+            ORDER BY trade_date DESC
+            LIMIT {VIX_WINDOW_DAYS}
+            """,
+            (symbol,),
+        )
+        rows = list(reversed(cur.fetchall()))
+        series = [
+            {"date": r["trade_date"], "close": round(float(r["close"]), 2)}
+            for r in rows
+        ]
+        thr = _vix_thresholds([p["close"] for p in series])
+        latest = (
+            {
+                "close":  series[-1]["close"],
+                "rating": _vix_rating(series[-1]["close"], thr),
+            }
+            if series else None
+        )
+        return series, thr, latest
+
+    # US ^VIX and Cboe VXSMH both come from tw.vix_cboe. VXSMH only has a
+    # short history (Cboe publishes a rolling window for the ETF series),
+    # so its thresholds start out based on fewer than VIX_WINDOW_DAYS rows
+    # and tighten up as the table accumulates.
+    us_series, us_thr, us_latest = _cboe_side("VIX")
+    vxsmh_series, vxsmh_thr, vxsmh_latest = _cboe_side("VXSMH")
 
     # TAIFEX TWVIX
     cur.execute(
@@ -1854,9 +1862,9 @@ def export_vix(cur, out: Path):
         if tw_series else None
     )
 
-    # latest_date is the most recent date that has data on either side; US
+    # latest_date is the most recent date that has data on any side; US
     # publishes daily even on TW holidays and vice versa.
-    candidates = [s[-1]["date"] for s in (us_series, tw_series) if s]
+    candidates = [s[-1]["date"] for s in (us_series, tw_series, vxsmh_series) if s]
     latest_date = max(candidates) if candidates else None
 
     _write({
@@ -1864,10 +1872,18 @@ def export_vix(cur, out: Path):
         "us": {
             "symbol":     "^VIX",
             "label":      "美股 VIX",
-            "source":     "CBOE (via CNN F&G)",
+            "source":     "Cboe",
             "latest":     us_latest,
             "thresholds": us_thr,
             "series":     us_series,
+        },
+        "vxsmh": {
+            "symbol":     "^VXSMH",
+            "label":      "半導體 VXSMH",
+            "source":     "Cboe (SMH ETF)",
+            "latest":     vxsmh_latest,
+            "thresholds": vxsmh_thr,
+            "series":     vxsmh_series,
         },
         "tw": {
             "symbol":     "TWVIX",

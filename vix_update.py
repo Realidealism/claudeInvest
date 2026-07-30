@@ -4,6 +4,9 @@ VIX standalone updater — two modes:
   Daily (default, run after TWSE close):
     - Pulls the official TAIFEX minute-level file via scrapers.vix_tw,
       which writes the settled close and clears intraday_time = NULL.
+    - Pulls Cboe VIX + VXSMH daily CSVs via scrapers.vix_cboe (that
+      scraper self-throttles, so the every-10-min cadence of
+      intraday_publish.bat only hits Cboe once a day).
     - Regenerates vix.json, pushes to GitHub.
     - Schedule: 14:30 TPE on weekdays.
 
@@ -28,6 +31,7 @@ from pathlib import Path
 from db.connection import init_db, get_cursor
 from scrapers.vix_tw import scrape_date as scrape_daily
 from scrapers.vix_tw_intraday import scrape_date as scrape_intraday
+from scrapers.vix_cboe import scrape_date as scrape_cboe
 from export.generate import export_vix
 
 
@@ -62,6 +66,14 @@ def main() -> int:
 
     result = scrape_fn(date.today())
     print(f"  [{mode}] records={result.records} api_rows={result.api_rows}")
+
+    # Cboe series (VIX, VXSMH) only publish a daily file — no intraday
+    # counterpart. Non-fatal: a Cboe outage leaves yesterday's rows in place.
+    if not intraday:
+        try:
+            scrape_cboe(date.today())
+        except Exception as e:
+            print(f"  [WARN] Cboe scrape failed: {e}")
 
     repo = Path(__file__).parent
     data_dir = repo / "frontend" / "public" / "data"

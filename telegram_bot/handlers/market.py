@@ -250,7 +250,7 @@ def _build_risk(base_date: str) -> list[str] | None:
 
     vix = _load("vix.json")
     if vix:
-        for region, name in (("us", "美股VIX"), ("tw", "台指VIX")):
+        for region, name in (("us", "美股VIX"), ("vxsmh", "半導體VIX"), ("tw", "台指VIX")):
             blk = vix.get(region)
             if not blk:
                 continue
