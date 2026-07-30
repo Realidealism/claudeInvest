@@ -40,6 +40,15 @@ BUY_LP_TIERS = (49.0, 44.0, 39.0)        # 強空 / 偏空 / default  (v358)
 SELL_FLEE_LP_LEVELS = (30.0, 25.0, 20.0)  # stairstep, before the knot relief _sfr (v358)
 BUY_FLEE_POST_GATE = 28.0                 # post_strength short_pct floor (v358)
 
+# EXPERIMENTAL (2026-07-30, not yet adopted): on days where the thermometer's
+# defensive latch has already run >= k trading days, sell's 5-tier gate is
+# relaxed to a flat short_pct >= G. (k, G) = None disables it entirely and
+# restores v361 behaviour. Sweeps 42/44/45: the gate value carries information
+# (marginal-trade PF falls 3.04 -> 1.86 -> 1.72 as the band loosens past 25) but
+# the exact k is not robust (adjacent age shells swing PF 1.36 <-> 3.87 on 65-99
+# trades), so k is set to the low end of the 3-5 insensitive range.
+SELL_STANCE_GATE: tuple[int, float] | None = (3, 25.0)
+
 if TYPE_CHECKING:
     from backtest.data import StockData
 
@@ -1149,6 +1158,11 @@ def sell_condition(data: "StockData") -> BoolArray:
                           np.where(moderate_bear_only, short_pct >= 35,
                                    short_pct >= 40))),
     )
+    if SELL_STANCE_GATE is not None:
+        _sg_k, _sg_g = SELL_STANCE_GATE
+        rule_short_pct_gate = rule_short_pct_gate | (
+            _stance_long_held(data, _sg_k) & (short_pct >= _sg_g)
+        )
 
     # 12. v130 port Go GS11：~nte (不在底背離 — 排除「死叉但動能轉強」的反彈段)
     rule_not_nte = ~data.macd.short.macd_convergence_nte
