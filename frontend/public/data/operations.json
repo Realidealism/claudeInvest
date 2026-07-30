@@ -1,22 +1,108 @@
 {
-  "snapshot_date": "2026-07-29",
+  "snapshot_date": "2026-07-30",
   "signals": {
-    "pick": [],
-    "touch": [],
-    "buy": [],
-    "sell": [
+    "pick": [
       {
-        "ticker": "4583",
-        "name": "台灣精銳",
+        "ticker": "2838",
+        "name": "聯邦銀",
         "market": "TWSE",
-        "turnover": 99039152.0,
+        "turnover": 50578072.0,
+        "streak": 1
+      }
+    ],
+    "touch": [],
+    "buy": [
+      {
+        "ticker": "2884",
+        "name": "玉山金",
+        "market": "TWSE",
+        "turnover": 2571533824.0,
         "streak": 1
       },
       {
-        "ticker": "2009",
-        "name": "第一銅",
+        "ticker": "2886",
+        "name": "兆豐金",
         "market": "TWSE",
-        "turnover": 70035792.0,
+        "turnover": 2378607104.0,
+        "streak": 1
+      },
+      {
+        "ticker": "2892",
+        "name": "第一金",
+        "market": "TWSE",
+        "turnover": 2223491840.0,
+        "streak": 1
+      },
+      {
+        "ticker": "5880",
+        "name": "合庫金",
+        "market": "TWSE",
+        "turnover": 1876699648.0,
+        "streak": 1
+      },
+      {
+        "ticker": "2880",
+        "name": "華南金",
+        "market": "TWSE",
+        "turnover": 1289295104.0,
+        "streak": 1
+      },
+      {
+        "ticker": "2801",
+        "name": "彰銀",
+        "market": "TWSE",
+        "turnover": 974774336.0,
+        "streak": 1
+      },
+      {
+        "ticker": "2867",
+        "name": "三商壽",
+        "market": "TWSE",
+        "turnover": 385928896.0,
+        "streak": 1
+      },
+      {
+        "ticker": "8464",
+        "name": "億豐",
+        "market": "TWSE",
+        "turnover": 296887680.0,
+        "streak": 1
+      },
+      {
+        "ticker": "2006",
+        "name": "東和鋼鐵",
+        "market": "TWSE",
+        "turnover": 237776224.0,
+        "streak": 1
+      },
+      {
+        "ticker": "8462",
+        "name": "柏文",
+        "market": "TWSE",
+        "turnover": 97544848.0,
+        "streak": 1
+      },
+      {
+        "ticker": "4442",
+        "name": "竣邦-KY",
+        "market": "TPEx",
+        "turnover": 84905472.0,
+        "streak": 1
+      },
+      {
+        "ticker": "1907",
+        "name": "永豐餘",
+        "market": "TWSE",
+        "turnover": 70792776.0,
+        "streak": 1
+      }
+    ],
+    "sell": [
+      {
+        "ticker": "1503",
+        "name": "士電",
+        "market": "TWSE",
+        "turnover": 336007456.0,
         "streak": 1
       }
     ],
