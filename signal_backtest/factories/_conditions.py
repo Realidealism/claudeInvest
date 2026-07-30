@@ -180,6 +180,40 @@ def _stance_blocked(data: "StockData") -> BoolArray:
                        dtype=np.bool_, count=data.n)
 
 
+@lru_cache(maxsize=4)
+def _stance_long_held_dates(min_held: int = 8) -> frozenset:
+    """(T-1) 溫度計防守段已守滿 min_held 個交易日 → 做多防守線收緊。
+
+    Unlike ``_stance_block_dates`` this counts EVERY defensive leg, not just
+    top/trend: on the defense side the leg split was worth less than the age
+    threshold (sweep 36, trend-only 1.8742 vs all-legs 1.8765).
+
+    The threshold is what makes this work. Tightening on every defensive day
+    (min_held=1) is worse than doing nothing — buy 1.8401 vs 1.8566 baseline —
+    while the same tightening gated at 7-8 days is +0.025 (sweep 36/37). The
+    market's forward 20d drawdown risk only steps up once a latch has run
+    ~6 days: P(DD <= -5%) is 14.3% off-latch, 22.4% at age 1-2, 24.0% at 3-5,
+    then 35.3% at 6-10 (tmp/_stance_held_vs_crash.py).
+
+    Same live source as _stance_block_dates — no snapshot to keep in sync.
+    """
+    from analysis.market_thermometer import daily_stance_frame
+    from db.connection import get_cursor
+    with get_cursor(commit=False) as cur:
+        m = daily_stance_frame(cur)
+    days = [d.date() for d in m["d"]]
+    on = [bool(v) and int(h) >= min_held
+          for v, h in zip(m["defensive"], m["held"])]
+    return frozenset(days[i + 1] for i in range(len(days) - 1) if on[i])
+
+
+def _stance_long_held(data: "StockData", min_held: int = 8) -> BoolArray:
+    """Per-bar mask: this bar falls on a long-enough defensive latch."""
+    on = _stance_long_held_dates(min_held)
+    return np.fromiter((d in on for d in data.dates),
+                       dtype=np.bool_, count=data.n)
+
+
 def _market_strongly_bullish(data: "StockData") -> BoolArray:
     """Strong bull at any scope (trend code >= 2). Filter for short entries."""
     ms = data.market_state

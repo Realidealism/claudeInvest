@@ -17,6 +17,7 @@ from signal_backtest.factories._conditions import (
     _long_pct_array,
     _short_pct_array,
     _shift,
+    _stance_long_held,
     buy_condition,
     sell_condition,
     buy_flee_signal,
@@ -25,6 +26,10 @@ from signal_backtest.factories._conditions import (
 
 if TYPE_CHECKING:
     from backtest.data import StockData
+
+# v361: tighten buy's long floor only once the thermometer's defensive latch has
+# run this many sessions. Set to None to disable (same-window controlled runs).
+STANCE_HELD_DEFENSE: int | None = 8
 
 
 def buy_signal(data: "StockData") -> SignalSpec:
@@ -93,6 +98,16 @@ def buy_signal(data: "StockData") -> SignalSpec:
                     trigger=fake_support, source=rolling_lowest(data.low, 3),
                     max_days_after_entry=3),
     ]
+    # v361: latch age >= 8 sessions -> LL8 (sweep 36/37).
+    #   The threshold is the edge, not the tightening: the same tightening with
+    #   min_held=1 scores 1.8401 against a 1.8566 baseline, while gating it at
+    #   7-8 sessions is worth +0.025. k over 4/5/6/7/8/10/15 is an inverted U
+    #   peaking at 7-8 and decaying on both sides.
+    if STANCE_HELD_DEFENSE is not None:
+        long_defense.append(
+            DefenseRule(name=f"溫度計守滿{STANCE_HELD_DEFENSE}日→8日低",
+                        trigger=_stance_long_held(data, STANCE_HELD_DEFENSE),
+                        source=rolling_lowest(data.low, 8)))
     # v288 試驗封存 (destructive, 2026-05-27):
     #   trigger: vs≤1 & high≥HH8 在 5 日內 → LL5
     #   Portfolio PF -0.0854 嚴重退步, 5314 世紀* +459→-16 (-475 ppts) 等災難
