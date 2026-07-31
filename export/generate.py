@@ -2033,6 +2033,8 @@ COMMODITY_CATEGORIES = [
     ("energy",   "能源"),
     ("petro",    "石化"),
     ("plastics", "塑化"),
+    ("rubber",   "橡膠"),
+    ("newenergy","新能源材料"),
     ("metal",    "基本金屬"),
     ("precious", "貴金屬"),
     ("steel",    "鋼鐵"),

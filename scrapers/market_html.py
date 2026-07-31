@@ -56,7 +56,7 @@ from datetime import date, datetime
 from db.connection import get_cursor
 from scrapers.market_quote import save_rows
 from utils.format_shift import ScrapeResult
-from utils.http_client import fetch
+from utils.http_client import fetch, get_session
 
 TE_URL      = "https://tradingeconomics.com/commodity/{slug}"
 FBX_URL     = "https://fbx.freightos.com/"
@@ -83,9 +83,11 @@ HTML_SYMBOLS = {
     "tin":        {"name": "錫",             "category": "metal",    "unit": "USD/噸",   "dp": 2, "freq": "daily"},
     "aluminum":   {"name": "鋁",             "category": "metal",    "unit": "USD/噸",   "dp": 2, "freq": "daily"},
     "cobalt":     {"name": "鈷",             "category": "metal",    "unit": "USD/噸",   "dp": 2, "freq": "daily"},
-    # 鋼鐵爐料端 (中鋼/豐興的成本側；成品端熱軋鋼捲在 market_quote.py)
+    # 鋼鐵爐料端 (高爐的鐵礦砂+焦煤是中鋼的成本；螺紋鋼是電爐廠豐興/東鋼的
+    # 產品端——台灣廠沒有公布盤價，中國現貨是唯一免費代理)
     "iron_ore":   {"name": "鐵礦砂",         "category": "steel",    "unit": "USD/噸",   "dp": 2, "freq": "daily"},
     "coking_coal":{"name": "焦煤",           "category": "steel",    "unit": "USD/噸",   "dp": 2, "freq": "daily"},
+    "rebar":      {"name": "螺紋鋼",         "category": "steel",    "unit": "人民幣/噸", "dp": 0, "freq": "daily"},
     # 石化最上游的裂解原料
     "naphtha":    {"name": "石油腦",         "category": "petro",    "unit": "USD/噸",   "dp": 2, "freq": "daily"},
     "dram_ddr5":  {"name": "DRAM DDR5 16Gb", "category": "memory",   "unit": "USD",      "dp": 3, "freq": "daily"},
@@ -106,6 +108,15 @@ HTML_SYMBOLS = {
     "lldpe":      {"name": "LLDPE",          "category": "plastics", "unit": "人民幣/噸", "dp": 0, "freq": "daily"},
     "pta":        {"name": "PTA",            "category": "plastics", "unit": "人民幣/噸", "dp": 0, "freq": "daily"},
     "eg":         {"name": "乙二醇 EG",      "category": "plastics", "unit": "人民幣/噸", "dp": 0, "freq": "daily"},
+    # 橡膠 (天然膠是正新/建大的成本，SBR 是台橡的產品)
+    "rubber_nat": {"name": "天然橡膠",       "category": "rubber",   "unit": "人民幣/噸", "dp": 0, "freq": "daily"},
+    "sbr":        {"name": "丁苯橡膠 SBR",   "category": "rubber",   "unit": "人民幣/噸", "dp": 0, "freq": "daily"},
+    # 新能源材料
+    "polysilicon":{"name": "多晶矽",         "category": "newenergy","unit": "人民幣/噸", "dp": 0, "freq": "daily"},
+    "lithium":    {"name": "碳酸鋰",         "category": "newenergy","unit": "人民幣/噸", "dp": 0, "freq": "daily"},
+    # 動力煤是水泥/電力的燃料成本，跟煉鋼用的焦煤不是同一種煤
+    "thermal_coal":{"name": "動力煤",        "category": "energy",   "unit": "人民幣/噸", "dp": 0, "freq": "daily"},
+    "urea":       {"name": "尿素",           "category": "agri",     "unit": "人民幣/噸", "dp": 0, "freq": "daily"},
 }
 
 # TradingEconomics slug + the unit string that follows the number in the page's
@@ -143,12 +154,23 @@ SPOT_ROWS = {
 # sets), not to panels — anchoring on the open-cell spec keeps them apart.
 PANEL_APP, PANEL_SPEC = "LCD TV", '55"W UHD Open-Cell'
 
-# SunSirs product ids.
+# SunSirs product ids. The English site's full index is /uk/sectors.html and
+# runs to 102 products; anything not in it (VCM, EVA, EDC, PS, AN, CPL,
+# butadiene, paraxylene) has no free source here.
 SUNSIRS_PRODUCTS = {
     "propylene": 505, "styrene": 168, "pvc": 107, "pp": 718,
     "hdpe": 295, "ldpe": 334, "lldpe": 435, "benzene": 120,
     "xylene": 1222, "pta": 356, "eg": 222,
+    "rebar": 927, "thermal_coal": 369, "rubber_nat": 586, "sbr": 388,
+    "polysilicon": 463, "urea": 89, "lithium": 1162,
 }
+
+# SunSirs answers a burst of requests with a ~600-byte JS interstitial that
+# writes an HW_CHECK cookie and reloads itself. requests runs no JS, so once
+# that trips, every product page parses as "no price rows" and all 18 symbols
+# silently stop updating under a misleading error. The token is handed to us
+# in cleartext in that page, so echoing it back as the cookie clears it.
+SUNSIRS_CHALLENGE = re.compile(r'var\s+_0x2\s*=\s*"([0-9a-f]+)"')
 
 
 def _strip_tags(html: str) -> str:
@@ -304,6 +326,24 @@ def _scrape_panel() -> tuple[date, float] | None:
     return None
 
 
+def _sunsirs_fetch(url: str):
+    """fetch(), but solve the anti-bot interstitial if we hit it.
+
+    The cookie goes on the shared session, so only the first challenged
+    request in a run pays the extra round trip.
+    """
+    resp = fetch(url, timeout=30)
+    if resp is None:
+        return None
+    m = SUNSIRS_CHALLENGE.search(resp.text)
+    if m and len(resp.text) < 2000:
+        get_session().cookies.set(
+            "HW_CHECK", m.group(1), domain="www.sunsirs.com", path="/"
+        )
+        resp = fetch(url, timeout=30)
+    return resp
+
+
 def _scrape_sunsirs() -> dict[str, list[tuple[date, float]]]:
     """Each product page lists its last ~6 daily prints as
     <td>Propylene</td><td>Chemical</td><td>8011.00</td><td>2026-07-12</td>.
@@ -311,7 +351,7 @@ def _scrape_sunsirs() -> dict[str, list[tuple[date, float]]]:
     heal themselves — these series cannot be backfilled any other way."""
     out: dict[str, list[tuple[date, float]]] = {}
     for symbol, pid in SUNSIRS_PRODUCTS.items():
-        resp = fetch(SUNSIRS_URL.format(pid=pid), timeout=30)
+        resp = _sunsirs_fetch(SUNSIRS_URL.format(pid=pid))
         if resp is None:
             continue
         rows = re.findall(
