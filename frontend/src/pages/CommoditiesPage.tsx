@@ -1,5 +1,14 @@
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import DataTimestamp from "../components/DataTimestamp";
+
+interface LinkedStock {
+  id:   string;
+  name: string;
+  role: string;   // 成本端 / 售價端 / 庫存端
+  sign: number;   // 商品漲對這檔的方向：+1 利多 / -1 利空
+  note: string;
+}
 
 interface Quote {
   symbol:      string;
@@ -19,6 +28,7 @@ interface Quote {
   w52_high:    number | null;
   w52_low:     number | null;
   w52_pct:     number | null;
+  stocks:      LinkedStock[];
 }
 
 interface Category {
@@ -50,6 +60,46 @@ function chgText(v: number | null | undefined): string {
 function num(v: number | null | undefined, dp: number): string {
   if (v === null || v === undefined || !Number.isFinite(v)) return "—";
   return v.toFixed(dp);
+}
+
+// 相關個股。按角色分組，因為同一個商品對上下游的方向是相反的——熱軋鋼捲漲，
+// 中鋼(賣)受惠、燁輝(買)受害，這正是純相關係數表達不出來的東西。角色標籤照
+// 台股慣例上色：利多紅、利空綠。
+const ROLE_ORDER = ["售價端", "庫存端", "成本端"];
+
+function LinkedStocks({ stocks }: { stocks: LinkedStock[] }) {
+  const groups = ROLE_ORDER
+    .map((role) => ({ role, items: stocks.filter((s) => s.role === role) }))
+    .filter((g) => g.items.length > 0);
+
+  return (
+    <div className="pt-2 mt-1 border-t border-border/60 space-y-1">
+      {groups.map((g) => (
+        <div key={g.role} className="flex gap-2 text-[11px]">
+          <span
+            className={`shrink-0 font-medium ${
+              g.items[0].sign > 0 ? "text-red-400" : "text-emerald-400"
+            }`}
+            title={g.items[0].sign > 0 ? "此商品上漲對這些個股偏利多" : "此商品上漲對這些個股偏利空"}
+          >
+            {g.role}
+          </span>
+          <span className="flex flex-wrap gap-x-2 gap-y-0.5">
+            {g.items.map((s) => (
+              <Link
+                key={s.id}
+                to={`/stock/${s.id}`}
+                title={s.note}
+                className="text-text-secondary hover:text-text-primary hover:underline"
+              >
+                {s.name}
+              </Link>
+            ))}
+          </span>
+        </div>
+      ))}
+    </div>
+  );
 }
 
 function QuoteCard({ q, pageLatest }: { q: Quote; pageLatest: string | null }) {
@@ -128,20 +178,29 @@ function QuoteCard({ q, pageLatest }: { q: Quote; pageLatest: string | null }) {
     </>
   );
 
-  const base = "block bg-surface-alt border border-border rounded p-3 space-y-2";
-
-  if (!href) return <div className={base}>{body}</div>;
-
+  // 相關個股要連到我們自己的個股頁，所以不能包在 TradingView 那個 <a> 裡面
+  // （巢狀 anchor 是無效 HTML）。外層改成 div，報價本體才是連結。
   return (
-    <a
-      href={href}
-      target="_blank"
-      rel="noopener noreferrer"
-      title={`在 TradingView 開啟 ${q.tv}`}
-      className={`${base} cursor-pointer transition-colors hover:border-accent`}
+    <div
+      className={`bg-surface-alt border border-border rounded p-3${
+        href ? " transition-colors hover:border-accent" : ""
+      }`}
     >
-      {body}
-    </a>
+      {href ? (
+        <a
+          href={href}
+          target="_blank"
+          rel="noopener noreferrer"
+          title={`在 TradingView 開啟 ${q.tv}`}
+          className="block space-y-2 cursor-pointer"
+        >
+          {body}
+        </a>
+      ) : (
+        <div className="space-y-2">{body}</div>
+      )}
+      {q.stocks?.length > 0 && <LinkedStocks stocks={q.stocks} />}
+    </div>
   );
 }
 

@@ -2139,6 +2139,8 @@ def export_market_quote(cur, out: Path):
     counts = Counter(q["latest_date"] for q in quotes)
     page_date = max(counts, key=lambda d: (counts[d], d)) if counts else None
 
+    _attach_stock_links(cur, quotes, page_date, out)
+
     live = {q["category"] for q in quotes}
     _write({
         "latest_date": page_date,
@@ -2146,6 +2148,41 @@ def export_market_quote(cur, out: Path):
                         for k, lb in COMMODITY_CATEGORIES if k in live],
         "quotes":      quotes,
     }, out / "commodities.json")
+
+
+def _attach_stock_links(cur, quotes: list[dict], page_date, out: Path):
+    """Hang db.commodity_links on both ends: `stocks` inside each quote for the
+    commodity page, and stock_commodities.json for the stock page.
+
+    Names come from tw.stocks rather than the link table so a rename never has
+    to be chased through the mapping, and an id that stops existing drops out
+    of the page instead of rendering as a dead chip.
+    """
+    from db.commodity_links import LINKS, ROLE_LABEL, ROLE_SIGN
+
+    ids = sorted({sid for links in LINKS.values() for sid, _, _ in links})
+    cur.execute("SELECT stock_id, name FROM tw.stocks WHERE stock_id = ANY(%s)",
+                (ids,))
+    names = {r["stock_id"]: r["name"] for r in cur.fetchall()}
+
+    by_stock: dict[str, list[dict]] = {}
+    for q in quotes:
+        q["stocks"] = []
+        for sid, role, note in LINKS.get(q["symbol"], []):
+            if sid not in names:
+                continue
+            q["stocks"].append({
+                "id": sid, "name": names[sid],
+                "role": ROLE_LABEL[role], "sign": ROLE_SIGN[role], "note": note,
+            })
+            by_stock.setdefault(sid, []).append({
+                "symbol": q["symbol"], "name": q["name"], "unit": q["unit"],
+                "dp": q["dp"], "latest": q["latest"], "chg_1": q["chg_1"],
+                "role": ROLE_LABEL[role], "sign": ROLE_SIGN[role], "note": note,
+            })
+
+    _write({"latest_date": page_date, "by_stock": by_stock},
+           out / "stock_commodities.json")
 
 
 def export_all(out_dir: str | None = None):

@@ -215,6 +215,25 @@ interface RevenueData {
 
 // ---- Per-section hit shapes ----
 
+// 相關原物料。sign 是「這個商品上漲對本檔的方向」：成本端 -1、售價端與
+// 庫存端 +1，由 db/commodity_links.py 的角色決定。
+interface CommodityLink {
+  symbol: string;
+  name:   string;
+  unit:   string;
+  dp:     number;
+  latest: number | null;
+  chg_1:  number | null;
+  role:   string;
+  sign:   number;
+  note:   string;
+}
+
+interface StockCommoditiesData {
+  latest_date: string | null;
+  by_stock:    Record<string, CommodityLink[]>;
+}
+
 interface ScoreHit { side: "long" | "short"; rank: number; total_pct: number; turnover: number }
 interface OpHit { signal: SignalKey; streak?: number; turnover: number }
 interface PosHit { bucket: "long" | "short" | "exited_long" | "exited_short"; row: Position }
@@ -304,6 +323,7 @@ export default function StockPage() {
   const [chips, setChips] = useState<Section<ChipHit[]>>(LOADING);
   const [hermit, setHermit] = useState<Section<HermitPick | null>>(LOADING);
   const [revenue, setRevenue] = useState<Section<RevenueHit[]>>(LOADING);
+  const [commodities, setCommodities] = useState<Section<CommodityLink[]>>(LOADING);
 
   useEffect(() => {
     if (!ticker) return;
@@ -317,6 +337,7 @@ export default function StockPage() {
     setChips(LOADING);
     setHermit(LOADING);
     setRevenue(LOADING);
+    setCommodities(LOADING);
 
     let cancelled = false;
 
@@ -480,11 +501,18 @@ export default function StockPage() {
       return hits;
     });
 
+    // 10. 相關原物料
+    guard(setCommodities, async () => {
+      const d = await fetchJson<StockCommoditiesData>("/data/stock_commodities.json");
+      return d.by_stock?.[ticker] ?? [];
+    });
+
     return () => { cancelled = true; };
   }, [ticker]);
 
   const sections: Section<unknown>[] = [
     scores, ops, positions, fundSigs, holdings, flow, chips, hermit, revenue,
+    commodities,
   ];
   const allSettled = sections.every((s) => s.status !== "loading");
   const anyHit =
@@ -809,6 +837,46 @@ export default function StockPage() {
                     <td className="px-2 py-1.5">{h.strategyLabel}</td>
                     <td className={`px-2 py-1.5 font-bold ${h.side === "long" ? "text-long-strong" : h.side === "short" ? "text-short-strong" : "text-text-secondary"}`}>
                       {h.side === "long" ? "做多" : h.side === "short" ? "做空" : "—"}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </SectionBody>
+      </Card>
+
+      {/* 10. 相關原物料 */}
+      <Card title="相關原物料">
+        <SectionBody section={commodities} isEmpty={(h) => h.length === 0}>
+          {(hits) => (
+            <table className="w-full text-xs">
+              <thead>
+                <tr className="border-b border-border text-text-secondary text-left">
+                  <th className="px-2 py-1.5">商品</th>
+                  <th className="px-2 py-1.5">角色</th>
+                  <th className="px-2 py-1.5 text-right">報價</th>
+                  <th className="px-2 py-1.5 text-right">日變化</th>
+                </tr>
+              </thead>
+              <tbody>
+                {hits.map((c) => (
+                  <tr key={c.symbol} className="border-b border-border/50" title={c.note}>
+                    <td className="px-2 py-1.5">
+                      {c.name}
+                      <span className="ml-2 text-[10px] text-text-secondary">{c.unit}</span>
+                    </td>
+                    {/* 角色的顏色是「這個商品漲對本檔是好是壞」，不是商品自己的漲跌 */}
+                    <td className={`px-2 py-1.5 font-bold ${c.sign > 0 ? "text-long-strong" : "text-short-strong"}`}>
+                      {c.role}
+                    </td>
+                    <td className="px-2 py-1.5 text-right font-mono">
+                      {c.latest === null ? "—" : c.latest.toFixed(c.dp)}
+                    </td>
+                    <td className={`px-2 py-1.5 text-right font-mono ${
+                      c.chg_1 === null ? "text-text-secondary" : pnlClass(c.chg_1)
+                    }`}>
+                      {c.chg_1 === null ? "—" : `${c.chg_1 >= 0 ? "+" : ""}${c.chg_1.toFixed(2)}%`}
                     </td>
                   </tr>
                 ))}
