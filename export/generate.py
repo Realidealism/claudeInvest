@@ -2032,7 +2032,10 @@ COMMODITY_CATEGORIES = [
     ("panel",    "面板"),
     ("energy",   "能源"),
     ("petro",    "石化"),
-    ("metal",    "金屬"),
+    ("plastics", "塑化"),
+    ("metal",    "基本金屬"),
+    ("precious", "貴金屬"),
+    ("steel",    "鋼鐵"),
     ("agri",     "農產"),
     ("fx",       "匯率"),
     ("crypto",   "加密貨幣"),
@@ -2055,7 +2058,7 @@ COMMODITY_WINDOW_DAYS = 252  # rows read per symbol — the 52-week lookback
 def export_market_quote(cur, out: Path):
     """commodities.json — 大宗行情 page.
 
-    The two scrapers' symbol tables are the single source of truth for both
+    The three scrapers' symbol tables are the single source of truth for both
     the instrument list and its display metadata (name/unit/dp/freq/tv); this
     only reads them. Everything derived — period changes, 52-week range — is
     computed here rather than stored, so a revised upstream close propagates
@@ -2065,10 +2068,11 @@ def export_market_quote(cur, out: Path):
     TradingView for the chart, which keeps this file a few KB instead of the
     ~200KB a year of daily closes for every symbol would cost on each push.
     """
+    from scrapers.market_hog import HOG_SYMBOLS
     from scrapers.market_html import HTML_SYMBOLS
     from scrapers.market_quote import SYMBOLS
 
-    meta = {**SYMBOLS, **HTML_SYMBOLS}
+    meta = {**SYMBOLS, **HTML_SYMBOLS, **HOG_SYMBOLS}
 
     cur.execute(
         """

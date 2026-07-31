@@ -49,15 +49,22 @@ SYMBOLS: dict[str, dict[str, Any]] = {
     "wti":     {"ticker": "CL=F",      "name": "西德州原油", "category": "energy",   "unit": "USD/桶",  "dp": 2, "freq": "daily", "tv": "NYMEX:CL1!"},
     "brent":   {"ticker": "BZ=F",      "name": "布蘭特原油", "category": "energy",   "unit": "USD/桶",  "dp": 2, "freq": "daily", "tv": "NYMEX:BZ1!"},
     "natgas":  {"ticker": "NG=F",      "name": "天然氣",     "category": "energy",   "unit": "USD/MMBtu", "dp": 3, "freq": "daily", "tv": "NYMEX:NG1!"},
-    # 金屬 (熱軋鋼捲 = 中鋼/豐興/燁輝 這條鋼鐵族群的報價錨)
+    # 金屬
     "copper":  {"ticker": "HG=F",      "name": "銅",         "category": "metal",    "unit": "USD/磅",  "dp": 4, "freq": "daily", "tv": "COMEX:HG1!"},
-    "gold":    {"ticker": "GC=F",      "name": "黃金",       "category": "metal",    "unit": "USD/盎司", "dp": 2, "freq": "daily", "tv": "COMEX:GC1!"},
-    "silver":  {"ticker": "SI=F",      "name": "白銀",       "category": "metal",    "unit": "USD/盎司", "dp": 3, "freq": "daily", "tv": "COMEX:SI1!"},
-    "hrc":     {"ticker": "HRC=F",     "name": "熱軋鋼捲",   "category": "metal",    "unit": "USD/短噸", "dp": 0, "freq": "daily", "tv": "COMEX:HRC1!"},
-    # 農產 (飼料成本端 — 大成/卜蜂/福壽)。CBOT 穀物報價單位是美分/英斗。
+    # 貴金屬。白金/鈀金是觸媒與被動元件端，跟金銀的避險屬性不同組但同分類。
+    "gold":     {"ticker": "GC=F",     "name": "黃金",       "category": "precious", "unit": "USD/盎司", "dp": 2, "freq": "daily", "tv": "COMEX:GC1!"},
+    "silver":   {"ticker": "SI=F",     "name": "白銀",       "category": "precious", "unit": "USD/盎司", "dp": 3, "freq": "daily", "tv": "COMEX:SI1!"},
+    "platinum": {"ticker": "PL=F",     "name": "白金",       "category": "precious", "unit": "USD/盎司", "dp": 2, "freq": "daily", "tv": "NYMEX:PL1!"},
+    "palladium":{"ticker": "PA=F",     "name": "鈀金",       "category": "precious", "unit": "USD/盎司", "dp": 2, "freq": "daily", "tv": "NYMEX:PA1!"},
+    # 鋼鐵 (熱軋鋼捲 = 中鋼/豐興/燁輝 這條鋼鐵族群的報價錨；爐料端的鐵礦砂與
+    # 焦煤在 market_html.py，來源不同但同一張卡牆)
+    "hrc":     {"ticker": "HRC=F",     "name": "熱軋鋼捲",   "category": "steel",    "unit": "USD/短噸", "dp": 0, "freq": "daily", "tv": "COMEX:HRC1!"},
+    # 農產 (飼料成本端 — 大成/卜蜂/福壽)。CBOT 穀物報價單位是美分/英斗，
+    # 糙米是例外：CBOT 報 USD/英擔 (cwt)，量級只有個位數。
     "soybean": {"ticker": "ZS=F",      "name": "黃豆",       "category": "agri",     "unit": "美分/英斗", "dp": 2, "freq": "daily", "tv": "CBOT:ZS1!"},
     "corn":    {"ticker": "ZC=F",      "name": "玉米",       "category": "agri",     "unit": "美分/英斗", "dp": 2, "freq": "daily", "tv": "CBOT:ZC1!"},
     "wheat":   {"ticker": "ZW=F",      "name": "小麥",       "category": "agri",     "unit": "美分/英斗", "dp": 2, "freq": "daily", "tv": "CBOT:ZW1!"},
+    "rice":    {"ticker": "ZR=F",      "name": "稻米",       "category": "agri",     "unit": "USD/英擔", "dp": 2, "freq": "daily", "tv": "CBOT:ZR1!"},
     # 匯率 / 資金
     "dxy":     {"ticker": "DX-Y.NYB",  "name": "美元指數",   "category": "fx",       "unit": "點",      "dp": 3, "freq": "daily", "tv": "TVC:DXY"},
     "usdtwd":  {"ticker": "TWD=X",     "name": "美元/台幣",  "category": "fx",       "unit": "TWD",     "dp": 3, "freq": "daily", "tv": "FX_IDC:USDTWD"},

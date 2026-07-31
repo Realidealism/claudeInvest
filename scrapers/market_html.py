@@ -4,16 +4,20 @@ panel spot prices, petrochemical feedstock. Everything with a real data feed
 lives in market_quote.py; this module is the fragile half, deliberately kept
 separate.
 
-Five unrelated sources, each wrapped in its own try/except so one site's
+Five unrelated sites, each wrapped in its own try/except so one site's
 redesign can't take the others down with it:
 
-  bdi        TradingEconomics /commodity/baltic — the page's meta description
-             carries the number ("Baltic Dry rose to 2,944 Index Points on
-             July 10, 2026, up 1.17%"). Baltic Exchange itself is behind
-             Akamai and every free history API is paywalled, so we can only
-             read today's print — the series here grows one row per run
-             rather than arriving with a backfill. BDRY (in market_quote.py)
-             is the ETF proxy that carries long history in the meantime.
+  bdi        TradingEconomics /commodity/{slug} — the page's meta description
+  metals     carries the number ("Baltic Dry rose to 2,944 Index Points on
+  naphtha    July 10, 2026, up 1.17%"; "Nickel rose to 17,288.13 USD/T on
+  iron ore   July 30, 2026"). Same shape for every commodity, hence one
+  coking     parser for all of them. No free history anywhere on this source,
+             so these series grow one row per run rather than arriving with a
+             backfill. The base metals are here rather than in market_quote
+             because LME has no free daily feed at all — Yahoo carries only
+             aluminium (COMEX, thin) and FRED is monthly. BDRY (in
+             market_quote.py) is the ETF proxy that carries long history for
+             the BDI card in the meantime.
   fbx        Freightos FBX global container index, from a JSON blob embedded
              in the landing page. Stands in for SCFI, which sits behind the
              Shanghai Shipping Exchange member login.
@@ -25,13 +29,16 @@ redesign can't take the others down with it:
              daily run just re-upserts the same row until it moves.
   propylene  SunSirs (生意社) China spot, one product page each. Prices are
   styrene    RMB (the site's own "(Unit:RMB)" note; per-tonne is inferred from
-  pvc        magnitude and trade convention, NOT stated on the page). These are
-             China domestic spot, NOT the CFR North-East Asia landed price
-             台塑 actually buys on — correlated, not the same number.
-             Ethylene has no free live source: SunSirs' own ethylene series
-             stopped updating in 2022 (verified 2026-07-12), so it is absent.
+  pvc, pp    magnitude and trade convention, NOT stated on the page). These are
+  pe x3      China domestic spot, NOT the CFR North-East Asia landed price
+  benzene    台塑 actually buys on — correlated, not the same number.
+  xylene     Ethylene has no free live source: SunSirs' own ethylene series
+  pta, eg    stopped updating in 2022 (re-verified 2026-07-30, last print
+             2022-07-23), so it is absent. VCM/EVA/EDC/PS/AN/CPL/butadiene/
+             paraxylene are absent for a different reason: SunSirs' English
+             product index is 102 items and carries none of them.
 
-None of the five can be backfilled; they accumulate from the first run onward.
+None of them can be backfilled; they accumulate from the first run onward.
 (SunSirs is the mild exception — each product page carries its last ~6 days,
 which self-heals a short outage.)
 
@@ -51,7 +58,7 @@ from scrapers.market_quote import save_rows
 from utils.format_shift import ScrapeResult
 from utils.http_client import fetch
 
-BDI_URL     = "https://tradingeconomics.com/commodity/baltic"
+TE_URL      = "https://tradingeconomics.com/commodity/{slug}"
 FBX_URL     = "https://fbx.freightos.com/"
 DRAM_URL    = "https://www.dramexchange.com/"
 PANEL_URL   = "https://www.trendforce.com/price/lcd/panel"
@@ -69,18 +76,67 @@ SUNSIRS_URL = "https://www.sunsirs.com/uk/prodetail-{pid}.html"
 HTML_SYMBOLS = {
     "bdi":        {"name": "BDI 波羅的海",   "category": "shipping", "unit": "點",       "dp": 0, "freq": "daily",   "tv": "INDEX:BDI"},
     "fbx":        {"name": "FBX 貨櫃運價",   "category": "shipping", "unit": "USD/FEU",  "dp": 0, "freq": "weekly"},
+    # 基本金屬 (LME 現貨等級的報價，經 TradingEconomics)
+    "nickel":     {"name": "鎳",             "category": "metal",    "unit": "USD/噸",   "dp": 2, "freq": "daily"},
+    "zinc":       {"name": "鋅",             "category": "metal",    "unit": "USD/噸",   "dp": 2, "freq": "daily"},
+    "lead":       {"name": "鉛",             "category": "metal",    "unit": "USD/噸",   "dp": 2, "freq": "daily"},
+    "tin":        {"name": "錫",             "category": "metal",    "unit": "USD/噸",   "dp": 2, "freq": "daily"},
+    "aluminum":   {"name": "鋁",             "category": "metal",    "unit": "USD/噸",   "dp": 2, "freq": "daily"},
+    "cobalt":     {"name": "鈷",             "category": "metal",    "unit": "USD/噸",   "dp": 2, "freq": "daily"},
+    # 鋼鐵爐料端 (中鋼/豐興的成本側；成品端熱軋鋼捲在 market_quote.py)
+    "iron_ore":   {"name": "鐵礦砂",         "category": "steel",    "unit": "USD/噸",   "dp": 2, "freq": "daily"},
+    "coking_coal":{"name": "焦煤",           "category": "steel",    "unit": "USD/噸",   "dp": 2, "freq": "daily"},
+    # 石化最上游的裂解原料
+    "naphtha":    {"name": "石油腦",         "category": "petro",    "unit": "USD/噸",   "dp": 2, "freq": "daily"},
     "dram_ddr5":  {"name": "DRAM DDR5 16Gb", "category": "memory",   "unit": "USD",      "dp": 3, "freq": "daily"},
+    "dram_ddr5e": {"name": "DRAM DDR5 eTT",  "category": "memory",   "unit": "USD",      "dp": 3, "freq": "daily"},
+    "dram_ddr4":  {"name": "DRAM DDR4 16Gb", "category": "memory",   "unit": "USD",      "dp": 3, "freq": "daily"},
     "nand_mlc":   {"name": "NAND MLC 64Gb",  "category": "memory",   "unit": "USD",      "dp": 3, "freq": "daily"},
     "panel_tv55": {"name": "面板 55吋 UHD",  "category": "panel",    "unit": "USD",      "dp": 1, "freq": "monthly"},
+    # 石化中間體 (SunSirs 中國內銷)
     "propylene":  {"name": "丙烯",           "category": "petro",    "unit": "人民幣/噸", "dp": 0, "freq": "daily"},
-    "styrene":    {"name": "苯乙烯 SM",      "category": "petro",    "unit": "人民幣/噸", "dp": 0, "freq": "daily"},
-    "pvc":        {"name": "PVC",            "category": "petro",    "unit": "人民幣/噸", "dp": 0, "freq": "daily"},
+    "benzene":    {"name": "苯",             "category": "petro",    "unit": "人民幣/噸", "dp": 0, "freq": "daily"},
+    "xylene":     {"name": "二甲苯",         "category": "petro",    "unit": "人民幣/噸", "dp": 0, "freq": "daily"},
+    # 塑化 (台塑四寶/台聚族群的產品端)
+    "styrene":    {"name": "苯乙烯 SM",      "category": "plastics", "unit": "人民幣/噸", "dp": 0, "freq": "daily"},
+    "pvc":        {"name": "PVC",            "category": "plastics", "unit": "人民幣/噸", "dp": 0, "freq": "daily"},
+    "pp":         {"name": "聚丙烯 PP",      "category": "plastics", "unit": "人民幣/噸", "dp": 0, "freq": "daily"},
+    "hdpe":       {"name": "HDPE",           "category": "plastics", "unit": "人民幣/噸", "dp": 0, "freq": "daily"},
+    "ldpe":       {"name": "LDPE",           "category": "plastics", "unit": "人民幣/噸", "dp": 0, "freq": "daily"},
+    "lldpe":      {"name": "LLDPE",          "category": "plastics", "unit": "人民幣/噸", "dp": 0, "freq": "daily"},
+    "pta":        {"name": "PTA",            "category": "plastics", "unit": "人民幣/噸", "dp": 0, "freq": "daily"},
+    "eg":         {"name": "乙二醇 EG",      "category": "plastics", "unit": "人民幣/噸", "dp": 0, "freq": "daily"},
 }
 
-# The row each spot table is read from. DRAMeXchange lists several contracts;
-# these are the mainstream ones the industry quotes.
-DRAM_TABLE = ("tb_NationalDramSpotPrice",  "DDR5 16Gb (2Gx8) 4800/5600")
-NAND_TABLE = ("tb_NationalFlashSpotPrice", "MLC 64Gb 8GBx8")
+# TradingEconomics slug + the unit string that follows the number in the page's
+# meta description. The unit is what pins the match to the headline print
+# rather than to some other number on the page, so it is per-commodity rather
+# than one loose alternation.
+TE_PRODUCTS = {
+    "bdi":         ("baltic",      "Index Points"),
+    "nickel":      ("nickel",      "USD/T"),
+    "zinc":        ("zinc",        "USD/T"),
+    "lead":        ("lead",        "USD/T"),
+    "tin":         ("tin",         "USD/T"),
+    "aluminum":    ("aluminum",    "USD/T"),
+    "cobalt":      ("cobalt",      "USD/T"),
+    "iron_ore":    ("iron-ore",    "USD/T"),
+    "coking_coal": ("coking-coal", "USD/T"),
+    "naphtha":     ("naphtha",     "USD/T"),
+}
+
+# The rows each spot table is read from. DRAMeXchange lists several contracts;
+# these are the mainstream ones the industry quotes. The free tables carry no
+# DDR3 row any more and no TLC row at all (TLC is contract-price only), which
+# is why neither is here.
+DRAM_TABLE = "tb_NationalDramSpotPrice"
+NAND_TABLE = "tb_NationalFlashSpotPrice"
+SPOT_ROWS = {
+    "dram_ddr5":  (DRAM_TABLE, "DDR5 16Gb (2Gx8) 4800/5600"),
+    "dram_ddr5e": (DRAM_TABLE, "DDR5 16Gb (2Gx8) eTT"),
+    "dram_ddr4":  (DRAM_TABLE, "DDR4 16Gb (2Gx8) 3200"),
+    "nand_mlc":   (NAND_TABLE, "MLC 64Gb 8GBx8"),
+}
 
 # TrendForce prints four tables; the one we want is Large Size Panel Price.
 # The 32" number on that page belongs to the STREET PRICE table (retail TV
@@ -88,32 +144,38 @@ NAND_TABLE = ("tb_NationalFlashSpotPrice", "MLC 64Gb 8GBx8")
 PANEL_APP, PANEL_SPEC = "LCD TV", '55"W UHD Open-Cell'
 
 # SunSirs product ids.
-SUNSIRS_PRODUCTS = {"propylene": 505, "styrene": 168, "pvc": 107}
+SUNSIRS_PRODUCTS = {
+    "propylene": 505, "styrene": 168, "pvc": 107, "pp": 718,
+    "hdpe": 295, "ldpe": 334, "lldpe": 435, "benzene": 120,
+    "xylene": 1222, "pta": 356, "eg": 222,
+}
 
 
 def _strip_tags(html: str) -> str:
     return re.sub(r"\s+", " ", re.sub(r"<[^>]+>", "", html)).strip()
 
 
-def _scrape_bdi() -> tuple[date, float] | None:
+def _scrape_te(symbol: str) -> tuple[date, float] | None:
     """Value + its own print date, both out of the meta description — the
     date matters because TradingEconomics keeps serving the last print on
-    days the index doesn't publish, and we'd otherwise store a stale number
-    under today's date."""
-    resp = fetch(BDI_URL, timeout=30)
+    days the commodity doesn't publish, and we'd otherwise store a stale
+    number under today's date."""
+    slug, unit = TE_PRODUCTS[symbol]
+    resp = fetch(TE_URL.format(slug=slug), timeout=30)
     if resp is None:
         return None
     m = re.search(
-        r"([\d,]+(?:\.\d+)?)\s*Index Points on (\w+ \d{1,2},? \d{4})", resp.text
+        rf"([\d,]+(?:\.\d+)?)\s*{re.escape(unit)} on (\w+ \d{{1,2}},? \d{{4}})",
+        resp.text,
     )
     if not m:
-        print("  BDI: number not found in page (source layout changed?)")
+        print(f"  TE {symbol}: number not found in page (source layout changed?)")
         return None
     value = float(m.group(1).replace(",", ""))
     try:
         d = datetime.strptime(m.group(2).replace(",", ""), "%B %d %Y").date()
     except ValueError:
-        print(f"  BDI: unparsable date {m.group(2)!r}")
+        print(f"  TE {symbol}: unparsable date {m.group(2)!r}")
         return None
     return d, value
 
@@ -203,10 +265,7 @@ def _scrape_memory() -> dict[str, tuple[date, float]]:
     if resp is None:
         return {}
     out = {}
-    for symbol, (table_id, item) in (
-        ("dram_ddr5", DRAM_TABLE),
-        ("nand_mlc",  NAND_TABLE),
-    ):
+    for symbol, (table_id, item) in SPOT_ROWS.items():
         row = _spot_row(resp.text, table_id, item)
         if row is not None:
             out[symbol] = row
@@ -280,7 +339,8 @@ def scrape_date(trade_date: date) -> ScrapeResult:
     silent success would freeze the page with nobody noticing.
 
     trade_date is deliberately unused. Every source here stamps its own date
-    (BDI's meta line, FBX's indexDate, DRAMeXchange's Last Update), because
+    (TradingEconomics' meta line, FBX's indexDate, DRAMeXchange's Last Update)
+    because
     daily_update supports backfill runs — and writing today's spot price
     under a backfilled date would be permanent, unfixable corruption in
     series that cannot be re-fetched.
@@ -288,15 +348,16 @@ def scrape_date(trade_date: date) -> ScrapeResult:
     rows: list[tuple[str, date, float]] = []
     failed: list[str] = []
 
-    try:
-        bdi = _scrape_bdi()
-        if bdi:
-            rows.append(("bdi", bdi[0], bdi[1]))
-        else:
-            failed.append("bdi")
-    except Exception as e:
-        print(f"  BDI failed: {e}")
-        failed.append("bdi")
+    for symbol in TE_PRODUCTS:
+        try:
+            hit = _scrape_te(symbol)
+            if hit:
+                rows.append((symbol, hit[0], hit[1]))
+            else:
+                failed.append(symbol)
+        except Exception as e:
+            print(f"  TE {symbol} failed: {e}")
+            failed.append(symbol)
 
     try:
         fbx = _scrape_fbx()
@@ -311,10 +372,10 @@ def scrape_date(trade_date: date) -> ScrapeResult:
     try:
         mem = _scrape_memory()
         rows.extend((s, d, v) for s, (d, v) in mem.items())
-        failed.extend(s for s in ("dram_ddr5", "nand_mlc") if s not in mem)
+        failed.extend(s for s in SPOT_ROWS if s not in mem)
     except Exception as e:
         print(f"  Memory spot failed: {e}")
-        failed.extend(("dram_ddr5", "nand_mlc"))
+        failed.extend(SPOT_ROWS)
 
     try:
         panel = _scrape_panel()
