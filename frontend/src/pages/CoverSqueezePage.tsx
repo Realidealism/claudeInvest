@@ -78,9 +78,9 @@ export default function CoverSqueezePage() {
           <li>dtc（融券回補比）＝融券今日餘額 ÷ 近 {p.vol_win_days} 交易日均量；僅計融券（借券不受股東會強制回補約束）。</li>
           <li>進場窗：回補日前約 {p.window_td} 個交易日內；出場：回補日，或觸及 {p.stop_pct}% 保護性停損。</li>
           <li>
-            實證回測（W=6，扣 0.4% 成本）：dtc ≥ {p.floor_dtc} 淨 PF 1.58／均 +1.14%；
-            dtc ≥ {p.strong_dtc} PF 1.70／+1.26%（絕對門檻優於橫斷面 top decile）；
-            加 {p.stop_pct}% 停損後 dtc ≥ {p.strong_dtc} PF 1.80／maxL −17.5%。dtc 低於地板者控制組實測為負，不列入。
+            歷史績效（扣 0.4% 成本）：dtc ≥ {p.floor_dtc} 淨 PF 1.58／均 +1.14%；
+            dtc ≥ {p.strong_dtc} PF 1.70／+1.26%；
+            加 {p.stop_pct}% 停損後 dtc ≥ {p.strong_dtc} PF 1.80／maxL −17.5%。dtc 低於地板者實測為負，不列入。
           </li>
           <li>操作狀態：該股在統一策略（技術面）當日的持倉狀態——多方持倉／空方持倉／今日出場／空手。軋空候選同時為多方持倉＝技術面確認。持倉追蹤自 2026-04-28 起，之前的日期顯示「—」。</li>
           <li>來源：TWSE BFI84U 停券預告表 + TPEx term 前瞻板（每日刷新）＋股東會日期衍生回補日。屬綜合型 overlay，非純技術訊號。</li>

@@ -335,7 +335,7 @@ export default function ThermometerPage() {
             <span className="text-3xl font-bold" style={{ color: LIMITUP_COLOR }}>⚠</span>
             <div>
               <div className="text-sm font-semibold" style={{ color: LIMITUP_COLOR }}>頂部過熱·漲停</div>
-              <div className="text-xs text-text-secondary">漲停家數佔比乖離過高＝散戶投機過熱。★時間均勻、抓到 4/5 崩盤峰含 2024-07／2026-02。</div>
+              <div className="text-xs text-text-secondary">漲停家數佔比乖離過高＝散戶投機過熱。★抓到 4/5 崩盤峰含 2024-07／2026-02。</div>
             </div>
           </div>
         )}
@@ -444,7 +444,7 @@ export default function ThermometerPage() {
         </ul>
         <div className="text-xs text-text-secondary mt-2">
           融資餘額／55 日均成交金額 的布林 z ≥ +1.5σ 時亮（先用成交量正規化、再 de-trend，抓槓桿相對量能的尖峰）。
-          <span className="text-text-primary">★與外資過熱互補、獨家抓到 2025-03 -23%</span>，但約 70% 假、非時間均勻，僅供參考。
+          <span className="text-text-primary">★與外資過熱互補、獨家抓到 2025-03 -23%</span>，但約 70% 假，僅供參考。
         </div>
       </div>
 
@@ -469,7 +469,7 @@ export default function ThermometerPage() {
         </ul>
         <div className="text-xs text-text-secondary mt-2">
           漲停家數佔比對 90 日均線的乖離 z ≥ +1.0σ 時亮（散戶投機過熱）。
-          <span className="text-text-primary">★與外資／融資完全正交、時間均勻（9 年 6–7 年有效）、抓到 4/5 崩盤峰（含 2024-07／2026-02，僅漏 2022 慢熊）</span>，lift ~1.5x，仍屬過半假的參考燈。
+          <span className="text-text-primary">★與外資／融資完全正交、抓到 4/5 崩盤峰（含 2024-07／2026-02，僅漏 2022 慢熊）</span>，lift ~1.5x，仍屬過半假的參考燈。
         </div>
       </div>
 
@@ -518,10 +518,10 @@ export default function ThermometerPage() {
           ))}
         </ul>
         <div className="text-xs text-text-secondary mt-2">
-          外資期貨、外資選擇權、漲停、融資 四個互相正交的過熱面向，≥3 個同時繃緊才亮。漲停這一票用比顯示燈更嚴的 z ≥ +1.5σ（燈維持 +1.0σ）：z≥1.0 在 2026 變成常態開啟（45% 的日子，2019-2023 只有 9-16%）讓投票退化，收緊後票的 lift 5.29→6.53、剔 2024 後 4.21→6.01，四波頂一個沒少。
-          <span className="text-text-primary">★近高日接 ≥8% 有感回檔的比例 12.0%→79%（6.5x），剔除 2024 單一事件後仍 6.0x，抓到 2021／2024／2026-02／2026-06 四波頂（原 z≥1.0 版是 12.0%→64%、5.3x，且 243 組門檻擾動全過穩健檢驗）。</span>
+          外資期貨、外資選擇權、漲停、融資 四個互相正交的過熱面向，≥3 個同時繃緊才亮。漲停這一票用比顯示燈更嚴的 z ≥ +1.5σ（燈維持 +1.0σ）。
+          <span className="text-text-primary">★近高日接 ≥8% 有感回檔的比例 12.0%→79%（6.5x），抓到 2021／2024／2026-02／2026-06 四波頂。</span>
           {" "}但屬<span className="text-text-primary">高信念、低 recall</span>：只針對有感回檔（非最深崩盤），且結構上會漏 2020 COVID（外生無堆積）與 2022 慢熊。加碼確認用，不保證見頂。
-          {" "}<span className="text-text-primary">誠實 caveat</span>：收緊後的票在 2022-06 前近高命中不足 4 天，前半期無法獨立驗證（該段的防守本來就由向下趨勢腿承擔，攻防覆蓋未受影響）。
+          {" "}<span className="text-text-primary">樣本限制</span>：2022-06 前近高命中不足 4 天，早期無實績可佐證。
         </div>
       </div>
 
@@ -606,20 +606,16 @@ export default function ThermometerPage() {
       <details className="text-xs text-text-secondary mt-6">
         <summary className="cursor-pointer hover:text-text-primary">方法與限制</summary>
         <ul className="mt-2 space-y-1 list-disc pl-4">
-          <li>外資期貨定位：外資臺股期貨淨未平倉在近 78 日的百分位（越淨空越熱）。此為唯一撐過公平偽訊號測試的組件（1.47x）。</li>
+          <li>外資期貨定位：外資臺股期貨淨未平倉在近 78 日的百分位（越淨空越熱）。兩組件中只有它對崩盤有鑑別力（lift 1.47x）。</li>
           <li>融資水位：融資餘額金額對 55 日均線的乖離（Bollinger z，−2σ→0、均線→50、+2σ→100）。衡量偏離趨勢多少，不受長多水位長期偏高影響。</li>
           <li>定位極端度＝上述兩組件等權平均。★這是狀態描述非計時訊號——歷史上偏熱也常不崩（如 2020 COVID 為外生衝擊，儀表當時僅中性）。</li>
-          <li>P/C 比與微台散戶已移除：兩者在頂部與底部皆極端（反指標、無方向鑑別力），平均進來只會稀釋分數。真正的操作訊號在儀表之外——頂部過熱看外資期貨創新低、攻防看 OBV＋多空排列、恐慌買進看融資急殺＋深跌。</li>
+          <li>真正的操作訊號在儀表之外——頂部過熱看外資期貨創新低、攻防看 OBV＋多空排列、恐慌買進看融資急殺＋深跌。</li>
           <li>攻防進出場（防守＝高點／向下趨勢／波段停滯；攻擊＝底部＋向上趨勢）：
-            <span className="text-text-primary">① 高點防守</span>——高信念頂部（四正交過熱投票 ≥3）一亮就轉防守，<span className="text-text-primary">不必死等排列翻空</span>，進場記下當日指數＝頂位，用價格論點持有：只要指數仍在頂位之下（下跌中）就續守，一旦漲回頂位之上（向上趨勢）<span className="text-text-primary">或指數站回 13 日高</span>才轉攻（深回檔後頂位會遙不可及——2026-02-25 進場的頂位 35413，指數跌到 31723 再彈回 34861 都還沒過頂位；站回 13 日高就算論點作廢，實測 recall 與七個崩盤段覆蓋一格未動、累報酬 +253%→+268%）。
-            <span className="text-text-primary">★被否決的變體</span>：曾試「指數創新高時連進場都擋掉」（測試時出場窗還是 10 日，之後才改 13），累報酬更高（+290%）但危險近高防守 30%→21%、-10% 36%→21%，2026-06-22／2026-02-25 這種頂部當天不再防守，且增益集中 2024／2026 兩年，故不採用。</li>
+            <span className="text-text-primary">① 高點防守</span>——高信念頂部（四正交過熱投票 ≥3）一亮就轉防守，<span className="text-text-primary">不必死等排列翻空</span>，進場記下當日指數＝頂位，用價格論點持有：只要指數仍在頂位之下（下跌中）就續守，一旦漲回頂位之上（向上趨勢）<span className="text-text-primary">或指數站回 13 日高</span>才轉攻（深回檔後頂位會遙不可及——2026-02-25 進場的頂位 35413，指數跌到 31723 再彈回 34861 都還沒過頂位；站回 13 日高就算論點作廢）。</li>
           <li>三態（攻擊／<span className="text-text-primary">觀望</span>／防守）與「建議部位」：
             向下趨勢腿<span className="text-text-primary">進場第 1 天只給「觀望」＝不加碼但續抱</span>（已空手則續空手）；要守超過 1 天<span className="text-text-primary">且指數真的跌破 5 日高 0.5%</span>才升為真防守，否則續留觀望逐日重判；高點防守一亮即防守、不降級。
-            這是為了修「剛轉態隔天又轉回去」——趨勢腿進場看多空排列、出場看價格（站回 13 日高）走兩個不同時鐘，全歷史 264 段裡有 75 段只有 1 天。
-            改用三態後<span className="text-text-primary">部位的 1 天閃爍 75 段→12 段、換倉 263→181 次</span>，每單位曝險年化 30.5→33.6（前後半都升）、maxDD −22.7%→−22.6%。
-            條件式升級只能延後<span className="text-text-primary">每一段的第一次</span>出場（升級後就算再回到觀望也維持空手），最長只延後 3 天，所以危險 recall、七段覆蓋、maxDD 與無條件版一格未動。
-            <span className="text-text-primary">★代價</span>：危險近高防守 29%→27%（−10% 版 32%→29%），且只有靠趨勢腿撐的兩段會掉——2020 COVID 68%→59%、2022 慢熊 62%→57%；2021-04／2024-07／2025-04／2026-02／2026-06 五段覆蓋一格未動（那些由高點防守承擔）。
-            升級天數止於 1 是因為再往上（2 天以上）幾乎不再減少閃爍，只是拿保護力換報酬。</li>
+            這是為了修「剛轉態隔天又轉回去」的一天閃爍——趨勢腿進場看多空排列、出場看價格（站回 13 日高）走兩個不同時鐘。
+            條件式升級只能延後<span className="text-text-primary">每一段的第一次</span>出場（升級後就算再回到觀望也維持空手），最長只延後 3 天。</li>
         </ul>
       </details>
      </div>
