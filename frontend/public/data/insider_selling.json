@@ -1,6 +1,30 @@
 {
-  "updated_at": "2026-07-31T21:48:56",
+  "updated_at": "2026-08-03T21:53:24",
   "events": [
+    {
+      "type": "transfer",
+      "stock_id": "9949",
+      "company_name": "琉園",
+      "date": "2026-08-03",
+      "insider_role": "經理人配偶",
+      "insider_name": "張文玲之配偶",
+      "method": "洽特定人",
+      "shares": 3917971,
+      "security_kind": null,
+      "period": "115/08/03\r\n~\r\n115/08/05"
+    },
+    {
+      "type": "transfer",
+      "stock_id": "9949",
+      "company_name": "琉園",
+      "date": "2026-08-03",
+      "insider_role": "經理人本人",
+      "insider_name": "王小樨",
+      "method": "洽特定人",
+      "shares": 3648883,
+      "security_kind": null,
+      "period": "115/08/03\r\n~\r\n115/08/05"
+    },
     {
       "type": "transfer",
       "stock_id": "4130",
@@ -438,18 +462,6 @@
       "stock_id": "9960",
       "company_name": "邁達康",
       "date": "2026-05-25",
-      "insider_role": "董事本人",
-      "insider_name": "施姵瑜",
-      "method": "洽特定人",
-      "shares": 84180,
-      "security_kind": null,
-      "period": "115/05/25\r\n~\r\n115/05/27"
-    },
-    {
-      "type": "transfer",
-      "stock_id": "9960",
-      "company_name": "邁達康",
-      "date": "2026-05-25",
       "insider_role": "董事配偶",
       "insider_name": "吳之配偶",
       "method": "洽特定人",
@@ -466,6 +478,18 @@
       "insider_name": "黃瓊瑤",
       "method": "洽特定人",
       "shares": 411719,
+      "security_kind": null,
+      "period": "115/05/25\r\n~\r\n115/05/27"
+    },
+    {
+      "type": "transfer",
+      "stock_id": "9960",
+      "company_name": "邁達康",
+      "date": "2026-05-25",
+      "insider_role": "董事本人",
+      "insider_name": "施姵瑜",
+      "method": "洽特定人",
+      "shares": 84180,
       "security_kind": null,
       "period": "115/05/25\r\n~\r\n115/05/27"
     },
@@ -1068,35 +1092,11 @@
       "shares": null,
       "security_kind": "普通股",
       "period": null
-    },
-    {
-      "type": "placement",
-      "stock_id": "3163",
-      "company_name": "波若威",
-      "date": "2026-05-04",
-      "insider_role": null,
-      "insider_name": null,
-      "method": null,
-      "shares": null,
-      "security_kind": "普通股",
-      "period": null
-    },
-    {
-      "type": "placement",
-      "stock_id": "5301",
-      "company_name": "寶得利",
-      "date": "2026-05-04",
-      "insider_role": null,
-      "insider_name": null,
-      "method": null,
-      "shares": null,
-      "security_kind": "普通股",
-      "period": null
     }
   ],
   "stats": {
-    "transfer_events_30d": 12,
-    "transfer_stocks_30d": 6,
+    "transfer_events_30d": 14,
+    "transfer_stocks_30d": 7,
     "placement_events_30d": 2
   }
 }
