@@ -20,6 +20,7 @@ from telegram_bot.handlers import signals as signals_handlers
 from telegram_bot.handlers import social as social_handlers
 from telegram_bot.handlers import status as status_handlers
 from telegram_bot.handlers import watch as watch_handlers
+from telegram_bot.watchers import afterclose_brief as afterclose_brief_watcher
 from telegram_bot.watchers import defense_proximity_alert as defense_proximity_watcher
 from telegram_bot.watchers import intraday_volume_alert as volume_alert_watcher
 from telegram_bot.watchers import morning_brief as morning_brief_watcher
@@ -85,6 +86,7 @@ def build_application() -> Application:
     volume_alert_watcher.register(app)
     defense_proximity_watcher.register(app)
     morning_brief_watcher.register(app)
+    afterclose_brief_watcher.register(app)
     stance_alert_watcher.register(app)
     # social_monitor_watcher.register(app)  # disabled — re-enable by uncommenting
     return app
