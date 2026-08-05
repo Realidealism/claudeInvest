@@ -1030,6 +1030,30 @@ def export_operations_intraday(cur, out: Path):
     }, out / "operations_intraday.json")
 
 
+def _buy_stance_blocked(cur, snap_date) -> bool:
+    """True when the thermometer's T-1 daily stance is a 高點/趨勢 defensive leg.
+
+    That is exactly the state in which buy_condition's v359 gate
+    (_conditions._stance_block_dates) rejects today's buy entries at the close.
+    Intraday runs never see it: daily_stance_frame stops at T-1, so today's date
+    is absent from the blocked set and the gate is a no-op until the close. The
+    frontend and /signals use this flag to mark today's fresh buy entries as
+    pending confirmation."""
+    try:
+        from analysis.market_thermometer import daily_stance_frame
+        m = daily_stance_frame(cur)
+        prior = [(bool(v), s) for d, v, s
+                 in zip(m["d"], m["defensive"], m["mode"].fillna(""))
+                 if d.date() < snap_date]
+        if not prior:
+            return False
+        defensive, mode = prior[-1]
+        return defensive and mode in ("top", "trend")
+    except Exception as e:
+        print(f"  [WARN] buy stance flag skipped: {e}")
+        return False
+
+
 def export_positions_intraday(cur, out: Path):
     """Intraday (12:50) preview of unified-strategy open positions, plus
     positions that exited intraday at today's projected bar (is_exited=TRUE
@@ -1047,6 +1071,7 @@ def export_positions_intraday(cur, out: Path):
     row = cur.fetchone()
     if row is None:
         _write({"snapshot_date": None, "snapshot_time": None,
+                "buy_stance_blocked": False,
                 "long": [], "short": [],
                 "exited_long": [], "exited_short": []},
                out / "positions_intraday.json")
@@ -1056,6 +1081,7 @@ def export_positions_intraday(cur, out: Path):
     out_data = {
         "snapshot_date": snap_date,
         "snapshot_time": snap_time.isoformat() if snap_time is not None else None,
+        "buy_stance_blocked": _buy_stance_blocked(cur, snap_date),
         "long": [], "short": [],
         "exited_long": [], "exited_short": [],
     }

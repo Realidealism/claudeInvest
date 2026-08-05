@@ -51,6 +51,7 @@ _POSITIONS_JSON = _REPO_ROOT / "frontend" / "public" / "data" / "positions_intra
 PER_KIND_LIMIT = 100
 
 _NEW_ENTRY_MARK = "🆕"
+_PENDING_CLOSE_MARK = "⚠️"
 
 
 def _collect_today_exits(positions_data: dict | None) -> list[dict]:
@@ -146,6 +147,10 @@ def _build_all_signals_message(
         header += f"  快照於 {pretty_time}"
 
     position_index = _build_position_index(positions_data)
+    # T-1 stance is a defensive leg: buy's v359 gate will reject today's entries
+    # at the close, but the intraday run cannot see it (today's date is not yet
+    # in daily_stance_frame), so fresh buy entries get a pending marker.
+    stance_blocked = bool((positions_data or {}).get("buy_stance_blocked"))
 
     sections: list[str] = []
     total_hits = 0
@@ -169,6 +174,8 @@ def _build_all_signals_message(
             if is_new:
                 # _format_hit pads with 2 leading spaces; swap them for the marker.
                 line = f"  {_NEW_ENTRY_MARK}" + line[1:]
+                if kind == "buy" and stance_blocked:
+                    line += f"  {_PENDING_CLOSE_MARK}待收盤確認"
             body_lines.append(line)
         if len(entries) > per_kind_limit:
             body_lines.append(f"  …其餘 {len(entries) - per_kind_limit} 檔")

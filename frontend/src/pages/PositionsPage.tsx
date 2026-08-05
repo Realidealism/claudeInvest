@@ -22,6 +22,9 @@ interface Position {
 interface PositionsData {
   snapshot_date: string | null;
   snapshot_time?: string | null;
+  // Intraday only: T-1 thermometer stance is a defensive leg, so today's fresh
+  // buy entries may be rejected by the v359 gate once the close is in.
+  buy_stance_blocked?: boolean;
   long: Position[];
   short: Position[];
   exited_long?: Position[];
@@ -295,6 +298,15 @@ export default function PositionsPage() {
                     {fmtDate(p.entry_date)}
                     {p.entry_date === data.snapshot_date && (
                       <span className="ml-1 text-[10px]">今日</span>
+                    )}
+                    {view === "intraday" && data.buy_stance_blocked &&
+                      p.entry_tier === "buy" && p.entry_date === data.snapshot_date && (
+                      <span
+                        className="ml-1 text-[10px] text-orange-400"
+                        title="溫度計前一日為防守段，此單收盤可能不成立"
+                      >
+                        ⚠待收盤
+                      </span>
                     )}
                   </td>
                   <td className="px-2 py-1.5 text-right font-mono text-text-secondary hidden md:table-cell">
