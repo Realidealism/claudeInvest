@@ -47,11 +47,12 @@ def _format_hit(entry: dict) -> str:
 _REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 _OPERATIONS_JSON = _REPO_ROOT / "frontend" / "public" / "data" / "operations_intraday.json"
 _POSITIONS_JSON = _REPO_ROOT / "frontend" / "public" / "data" / "positions_intraday.json"
+_STANCE_JSON = _REPO_ROOT / "frontend" / "public" / "data" / "thermometer_stance.json"
 
 PER_KIND_LIMIT = 100
 
 _NEW_ENTRY_MARK = "🆕"
-_PENDING_CLOSE_MARK = "⚠️"
+_DEFENSIVE_MARK = "⚠️"
 
 
 def _collect_today_exits(positions_data: dict | None) -> list[dict]:
@@ -80,6 +81,19 @@ def _format_exit_hit(position: dict) -> str:
         f"  {ticker} {name}（{market}）"
         f"  {side_zh} {pnl:+.2f}% 持 {bars} 根{reason_part}"
     )
+
+
+def _stance_defensive(snapshot_date: str) -> bool:
+    """Is the live 攻防 stance defensive? Same sidecar the /market reply and the
+    positions-page banner read. The date must match this batch of signals — a
+    sidecar left over from a previous session says nothing about today."""
+    try:
+        with open(_STANCE_JSON, encoding="utf-8") as f:
+            live = json.load(f)
+    except (OSError, ValueError):
+        return False
+    stance = live.get("stance3") or live.get("stance")
+    return live.get("as_of") == snapshot_date and stance == "防守"
 
 
 def _build_position_index(positions_data: dict | None) -> dict[str, list[dict]]:
@@ -147,10 +161,7 @@ def _build_all_signals_message(
         header += f"  快照於 {pretty_time}"
 
     position_index = _build_position_index(positions_data)
-    # T-1 stance is a defensive leg: buy's v359 gate will reject today's entries
-    # at the close, but the intraday run cannot see it (today's date is not yet
-    # in daily_stance_frame), so fresh buy entries get a pending marker.
-    stance_blocked = bool((positions_data or {}).get("buy_stance_blocked"))
+    stance_defensive = _stance_defensive(snapshot_date)
 
     sections: list[str] = []
     total_hits = 0
@@ -174,8 +185,8 @@ def _build_all_signals_message(
             if is_new:
                 # _format_hit pads with 2 leading spaces; swap them for the marker.
                 line = f"  {_NEW_ENTRY_MARK}" + line[1:]
-                if kind == "buy" and stance_blocked:
-                    line += f"  {_PENDING_CLOSE_MARK}待收盤確認"
+                if kind == "buy" and stance_defensive:
+                    line += f"  {_DEFENSIVE_MARK} 盤中防守"
             body_lines.append(line)
         if len(entries) > per_kind_limit:
             body_lines.append(f"  …其餘 {len(entries) - per_kind_limit} 檔")
