@@ -31,6 +31,15 @@ interface PositionsData {
   exited_short?: Position[];
 }
 
+interface LiveStance {
+  as_of?: string | null;
+  snapshot_time?: string | null;
+  stance3?: string | null;
+  stance3_color?: string | null;
+  stance3_reason?: string | null;
+  exposure?: string | null;
+}
+
 type Tab = "long" | "short" | "exited_long" | "exited_short";
 type View = "daily" | "intraday";
 
@@ -123,6 +132,7 @@ const isExitTab = (t: Tab): boolean => t === "exited_long" || t === "exited_shor
 
 export default function PositionsPage() {
   const [data, setData] = useState<PositionsData | null>(null);
+  const [stance, setStance] = useState<LiveStance | null>(null);
   const [tab, setTab] = useState<Tab>("long");
   const [view, setView] = useState<View>("daily");
 
@@ -134,6 +144,15 @@ export default function PositionsPage() {
       .then(setData)
       .catch(console.error);
   }, [view]);
+
+  // Live 攻防 sidecar, written by the same intraday pass as positions_intraday.
+  // Missing/stale is normal outside trading hours — fail silently.
+  useEffect(() => {
+    fetch("/data/thermometer_stance.json")
+      .then((r) => r.json())
+      .then(setStance)
+      .catch(() => setStance(null));
+  }, []);
 
   const exitedLong  = data?.exited_long  ?? [];
   const exitedShort = data?.exited_short ?? [];
@@ -150,6 +169,15 @@ export default function PositionsPage() {
     : tab === "exited_long"   ? exitedLong
                               : exitedShort
     : [];
+  // 盤中檢視才有意義, 且 sidecar 必須與這份持倉快照同一天 (隔夜沒更新的舊檔不算).
+  const snapDate = data?.snapshot_date ?? null;
+  const stanceDefensive = view === "intraday" && !!snapDate
+    && stance?.as_of === snapDate && stance?.stance3 === "防守";
+  const freshBuyCount = stanceDefensive
+    ? (data?.long ?? []).filter(
+        (p) => p.entry_date === snapDate && p.entry_tier === "buy"
+      ).length
+    : 0;
   const intradayTimeLabel = view === "intraday" && data?.snapshot_time
     ? new Date(data.snapshot_time).toLocaleTimeString("zh-TW", {
         hour: "2-digit", minute: "2-digit", hour12: false,
@@ -170,6 +198,31 @@ export default function PositionsPage() {
       <p className="text-xs text-text-secondary">
         統一策略目前未平倉部位，依當日成交金額排序；防守價為最後一次更新值（保底 / 規則觸發）。
       </p>
+
+      {stanceDefensive && (
+        <div
+          className="rounded-lg border p-3 flex flex-wrap items-center gap-x-3 gap-y-1"
+          style={{
+            borderColor: stance?.stance3_color ?? "#ef4444",
+            backgroundColor: `${stance?.stance3_color ?? "#ef4444"}1a`,
+          }}
+        >
+          <span className="text-sm font-semibold text-text-primary">
+            🛡️ 盤中攻防：防守
+            {stance?.exposure ? `（部位 ${stance.exposure}）` : ""}
+          </span>
+          {freshBuyCount > 0 && (
+            <span className="text-sm text-text-primary">
+              今日新進波段多 {freshBuyCount} 檔
+            </span>
+          )}
+          {stance?.stance3_reason && (
+            <span className="text-xs text-text-secondary basis-full">
+              {stance.stance3_reason.split("；")[0]}
+            </span>
+          )}
+        </div>
+      )}
 
       <div className="flex flex-wrap gap-2">
         {(["daily", "intraday"] as View[]).map((v) => (

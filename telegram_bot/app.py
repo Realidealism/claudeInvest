@@ -24,6 +24,7 @@ from telegram_bot.watchers import defense_proximity_alert as defense_proximity_w
 from telegram_bot.watchers import intraday_volume_alert as volume_alert_watcher
 from telegram_bot.watchers import morning_brief as morning_brief_watcher
 from telegram_bot.watchers import social_monitor as social_monitor_watcher
+from telegram_bot.watchers import stance_alert as stance_alert_watcher
 
 logger = logging.getLogger(__name__)
 
@@ -84,6 +85,7 @@ def build_application() -> Application:
     volume_alert_watcher.register(app)
     defense_proximity_watcher.register(app)
     morning_brief_watcher.register(app)
+    stance_alert_watcher.register(app)
     # social_monitor_watcher.register(app)  # disabled — re-enable by uncommenting
     return app
 
