@@ -185,12 +185,13 @@ def _build_all_signals_message(
             if is_new:
                 # _format_hit pads with 2 leading spaces; swap them for the marker.
                 line = f"  {_NEW_ENTRY_MARK}" + line[1:]
-                if kind == "buy" and stance_defensive:
-                    line += f"  {_DEFENSIVE_MARK} 盤中防守"
             body_lines.append(line)
         if len(entries) > per_kind_limit:
             body_lines.append(f"  …其餘 {len(entries) - per_kind_limit} 檔")
-        sections.append(f"{label}（{len(entries)} 檔）\n" + "\n".join(body_lines))
+        # One marker on the 做多 header rather than per row — the stance is a
+        # market-wide state, not a property of any single hit.
+        mark = f"  {_DEFENSIVE_MARK} 盤中防守" if (kind == "buy" and stance_defensive) else ""
+        sections.append(f"{label}（{len(entries)} 檔）{mark}\n" + "\n".join(body_lines))
 
     # Today's actual position exits — sourced from positions JSON, not the
     # 6-signal buckets. Distinct concept: signals are "the condition fired",
