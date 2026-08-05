@@ -1,47 +1,62 @@
 {
   "snapshot_date": "2026-08-05",
-  "snapshot_time": "2026-08-05T04:34:13.814732+00:00",
+  "snapshot_time": "2026-08-05T04:43:47.816616+00:00",
   "signals": {
     "pick": [],
     "touch": [],
     "buy": [
       {
+        "ticker": "3017",
+        "name": "奇鋐",
+        "market": "TWSE",
+        "turnover": 14262064128.0,
+        "streak": 1
+      },
+      {
         "ticker": "2049",
         "name": "上銀",
         "market": "TWSE",
-        "turnover": 2935604992.0,
+        "turnover": 2877927680.0,
         "streak": 1
       },
       {
         "ticker": "2395",
         "name": "研華",
         "market": "TWSE",
-        "turnover": 2803853056.0,
+        "turnover": 2740084480.0,
         "streak": 1
       },
       {
         "ticker": "3702",
         "name": "大聯大",
         "market": "TWSE",
-        "turnover": 2442156032.0,
+        "turnover": 2392273664.0,
         "streak": 1
       },
       {
         "ticker": "2883",
         "name": "凱基金",
         "market": "TWSE",
-        "turnover": 1965017728.0,
+        "turnover": 1942355584.0,
         "streak": 1
       },
       {
         "ticker": "2880",
         "name": "華南金",
         "market": "TWSE",
-        "turnover": 520184160.0,
+        "turnover": 591118016.0,
         "streak": 1
       }
     ],
-    "sell": [],
+    "sell": [
+      {
+        "ticker": "9907",
+        "name": "統一實",
+        "market": "TWSE",
+        "turnover": 119771584.0,
+        "streak": 1
+      }
+    ],
     "buy_flee": [],
     "sell_flee": []
   }
