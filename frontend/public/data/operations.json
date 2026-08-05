@@ -1,26 +1,46 @@
 {
-  "snapshot_date": "2026-08-04",
+  "snapshot_date": "2026-08-05",
   "signals": {
     "pick": [],
-    "touch": [
+    "touch": [],
+    "buy": [
       {
-        "ticker": "6919",
-        "name": "康霈*",
+        "ticker": "2049",
+        "name": "上銀",
         "market": "TWSE",
-        "turnover": 720142976.0,
+        "turnover": 2768170240.0,
+        "streak": 1
+      },
+      {
+        "ticker": "2395",
+        "name": "研華",
+        "market": "TWSE",
+        "turnover": 2583740160.0,
+        "streak": 1
+      },
+      {
+        "ticker": "3702",
+        "name": "大聯大",
+        "market": "TWSE",
+        "turnover": 2244299008.0,
+        "streak": 1
+      },
+      {
+        "ticker": "2883",
+        "name": "凱基金",
+        "market": "TWSE",
+        "turnover": 2060299520.0,
+        "streak": 1
+      },
+      {
+        "ticker": "3022",
+        "name": "威強電",
+        "market": "TWSE",
+        "turnover": 696190464.0,
         "streak": 1
       }
     ],
-    "buy": [],
-    "sell": [
-      {
-        "ticker": "9904",
-        "name": "寶成",
-        "market": "TWSE",
-        "turnover": 668833280.0,
-        "streak": 1
-      }
-    ],
+    "sell": [],
     "buy_flee": [],
     "sell_flee": []
   }
