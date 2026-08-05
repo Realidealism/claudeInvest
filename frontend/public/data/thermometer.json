@@ -1,19 +1,19 @@
 {
-  "as_of": "2026-07-24",
-  "score": 65.6,
+  "as_of": "2026-08-04",
+  "score": 59.3,
   "bucket": "無頂部訊號",
   "bucket_color": "#8a8a9a",
   "danger": false,
-  "stance": "防守",
-  "stance_color": "#ef4444",
-  "stance_reason": "防守中（排列：強空）：高點防守（高信念頂部）／向下趨勢／波段停滯（過熱背景下跌破 5 日高）；漲回頂位之上／站回 5 日高／指數站回 13 日高／排列回多方／外資翻多且空頭力竭／恐慌急殺 V 任一則轉攻",
-  "stance3": "防守",
-  "stance3_color": "#ef4444",
-  "stance3_reason": "防守中（排列：強空）：高點防守（高信念頂部）／向下趨勢／波段停滯（過熱背景下跌破 5 日高）；漲回頂位之上／站回 5 日高／指數站回 13 日高／排列回多方／外資翻多且空頭力竭／恐慌急殺 V 任一則轉攻",
-  "exposure": "空手",
+  "stance": "攻擊",
+  "stance_color": "#22c55e",
+  "stance_reason": "攻擊中（排列：中性，中性以上）",
+  "stance3": "攻擊",
+  "stance3_color": "#22c55e",
+  "stance3_reason": "攻擊中（排列：中性，中性以上）",
+  "exposure": "持有",
   "swing": false,
   "near_high": false,
-  "pct_from_high": -8.6,
+  "pct_from_high": -9.2,
   "hi_window": 55,
   "alert": false,
   "alert_conditions": [
@@ -32,23 +32,23 @@
   "limitup_alert": false,
   "limitup_alert_conditions": [
     {
-      "name": "漲停佔比 90 日乖離 z ≥ +1.0σ（現 -1.5σ、漲停 0.7%）",
+      "name": "漲停佔比 90 日乖離 z ≥ +1.0σ（現 +0.5σ、漲停 3.9%）",
       "met": false
     }
   ],
   "limitup_bear_alert": false,
   "limitup_bear_conditions": [
     {
-      "name": "漲停過熱（漲停佔比 90 日乖離 z ≥ +1.0σ，現 -1.5σ）",
+      "name": "漲停過熱（漲停佔比 90 日乖離 z ≥ +1.0σ，現 +0.5σ）",
       "met": false
     },
     {
-      "name": "排列翻空（short 排列：強空）",
-      "met": true
+      "name": "排列翻空（short 排列：中性）",
+      "met": false
     }
   ],
   "top_vote": false,
-  "top_vote_n": 0,
+  "top_vote_n": 1,
   "top_vote_k": 3,
   "top_vote_conditions": [
     {
@@ -56,11 +56,11 @@
       "met": false
     },
     {
-      "name": "外資選擇權避險偏空（買賣權淨OI 252 日百分位 ≤ 33%，現 38%）",
-      "met": false
+      "name": "外資選擇權避險偏空（買賣權淨OI 252 日百分位 ≤ 33%，現 15%）",
+      "met": true
     },
     {
-      "name": "漲停過熱（90 日乖離 z ≥ +1.5σ，投票用門檻比漲停燈的 +1.0σ 嚴；現 -1.5σ）",
+      "name": "漲停過熱（90 日乖離 z ≥ +1.5σ，投票用門檻比漲停燈的 +1.0σ 嚴；現 +0.5σ）",
       "met": false
     },
     {
@@ -72,14 +72,14 @@
   "warn_conditions": [
     {
       "name": "頂部過熱燈亮（近 3 日）",
-      "met": false
+      "met": true
     },
     {
-      "name": "排列尚未翻空（short 排列：強空）",
-      "met": false
+      "name": "排列尚未翻空（short 排列：中性）",
+      "met": true
     },
     {
-      "name": "short 空頭排列 3 日急升 ≥ +6pp（現 -13.1pp）",
+      "name": "short 空頭排列 3 日急升 ≥ +6pp（現 -41.3pp）",
       "met": false
     }
   ],
@@ -91,7 +91,7 @@
     },
     {
       "name": "融資 5 日急殺（≤ -2%）",
-      "met": false
+      "met": true
     },
     {
       "name": "快殺（指數 10 日跌 ≤ -6%）",
@@ -102,171 +102,17 @@
     {
       "key": "futures",
       "name": "外資期貨定位",
-      "hot": 73.1,
-      "detail": "外資臺股期貨淨未平倉 -76,260 口（78日百分位越低越淨空＝越熱）"
+      "hot": 97.4,
+      "detail": "外資臺股期貨淨未平倉 -87,858 口（78日百分位越低越淨空＝越熱）"
     },
     {
       "key": "margin",
       "name": "融資水位",
-      "hot": 58.1,
-      "detail": "融資餘額金額 5,771億（距 55 日均 +0.32σ；+2σ=過熱）"
+      "hot": 21.2,
+      "detail": "融資餘額金額 5,211億（距 55 日均 -1.15σ；+2σ=過熱）"
     }
   ],
   "history": [
-    {
-      "date": "2025-07-14",
-      "score": 85.0,
-      "tx": 22615,
-      "label": "頂部過熱",
-      "color": "#ef4444",
-      "stance": "防守",
-      "s3": "觀望",
-      "x": true,
-      "panic": false,
-      "m_alert": false,
-      "l_alert": false,
-      "lb_alert": false,
-      "tv_alert": false,
-      "tv_n": 1,
-      "warn": false,
-      "swing": false,
-      "c": {
-        "futures": 98.7,
-        "margin": 71.3
-      }
-    },
-    {
-      "date": "2025-07-15",
-      "score": 85.4,
-      "tx": 22836,
-      "label": "無頂部訊號",
-      "color": "#8a8a9a",
-      "stance": "攻擊",
-      "s3": "攻擊",
-      "x": true,
-      "panic": false,
-      "m_alert": false,
-      "l_alert": false,
-      "lb_alert": false,
-      "tv_alert": false,
-      "tv_n": 0,
-      "warn": false,
-      "swing": false,
-      "c": {
-        "futures": 91.0,
-        "margin": 79.9
-      }
-    },
-    {
-      "date": "2025-07-16",
-      "score": 83.5,
-      "tx": 23043,
-      "label": "無頂部訊號",
-      "color": "#8a8a9a",
-      "stance": "防守",
-      "s3": "觀望",
-      "x": true,
-      "panic": false,
-      "m_alert": false,
-      "l_alert": false,
-      "lb_alert": false,
-      "tv_alert": false,
-      "tv_n": 0,
-      "warn": false,
-      "swing": false,
-      "c": {
-        "futures": 87.2,
-        "margin": 79.7
-      }
-    },
-    {
-      "date": "2025-07-17",
-      "score": 83.5,
-      "tx": 23113,
-      "label": "無頂部訊號",
-      "color": "#8a8a9a",
-      "stance": "攻擊",
-      "s3": "攻擊",
-      "x": true,
-      "panic": false,
-      "m_alert": false,
-      "l_alert": false,
-      "lb_alert": false,
-      "tv_alert": false,
-      "tv_n": 0,
-      "warn": false,
-      "swing": false,
-      "c": {
-        "futures": 83.3,
-        "margin": 83.6
-      }
-    },
-    {
-      "date": "2025-07-18",
-      "score": 80.8,
-      "tx": 23383,
-      "label": "無頂部訊號",
-      "color": "#8a8a9a",
-      "stance": "攻擊",
-      "s3": "攻擊",
-      "x": true,
-      "panic": false,
-      "m_alert": false,
-      "l_alert": false,
-      "lb_alert": false,
-      "tv_alert": false,
-      "tv_n": 0,
-      "warn": false,
-      "swing": false,
-      "c": {
-        "futures": 78.2,
-        "margin": 83.3
-      }
-    },
-    {
-      "date": "2025-07-21",
-      "score": 82.0,
-      "tx": 23341,
-      "label": "無頂部訊號",
-      "color": "#8a8a9a",
-      "stance": "攻擊",
-      "s3": "攻擊",
-      "x": true,
-      "panic": false,
-      "m_alert": false,
-      "l_alert": false,
-      "lb_alert": false,
-      "tv_alert": false,
-      "tv_n": 0,
-      "warn": false,
-      "swing": false,
-      "c": {
-        "futures": 75.6,
-        "margin": 88.5
-      }
-    },
-    {
-      "date": "2025-07-22",
-      "score": 67.3,
-      "tx": 22988,
-      "label": "無頂部訊號",
-      "color": "#8a8a9a",
-      "stance": "攻擊",
-      "s3": "攻擊",
-      "x": true,
-      "panic": false,
-      "m_alert": false,
-      "l_alert": false,
-      "lb_alert": false,
-      "tv_alert": false,
-      "tv_n": 0,
-      "warn": false,
-      "swing": false,
-      "c": {
-        "futures": 69.2,
-        "margin": 65.4
-      }
-    },
     {
       "date": "2025-07-23",
       "score": 79.1,
@@ -5611,6 +5457,160 @@
       "c": {
         "futures": 73.1,
         "margin": 58.1
+      }
+    },
+    {
+      "date": "2026-07-27",
+      "score": 66.7,
+      "tx": 43634,
+      "label": "無頂部訊號",
+      "color": "#8a8a9a",
+      "stance": "防守",
+      "s3": "防守",
+      "x": false,
+      "panic": false,
+      "m_alert": false,
+      "l_alert": false,
+      "lb_alert": false,
+      "tv_alert": false,
+      "tv_n": 0,
+      "warn": false,
+      "swing": false,
+      "c": {
+        "futures": 80.8,
+        "margin": 52.7
+      }
+    },
+    {
+      "date": "2026-07-28",
+      "score": 64.8,
+      "tx": 41603,
+      "label": "無頂部訊號",
+      "color": "#8a8a9a",
+      "stance": "防守",
+      "s3": "防守",
+      "x": false,
+      "panic": true,
+      "m_alert": false,
+      "l_alert": false,
+      "lb_alert": false,
+      "tv_alert": false,
+      "tv_n": 1,
+      "warn": false,
+      "swing": false,
+      "c": {
+        "futures": 91.0,
+        "margin": 38.5
+      }
+    },
+    {
+      "date": "2026-07-29",
+      "score": 52.9,
+      "tx": 40039,
+      "label": "無頂部訊號",
+      "color": "#8a8a9a",
+      "stance": "攻擊",
+      "s3": "攻擊",
+      "x": true,
+      "panic": true,
+      "m_alert": false,
+      "l_alert": false,
+      "lb_alert": false,
+      "tv_alert": false,
+      "tv_n": 0,
+      "warn": false,
+      "swing": false,
+      "c": {
+        "futures": 91.0,
+        "margin": 14.9
+      }
+    },
+    {
+      "date": "2026-07-30",
+      "score": 44.9,
+      "tx": 39933,
+      "label": "無頂部訊號",
+      "color": "#8a8a9a",
+      "stance": "攻擊",
+      "s3": "攻擊",
+      "x": true,
+      "panic": true,
+      "m_alert": false,
+      "l_alert": false,
+      "lb_alert": false,
+      "tv_alert": false,
+      "tv_n": 0,
+      "warn": false,
+      "swing": false,
+      "c": {
+        "futures": 83.3,
+        "margin": 6.6
+      }
+    },
+    {
+      "date": "2026-07-31",
+      "score": 52.0,
+      "tx": 43120,
+      "label": "無頂部訊號",
+      "color": "#8a8a9a",
+      "stance": "攻擊",
+      "s3": "攻擊",
+      "x": true,
+      "panic": false,
+      "m_alert": false,
+      "l_alert": true,
+      "lb_alert": true,
+      "tv_alert": false,
+      "tv_n": 1,
+      "warn": false,
+      "swing": false,
+      "c": {
+        "futures": 89.7,
+        "margin": 14.2
+      }
+    },
+    {
+      "date": "2026-08-03",
+      "score": 58.3,
+      "tx": 43386,
+      "label": "頂部過熱",
+      "color": "#ef4444",
+      "stance": "攻擊",
+      "s3": "攻擊",
+      "x": true,
+      "panic": false,
+      "m_alert": false,
+      "l_alert": true,
+      "lb_alert": true,
+      "tv_alert": true,
+      "tv_n": 3,
+      "warn": false,
+      "swing": false,
+      "c": {
+        "futures": 98.7,
+        "margin": 17.9
+      }
+    },
+    {
+      "date": "2026-08-04",
+      "score": 59.3,
+      "tx": 43361,
+      "label": "無頂部訊號",
+      "color": "#8a8a9a",
+      "stance": "攻擊",
+      "s3": "攻擊",
+      "x": true,
+      "panic": false,
+      "m_alert": false,
+      "l_alert": false,
+      "lb_alert": false,
+      "tv_alert": false,
+      "tv_n": 1,
+      "warn": false,
+      "swing": false,
+      "c": {
+        "futures": 97.4,
+        "margin": 21.2
       }
     }
   ]
