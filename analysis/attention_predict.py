@@ -11,7 +11,8 @@ Implemented criteria (from TWSE 公布或通知注意交易資訊暨處置作業
   §4    6-day change >25% + volume ≥5x 60-day avg
   §8    6-day change >25% + margin short ratio spike
   §10   6-day avg volume ≥5x 60-day avg
-  §12   6-day price diff ≥100 (scaled for high-price stocks)
+  §12   6-day price diff ≥100 (scaled for high-price stocks; from
+        2026-08-10 TWSE only bites above 1,000元 with ≥300 bands)
   §13   6-day SBL ratio ≥12% + SBL ≥5x 60-day avg
   §14   6-day day-trade ratio >60% + prev day >60%
 
@@ -21,6 +22,7 @@ Disposal prediction:
 
 from __future__ import annotations
 
+import math
 from dataclasses import dataclass, field
 from datetime import date, timedelta
 
@@ -483,10 +485,29 @@ def _check_rule_10(prices: list, meta: dict, mkt: dict) -> Alert | None:
     )
 
 
-def _r12_threshold(today_close: float, market: str) -> float:
-    """§12 起迄價差 threshold by market.
-    TWSE: 100元 base + 25元 per 500元 above 500元
-    TPEx: 70元 base + 15元 per 300元 above 300元"""
+# 2026-08-10 amendment (TWSE and TPEx alike) rewrote the §12 bands: the rule
+# now only bites above 1,000元, and the steps are much coarser than the
+# pre-amendment ladders. Our §12 == 要點第十一款 (the two documents number the
+# same criterion differently; 詳細規定第十二條 is where the數據 live).
+_R12_NEW_RULES_START = date(2026, 8, 10)
+
+
+def r12_threshold(
+    today_close: float, market: str, trade_date: date
+) -> float | None:
+    """§12 起迄價差 threshold by market. None = rule does not apply at all.
+    From 2026-08-10 both markets share one ladder (要點第四條第一項第十一款,
+    數據定義於「異常標準之詳細數據及除外情形」第十二條): the 款 only applies
+    above 1,000元 — 1,001~2,000 → 300元, then every full 1,000元 band adds
+    150元 (2,001~3,000 → 450元, ... 19,001~20,000 → 3,000元).
+    Before the amendment the two markets had separate ladders:
+        TWSE 100元 base + 25元 per 500元 above 500元
+        TPEx  70元 base + 15元 per 300元 above 300元"""
+    if trade_date >= _R12_NEW_RULES_START:
+        if today_close <= 1000:
+            return None
+        # 逾2,000元起每滿1,000元為一級距, 價差標準每級距 +150元, 逐級疊加
+        return 300 + max(0, math.ceil(today_close / 1000) - 2) * 150
     if market == "TPEx":
         base, step, level = 70, 15, 300
     else:
@@ -515,9 +536,10 @@ def _check_rule_12(prices: list, meta: dict, mkt: dict) -> Alert | None:
     else:
         diff = abs(first_6d * adj_cum_pct / 100)
 
-    threshold = _r12_threshold(today, meta.get("market", "TWSE"))
-
-    if diff < threshold:
+    threshold = r12_threshold(
+        today, meta.get("market", "TWSE"), mkt["trade_date"]
+    )
+    if threshold is None or diff < threshold:
         return None
 
     # Today must be the 6-day high (if 起迄 > 0) or low (if 起迄 < 0)
@@ -678,6 +700,9 @@ def predict_attention(trade_date: date) -> list[Alert]:
 
     print("Computing market averages ...")
     mkt = _compute_market_averages(stocks, meta_map)
+    # Rules whose thresholds changed by amendment date need the report date,
+    # not the stock's own last bar (suspended stocks lag behind it).
+    mkt["trade_date"] = trade_date
     print(f"  Market 6d change avg: {mkt['change_6d']:.2f}%")
     print(f"  Market volume ratio avg: {mkt['vol_ratio']:.2f}x")
 

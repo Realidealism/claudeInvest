@@ -19,6 +19,7 @@ from analysis.attention_predict import (
     _calc_6d_change_pct,
     _calc_nd_change_pct,
     _calc_volume_ratio,
+    r12_threshold,
 )
 from db.connection import get_cursor
 from telegram_bot.handlers._data_freshness import DataState
@@ -121,22 +122,16 @@ def closest_untriggered_threshold(ticker: str, today: date) -> str | None:
 
     # §12 6-day 起迄價差 ≥ threshold AND today is the 6-day extreme.
     # 起迄價差 = |today - first_6d| (net change, NOT max-min range).
-    # Threshold by market:
-    #   TWSE: 100元 base + 25元/500元 above 500元
-    #   TPEx:  70元 base + 15元/300元 above 300元
-    if len(prices) >= 6:
+    # Threshold bands live in analysis.attention_predict.r12_threshold
+    # (regime-aware); None means the rule can't apply at this price at all.
+    r12_th = r12_threshold(today_close, market, today) if len(prices) >= 6 else None
+    if r12_th is not None:
         closes_6d = [p["close"] for p in prices[-6:]]
         first_6d = closes_6d[0]
         other_5 = closes_6d[:-1]
         high_5 = max(other_5)
         low_5 = min(other_5)
-        if market == "TPEx":
-            base, step, level = 70, 15, 300
-        else:
-            base, step, level = 100, 25, 500
-        threshold = base
-        if today_close >= level:
-            threshold = base + int(today_close // level) * step
+        threshold = r12_th
         # Ex-div adjusted target: today_close ≥ today_ref × (1 + threshold/first)
         # / prev_compound. Falls back to first + threshold when no ref.
         today_ref = today_row.get("ref") if today_row else None
@@ -564,16 +559,13 @@ def format_today_thresholds(ticker: str, today: date, rule_codes: list[str]) -> 
             # use today_vol gate (vs 6日累積) — easier to monitor intraday
             target_vol = outstanding * tr_thresh / 100
             candidates.append((_vol_slack(target_vol), f"量 ≥ {target_vol / 1000:.0f} 張"))
-        elif code == "§12" and len(prices) >= 6:
+        elif code == "§12" and len(prices) >= 6 and (
+            threshold := r12_threshold(
+                today_close, "TPEx" if is_tpex else "TWSE", today
+            )
+        ) is not None:
             first_6d = prices[-6]["close"]
             today_ref = prices[-1].get("ref")
-            if is_tpex:
-                base, step, level = 70, 15, 300
-            else:
-                base, step, level = 100, 25, 500
-            threshold = base
-            if today_close >= level:
-                threshold = base + int(today_close // level) * step
             # Ex-div adjusted target (same formula as closest_threshold §12)
             prev_compound = 1.0
             ok = True
@@ -697,14 +689,10 @@ def predict_today_attention(
         else:
             adj_diff = today_close - first_6d
         diff = abs(adj_diff)
-        if is_tpex:
-            base, step, level = 70, 15, 300
-        else:
-            base, step, level = 100, 25, 500
-        threshold = base
-        if today_close >= level:
-            threshold = base + int(today_close // level) * step
-        if diff >= threshold:
+        threshold = r12_threshold(
+            today_close, "TPEx" if is_tpex else "TWSE", today
+        )
+        if threshold is not None and diff >= threshold:
             is_high = today_close >= high_6d
             is_low = today_close <= low_6d
             if is_high or is_low:

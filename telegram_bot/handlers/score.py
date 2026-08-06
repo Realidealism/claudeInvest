@@ -98,13 +98,42 @@ def _extract_kuan_codes(reason: str | None) -> set[int]:
     return {_CN_NUMERAL[m] for m in _KUAN_PATTERN.findall(reason) if m in _CN_NUMERAL}
 
 
-def _parse_auction_interval(measure: str | None) -> str | None:
-    """Extract the 集合競價 interval ("5分盤" / "20分盤") from a disposal
-    measure text. Supports both the long-form measure (含「約每N分鐘」) and
-    the short-form ("第一次處置" / "第二次處置")."""
+# 2026-08-10 amendment (要點第六條): every disposal round matches at 約每2分鐘,
+# so 第一次/第二次 no longer implies 5分盤/20分盤. Exceptions that keep their
+# own interval are 變更交易方法, 分盤方式交易 and 管理股票 — but the measure
+# text never names those categories, so they can only be recognised from the
+# 約每N分鐘 wording of an announcement published under the new rules.
+_AUCTION_NEW_RULES_START = date(2026, 8, 10)
+
+
+def _default_auction_interval(as_of: date) -> str:
+    """Interval to show when the measure text says nothing usable."""
+    return "2分盤" if as_of >= _AUCTION_NEW_RULES_START else "5分盤"
+
+
+def _parse_auction_interval(
+    measure: str | None, as_of: date, published_from: date | None = None
+) -> str | None:
+    """Extract the 集合競價 interval ("2分盤" / "5分盤" / "20分盤" ...) from a
+    disposal measure text. Supports both the long-form measure (含「約每N分
+    鐘」) and the short-form ("第一次處置" / "第二次處置").
+
+    `as_of` is the date the interval is in force on. `published_from` is the
+    disposal's 進處置日, i.e. which rules the announcement was written under:
+    pre-amendment announcements still running on/after 8/10 keep their stale
+    5分/20分 wording (the exchanges do not rewrite them) even though those
+    disposals were moved to the new interval, so their text is not trusted."""
     if not measure:
         return None
     m = re.search(r"約每(\d+)分鐘", measure)
+    if as_of >= _AUCTION_NEW_RULES_START:
+        written_under_new_rules = (
+            published_from is not None
+            and published_from >= _AUCTION_NEW_RULES_START
+        )
+        if m and written_under_new_rules:
+            return f"{m.group(1)}分盤"
+        return _default_auction_interval(as_of)
     if m:
         return f"{m.group(1)}分盤"
     if "第二次處置" in measure or "第三次處置" in measure:
@@ -446,7 +475,9 @@ def _get_disposal_status(
             # No TAIEX calendar — return bare ongoing if present.
             if ongoing:
                 end = ongoing["period_end"]
-                interval = _parse_auction_interval(ongoing.get("measure")) or "5分盤"
+                interval = _parse_auction_interval(
+                    ongoing.get("measure"), today, ongoing.get("period_start")
+                ) or _default_auction_interval(today)
                 resume = _next_trading_day(end)
                 end_str = end.strftime("%m/%d")
                 resume_str = resume.strftime("%m/%d")
@@ -554,7 +585,9 @@ def _get_disposal_status(
     # the trading day normal-trade resumes (period_end is inclusive).
     if ongoing:
         end = ongoing["period_end"]
-        interval = _parse_auction_interval(ongoing.get("measure")) or "5分盤"
+        interval = _parse_auction_interval(
+            ongoing.get("measure"), today, ongoing.get("period_start")
+        ) or _default_auction_interval(today)
         resume = _next_trading_day(end)
         end_str = end.strftime("%m/%d")
         resume_str = resume.strftime("%m/%d")
@@ -564,7 +597,9 @@ def _get_disposal_status(
 
     # ── Official next-day announcement is out → definitive, beats prediction ─
     if confirmed_next:
-        interval = _parse_auction_interval(confirmed_next.get("measure")) or "5分盤"
+        interval = _parse_auction_interval(
+            confirmed_next.get("measure"), next_td, next_td
+        ) or _default_auction_interval(next_td)
         end_str = confirmed_next["period_end"].strftime("%m/%d")
         return f"{_RED} 明日進處置 {interval}（至 {end_str}）"
     # Batch is out and this stock isn't in it → confirmed NOT entering next
