@@ -7,6 +7,22 @@ description: ScoreBoard cell ablation / weight tuning / 訊號形式選擇方法
 
 針對 [analysis/score.py](analysis/score.py) 的 ScoreBoard 系統。所有 ablation 用 `~dead_fish` 過濾（佔 panel 49.4%），由 [_score_panel.py](analysis/_score_panel.py) 建構的 ~3.4M panel rows，21+ cells。配合 memory [project_score_ablation_findings.md](C:\Users\Real\.claude\projects\c--Claude-Invest\memory\project_score_ablation_findings.md) 永久封存的失敗清單避免重蹈。
 
+## ★ 參數提案卡（MUST，先於任何 cell / 權重 / 窗口提案）
+
+**觸發**：向使用者提出「加這個 cell / 調這個權重 / 換這個窗口 / 掃這個區間」的任何提案，或動手改 score.py、寫 reweight 掃描之前。
+**動作**：提案訊息 MUST 含以下四問的答案，缺一不得開跑。答不出來的那一問，就是還沒想清楚的地方。
+
+1. **為何是這個 cell / 參數** — 機制假設，或已觀察到的具體缺口（現行 board 在哪類股上排錯）。「先試試看」不是理由。
+2. **為何是這個值域** — 每個端點的來源：現行權重 ±N / 同類別其他 cells 的權重階梯 / 本 panel 上跑過的分布。**沿用他處參數（別的 cell、別的子系統、訊號工廠）MUST 標「借用自 X，本 panel 未驗」，且不得當中心點**——借來的參數不算參數（RS window 123 案例，02_judgment Rubric 5 第 6 點）。
+3. **為何是這個步長與點數** — 要能分辨 plateau vs 孤峰。權重升級尤其：不確定就測最小步（±10→±12，見 Weight-upgrade 陷阱）。
+4. **預期方向與可證偽點** — 「若假設成立，應看到 X」（哪個 H、哪個 regime、逐年該長怎樣）。跑完 MUST 對照這句話；方向反了要明說「假設證偽」。
+
+範例（波動率 cell 權重）：
+- ✗「把 低波動_long 從 ±5 升到 ±15 看看」
+- ✓「(1) 假設：v358 加低波動 cell 後三 gate 全面下調，代表該 cell 確實在壓 total_long 的波動偏態；若它 under-weighted，升權應繼續改善偏態閘門三指標。(2) 值域 ±5 → ±7 / ±10：上限取同類別 cells 的權重階梯（多數在 ±10），不直接跳 ±15——扣抵_long ±5→±15 成功是特例，排列/距離同樣跳法都失敗（見 Weight-upgrade 陷阱）。(3) 先測最小步 ±7，確認符號再往上。(4) 若假設成立，median decile spread 與 D10 勝率**同向改善**、mean spread 至多微降；若 mean 升而 median 反向 → 反而是加載波動，假設證偽，棄。」
+
+引用任何 cohort / regime / 逐年格做決策前，**MUST 先看該格的 n**；n 小的極端值不得寫進提案，表格產出一律連 n 一起印。
+
 ## 快速路徑：純 weight 改動免 rebuild（改既有 cell 權重 / ablation）
 
 若這次只改**既有 cell 的權重**（或做 ablation＝權重歸零），**不要** rebuild panel。cell 貢獻對權重線性，直接用既有 panel 做欄位算術，27 min → 秒級：
@@ -167,6 +183,8 @@ Event form 標準設計：±5 fresh (0-1d 窗口) / ±3 carry (2-5d 窗口) / 6d
 
 ## Anti-patterns
 
+- **提參數/權重改動不附提案卡四問**（為何這個 cell / 為何這個值域 / 為何這個步長 / 預期方向與可證偽點）
+- **直接沿用他處的最佳參數當中心點**——借來的參數不算參數，MUST 在本 panel 重掃
 - **只看 mean decile spread**，跳過 median / 勝率 / 尾部（偏態閘門）——mean 是右尾可以偽造的
 - **只看 H=60 full**，跳過 bear regime 檢查
 - **跳過 ~dead filter** 想「看更多 data」

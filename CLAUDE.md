@@ -16,6 +16,7 @@
 | 新 session 接手大型/跨對話任務 | `.claude/rules/05_letter.md` |
 | 使用者說「回測」或要改 signal_backtest/factories | skill `signal-factory` |
 | ScoreBoard cell ablation / 權重調整 | skill `cross-sectional-scoring` |
+| 改 `analysis/market_thermometer.py` 攻防（stance）判準/參數（或它讀的上游，如 `analysis/obv.py`、`analysis/market_breadth.py`），或評估溫度計變動 | skill `signal-factory` §6b（stance 是 buy 的 live 相依，改了訊號工廠就變） |
 
 這些規則的成因見 `.claude/rules/00_diagnosis.md`。
 

@@ -62,6 +62,29 @@
 3. 三大目標零違反：勝率、maxL（最大虧損）、交易質量；交易數↑但 PF 不升 = 負向
 4. sweep robustness：採用參數落在 plateau 上而非孤峰；掃描曲線單調時**必須**加查時間分布（見 Rubric 1 正例）
 5. sanity：未改動的訊號結果 bit-identical
+6. **證據品質**（引用任何表格/指標前的前置檢查；前四點由 2026-07 三次踩坑歸納，末點來自 2026-08-05 微台 30m 濾網實驗，詳 memory `project_microtaiex_daytrade`）：
+   - 引用 cohort/sweep/regime 表的任何一格前 → **先看該格的 n**；n 小的極端值不得寫進提案，表格產出一律連 n 一起印（RS probe D9 −7.00pp 那格 n<1000，掃 N 才發現符號隨窗口翻轉）
+   - **借來的參數不算參數**：沿用他處（別的序列/別的子系統）的最佳窗口前，必須在本序列上重掃，否則挑選理由隨舊用途一起失效
+   - 評分系統採用決策 → 必跑**逐年 Δspread 拆解**（零 rebuild）；增益集中單一年份或近年轉負即不採用（ScoreBoard regime 九格近全綠，逐年拆穿增益全在被誤標 bear 的 2021 多頭年，最近兩完整年實為負）
+   - 評**攻防/曝險型**改動 → (a) cov/ret/DD/recall 必須同窗 (b) 主指標用**每單位曝險年化**不用累報酬（累報酬單調獎勵曝險） (c) 看 sweep 前先數**差異日與其逐年分布**，差異日 <20 天或集中單一年＝單事件，不採用
+   - 單口/單標的系統的 entry filter → dSum 為正 ≠ 濾掉壞單，MUST 比對「**被擋交易損益總和 B**」：真過濾是 dSum ≈ −B；若 B>0（擋掉的是賺錢單）而 dSum 仍>0，增益來自部位機器狀態重排＝噪音
+
+## Rubric 6：背景工作與長指令的完成判定
+
+**觸發**：派背景 agent、跑 `run_in_background`、等任何長指令。（由 2026-07-06／07-07／07-21 三次踩坑歸納）
+
+- **「完成通知」不等於完成**：`run_in_background` 的指令**直接寫本體**，不可再套 `&`／`nohup`／`Start-Process`——雙重背景會讓外層 shell 立即 fork-and-return exit 0，harness 秒發**假完成通知**（PyInstaller 那次 exe 根本還沒覆寫）。harness 自己會背景化並在真正結束時通知。
+- **完成判定一律看產出檔實況**（mtime／大小／內容變更），不看 log 的中間字樣（PyInstaller 的「PYZ completed successfully」是中間步驟），不等 agent 自醒。
+- **agent 回報「已派出／執行中／等通知」＝角色混淆的空回報，不是進度**：先 `SendMessage` 糾正一次（「你自己就是執行者，沒有別人在跑，立即親自執行原 prompt」），不要急著重派——重派會丟掉它已讀的 context。此為高頻失效模式（2026-07-06～08 至少 8 次）。
+- **預期 >10 分鐘的指令不要掛 tool timeout**：曾在 98% 進度被 timeout 精準砍掉，後續兩次 rebuild 完成後 agent 未被喚醒，pipeline 各停擺 18h／5h，靠主對話查產出檔時間戳才發現。（`Start-Process` 式的 detached 啟動**只用於 `run_in_background` 之外**的直接啟動；走 `run_in_background` 時仍照第一條，指令直接寫本體。）
+
+## Rubric 7：驗收對象要在生產路徑上
+
+**觸發**：驗收任何改動、派 agent 審查、宣告「已修好」。（由 2026-08-05／08-06 兩次踩坑歸納）
+
+- **實跑輸出證明「這段程式碼會這樣算」，不證明「使用者看到的是這段程式碼」**。驗收前先確認被改的函式**在生產呼叫鏈上**——曾改完 `analysis/attention_predict.py` 並實跑驗證通過（誤報 26→12 檔），但 Telegram bot 走的是另一個檔，改動全落在只有 CLI 用的 dead path。
+- **本 repo 的門檻是多份寫死複製**：離線報表版 `analysis/attention_predict.py` 與 bot 即時版 `telegram_bot/handlers/_attention_predict_intraday.py`（同一款門檻在後者有**三份**複製），**§1／§2①／§3／§5／§13／§14 皆然**。改門檻要搜**數值字面**（如 `100, 25, 500`）而非函式名，只改一份等於沒改到使用者看得到的路徑。
+- **餵給驗收 agent 的中介檔**（dump／轉檔／摘要）必須與被驗物在**同一個指令內**同步重建，或讓 agent 直接讀原始檔。兩者不同步會產出看似嚴重、實則不存在的假 finding（.docx 已改對，卻因忘了重 dump 文字版，被回報「修正根本沒寫入」）。
 
 ## 誠實條款
 
@@ -76,13 +99,7 @@
 
 <!-- 格式：- YYYY-MM-DD | 情境一句話 | 當時錯誤假設 | 正確做法 | 一般化規則（觸發條件→動作） -->
 
-- 2026-07-06 | 背景 agent 首次回報是「已派出/仍在執行/等使用者要求」等角色混淆空回報，同 session 發生 3 次 | 以為 agent 收到 prompt 就會執行 | 用 SendMessage 回一句「你自己就是執行者，沒有別人在跑，立即親自執行原 prompt」即可復工 | 收到空回報或角色混淆回報 → 先 SendMessage 糾正一次再考慮重派（重派會丟掉它已讀的 context）。追記 2026-07-08：高頻失效模式（7/7-7/8 再發 5+ 次，另一變體是「等通知」但通知不會來）——凡 agent 回報「等待/背景執行中」，主對話用產出檔時間戳查實況，完成即主動 SendMessage 驅動，不等它自醒
-- 2026-07-07 | 派 agent 背景跑 60 分鐘 panel rebuild | 以為 timeout=3600000 夠用、以為 waiter/Monitor 會喚醒 agent 接續 | rebuild 在 98% 被 tool timeout 精準砍掉；後兩次 rebuild 完成後 agent 未被喚醒，pipeline 各停擺 18h/5h，靠主對話查產出檔時間戳才發現 | 背景指令預期 >10 分鐘 → detached（Start-Process）啟動不帶 timeout；主對話用「產出檔 LastWriteTime＋程序存活」主動查進度，不依賴 agent 的完成通知鏈。**已由 2026-07-21 那條修正**：`Start-Process` 只用於 run_in_background **之外**的直接啟動；走 run_in_background 時指令直接寫本體，不可再套 `Start-Process`／`&`／`nohup`（同樣是 fork-and-return 假完成）
-- 2026-07-07 | ScoreBoard 拔 cell 三 phase 驗證後 regime 九格近全綠，看似 clean win | 以為 regime 格全正＝增益乾淨 | 逐年拆解揭穿：增益集中在被框架誤標為 bear 的 2021 多頭年，最近兩完整年實為負 | 評分系統採用決策 → 必跑逐年 Δspread 拆解（零 rebuild）；增益集中單一年份或近年轉負即不採用（等同訊號工廠時間均勻檢查，Rubric 5）
 - 2026-07-11 | 使用者問「微台 cap 上限 40 拿掉會不會更好」，直接開回測 sweep（hi 50/60/80/9999）| 以為是沒測過的新問題 | memory `project_microtaiex_daytrade` 兩天前（07-09）已封存「全域 cap 重掃：現行 mult0.5/hi40 就在效率前緣，放寬 net 增益全是假的」，整輪 sweep 只是重現舊結論 | 動手回測任何訊號/防守參數前 → 先讀該子專案的 memory **檔案全文**，不能只看 MEMORY.md 的索引行（索引行一句話塞不下具體參數結論，正是漏掉封存的破口）。Rubric 4 的「提案命中封存即停」要能生效，前提是真的去讀了封存
-- 2026-07-11 | RS 相對強度 probe 的 within-decile 表出現 D9 -7.00pp，據此向使用者提案「高分股+RS破底」進訊號工廠當防守 | 以為極端格的大數字＝強訊號 | 該格 n < 1000（8.7 年 190 萬列 panel）；使用者追問「為什麼窗口用 123」→ 掃 N 才發現單調無 plateau、長窗口半數年份樣本不足、效果全靠 2026 薄樣本；有統計力的短窗口符號還是反的 | 引用 cohort/sweep/regime 表的任何一格前 → **先看該格的 n**；n 小的極端值不得寫進提案，表格產出一律連 n 一起印。另：**借來的參數不算參數**——沿用他處（別的序列/別的子系統）的最佳窗口前，必須在本序列上重掃，否則挑選理由隨舊用途一起失效
 - 2026-07-11 | 加完 ScoreBoard 波動 cell 後跑 `_score_panel 6` 做 smoke test，直接覆蓋掉 2026-07-07 的 production panel（244MB → 1.25MB）| 以為「只是 6 檔的 smoke test」無害，跳過 skill `cross-sectional-scoring` 工作流第 1 步的備份 | `_score_panel.py` 的 `OUTPUT` 是寫死的共用路徑，帶不帶 limit 參數都寫同一個檔；本次因為接著就要 rebuild、且 baseline 可用新 panel 的欄位算術（total_long − 新cell）取得而僥倖無損 | 執行任何會寫入**共用產出路徑**的腳本前（**smoke test 也算**）→ 先備份該產出檔。「只是測試」不是跳過備份步驟的理由——腳本不知道你在測試。更一般化：照 skill 工作流做事時不得跳步，第 1 步是備份就先備份
-- 2026-07-21 | 用 Bash run_in_background 跑 PyInstaller，指令寫成 `nohup python -m PyInstaller … &` | 以為 harness 的「completed exit 0」通知代表 build 完成 | `&`（含 `nohup … &`）在 run_in_background 內造成**雙重背景**：外層 shell 立即 fork-and-return exit 0，harness 秒發假完成通知，PyInstaller 其實還在跑（exe 未覆寫、TOC 缺模組險誤判失敗）| **run_in_background 的指令直接寫本體，不要再加 `&` 或 `nohup`**——harness 自己會背景化並在**真正結束**時通知。要等長指令完成 → 用另一個 run_in_background 的 until 迴圈盯**產出檔實際變更**（如 exe mtime 變今天）而非中間 log 字樣（PyInstaller 的「PYZ completed successfully」是中間步驟不是完成）
-- 2026-07-27 | 溫度計攻防閘門提案初評「危險 recall/maxDD 零損失＋累報酬 +73pp＋26 格 plateau」，判為可採用 | 以為主指標上升且保護指標不動＝乾淨增益 | fresh-context 對抗審查揭穿三處：評估窗（2019-07 起）與 episode 覆蓋窗（全樣本）不同、累報酬（long-on-attack 全押/全空手）單調獎勵曝險（趨勢腿全關報酬反而最高）、plateau 各格共用同一批差異日 | 評「攻防/曝險型」改動 → (1) cov/ret/DD/recall 必須同窗 (2) 主指標用**每單位曝險年化**不用累報酬 (3) 看 sweep 前先數**差異日與其逐年分布**，差異日 <20 天或集中單一年＝單事件，依 Rubric 5 不採用
-- 2026-08-05 | 為證交所 8/10 新制改 §12 高價股注意門檻，改了 `analysis/attention_predict.py` 的 `_r12_threshold` 並實跑真實資料驗證通過（誤報從 26 檔降到 12 檔）| 以為該檔就是生效路徑，實跑數字漂亮更坐實了這個錯覺 | fresh-context 對抗審查揭穿：Telegram bot 走的是 `telegram_bot/handlers/_attention_predict_intraday.py`，同一款門檻在該檔有**三份**複製，我的改動全落在只被 CLI `run_report` 用的 dead path | 改任何「注意股/處置股款次門檻」→ 搜**門檻數值字面**（如 `100, 25, 500`）而非函式名；本 repo 各款門檻在 離線報表版（`analysis/attention_predict.py`）與 bot 即時版（`_attention_predict_intraday.py`）是**雙份寫死**（§1/§2①/§3/§5/§13/§14 皆然），只改一份等於沒改到使用者看得到的路徑。一般化：**實跑輸出證明「這段程式碼會這樣算」，不證明「使用者看到的是這段程式碼」**——驗收要先確認被改的函式在生產呼叫鏈上
 - 2026-07-25 | Opus 5 harness 的系統指令「除非使用者要求否則不要 spawn subagent」與 [01_dispatch.md](01_dispatch.md) §1「>3 檔一律派 Explore」硬規則對撞，session 開頭要臨場賭聽誰的 | 以為專案規則自動高於 harness 預設 | 使用者裁定分類授權：唯讀（`Explore`、驗收 read-back）與背景長指令自動派、`general-purpose` 改檔/對外查先問；授權來源寫進 CLAUDE.md「Subagent 授權（覆蓋 harness 預設）」節 | harness 預設與專案規則衝突時 → **不自行猜優先序**，查 CLAUDE.md 有無明示授權；沒有就當場問使用者並把裁定寫回制度檔
+- 2026-08-06 | 依審查 finding 修正策略文件 6 處後，複驗抓到「改 4-1 把 cap 從『固定』改成『每根重算』，卻沒同步 4-3（仍用固定值算兩線交叉點）」，兩節互相矛盾 | 以為修正是局部的、改完該處就結束 | 連續三輪複驗每輪都抓到新問題，其中**兩輪是修正本身引入的**（第二輪：改 4-1 壞了 4-3；第三輪：新寫的「波動越低 cap 越小」漏了 cap 有 12 點下限而 Chandelier 沒有） | 修正審查 finding 後 → MUST 反查全文有無**其他段落引用了被改動的數值或結論**，一併更新再送複驗；「修完這處」不等於「修好了」，改正錯誤本身就是製造錯誤的高風險動作

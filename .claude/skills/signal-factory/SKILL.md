@@ -233,6 +233,23 @@ v167 當時實測 exit_reason 分布（snapshot，可能已過時，audit 跑 `t
 | ScoreBoard 改動會讓 pct 分佈漂移 | max/min_possible 改變 → 同樣閾值 filter 出不同股票集合 |
 | 既有 v## 規則 **MUST** 在 ScoreBoard 大改後重 tune 閾值 | 例：v127-v148 的 `short_pct >= 30` 在 ScoreBoard tuning 後可能完全失效 |
 
+## 6b. 溫度計 stance 耦合（v359 起，MUST）
+
+**耦合事實**：`signal_backtest/factories/_conditions.py` 的 `_stance_block_dates()` **live import** `analysis.market_thermometer.daily_stance_frame()`，不是凍結快照。改溫度計任何影響 `defensive` / `mode` 的判準、投票、參數 → v359+ 的 buy 進場日集合當場改變，回測結果跟著變，**沒有任何警告**。唯一消費點是 buy 的 `rule_not_defensive`（`_conditions.py` §v359），其餘 5 訊號不消費 stance。
+
+**觸發**：動 `analysis/market_thermometer.py`（或它讀的上游欄位，如 `analysis/obv.py`、`analysis/market_breadth.py`）任何會改到 stance 的東西；或評估「要不要採用某個溫度計攻防改動」。**本節優先於 §1 的「回測」字面觸發**：改完溫度計後即使使用者說「回測」，仍先走以下三段式，過了第 3 段才轉入 §1 完整 7 步。
+
+**動作（三段式，逐段過才進下一段）**：
+
+1. **差異日（零回測，秒級）**：算改前/改後 blocked date set（`defensive AND mode in ("top","trend")`，T+1 位移）的對稱差 + 逐年分布。
+   - 差異日 = 0 → 對工廠零影響，只評溫度計自身，免回測。
+   - 差異日 <20 天或集中單一年 → 單事件，依 rules/02_judgment Rubric 5 第 6 點不足以支撐採用。
+   - **MUST 用新 process 算**：`_stance_block_dates()` 是 `lru_cache(maxsize=1)`，同一 process 內改參數不會重算。
+2. **工廠受控對照（只重跑 buy）**：開跑前 MUST 先 `grep -rn "_stance_blocked" signal_backtest/factories/` 確認消費點仍只有 buy——「其餘 5 訊號不消費 stance」是**當前程式碼事實不是架構保證**，沒有測試把關，不可只信本文件。跑 buy + unified_long + unified_short；合池用「新 buy trades + 上一版歸檔的其餘 5 訊號 trades」串接——**精確非近似**（那 5 訊號本來就該 bit-identical；若不 identical＝耦合外洩，先查 bug 再談效果）。對照 baseline 的 合池 PF / maxL / maxG / 勝率 + 受害股（§1a）。
+3. **雙帳呈報，使用者裁決**：溫度計側（每單位曝險年化、recall/DD **同窗**，不可用累報酬）與工廠側（三大目標，§3）**任一為負 → 既不自行採用也不自行否決**，附雙側數字交使用者取捨。雙側皆正且使用者裁定採用 → 才走 §1 完整 7 步開新版本號歸檔，SQLite 結論註明「上游＝溫度計改動」。
+
+**反向**：重掃 buy 的 gate/門檻時，stance 是活的相依——溫度計若在兩次 sweep 之間改過，舊 sweep 結論失效（同 §6 ScoreBoard pct 漂移的道理）。
+
 ## 7. Metric / 命名慣例（強 anti-bug 規則）
 
 涉及「N 日新低/新高」必須先區分要的是「日內」還是「收盤」極值 — 選錯 metric 會造成 entry/defense 條件鬆/緊偏差，最大左尾損失常源自此類 bug（v265 / v271 案例）。
@@ -318,6 +335,22 @@ Known Go 欄位類別（命名規律）：
 
 ## 11. Sweep 方法論
 
+### 11-0. 參數提案卡（MUST，先於任何 sweep 或閾值提案）
+
+**觸發**：向使用者提出「調某閾值 / 掃某區間 / 換某窗口」的任何提案，或動手寫 sweep spec 的 GRID 之前。
+**動作**：提案訊息 MUST 含以下四問的答案，缺一不得開跑。答不出來的那一問，就是還沒想清楚的地方。
+
+1. **為何是這個參數** — 機制假設，或觀察到的具體失效模式（哪些交易壞在這裡）。「試試看」「順便一起掃」不是理由。
+2. **為何是這個值域** — 每個端點的來源：現行 baseline ±N / 本序列上已知的分布 / 市場慣例。**沿用他處參數 MUST 標「借用自 X，本序列未驗」，且不得當中心點**——借來的參數不算參數，挑選理由會隨舊用途一起失效（RS window 123 案例，02_judgment Rubric 5 第 6 點）。
+3. **為何是這個步長與點數** — 要能分辨 plateau vs 孤峰。步長太粗看不出 plateau，太細只是噪音。
+4. **預期方向與可證偽點** — 「若假設成立，應看到 X」。跑完 MUST 對照這句話；方向反了要明說「假設證偽」，不得事後改口成「本來就只是想看看」。
+
+範例（RS 窗口）：
+- ✗「掃 rs_win = 20 / 60 / 123」
+- ✓「(1) 假設：高分股跌破自身 RS 低點＝籌碼鬆動早期訊號，需要一個回看窗口定義『低點』。(2) 值域 20–233：下限月線級、上限半年；123 是從 distance cell 借來的，本序列未驗，故納入但不當中心點。(3) 步長取費氏 20/34/55/89/144/233，看有無 plateau。(4) 若假設成立，D9 應在**多個相鄰窗口**一致為負且每格 n ≥ 3000；只在單一窗口出現極值 → 薄樣本假象，棄。」
+
+引用任何 sweep / cohort / regime 表的格子做決策前，**MUST 先看該格的 n**；表格產出一律連 n 一起印。
+
 ### 11a. 多變數 sweep grid 模板
 
 要同時測 2 個閾值改動時，**MUST** 用 4-plan grid 隔離效應：
@@ -339,6 +372,21 @@ Known Go 欄位類別（命名規律）：
 - ✗ 若訊號搭配 strong defense（如 v264 touch tier gate），proxy 預測可能跟 real 偏差大（touch sp 閾值案例：proxy 說 sp ≥ -5/-10 較佳，real 卻是 sp ≥ 0 與 sp ≥ -5 持平甚至退步）
 
 **MUST**：用 proxy 找 top 2-3 候選 → 用 real backtest 驗證 → 不可只看 proxy 就採用。
+
+### 11b-1. Proxy 過關 ≠ 能用：三道硬關卡（2026-07-20 起，籌碼/量能探索特化）
+
+**觸發**：任何 offline / forward-return proxy 顯示候選 edge。**動作**：採用或付 rebuild 前，**三關全過才算數**（少一關即不採用）。理由：2026-07 券資比/量能探索反覆發生「proxy 亮燈、下一關就死」——券資比/dtc/climax-量都過了 raw proxy，各死在其中一關；股東會軋空三關全過才是真的。
+
+1. **vs 同日同分數桶同儕**：算超額時扣掉「同一天、同 total_long decile」的同儕均值。超額 ≈0 → 訊號只是換句話說「低分/高分」，**冗餘於 ScoreBoard**，丟掉。（券資比、dtc、融資背離都死在這：對全市場有超額、對同分數桶歸零。）
+2. **真 trades 轉移測試**（§11b real backtest 驗證的強化版）：proxy 在**它自己的 cohort**上量的，不代表轉移到工廠實際進場——**MUST** 拿 v358 真成交 post-hoc 把該條件套到 pick/buy/sell_flee/sell 的實際 entry 上看效應是否還在。（climax-量在 Donchian proxy 兩關全過，一到真工廠進場就消失、逐年還反向。）
+3. **時間均勻**（§Rubric 5 的 proxy 版）：逐年、且增益非集中單一年/單一事件（2020 崩盤、2025 關稅崩是慣犯）。用「同年高−低」抵市場 beta 再看。
+
+**負向結論也要交待**：判定「無 edge」時 MUST 附真實失敗案例（具名交易/受害股 + 失敗機制），不能只給 aggregate——通用規則見 rules/02_judgment.md Rubric 2。
+
+### 11b-2. 兩個 close-based 回測資料陷阱（2026-07-20 起）
+
+- **無還原價**：專案引擎 `build_stock_data` 用**原始 close_price**（連 v358 亦然），**沒有還原價序列**。任何 close-based proxy/回測 **MUST 剔除窗口內單日 >±40% 的移動**（台股單日限 ±10% → >40% 必是未還原分割/減資）。範例：先前誤判為「-92.7% 內行放空崩塌」的那筆其實是 5314 世紀分割假象，非真虧；剔後 W=6 股東會軋空結果不變＝edge 非假象膨脹。
+- **存量 vs 流量 + 分母污染**：探籌碼變數 **MUST 先分存量（餘額/水位）vs 流量（當日量/事件）**——2026-07 探索中融券**餘額**七輪全死、融券**賣出流量**才有料。比值型變數要查**分母污染**：券資比＝融券/融資的暴衝多來自**融資**塌陷（崩跌股融資被斷頭），不是融券變多；乾淨版用隔離分子的指標（days-to-cover＝融券/量）。
 
 ### 11c. 統一 sweep runner 與封存（2026-07-06 起）
 
@@ -406,6 +454,9 @@ python -m signal_backtest._versions sweeps conclude {id} "結論一句話"
 - **MUST NOT** 信 Go struct 註解（如 CD2B 寫「高價2」實際用 Close）— port 時 grep calculation site（§9）
 - **MUST NOT** 把 `data.low / data.high`（日內）跟 `bs.close_s / bs.close_b`（收盤）混比 — metric mismatch 是 entry 條件鬆/緊偏差的常見 bug（§7）
 - **MUST NOT** 自己手刻 `(high - close) / hl` 當「長上影線」— 對大陰線會錯把整根 candle 當影線；用 `_hammer_upper_shadow` 或 `data.candle_result.shadow.upper`（§8）
+- **MUST NOT** 提出參數改動或開 sweep 而未附提案卡四問（為何這個參數 / 為何這個值域 / 為何這個步長 / 預期方向與可證偽點）（§11-0）
+- **MUST NOT** 直接沿用他處（別的序列、別的子系統）的最佳參數當本序列的中心點 — 借來的參數不算參數，MUST 在本序列重掃（§11-0）
+- **MUST NOT** 改溫度計攻防（stance）而不算差異日、不跑工廠受控對照 — stance 是 buy 的 live 相依，改了工廠就變（§6b）
 - **MUST NOT** 同時改 2+ 閾值然後猜哪個有效 — 用 4-plan A/B/C/D grid 隔離（§11a）
 - **MUST NOT** 只看 proxy（offline forward-return）就採用閾值改動 — 系統性低估 real PF，**MUST** real backtest 驗證（§11b）
 

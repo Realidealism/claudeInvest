@@ -13,8 +13,8 @@
 - **主模型即 opus 時（2026-07 起的常態）**：「升 opus / 派 opus 第二意見」不再是升級，是平調。本檔所有原寫「派 opus」的步驟（§3 設計/審查、§5 升級、§6 第二意見）一律解讀為 **fresh-context 對抗審查**：同級模型 + 不知道前情 + [03_templates.md](03_templates.md) T5 的「找問題不是背書」立場。價值在第二隻眼睛沒有沉沒成本，不在模型層級——所以這些步驟不因「反正同級」而省略。
 - **SendMessage**：可延續已派過的 agent（保留它的 context）繼續追問，不必重派新 agent 重讀一遍。
 - **多 agent 編排**：本 harness **沒有 Workflow tool**（2026-07-25 查證：已載入與 deferred 工具清單皆無）。需要大規模並行審查時走使用者觸發的 `/code-review ultra`——它是使用者觸發且計費的，**我不可自行啟動**。
-- **run_in_background**（Bash / Agent 都有）：回測等長時間指令用它，指令直接寫本體、**不要加 `&` 或 `nohup`**（雙重背景會秒噴假完成通知，見 [02_judgment.md](02_judgment.md) 踩坑 2026-07-21）。Agent 預設就是背景執行。
-- **Monitor**：等待長指令/背景工作的**官方機制**，盯**產出檔實際變更**（mtime、大小）或程序狀態，取代 sleep 輪詢與「等 agent 自己通知」（後者失效過多次，見踩坑 2026-07-06/07-07）。
+- **run_in_background**（Bash / Agent 都有）：回測等長時間指令用它，指令直接寫本體、**不要加 `&` 或 `nohup`**（雙重背景會秒噴假完成通知，見 [02_judgment.md](02_judgment.md) Rubric 6）。Agent 預設就是背景執行。
+- **Monitor**：等待長指令/背景工作的**官方機制**，盯**產出檔實際變更**（mtime、大小）或程序狀態，取代 sleep 輪詢與「等 agent 自己通知」（後者失效過多次，見 [02_judgment.md](02_judgment.md) Rubric 6）。
 - **ScheduleWakeup / Cron\***：定時回訪用。只在使用者明示要求週期性任務時用（ScheduleWakeup 僅在 `/loop` 自訂節奏模式下有意義）。
 - **只有主對話有的工具**：`ScheduleWakeup`、`EnterPlanMode`/`ExitPlanMode`、`AskUserQuestion`、`Monitor`。subagent 查不到它們是正常的——**別把 subagent 回報的「查無此工具」當成工具不存在**（2026-07-25 驗收 agent 就這樣誤報過兩次）。
 - **isolation: `worktree`**（Agent tool 參數）：高風險批次改檔讓 agent 在獨立 git worktree 動手，不污染主工作區。**注意不保護 repo 外的共用產出路徑**（如 tmp/score_panel.parquet），那類仍須照 skill 先備份。
