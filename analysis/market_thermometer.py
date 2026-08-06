@@ -242,6 +242,23 @@ EARLY_BAND_FRAC = 0.05
 # halves positive, catches 2021/24/26; 243-config threshold sweep passes the robust gate.
 # Caveat surfaced in UI: high-conviction LOW-recall, for ≥8-10% pullbacks (not deep crashes),
 # blind to 2020 COVID (exogenous) and 2022 slow bear. tmp/_ensemble_test.py, _ensemble_sweep.py.
+# A voter 的投票專用形式 (顯示用的 頂部過熱紅燈 badge 與 stance 的 hot_wide 仍用 raw min-78).
+# 生口數的 rolling-min 有 92% 的變異來自慢趨勢 (net_oi 斜率 −11,614 口/年, 2018 中位 +36,649 →
+# 2026 −42,904; std raw 33,189 vs 78日MA std 30,551 vs 殘差 10,697), 故投票側改用對自己的
+# TOP_VOTE_A_Z_WIN 日基準去趨勢 (v363). 窗 55 由使用者定調, 門檻由 W55 上的細掃決定:
+# ★門檻 −1.6 的關鍵是「只加不減」——相對 raw min-78 的 top_vote 差異是 +13/−1, 唯一移除的
+# 2026-08-03 是已知假警報 (dd60 −0.06%); 而 −2.0 是 +5/−3, 那三個移除含 2026-06-22 與
+# 2021-04-26 兩個真頂, 由 latch 放大成 14 天保護消失, 合池 PF −0.018 (見 v363 SQLite 註記).
+# 關鍵日的 z55: 2021-04-26 −1.61 / 2021-04-28 −2.22 / 2026-02-25 −2.21 / 2026-06-22 −1.65 /
+# 2026-08-03 −1.55(假), 故 −1.6 剛好收下四個真頂並擋掉假警報.
+# ★窗不可調大: W60→W70 之間有懸崖 (W>=70 全部 H1=0.0% 且 2021 episode 全滅). 機制 = z 的分母
+# 被兩種東西污染且要求相反的窗長 —— 短窗被「當前這波」填滿 (2026-06-22 的 SD55 由 6,056 膨脹到
+# 11,801, 偏離量變大 z 反而由 −2.09 縮到 −1.65), 長窗則吃進「歷史 regime 翻轉」(2021-04-28 的
+# SD89 8,588 = SD55 3,762 的 2.3 倍, 因 89 日窗回得到 2020-12 的多空翻轉). 故無單一窗兩全,
+# 55 是能同時避開兩者的位置. 設 None 即回到 raw min-78 (bit-identical).
+# tmp/_noi_scale_diag.py, _noi_normalize_test.py, _voter_A_vote_sweep.py, _voter_A_z_window.py.
+TOP_VOTE_A_Z_WIN: int | None = 55
+TOP_VOTE_A_Z = -1.6
 OPT_PCTL_WIN = 252       # 外資選擇權 bull(買權−賣權淨OI) 百分位窗
 OPT_PCTL_MIN = 120       # min obs before a percentile is emitted (options start 2023-06)
 OPT_BEARISH_PCTL = 0.33  # bull 落在 252日底 1/3 = 避險偏空 (B voter)
@@ -453,6 +470,17 @@ def _reattack_safe(m: pd.DataFrame) -> np.ndarray:
     return (m["noi"] >= mx - EARLY_BAND_FRAC * (mx - mn)).fillna(False).to_numpy()
 
 
+def _a_voter(noi: pd.Series, fresh_low: pd.Series) -> pd.Series:
+    """A voter for top_vote / top_vote_n. De-trended against its own TOP_VOTE_A_Z_WIN basis so
+    the vote is not carried by net_oi's multi-year drift; None falls back to the raw fresh_low
+    (the display 紅燈 form) so the switch is bit-identical to the pre-change behaviour."""
+    if TOP_VOTE_A_Z_WIN is None:
+        return fresh_low.fillna(False)
+    z = ((noi - noi.rolling(TOP_VOTE_A_Z_WIN).mean())
+         / noi.rolling(TOP_VOTE_A_Z_WIN).std())
+    return (z <= TOP_VOTE_A_Z).fillna(False)
+
+
 def _load_merged_frame(cur) -> pd.DataFrame:
     """Merged daily frame (margin / foreign net_oi / TAIEX / short 排列 total /
     大台期貨 OHLCV) on the common trading-date spine. Shared by the daily gauge
@@ -552,9 +580,10 @@ def daily_stance_frame(cur) -> pd.DataFrame:
         lambda w: np.mean(w[~np.isnan(w)] <= w[-1]) if (not np.isnan(w[-1]) and np.isfinite(w).sum() >= OPT_PCTL_MIN) else np.nan,
         raw=True)
     m["opt_bearish"] = (m["opt_bull_pctl"] <= OPT_BEARISH_PCTL).fillna(False)
-    # 高信念頂部 (top_vote): >=TOP_VOTE_K of {A 外資期貨fresh_low, B 外資選擇權避險偏空,
+    # 高信念頂部 (top_vote): >=TOP_VOTE_K of {A 外資期貨去趨勢淨空, B 外資選擇權避險偏空,
     # D 漲停過熱, E 融資過熱}. Robust k-of-n vote over orthogonal channels (see const comment).
-    m["top_vote_n"] = (m["fresh_low"].fillna(False).astype(int)
+    m["fut_vote"] = _a_voter(m["noi"], m["fresh_low"])                                  # A voter
+    m["top_vote_n"] = (m["fut_vote"].astype(int)
                        + m["opt_bearish"].astype(int)
                        + m["limitup_vote"].fillna(False).astype(int)
                        + m["margin_overheat"].fillna(False).astype(int))
@@ -696,7 +725,10 @@ def build_thermometer(cur, today: date | None = None) -> dict:
         "top_vote_n": int(last["top_vote_n"]),
         "top_vote_k": TOP_VOTE_K,
         "top_vote_conditions": [
-            {"name": f"外資期貨淨空創 {ALERT_LOW_WIN} 日新低", "met": bool(last["fresh_low"])},
+            {"name": (f"外資期貨淨空（{TOP_VOTE_A_Z_WIN} 日乖離 z ≤ −{abs(TOP_VOTE_A_Z):.1f}σ，投票用去趨勢，"
+                      f"與紅燈的「創 {ALERT_LOW_WIN} 日新低」不同尺）"
+                      if TOP_VOTE_A_Z_WIN is not None else f"外資期貨淨空創 {ALERT_LOW_WIN} 日新低"),
+             "met": bool(last["fut_vote"])},
             {"name": (f"外資選擇權避險偏空（買賣權淨OI {OPT_PCTL_WIN} 日百分位 ≤ {OPT_BEARISH_PCTL:.0%}，現 {last['opt_bull_pctl']:.0%}）"
                       if pd.notna(last["opt_bull_pctl"]) else "外資選擇權避險偏空（資料不足）"),
              "met": bool(last["opt_bearish"])},
@@ -811,7 +843,8 @@ def build_intraday_stance(cur, volume_scale: float, now: datetime) -> dict | Non
         lambda w: np.mean(w[~np.isnan(w)] <= w[-1]) if (not np.isnan(w[-1]) and np.isfinite(w).sum() >= OPT_PCTL_MIN) else np.nan,
         raw=True)
     m["opt_bearish"] = (_obp <= OPT_BEARISH_PCTL).fillna(False)
-    m["top_vote"] = (m["fresh_low"].fillna(False).astype(int) + m["opt_bearish"].astype(int)
+    m["fut_vote"] = _a_voter(m["noi"], m["fresh_low"])                                  # A voter
+    m["top_vote"] = (m["fut_vote"].astype(int) + m["opt_bearish"].astype(int)
                      + m["limitup_vote"].fillna(False).astype(int)
                      + m["margin_overheat"].fillna(False).astype(int)) >= TOP_VOTE_K
     # 恐慌急殺早轉攻 (close-only inputs; forming bar's mgn is NaN → panic_exit False, latches from closes)
@@ -822,7 +855,7 @@ def build_intraday_stance(cur, volume_scale: float, now: datetime) -> dict | Non
     # 波段停滯防守 (同 daily). Forming bar 的 tx 是前一日收盤 (盤中拿不到即時指數), 它會讓 5 日高
     # 視窗少一個相異收盤 → 判定與收盤不一致 (實測 swing_exit 有 4% 的日子翻面). 故 forming bar 直接
     # 沿用前一收盤日的 swing/swing_exit, 讓盤中就是把收盤的 latch 帶著走.
-    _tvn = (m["fresh_low"].fillna(False).astype(int) + m["opt_bearish"].astype(int)
+    _tvn = (m["fut_vote"].astype(int) + m["opt_bearish"].astype(int)
             + m["limitup_vote"].fillna(False).astype(int) + m["margin_overheat"].fillna(False).astype(int))
     _hi5 = m["tx"].rolling(SWING_HI_WIN, min_periods=1).max()
     m["swing"] = ((_tvn >= SWING_VOTES).rolling(SWING_LOOK, min_periods=1).max() > 0) \
