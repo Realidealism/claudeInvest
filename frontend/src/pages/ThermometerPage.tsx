@@ -518,7 +518,7 @@ export default function ThermometerPage() {
           ))}
         </ul>
         <div className="text-xs text-text-secondary mt-2">
-          外資期貨、外資選擇權、漲停、融資 四個互相正交的過熱面向，≥3 個同時繃緊才亮。漲停這一票用比顯示燈更嚴的 z ≥ +1.5σ（燈維持 +1.0σ）。
+          外資期貨、外資選擇權、漲停、融資 四個互相正交的過熱面向，≥3 個同時繃緊才亮。其中兩票用與顯示燈不同的尺：漲停這一票更嚴（z ≥ +1.5σ，燈維持 +1.0σ）；外資期貨這一票改看 55 日乖離 z ≤ −1.6σ（去趨勢），而非紅燈的「創 78 日新低」。
           <span className="text-text-primary">★近高日接 ≥8% 有感回檔的比例 12.0%→79%（6.5x），抓到 2021／2024／2026-02／2026-06 四波頂。</span>
           {" "}但屬<span className="text-text-primary">高信念、低 recall</span>：只針對有感回檔（非最深崩盤），且結構上會漏 2020 COVID（外生無堆積）與 2022 慢熊。加碼確認用，不保證見頂。
           {" "}<span className="text-text-primary">樣本限制</span>：2022-06 前近高命中不足 4 天，早期無實績可佐證。

@@ -233,6 +233,37 @@ v167 當時實測 exit_reason 分布（snapshot，可能已過時，audit 跑 `t
 | ScoreBoard 改動會讓 pct 分佈漂移 | max/min_possible 改變 → 同樣閾值 filter 出不同股票集合 |
 | 既有 v## 規則 **MUST** 在 ScoreBoard 大改後重 tune 閾值 | 例：v127-v148 的 `short_pct >= 30` 在 ScoreBoard tuning 後可能完全失效 |
 
+## 6b. 溫度計 stance 耦合（v359 起，MUST）
+
+**耦合事實**：`signal_backtest/factories/_conditions.py` 的 `_stance_block_dates()` / `_stance_long_held_dates()` **live import** `analysis.market_thermometer.daily_stance_frame()`，不是凍結快照。改溫度計任何影響 `defensive` / `mode` 的判準、投票、參數 → 消費點的日集合當場改變，回測結果跟著變，**沒有任何警告**。
+
+**消費點（2026-08-06 實查；每次動手前 MUST 重新 grep，這是程式碼事實不是架構保證）**：
+
+| # | 消費點 | 位置 | 來源 date set |
+|---|---|---|---|
+| 1 | buy 進場 `rule_not_defensive`（v359） | `_conditions.py` | `_stance_block_dates()` |
+| 2 | buy 防守 `STANCE_HELD_DEFENSE=8`（v361） | `buy_sell.py` | `_stance_long_held_dates(8)` |
+| 3 | sell 進場 `SELL_STANCE_GATE=(3,25)`（v362） | `_conditions.py` | `_stance_long_held_dates(3)` |
+
+→ **會變的是 buy 與 sell**；pick / touch / buy_flee / sell_flee 不消費 stance，應 bit-identical。（v363 另改了溫度計內部的 A 票投票形式，不新增消費點但同時動到 `top_vote` 與 swing 層兩個下游。）
+
+**觸發**：動 `analysis/market_thermometer.py`（或它讀的上游欄位，如 `analysis/obv.py`、`analysis/market_breadth.py`）任何會改到 stance 的東西；或評估「要不要採用某個溫度計攻防改動」。**本節優先於 §1 的「回測」字面觸發**：改完溫度計後即使使用者說「回測」，仍先走以下三段式，過了第 3 段才轉入 §1 完整 7 步。
+
+**動作（三段式，逐段過才進下一段）**：
+
+1. **差異日（零回測，秒級）**：算改前/改後 blocked date set（`defensive AND mode in ("top","trend")`，T+1 位移）的對稱差 + 逐年分布。
+   - 差異日 = 0 → 對工廠零影響，只評溫度計自身，免回測。
+   - 差異日 <20 天或集中單一年 → 單事件，依 rules/02_judgment Rubric 5 第 6 點不足以支撐採用。
+   - **MUST 用新 process 算**：`_stance_block_dates()` / `_stance_long_held_dates()` 都是 `lru_cache`，同一 process 內改參數不會重算。三組 date set 各自算差異日（上表三個消費點）。
+2. **工廠受控對照**：開跑前 MUST 先 `grep -rn "_stance_block\|_stance_long_held" signal_backtest/factories/` 重新確認消費點清單（上表是查核當日的事實，沒有測試把關，不可只信本文件）。
+   - **MUST 雙跑同資料窗**：baseline 用「同一份程式把開關關掉（設 None）重跑」，**MUST NOT 拿上一版的歸檔當 baseline**——DB 每日更新，跨日期的 diff 欄不可讀（v363 實例：`diff v362 v363` 讓不消費 stance 的 pick/touch 也出現 Δ，其 overfit 警示全是污染產物）。
+   - **MUST 序列執行，不可同時跑兩版**：回測 worker 會在啟動時重新 import `market_thermometer`，中途改常數會讓不同 worker 讀到不同值。順序＝設常數 → 算差異日 → 跑回測 → 換常數 → 再跑。
+   - 跑滿 8 訊號（省不了多少時間，且四個非消費訊號正好當 sanity）：`pick,touch,buy,sell,buy_flee,sell_flee,unified_long,unified_short`。合池＝6 訊號串接。**四個非消費訊號若不 bit-identical ＝耦合外洩，先查 bug 再談效果**。
+   - 對照 baseline 的 合池 PF / 賺賠比 / 勝率 / maxL / maxG + 受害股（§1a）+ 前後半 + 逐年。
+3. **雙帳呈報，使用者裁決**：溫度計側（每單位曝險年化、recall/DD **同窗**，不可用累報酬）與工廠側（三大目標，§3）**任一為負 → 既不自行採用也不自行否決**，附雙側數字交使用者取捨。雙側皆正且使用者裁定採用 → 才走 §1 完整 7 步開新版本號歸檔，SQLite 結論註明「上游＝溫度計改動」。
+
+**反向**：重掃 buy 的 gate/門檻時，stance 是活的相依——溫度計若在兩次 sweep 之間改過，舊 sweep 結論失效（同 §6 ScoreBoard pct 漂移的道理）。
+
 ## 7. Metric / 命名慣例（強 anti-bug 規則）
 
 涉及「N 日新低/新高」必須先區分要的是「日內」還是「收盤」極值 — 選錯 metric 會造成 entry/defense 條件鬆/緊偏差，最大左尾損失常源自此類 bug（v265 / v271 案例）。
