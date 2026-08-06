@@ -1,6 +1,18 @@
 {
-  "updated_at": "2026-08-05T21:52:58",
+  "updated_at": "2026-08-06T21:54:31",
   "events": [
+    {
+      "type": "placement",
+      "stock_id": "4563",
+      "company_name": "百德",
+      "date": "2026-08-06",
+      "insider_role": null,
+      "insider_name": null,
+      "method": null,
+      "shares": null,
+      "security_kind": "普通股",
+      "period": null
+    },
     {
       "type": "transfer",
       "stock_id": "9949",
@@ -888,59 +900,11 @@
       "shares": null,
       "security_kind": "普通股",
       "period": null
-    },
-    {
-      "type": "placement",
-      "stock_id": "3508",
-      "company_name": "位速",
-      "date": "2026-05-07",
-      "insider_role": null,
-      "insider_name": null,
-      "method": null,
-      "shares": null,
-      "security_kind": "普通股",
-      "period": null
-    },
-    {
-      "type": "placement",
-      "stock_id": "6175",
-      "company_name": "立敦",
-      "date": "2026-05-07",
-      "insider_role": null,
-      "insider_name": null,
-      "method": null,
-      "shares": null,
-      "security_kind": "普通股",
-      "period": null
-    },
-    {
-      "type": "placement",
-      "stock_id": "8085",
-      "company_name": "福華",
-      "date": "2026-05-07",
-      "insider_role": null,
-      "insider_name": null,
-      "method": null,
-      "shares": null,
-      "security_kind": "普通股",
-      "period": null
-    },
-    {
-      "type": "placement",
-      "stock_id": "8089",
-      "company_name": "康全電訊",
-      "date": "2026-05-07",
-      "insider_role": null,
-      "insider_name": null,
-      "method": null,
-      "shares": null,
-      "security_kind": "普通股",
-      "period": null
     }
   ],
   "stats": {
-    "transfer_events_30d": 14,
-    "transfer_stocks_30d": 7,
-    "placement_events_30d": 2
+    "transfer_events_30d": 13,
+    "transfer_stocks_30d": 6,
+    "placement_events_30d": 3
   }
 }
