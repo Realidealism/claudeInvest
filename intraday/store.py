@@ -14,6 +14,8 @@ path. The primary key is stock_id alone, which naturally enforces the
 
 from datetime import datetime
 
+from psycopg2.extras import execute_values
+
 from db.connection import get_cursor
 from utils.classifier import classify_tw_security
 
@@ -41,32 +43,58 @@ def _ensure_stock(cur, stock_id: str, name: str | None, market: str):
     return True
 
 
-def upsert_quotes(records: list[dict], market: str, trade_date=None):
-    """Bulk upsert from the REST sweeper.
+def _prepare_quote_rows(records: list[dict], tw_market: str, trade_date):
+    """Turn a sweep snapshot into (stock_rows, quote_rows) ready for insertion.
 
-    market: 'TSE' or 'OTC' (maps to tw.stocks.market TWSE/TPEx)
+    Split out from the DB call so the filtering and de-duplication are
+    testable without a database.
+
+    De-duplication is not optional: the rows go in through execute_values, and
+    Postgres rejects a multi-row INSERT whose ON CONFLICT DO UPDATE would touch
+    the same row twice ("cannot affect row a second time"). The per-row loop
+    this replaced never hit that because each statement stood alone. Later
+    records win, matching the old behaviour where the last write survived.
     """
-    if not records:
-        return 0
+    stock_rows: dict[str, tuple] = {}
+    quote_rows: dict[str, tuple] = {}
 
-    tw_market = _MARKET_BY_SNAPSHOT.get(market, market)
-    written = 0
+    for r in records:
+        stock_id = r.get("stock_id")
+        if not stock_id:
+            continue
+        # Unclassifiable ids would fail the FK into tw.stocks anyway.
+        security_type = classify_tw_security(stock_id)
+        if not security_type:
+            continue
 
-    with get_cursor() as cur:
-        for r in records:
-            stock_id = r.get("stock_id")
-            if not stock_id:
-                continue
-            if not _ensure_stock(cur, stock_id, r.get("name"), tw_market):
-                continue
+        stock_rows[stock_id] = (
+            stock_id, r.get("name") or stock_id, tw_market, security_type,
+        )
+        # Note: ref_price is deliberately NOT written by the sweeper. It is
+        # set once per day by the SinoPac pre-market path (upsert_reference)
+        # and the sweeper's limit_up / limit_down are wrapped in COALESCE so
+        # the authoritative pre-market values survive REST refreshes that
+        # don't carry them.
+        quote_rows[stock_id] = (
+            stock_id, trade_date,
+            r.get("open_price"), r.get("high_price"), r.get("low_price"), r.get("last_price"),
+            r.get("last_size"), r.get("last_trade_at"),
+            r.get("total_volume"), r.get("total_value"), r.get("tx_count"),
+            r.get("change_price"), r.get("change_pct"), r.get("amplitude"),
+            r.get("limit_up"), r.get("limit_down"),
+            "rest_sweep",
+        )
 
-            # Note: ref_price is deliberately NOT written by the sweeper. It is
-            # set once per day by the SinoPac pre-market path (upsert_reference)
-            # and the sweeper's limit_up / limit_down are wrapped in COALESCE so
-            # the authoritative pre-market values survive REST refreshes that
-            # don't carry them.
-            cur.execute(
-                """
+    return list(stock_rows.values()), list(quote_rows.values())
+
+
+_STOCKS_INSERT = """
+    INSERT INTO tw.stocks (stock_id, name, market, security_type)
+    VALUES %s
+    ON CONFLICT (stock_id) DO NOTHING
+"""
+
+_QUOTES_UPSERT = """
                 INSERT INTO tw.intraday_quotes (
                     stock_id, trade_date,
                     open_price, high_price, low_price, last_price,
@@ -76,8 +104,32 @@ def upsert_quotes(records: list[dict], market: str, trade_date=None):
                     limit_up, limit_down,
                     source, updated_at
                 )
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, NOW())
-                ON CONFLICT (stock_id) DO UPDATE SET
+                VALUES %s
+                ON CONFLICT (stock_id) DO UPDATE SET"""
+
+
+def upsert_quotes(records: list[dict], market: str, trade_date=None):
+    """Bulk upsert from the REST sweeper.
+
+    market: 'TSE' or 'OTC' (maps to tw.stocks.market TWSE/TPEx)
+
+    A full sweep carries ~2200 rows. Sending them one statement at a time cost
+    two round trips each -- about 2.8s of the ~3.5s each cycle spent working,
+    which is why the 20s interval was observed landing at 23-24s.
+    """
+    if not records:
+        return 0
+
+    tw_market = _MARKET_BY_SNAPSHOT.get(market, market)
+    stock_rows, quote_rows = _prepare_quote_rows(records, tw_market, trade_date)
+    if not quote_rows:
+        return 0
+
+    with get_cursor() as cur:
+        execute_values(cur, _STOCKS_INSERT, stock_rows, page_size=1000)
+        execute_values(
+            cur,
+            _QUOTES_UPSERT + """
                     trade_date    = COALESCE(EXCLUDED.trade_date,    tw.intraday_quotes.trade_date),
                     open_price    = COALESCE(EXCLUDED.open_price,    tw.intraday_quotes.open_price),
                     high_price    = COALESCE(EXCLUDED.high_price,    tw.intraday_quotes.high_price),
@@ -95,20 +147,15 @@ def upsert_quotes(records: list[dict], market: str, trade_date=None):
                     limit_down    = COALESCE(EXCLUDED.limit_down,    tw.intraday_quotes.limit_down),
                     source        = EXCLUDED.source,
                     updated_at    = NOW()
-                """,
-                (
-                    stock_id, trade_date,
-                    r.get("open_price"), r.get("high_price"), r.get("low_price"), r.get("last_price"),
-                    r.get("last_size"), r.get("last_trade_at"),
-                    r.get("total_volume"), r.get("total_value"), r.get("tx_count"),
-                    r.get("change_price"), r.get("change_pct"), r.get("amplitude"),
-                    r.get("limit_up"), r.get("limit_down"),
-                    "rest_sweep",
-                ),
-            )
-            written += 1
+            """,
+            quote_rows,
+            # 17 placeholders plus the server-side NOW(); keep in step with the
+            # column list in _QUOTES_UPSERT and the tuple in _prepare_quote_rows.
+            template="(" + ", ".join(["%s"] * 17) + ", NOW())",
+            page_size=500,
+        )
 
-    return written
+    return len(quote_rows)
 
 
 def upsert_trade(stock_id: str, last_price: float, last_size: int | None,
