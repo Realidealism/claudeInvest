@@ -15,6 +15,7 @@ import pytest
 
 from export.generate import (
     YIELD_THRESHOLDS,
+    _stamp,
     _breadth_row_from_counts,
     _serial,
     _vix_rating,
@@ -217,3 +218,23 @@ def test_breadth_row_is_json_serialisable():
     """It goes straight into _write, whose only escape hatch is _serial."""
     row = _breadth_row_from_counts(date(2026, 8, 7), 10, 1, 1, 1, 1, 1, 1)
     assert json.loads(json.dumps(row, default=_serial))["date"] == "2026-08-07"
+
+
+# ── _stamp ─────────────────────────────────────────────────────────────────
+
+def test_stamp_keeps_the_offset_free_format():
+    """Three pages render this string verbatim, so its shape is user-visible."""
+    stamp = _stamp()
+    assert len(stamp) == 19
+    assert stamp[10] == "T"
+    assert "+" not in stamp
+
+
+def test_stamp_is_computed_in_taipei_not_host_local_time():
+    """The bug being fixed: a naive datetime.now() silently assumed the host
+    was set to Taiwan."""
+    from datetime import datetime, timedelta, timezone
+
+    expected = datetime.now(timezone(timedelta(hours=8)))
+    actual = datetime.fromisoformat(_stamp())
+    assert abs((actual - expected.replace(tzinfo=None)).total_seconds()) < 60

@@ -16,6 +16,7 @@ from decimal import Decimal
 from pathlib import Path
 
 from db.connection import get_cursor, init_db
+from utils.tz import now as tpe_now
 
 
 def _disposal_status_for(ticker: str, freshness) -> str:
@@ -41,6 +42,17 @@ def _current_freshness():
         return detect_state()
     except Exception:
         return None
+
+
+def _stamp() -> str:
+    """Timestamp for the frontend, computed in Taipei rather than in whatever
+    timezone the host happens to be set to.
+
+    Emitted without an offset because three pages render this string verbatim
+    ("更新：{updated_at}"), and appending +08:00 would change what users see.
+    The bug being fixed is the computation, not the format.
+    """
+    return tpe_now().strftime("%Y-%m-%dT%H:%M:%S")
 
 
 def _serial(obj):
@@ -636,7 +648,7 @@ def export_revenue_screens(cur, out: Path, n_months: int = 4):
 
     if not months:
         _write({
-            "generated_at": datetime.now().isoformat(timespec="seconds"),
+            "generated_at": _stamp(),
             "available_months": [],
             "strategies": [],
             "data": {},
@@ -704,7 +716,7 @@ def export_revenue_screens(cur, out: Path, n_months: int = 4):
             data[ym][s["key"]] = rows
 
     _write({
-        "generated_at": datetime.now().isoformat(timespec="seconds"),
+        "generated_at": _stamp(),
         "export_date": date.today().isoformat(),
         "available_months": months,
         "strategies": strategies_meta,
@@ -1535,7 +1547,7 @@ def export_insider_pledge(cur, out: Path):
     }
 
     _write({
-        "updated_at": datetime.now().isoformat(timespec="seconds"),
+        "updated_at": _stamp(),
         "events": events,
         "stats": stats,
     }, out / "insider_pledge.json")
@@ -1641,7 +1653,7 @@ def export_insider_selling(cur, out: Path):
     }
 
     _write({
-        "updated_at": datetime.now().isoformat(timespec="seconds"),
+        "updated_at": _stamp(),
         "events": events,
         "stats": stats,
     }, out / "insider_selling.json")
