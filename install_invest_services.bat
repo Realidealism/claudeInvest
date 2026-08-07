@@ -109,7 +109,7 @@ echo Stopping existing %OLD%...
 echo Removing existing %OLD%...
 "%NSSM%" remove %OLD% confirm > nul 2>&1
 REM Wait for SCM to release the service handle. If services.msc or Task
-REM Manager Services tab is open, this might not be enough — close them.
+REM Manager Services tab is open, this might not be enough - close them.
 timeout /t 5 /nobreak > nul
 goto :eof
 
