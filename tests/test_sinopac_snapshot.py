@@ -46,21 +46,21 @@ def test_normalize_happy_path():
     print(f"  normalize_happy_path: {'PASS' if ok else 'FAIL'}")
     if not ok:
         print(f"    got: {row}")
-    return ok
+    assert ok
 
 
 def test_normalize_drops_zero_close():
     row = _normalize_snapshot(_fake_snap(close=0.0))
     ok = row is None
     print(f"  normalize_drops_zero_close: {'PASS' if ok else 'FAIL'}")
-    return ok
+    assert ok
 
 
 def test_normalize_drops_blank_code():
     row = _normalize_snapshot(_fake_snap(code=""))
     ok = row is None
     print(f"  normalize_drops_blank_code: {'PASS' if ok else 'FAIL'}")
-    return ok
+    assert ok
 
 
 def test_normalize_volume_lots_to_shares():
@@ -68,14 +68,14 @@ def test_normalize_volume_lots_to_shares():
     row = _normalize_snapshot(_fake_snap(total_volume=100))
     ok = row is not None and row["total_volume"] == 100_000
     print(f"  normalize_volume_lots_to_shares: {'PASS' if ok else 'FAIL'}")
-    return ok
+    assert ok
 
 
 def test_normalize_zero_volume():
     row = _normalize_snapshot(_fake_snap(total_volume=0))
     ok = row is not None and row["total_volume"] is None
     print(f"  normalize_zero_volume: {'PASS' if ok else 'FAIL'}")
-    return ok
+    assert ok
 
 
 # ── Runner ──────────────────────────────────────────────────────────────────

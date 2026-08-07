@@ -13,14 +13,15 @@ Two layers:
      - Log in to Shioaji
      - Fetch all reference rows
      - Sanity check 2330 (ref > 0, limit_up > ref > limit_down)
-     - Gracefully SKIP if credentials are missing or the login fails
-       (so the test file doesn't block CI when running offline)
+     - Gracefully skips if credentials are missing or the login fails
+       (so the test file doesn't block a run made offline)
 
-Style matches tests/test_realtime_data.py — standalone script, prints PASS/FAIL,
-exits non-zero on failure.
+Run with pytest.
 """
 
 from types import SimpleNamespace
+
+import pytest
 
 from intraday.sinopac_reference import _normalise_stock
 
@@ -64,49 +65,49 @@ def test_normalise_happy_path():
     print(f"  normalise_happy_path: {'PASS' if ok else 'FAIL'}")
     if not ok:
         print(f"    got: {row}")
-    return ok
+    assert ok
 
 
 def test_normalise_drops_zero_reference():
     row = _normalise_stock(_fake_stock(reference=0.0), market="TWSE")
     ok = row is None
     print(f"  normalise_drops_zero_ref: {'PASS' if ok else 'FAIL'}")
-    return ok
+    assert ok
 
 
 def test_normalise_drops_zero_limit_up():
     row = _normalise_stock(_fake_stock(limit_up=0.0), market="TWSE")
     ok = row is None
     print(f"  normalise_drops_zero_limit_up: {'PASS' if ok else 'FAIL'}")
-    return ok
+    assert ok
 
 
 def test_normalise_drops_zero_limit_down():
     row = _normalise_stock(_fake_stock(limit_down=0.0), market="TWSE")
     ok = row is None
     print(f"  normalise_drops_zero_limit_down: {'PASS' if ok else 'FAIL'}")
-    return ok
+    assert ok
 
 
 def test_normalise_drops_blank_code():
     row = _normalise_stock(_fake_stock(code=""), market="TWSE")
     ok = row is None
     print(f"  normalise_drops_blank_code: {'PASS' if ok else 'FAIL'}")
-    return ok
+    assert ok
 
 
 def test_normalise_strips_whitespace():
     row = _normalise_stock(_fake_stock(code=" 2330 ", name="  台積電 "), market="TPEx")
     ok = row is not None and row["stock_id"] == "2330" and row["name"] == "台積電"
     print(f"  normalise_strips_whitespace: {'PASS' if ok else 'FAIL'}")
-    return ok
+    assert ok
 
 
 def test_normalise_day_trade_no():
     row = _normalise_stock(_fake_stock(day_trade="No"), market="TWSE")
     ok = row is not None and row["day_trade"] is False
     print(f"  normalise_day_trade_no: {'PASS' if ok else 'FAIL'}")
-    return ok
+    assert ok
 
 
 def test_normalise_drops_unknown_security_type():
@@ -116,7 +117,7 @@ def test_normalise_drops_unknown_security_type():
     row = _normalise_stock(_fake_stock(code="030123"), market="TWSE")
     ok = row is None
     print(f"  normalise_drops_unknown_security: {'PASS' if ok else 'FAIL'}")
-    return ok
+    assert ok
 
 
 # ── Integration smoke test ─────────────────────────────────────────────────
@@ -125,32 +126,29 @@ def test_normalise_drops_unknown_security_type():
 def test_login_and_fetch_2330():
     """
     Full login + contract fetch. Validates 2330 comes back with sane values.
-    Skips (returns True) if credentials are missing or login fails.
+    Skips if credentials are missing or login fails.
     """
     from config.settings import SINOPAC_API_KEY, SINOPAC_SECRET_KEY
     if not SINOPAC_API_KEY or not SINOPAC_SECRET_KEY:
-        print("  login_and_fetch_2330: SKIP (SINOPAC_API_KEY / SINOPAC_SECRET_KEY not set)")
-        return True
+        pytest.skip("SINOPAC_API_KEY / SINOPAC_SECRET_KEY not set")
 
     try:
         from intraday.sinopac_loader import load_api, logout_api
         from intraday.sinopac_reference import fetch_reference_rows
     except Exception as e:
-        print(f"  login_and_fetch_2330: SKIP (import failed: {e})")
-        return True
+        pytest.skip(f"import failed: {e}")
 
     api = None
     try:
         api = load_api()
         rows = fetch_reference_rows(api)
     except Exception as e:
-        print(f"  login_and_fetch_2330: SKIP ({type(e).__name__}: {e})")
         if api is not None:
             try:
                 logout_api(api)
             except Exception:
                 pass
-        return True
+        pytest.skip(f"login/fetch failed: {type(e).__name__}: {e}")
 
     try:
         by_id = {r["stock_id"]: r for r in rows}
@@ -166,8 +164,7 @@ def test_login_and_fetch_2330():
         if hit_2330:
             msg += f", 2330 ref={hit_2330['ref_price']}, up={hit_2330['limit_up']}, down={hit_2330['limit_down']}"
         msg += ")"
-        print(f"  login_and_fetch_2330: {'PASS' if ok else 'FAIL'}  {msg}")
-        return ok
+        assert ok, msg
     finally:
         logout_api(api)
 

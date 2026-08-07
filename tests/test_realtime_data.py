@@ -8,11 +8,12 @@ Two layers:
   2. Integration smoke test that calls load_stock_data_live('2330') against
      the real database — skipped if the DB is unreachable.
 
-Style matches existing tests/test_*.py: standalone script, prints PASS/FAIL,
-exits non-zero on failure.
+Run with pytest.
 """
 
 from datetime import date
+
+import pytest
 
 from analysis.realtime_data import (
     _intraday_to_daily_shape,
@@ -67,7 +68,7 @@ def test_intraday_to_daily_shape_maps_fields():
     print(f"  intraday_to_daily_shape: {'PASS' if ok else 'FAIL'}")
     if not ok:
         print(f"    got: {out}")
-    return ok
+    assert ok
 
 
 def test_merge_returns_history_when_no_intraday():
@@ -81,7 +82,7 @@ def test_merge_returns_history_when_no_intraday():
         and merged[-1]["trade_date"] == date(2026, 4, 10)
     )
     print(f"  merge_no_intraday: {'PASS' if ok else 'FAIL'}")
-    return ok
+    assert ok
 
 
 def test_merge_skips_when_intraday_date_already_in_daily():
@@ -102,7 +103,7 @@ def test_merge_skips_when_intraday_date_already_in_daily():
         and merged[-1]["trade_date"] == today
     )
     print(f"  merge_skip_when_already_in_daily: {'PASS' if ok else 'FAIL'}")
-    return ok
+    assert ok
 
 
 def test_merge_appends_when_intraday_is_newer():
@@ -128,14 +129,14 @@ def test_merge_appends_when_intraday_is_newer():
     print(f"  merge_appends_when_newer: {'PASS' if ok else 'FAIL'}")
     if not ok:
         print(f"    last row: {merged[-1]}")
-    return ok
+    assert ok
 
 
 def test_merge_handles_empty_history():
     merged = _merge_intraday_into_daily([], _make_intraday(date(2026, 4, 13)))
     ok = merged == []
     print(f"  merge_empty_history: {'PASS' if ok else 'FAIL'}")
-    return ok
+    assert ok
 
 
 def test_merge_prefers_sinopac_ref_when_present():
@@ -158,7 +159,7 @@ def test_merge_prefers_sinopac_ref_when_present():
     print(f"  merge_prefers_sinopac_ref: {'PASS' if ok else 'FAIL'}")
     if not ok:
         print(f"    last row: {merged[-1]}")
-    return ok
+    assert ok
 
 
 # ── Integration smoke test ──────────────────────────────────────────────────
@@ -173,8 +174,7 @@ def test_load_2330_smoke():
     try:
         data = load_stock_data_live("2330")
     except Exception as e:
-        print(f"  load_2330_smoke: SKIP ({type(e).__name__}: {e})")
-        return True
+        pytest.skip(f"database unavailable: {type(e).__name__}: {e}")
 
     n = data.n
     last_close = float(data.close[-1])
@@ -191,10 +191,10 @@ def test_load_2330_smoke():
         and last_close > 0
         and sma5_last > 0
     )
-    print(f"  load_2330_smoke: {'PASS' if ok else 'FAIL'}  "
-          f"(n={n}, last_date={last_date}, last_close={last_close:.2f}, "
-          f"sma5={sma5_last:.2f})")
-    return ok
+    assert ok, (
+        f"n={n}, last_date={last_date}, last_close={last_close:.2f}, "
+        f"sma5={sma5_last:.2f}"
+    )
 
 
 # ── Runner ──────────────────────────────────────────────────────────────────

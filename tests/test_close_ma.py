@@ -7,12 +7,38 @@ computed expected values.
 """
 
 import numpy as np
+import pytest
 from decimal import Decimal
 from db.connection import get_cursor
 from analysis.close import calculate_close
 
 STOCK_ID = "2330"
 DAYS = 60
+
+pytestmark = pytest.mark.needs_db
+
+
+@pytest.fixture(scope="module")
+def data():
+    """OHLCV for the reference stock, or skip if the DB is unreachable.
+
+    A real skip, not a print: a run that could not reach the database must
+    not be reported as a pass.
+    """
+    try:
+        return fetch_data()
+    except Exception as exc:
+        pytest.skip(f"database unavailable: {type(exc).__name__}: {exc}")
+
+
+@pytest.fixture(scope="module")
+def close(data):
+    return data["close"]
+
+
+@pytest.fixture(scope="module")
+def result(close):
+    return calculate_close(close)
 
 
 def fetch_data() -> dict:
@@ -108,7 +134,7 @@ def test_sma(result, close):
         print(f"  SMA({period:>3d}): {status}  max_diff={max_diff:.4f}  "
               f"last={','.join(calc_vals)}  ref={','.join(ref_vals)}")
 
-    return all_pass
+    assert all_pass
 
 
 def test_ema(result, close):
@@ -138,7 +164,7 @@ def test_ema(result, close):
         print(f"  EMA({period:>3d}): {status}  max_diff={max_diff:.4f}  "
               f"last={','.join(last_calc)}  ref={','.join(last_ref)}")
 
-    return all_pass
+    assert all_pass
 
 
 def test_close_on_ma(result, close):
@@ -167,7 +193,7 @@ def test_close_on_ma(result, close):
         print(f"  CloseOnMA({period:>3d}): {status}  mismatches={mismatch}  "
               f"last: close={close[-1]:.2f} sma={sma_arr[-1]:.2f} flag={flag[-1]}")
 
-    return all_pass
+    assert all_pass
 
 
 def test_bias(result, close):
@@ -195,7 +221,7 @@ def test_bias(result, close):
         print(f"  Bias({period:>3d}): {status}  max_diff={max_diff:.6f}  "
               f"last: bias={bias_arr[-1]:.4f} ref={ref[-1]:.4f}")
 
-    return all_pass
+    assert all_pass
 
 
 def test_sort(result):
@@ -231,7 +257,7 @@ def test_sort(result):
         print(f"  Sort Normal {label:>6s} ({p1},{p2},{p3}): {status}  "
               f"last: up={sort_r.up[-1]} down={sort_r.down[-1]}")
 
-    return all_pass
+    assert all_pass
 
 
 def test_data_sanity(data):
@@ -244,39 +270,7 @@ def test_data_sanity(data):
     print()
 
 
-def main():
-    data = fetch_data()
-    test_data_sanity(data)
-
-    close = data["close"]
-    result = calculate_close(close)
-
-    results = []
-    results.append(("SMA", test_sma(result, close)))
-    results.append(("EMA", test_ema(result, close)))
-    results.append(("CloseOnMA", test_close_on_ma(result, close)))
-    results.append(("Bias", test_bias(result, close)))
-    results.append(("Sort", test_sort(result)))
-
-    print()
-    print("=" * 60)
-    print("Summary")
-    print("=" * 60)
-    all_pass = True
-    for name, ok in results:
-        status = "PASS" if ok else "FAIL"
-        if not ok:
-            all_pass = False
-        print(f"  {name:<15s}: {status}")
-
-    print()
-    if all_pass:
-        print("All tests PASSED.")
-    else:
-        print("Some tests FAILED!")
-
-    return 0 if all_pass else 1
-
-
-if __name__ == "__main__":
-    exit(main())
+# The hand-rolled main() runner that used to live here called each test_*
+# function directly and tallied their return values. That is what made these
+# functions return bools instead of asserting, which in turn made pytest
+# report them as passing no matter what they found. Run this with pytest.
