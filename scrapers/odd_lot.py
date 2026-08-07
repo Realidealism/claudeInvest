@@ -50,7 +50,8 @@ def _parse_num(val) -> float | None:
 def _parse_twse_ol(rows: list, fields: list) -> tuple:
     """
     TWTC7U fields: 證券代號, 證券名稱, 成交股數, 成交筆數, 成交金額,
-                   成交均價, 最後揭示買價, ..., 最後揭示賣價, ...
+                   當日第一次成交價, 當日最後一次成交價, 當日最高價,
+                   當日最低價, 最後揭示買價, ..., 最後揭示賣價, ...
     Returns (records, parse_errors).
     """
     results = []
@@ -69,7 +70,7 @@ def _parse_twse_ol(rows: list, fields: list) -> tuple:
                 "stock_id": stock_id,
                 "name":     record.get("證券名稱", "").strip(),
                 "security_type": security_type,
-                "ol_price":    _parse_num(record.get("成交均價")),
+                "ol_price":    _parse_num(record.get("當日最後一次成交價")),
                 "ol_volume":   int(volume),
                 "ol_turnover": int(_parse_num(record.get("成交金額")) or 0),
                 "ol_tx_count": int(_parse_num(record.get("成交筆數")) or 0),
@@ -84,7 +85,7 @@ def _parse_twse_ol(rows: list, fields: list) -> tuple:
 def _parse_twse_ol_ah(rows: list, fields: list) -> tuple:
     """
     TWT53U fields: 證券代號, 證券名稱, 成交股數, 成交筆數, 成交金額,
-                   成交價格, 最後揭示買價, ...
+                   成交價, 最後揭示買價, ...
     Returns (records, parse_errors).
     """
     results = []
@@ -103,7 +104,7 @@ def _parse_twse_ol_ah(rows: list, fields: list) -> tuple:
                 "stock_id":      stock_id,
                 "name":          record.get("證券名稱", "").strip(),
                 "security_type": security_type,
-                "ol_ah_price":    _parse_num(record.get("成交價格")),
+                "ol_ah_price":    _parse_num(record.get("成交價")),
                 "ol_ah_volume":   int(volume),
                 "ol_ah_turnover": int(_parse_num(record.get("成交金額")) or 0),
                 "ol_ah_tx_count": int(_parse_num(record.get("成交筆數")) or 0),
@@ -332,6 +333,12 @@ def scrape_date(trade_date: date) -> ScrapeResult:
         records=total_records,
         api_rows=twse_api + tpex_api,
         parse_errors=twse_err + tpex_err,
+        failed_sources=tuple(
+            name for name, rows in (
+                ("TWSE 盤中", twse_ol), ("TWSE 盤後", twse_ol_ah),
+                ("TPEx 盤中", tpex_ol), ("TPEx 盤後", tpex_ol_ah),
+            ) if not rows
+        ),
     )
 
 

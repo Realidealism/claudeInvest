@@ -96,11 +96,13 @@ def save_placements(rows: list[dict]) -> int:
 
 def scrape_date(trade_date: date) -> ScrapeResult:
     """Daily hook: fetch full cumulative list for sii + otc, upsert (dedupes)."""
-    total = 0
-    for market in ("sii", "otc"):
-        total += save_placements(fetch(market))
+    saved = {market: save_placements(fetch(market)) for market in ("sii", "otc")}
+    total = sum(saved.values())
     print(f"  [placements] sii+otc, {total} cases upserted.")
-    return ScrapeResult(records=total, api_rows=total, parse_errors=0)
+    return ScrapeResult(
+        records=total, api_rows=total, parse_errors=0,
+        failed_sources=tuple(m for m, n in saved.items() if not n),
+    )
 
 
 if __name__ == "__main__":

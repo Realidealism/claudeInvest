@@ -17,6 +17,7 @@ from pathlib import Path
 
 from db.connection import get_cursor
 from telegram_bot.notify import send_sync
+from utils.format_shift import ScrapeResult, SHIFT_ERROR_RATE, SHIFT_MIN_ROWS
 
 # ---------------------------------------------------------------------------
 # Scraper registry — order matters (prices first, derived data last)
@@ -33,48 +34,67 @@ CRITICAL_SCRAPER_LABELS = {
     "TPEx daily prices",
 }
 
+# Fourth field is expect_rows: True when the source must yield rows on every
+# trading day, so records==0 means the scraper failed silently (HTTP 200 with
+# an empty body, or a swallowed request error) rather than "nothing happened
+# today". False sources legitimately return 0 rows and are exempt — each one
+# carries the reason inline. Keep the flag in the tuple rather than a separate
+# label set: a set silently stops matching when a label is renamed, and a new
+# scraper would default to unmonitored.
 SCRAPERS = [
     # Core daily prices
-    ("TWSE daily prices",       "scrapers.twse",             "scrape_date"),
-    ("TPEx daily prices",       "scrapers.tpex",             "scrape_date"),
-    ("TWSE after-hours",        "scrapers.twse_after_hours", "scrape_date"),
-    ("TPEx after-hours",        "scrapers.tpex_after_hours", "scrape_date"),
-    ("ESB emerging prices",     "scrapers.tpex_emerging",    "scrape_date"),
+    ("TWSE daily prices",       "scrapers.twse",             "scrape_date", True),
+    ("TPEx daily prices",       "scrapers.tpex",             "scrape_date", True),
+    ("TWSE after-hours",        "scrapers.twse_after_hours", "scrape_date", True),
+    ("TPEx after-hours",        "scrapers.tpex_after_hours", "scrape_date", True),
+    ("ESB emerging prices",     "scrapers.tpex_emerging",    "scrape_date", True),
     # Supplemental data
-    ("Odd-lot (all sessions)",  "scrapers.odd_lot",          "scrape_date"),
-    ("Margin trading",          "scrapers.margin",           "scrape_date"),
-    ("CNN Fear & Greed",        "scrapers.cnn_feargreed",    "scrape_date"),
-    ("Market quotes (大宗行情)", "scrapers.market_quote",     "scrape_date"),
-    ("Shipping/memory quotes",  "scrapers.market_html",      "scrape_date"),
-    ("Hog prices (毛豬)",        "scrapers.market_hog",       "scrape_date"),
-    ("Price limits",            "scrapers.price_limits",     "scrape_date"),
-    ("Institutional investors", "scrapers.institutional",    "scrape_date"),
-    # ETF holdings
-    ("ETF holdings",            "scrapers.etf_holdings",     "scrape_date"),
+    ("Odd-lot (all sessions)",  "scrapers.odd_lot",          "scrape_date", True),
+    ("Margin trading",          "scrapers.margin",           "scrape_date", True),
+    ("CNN Fear & Greed",        "scrapers.cnn_feargreed",    "scrape_date", True),
+    ("Market quotes (大宗行情)", "scrapers.market_quote",     "scrape_date", True),
+    ("Shipping/memory quotes",  "scrapers.market_html",      "scrape_date", True),
+    ("Hog prices (毛豬)",        "scrapers.market_hog",       "scrape_date", True),
+    ("Price limits",            "scrapers.price_limits",     "scrape_date", True),
+    ("Institutional investors", "scrapers.institutional",    "scrape_date", True),
+    # ETF holdings — exempt: scrape_date() returns None (no ScrapeResult), so
+    # there is no row count to judge. Needs a return contract before it can be
+    # monitored.
+    ("ETF holdings",            "scrapers.etf_holdings",     "scrape_date", False),
     # Securities lending
-    ("SBL (借券賣出)",           "scrapers.securities_lending", "scrape_date"),
+    ("SBL (借券賣出)",           "scrapers.securities_lending", "scrape_date", True),
     # Day trading
-    ("Day trading (當沖)",       "scrapers.day_trading",        "scrape_date"),
+    ("Day trading (當沖)",       "scrapers.day_trading",        "scrape_date", True),
     # TAIFEX futures/options (期貨/選擇權) — non-critical; after-hours session
     # for the same day may be incomplete and self-corrects on the next run.
-    ("TAIFEX futures",          "scrapers.taifex_futures",       "scrape_date"),
-    ("TAIFEX institutional",    "scrapers.taifex_institutional", "scrape_date"),
-    ("TAIFEX P/C ratio",        "scrapers.taifex_pc_ratio",      "scrape_date"),
-    # Alerts
-    ("Stock alerts (注意/處置)", "scrapers.stock_alerts",       "scrape_date"),
+    # Exempt for that same reason: a same-day 0 is a timing artifact.
+    ("TAIFEX futures",          "scrapers.taifex_futures",       "scrape_date", False),
+    ("TAIFEX institutional",    "scrapers.taifex_institutional", "scrape_date", False),
+    ("TAIFEX P/C ratio",        "scrapers.taifex_pc_ratio",      "scrape_date", False),
+    # Alerts — event-driven; exempt (no alert issued today => 0 rows)
+    ("Stock alerts (注意/處置)", "scrapers.stock_alerts",       "scrape_date", False),
     # Forward-looking board (除權除息預告) — feeds the morning-brief ex-dividend alert
-    ("Dividend calendar (除權息)", "scrapers.dividend_calendar", "scrape_date"),
+    # Event-driven; exempt (no upcoming ex-dividend => 0 rows)
+    ("Dividend calendar (除權息)", "scrapers.dividend_calendar", "scrape_date", False),
     # Forward-looking board (停券/融券最後回補日) — covering-squeeze calendar
-    ("Short-cover calendar (停券)", "scrapers.short_cover_calendar", "scrape_date"),
-    # Current-year AGM board (股東會開會日期, OpenAPI)
-    ("Shareholder meetings (股東會)", "scrapers.shareholder_meetings", "scrape_date"),
-    # Weekly/monthly (idempotent, run once per period)
-    ("Shareholder dist.",       "scrapers.shareholder_distribution", "scrape_date"),
-    ("Insider holdings",        "scrapers.insider_holdings",  "scrape_date"),
-    ("Insider pledge events",   "scrapers.insider_pledge_events", "scrape_date"),
-    ("Insider share transfers", "scrapers.insider_share_transfers", "scrape_date"),
-    ("Private placements",      "scrapers.private_placements", "scrape_date"),
-    ("Treasury stock",          "scrapers.treasury_stock",    "scrape_date"),
+    # Event-driven; exempt
+    ("Short-cover calendar (停券)", "scrapers.short_cover_calendar", "scrape_date", False),
+    # Current-year AGM board (股東會開會日期, OpenAPI) — AGMs cluster in Q2;
+    # exempt (0 rows outside the season is normal)
+    ("Shareholder meetings (股東會)", "scrapers.shareholder_meetings", "scrape_date", False),
+    # Weekly/monthly (idempotent, run once per period) — all exempt: the
+    # _run_completed guard makes 0 rows the norm on every day except the first
+    # run of each period.
+    ("Shareholder dist.",       "scrapers.shareholder_distribution", "scrape_date", False),
+    ("Insider holdings",        "scrapers.insider_holdings",  "scrape_date", False),
+    ("Insider pledge events",   "scrapers.insider_pledge_events", "scrape_date", False),
+    # Monthly filing window; exempt (no transfer declared this month => 0 rows)
+    ("Insider share transfers", "scrapers.insider_share_transfers", "scrape_date", False),
+    # Monitored: fetch() pulls the full cumulative table and upserts every row,
+    # so records is always large. A 0 means the request failed and was
+    # swallowed into an empty list.
+    ("Private placements",      "scrapers.private_placements", "scrape_date", True),
+    ("Treasury stock",          "scrapers.treasury_stock",    "scrape_date", False),
 ]
 
 
@@ -89,6 +109,12 @@ def _has_taiex(trade_date: date) -> bool:
 
 SCRAPER_MAX_RETRIES = 3
 SCRAPER_RETRY_WAIT  = 10  # seconds
+
+# expect_rows only applies to recent dates. Backfilling an old range via
+# update_range() hits sources that did not exist back then (odd-lot, day
+# trading, SBL ...), where 0 rows is the correct answer — judging those would
+# both spam the summary and burn SCRAPER_RETRY_WAIT on every one of them.
+EXPECT_ROWS_MAX_AGE_DAYS = 7
 
 
 def _capture_trace(failure_traces: dict[str, str], label: str) -> None:
@@ -105,12 +131,55 @@ def _capture_trace(failure_traces: dict[str, str], label: str) -> None:
         failure_traces[label] = "\n".join(lines[-3:])
 
 
+def _result_problem(result, expect_rows: bool) -> str | None:
+    """Judge a scraper's ScrapeResult, returning a reason string when it
+    represents a silent failure, or None when it looks healthy.
+
+    Catches the two failure modes that never raise: an empty response (HTTP
+    200 with no data, or a request error swallowed into an empty list) and a
+    format shift (the API still answers but most rows no longer parse).
+    """
+    if not isinstance(result, ScrapeResult):
+        # No return contract to judge (e.g. ETF holdings returns None).
+        return None
+
+    if expect_rows and result.records == 0:
+        return f"抓到 0 筆資料（此來源每個交易日應有資料）：{result}"
+
+    # A multi-leg scraper sums every leg into records, so one dead leg still
+    # leaves records far above zero. Judge the legs individually.
+    if expect_rows and result.failed_sources:
+        return (f"以下資料來源沒有回傳資料："
+                f"{'、'.join(result.failed_sources)}（其餘來源共 {result.records} 筆）")
+
+    # Same criteria as historical_update._check_shift, shared thresholds.
+    if result.api_rows >= SHIFT_MIN_ROWS and result.error_rate > SHIFT_ERROR_RATE:
+        return (
+            f"疑似 API 格式改版：{result.parse_errors}/{result.api_rows} 列解析失敗 "
+            f"（{result.error_rate:.0%}，門檻 {SHIFT_ERROR_RATE:.0%}）"
+        )
+
+    return None
+
+
 def run_scraper(
     label: str, module_path: str, func_name: str, trade_date: date,
+    expect_rows: bool = False,
 ) -> tuple[bool, str | None]:
     """Import and run a single scraper. Retries up to SCRAPER_MAX_RETRIES
-    times. Returns (success, last_trace) where last_trace is the last
-    failure's traceback summary (last 3 non-blank lines) on failure."""
+    times on an exception. Returns (success, last_trace) where last_trace is
+    the last failure's traceback summary (last 3 non-blank lines) on failure.
+
+    A scraper that returns without raising is still failed when its
+    ScrapeResult shows a silent failure (see _result_problem); the reason
+    takes last_trace's place in the telegram summary.
+
+    Soft failures are NOT retried here. Transient empty responses are already
+    covered one level down by utils.http_client.fetch_json_retry (3 attempts,
+    10s apart, on the same HTTP-200-but-invalid condition), so retrying the
+    whole scraper would multiply into 9 requests per leg -- aimed at sources
+    that may be rate-limiting us in the first place (MOPS, the HTML sites).
+    A format shift is deterministic: re-requesting parses identically."""
     import time
     import importlib
     mod = importlib.import_module(module_path)
@@ -119,8 +188,11 @@ def run_scraper(
     last_trace: str | None = None
     for attempt in range(1, SCRAPER_MAX_RETRIES + 1):
         try:
-            fn(trade_date)
-            return True, None
+            problem = _result_problem(fn(trade_date), expect_rows)
+            if problem is None:
+                return True, None
+            print(f"\n  [SOFT-FAIL] {label}: {problem}")
+            return False, problem
         except Exception:
             print(f"\n  [ERROR] {label} (attempt {attempt}/{SCRAPER_MAX_RETRIES}):")
             buf = io.StringIO()
@@ -212,8 +284,13 @@ def detect_delisted(trade_date: date):
         today_ids = {r["stock_id"] for r in cur.fetchall()}
 
         if not today_ids:
-            print("  [SKIP] No price data for today, cannot detect delistings.")
-            return
+            # Not a benign skip like the two guards above: every price scraper
+            # came back with nothing for a date we believe is a trading day.
+            # Raise so update_date's wrapper reports it instead of logging "ok".
+            raise RuntimeError(
+                f"No price data in DB for {trade_date} — cannot detect "
+                f"delistings. Check whether the TWSE/TPEx price scrapers ran."
+            )
 
         # Get currently active stocks in DB
         cur.execute("""
@@ -399,7 +476,9 @@ def update_date(trade_date: date):
 
     # Trading-day gate: TAIEX index must exist for the date to be valid.
     print(f"\n--- {INDEX_SCRAPER[0]} (trading-day gate) ---")
-    gate_ok, gate_trace = run_scraper(*INDEX_SCRAPER, trade_date)
+    # expect_rows=False: a holiday legitimately has no TAIEX row; the gate is
+    # enforced by _has_taiex() below instead.
+    gate_ok, gate_trace = run_scraper(*INDEX_SCRAPER, trade_date, expect_rows=False)
     if not _has_taiex(trade_date):
         print(f"\n[HOLIDAY] {trade_date} has no TAIEX data — skipping remaining scrapers.")
         return
@@ -411,9 +490,17 @@ def update_date(trade_date: date):
     if not gate_ok and gate_trace:
         failure_traces[INDEX_SCRAPER[0]] = gate_trace
 
-    for label, module_path, func_name in SCRAPERS:
+    judge_rows = (date.today() - trade_date).days <= EXPECT_ROWS_MAX_AGE_DAYS
+    if not judge_rows:
+        print(f"\n[BACKFILL] {trade_date} is older than "
+              f"{EXPECT_ROWS_MAX_AGE_DAYS} days — empty-result checks disabled.")
+
+    for label, module_path, func_name, expect_rows in SCRAPERS:
         print(f"\n--- {label} ---")
-        success, trace = run_scraper(label, module_path, func_name, trade_date)
+        success, trace = run_scraper(
+            label, module_path, func_name, trade_date,
+            expect_rows=expect_rows and judge_rows,
+        )
         results.append((label, "ok" if success else "failed"))
         if not success and trace:
             failure_traces[label] = trace
@@ -721,14 +808,19 @@ def update_date(trade_date: date):
     # period_start = today+1) BEFORE the export so positions.json's
     # disposal_status reflects the DEFINITIVE announcement rather than a
     # prediction. Keyed on date.today() to match _get_disposal_status's own
-    # "next trading day" lookup. Best-effort; non-critical.
+    # "next trading day" lookup. Non-blocking, but still reported: a silent
+    # failure here quietly reverts positions.json's disposal_status to the
+    # prediction, which looks identical to a day with no disposals.
     print(f"\n--- 明日處置名單抓取 ---")
     try:
         from scrapers.stock_alerts import scrape_date as _scrape_alerts
         from telegram_bot.handlers.score import _next_trading_day
         _scrape_alerts(_next_trading_day(date.today()))
+        results.append(("明日處置名單抓取", "ok"))
     except Exception:
-        print("  [WARN] next-day disposal scrape failed (non-critical).")
+        print("  [ERROR] next-day disposal scrape failed:")
+        _capture_trace(failure_traces, "明日處置名單抓取")
+        results.append(("明日處置名單抓取", "failed"))
 
     # Export JSON + git push for Vercel auto-deploy
     print(f"\n--- Frontend export + deploy ---")

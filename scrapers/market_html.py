@@ -445,7 +445,11 @@ def scrape_date(trade_date: date) -> ScrapeResult:
     saved = save_rows(rows)
     print(f"  market_html: saved {saved} rows "
           f"(failed: {', '.join(failed) or 'none'})")
-    return ScrapeResult(records=saved, api_rows=len(rows), parse_errors=len(failed))
+    # parse_errors stays 0: `failed` counts whole source symbols, not
+    # unparseable rows, so mixing it with api_rows (data points) would give
+    # daily_update._result_problem a meaningless error rate. Failed sources
+    # are reported by the print above and by the all-failed raise.
+    return ScrapeResult(records=saved, api_rows=len(rows), parse_errors=0)
 
 
 if __name__ == "__main__":

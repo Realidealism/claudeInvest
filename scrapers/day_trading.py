@@ -192,6 +192,10 @@ def scrape_date(trade_date: date) -> ScrapeResult:
         records=total,
         api_rows=twse_api + tpex_api,
         parse_errors=twse_err + tpex_err,
+        failed_sources=tuple(
+            name for name, rows in (("TWSE", twse_records), ("TPEx", tpex_records))
+            if not rows
+        ),
     )
 
 

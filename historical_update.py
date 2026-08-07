@@ -29,13 +29,9 @@ import traceback
 from datetime import date, timedelta
 
 from db.connection import get_cursor
-from utils.format_shift import FormatShiftError, ScrapeResult
-
-# ---------------------------------------------------------------------------
-# Thresholds
-# ---------------------------------------------------------------------------
-SHIFT_ERROR_RATE = 0.40   # stop if >40% of API rows fail to parse
-SHIFT_MIN_ROWS   = 10     # only check when API returned >= this many rows
+from utils.format_shift import (
+    FormatShiftError, ScrapeResult, SHIFT_ERROR_RATE, SHIFT_MIN_ROWS,
+)
 
 # ---------------------------------------------------------------------------
 # Scraper registry

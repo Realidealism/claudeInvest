@@ -153,7 +153,11 @@ def scrape(rng: str = "1mo") -> ScrapeResult:
     saved = save_rows(rows)
     print(f"  market_quote: saved {saved} rows over {len(SYMBOLS) - failures}"
           f"/{len(SYMBOLS)} symbols (api={api_rows}, failed={failures})")
-    return ScrapeResult(records=saved, api_rows=api_rows, parse_errors=failures)
+    # parse_errors stays 0: `failures` counts whole symbols, not unparseable
+    # rows, so mixing it with api_rows (data points) would give
+    # daily_update._result_problem a meaningless error rate. Symbol failures
+    # are reported by the print above and by the all-failed raise.
+    return ScrapeResult(records=saved, api_rows=api_rows, parse_errors=0)
 
 
 def scrape_date(trade_date: date) -> ScrapeResult:
