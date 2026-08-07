@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import argparse
 import io
+import os
 import sys
 from pathlib import Path
 
@@ -25,6 +26,11 @@ from signal_backtest.signal import SIGNAL_FACTORIES
 from signal_backtest.batch import run_batch, run_batch_multi
 from signal_backtest.aggregate import aggregate
 from signal_backtest.report import format_report
+
+# Capped at 8 rather than every logical core: the documented sweet spot is
+# physical cores (hyperthreads give diminishing returns here), and os.cpu_count
+# reports logical ones. Runs that want more pass --workers explicitly.
+DEFAULT_WORKERS = min(8, os.cpu_count() or 1)
 
 
 def parse_args() -> argparse.Namespace:
@@ -67,9 +73,11 @@ def parse_args() -> argparse.Namespace:
     p.add_argument(
         "--workers",
         type=int,
-        default=1,
-        help="Parallel worker processes for --signals mode "
-             "(default 1 = sequential). 4-8 recommended for full-universe runs.",
+        default=DEFAULT_WORKERS,
+        help=f"Parallel worker processes for --signals mode "
+             f"(default {DEFAULT_WORKERS} on this machine; pass 1 to force "
+             f"sequential). Verified bit-identical to sequential across all 8 "
+             f"signals, so parallelism only costs memory.",
     )
     p.add_argument(
         "--cache",

@@ -31,6 +31,7 @@ from __future__ import annotations
 import argparse
 import importlib.util
 import json
+import os
 import sqlite3
 import sys
 import time
@@ -360,7 +361,8 @@ def run_sweep(
 def main() -> None:
     ap = argparse.ArgumentParser(description="統一 sweep runner（spec 檔模式）")
     ap.add_argument("spec", help="spec 檔路徑（tmp/sweep_spec_*.py）")
-    ap.add_argument("--workers", type=int, default=1)
+    ap.add_argument("--workers", type=int, default=min(8, os.cpu_count() or 1),
+                    help="平行 worker 數（預設為本機核心數上限 8）；傳 1 強制序列")
     ap.add_argument("--cache", action="store_true", help="StockData pickle 快取")
     ap.add_argument("--limit", type=int, default=None, help="只跑前 N 檔（試跑用）")
     ap.add_argument("--no-archive", action="store_true",
