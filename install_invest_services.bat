@@ -10,7 +10,7 @@ REM stdout/stderr to logs\ with 10 MB rotation.
 REM
 REM Does NOT touch:
 REM   InvestTelegramBot (existing NSSM service, unrelated)
-REM   feargreed_update / intraday_publish (Task Scheduler)
+REM   intraday_publish (Task Scheduler)
 REM
 REM Run as Administrator (required by sc / nssm).
 REM
