@@ -29,6 +29,7 @@ import traceback
 from datetime import date, timedelta
 
 from db.connection import get_cursor
+from utils.console import pause_before_exit
 from utils.format_shift import (
     FormatShiftError, ScrapeResult, SHIFT_ERROR_RATE, SHIFT_MIN_ROWS,
 )
@@ -228,7 +229,7 @@ def run(
 
     if not all_days:
         print("No trading days found in this range.")
-        input("\nPress Enter to exit...")
+        pause_before_exit()
         return
 
     days = list(reversed(all_days)) if not oldest_first else all_days
@@ -272,7 +273,7 @@ def run(
             print(f"  1. Inspect the API response for {e.scraper} around {e.trade_date}")
             print(f"  2. Update the relevant parse function in the scraper")
             print(f"  3. Re-run — completed dates will be skipped automatically")
-            input("\nPress Enter to exit...")
+            pause_before_exit()
             sys.exit(1)
 
         except ScraperCrashError as e:
@@ -282,13 +283,13 @@ def run(
             print(f"  Date    : {e.trade_date}")
             print(f"  Error   : {e.original}")
             print(f"{'!'*60}")
-            input("\nPress Enter to exit...")
+            pause_before_exit()
             sys.exit(1)
 
     print(f"\n{'='*60}")
     print(f"  Historical update complete: {len(days)} dates processed.")
     print(f"{'='*60}")
-    input("\nPress Enter to exit...")
+    pause_before_exit()
 
 
 # ---------------------------------------------------------------------------

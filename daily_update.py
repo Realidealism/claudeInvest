@@ -17,6 +17,7 @@ from pathlib import Path
 
 from db.connection import get_cursor
 from telegram_bot.notify import send_sync
+from utils.console import pause_before_exit
 from utils.format_shift import ScrapeResult, SHIFT_ERROR_RATE, SHIFT_MIN_ROWS
 
 # ---------------------------------------------------------------------------
@@ -944,20 +945,4 @@ if __name__ == "__main__":
         print(f"\n[ERROR] {e}")
         traceback.print_exc()
 
-    # Pause for a double-click user to read the output, but NEVER block
-    # forever. Under Task Scheduler the allocated console's stdin neither
-    # raises EOFError nor receives input, so a bare input() hangs the process
-    # indefinitely — that left daily_update.exe wedged for days, one zombie
-    # per nightly run, locking dist\daily_update.exe against rebuilds. Run the
-    # prompt in a daemon thread and time it out so the process always exits.
-    import threading
-
-    def _wait_enter():
-        try:
-            input("\nPress Enter to exit...")
-        except (EOFError, OSError):
-            pass
-
-    _t = threading.Thread(target=_wait_enter, daemon=True)
-    _t.start()
-    _t.join(timeout=30)
+    pause_before_exit()
