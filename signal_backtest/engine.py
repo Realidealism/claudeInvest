@@ -81,15 +81,7 @@ def rolling_lowest_safe(
     the window. When a boundary at index b is within [i-period+1, i],
     the window starts at b (the new regime's first bar) instead.
     """
-    n = len(arr)
-    out = np.full(n, np.nan, dtype=arr.dtype)
-    for i in range(n):
-        start = max(0, i - period + 1)
-        b = int(last_boundary[i])
-        if b > start:
-            start = b
-        out[i] = arr[start:i + 1].min()
-    return out
+    return _rolling_extreme_safe(arr, period, last_boundary, lowest=True)
 
 
 def rolling_highest_safe(
@@ -98,14 +90,48 @@ def rolling_highest_safe(
     last_boundary: NDArray[np.int32],
 ) -> NDArray[np.float32]:
     """Mirror of rolling_lowest_safe for short-side defense."""
+    return _rolling_extreme_safe(arr, period, last_boundary, lowest=False)
+
+
+def _rolling_extreme_safe(
+    arr: NDArray[np.float32],
+    period: int,
+    last_boundary: NDArray[np.int32],
+    lowest: bool,
+) -> NDArray[np.float32]:
+    """Boundary-clamped rolling extreme, without a per-bar Python loop.
+
+    Two observations make this vectorisable.
+
+    With no boundary in the window the clamp does nothing, so the plain
+    rolling extreme already gives the answer -- including at the start of the
+    series, where both definitions fall back to whatever bars exist.
+
+    A boundary at b only constrains bars b .. b+period-2; past that the
+    ordinary window already starts at or after b. Inside that stretch the
+    window start is pinned to b for every bar, so the answer is simply the
+    running extreme from b, which accumulate computes in one pass.
+
+    Boundaries are corporate-action gaps and therefore rare, so the fix-up
+    touches a tiny slice of a typical series. Walking them in increasing order
+    matters: when two fall within period of each other, the later one must
+    overwrite the earlier one's stretch, which is exactly what it does.
+    """
     n = len(arr)
-    out = np.full(n, np.nan, dtype=arr.dtype)
-    for i in range(n):
-        start = max(0, i - period + 1)
-        b = int(last_boundary[i])
-        if b > start:
-            start = b
-        out[i] = arr[start:i + 1].max()
+    if n == 0:
+        return np.zeros(0, dtype=arr.dtype)
+
+    base = rolling_lowest(arr, period) if lowest else rolling_highest(arr, period)
+    out = base.astype(arr.dtype, copy=True)
+
+    seen = last_boundary[last_boundary >= 0]
+    if seen.size:
+        accumulate = np.minimum.accumulate if lowest else np.maximum.accumulate
+        for b in np.unique(seen):
+            b = int(b)
+            end = min(n, b + period - 1)
+            out[b:end] = accumulate(arr[b:end])
+
     return out
 
 if TYPE_CHECKING:
