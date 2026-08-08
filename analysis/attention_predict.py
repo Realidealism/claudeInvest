@@ -491,6 +491,15 @@ def _check_rule_10(prices: list, meta: dict, mkt: dict) -> Alert | None:
 # same criterion differently; 詳細規定第十二條 is where the數據 live).
 _R12_NEW_RULES_START = date(2026, 8, 10)
 
+# The graduated ladder below is not the original rule either. Reconstructing
+# thresholds from the 起迄價差 quoted in historical 注意 announcements, every
+# close-price bucket sits flat at 100元 (TWSE) / 70元 (TPEx) through
+# 2024-07-03 — 大立光 triggered at 5,780元 on a 150元 spread in 2017, where the
+# ladder would demand 375元 — and matches the ladder without exception from
+# the 2024-07-18 announcements onward. The boundary is inferred from that
+# data, not from a published effective date.
+_R12_LADDER_START = date(2024, 7, 18)
+
 
 def r12_threshold(
     today_close: float, market: str, trade_date: date
@@ -500,9 +509,10 @@ def r12_threshold(
     數據定義於「異常標準之詳細數據及除外情形」第十二條): the 款 only applies
     above 1,000元 — 1,001~2,000 → 300元, then every full 1,000元 band adds
     150元 (2,001~3,000 → 450元, ... 19,001~20,000 → 3,000元).
-    Before the amendment the two markets had separate ladders:
+    From 2024-07-18 to the amendment the two markets had separate ladders:
         TWSE 100元 base + 25元 per 500元 above 500元
-        TPEx  70元 base + 15元 per 300元 above 300元"""
+        TPEx  70元 base + 15元 per 300元 above 300元
+    Before 2024-07-18 those bases applied flat, with no price scaling."""
     if trade_date >= _R12_NEW_RULES_START:
         if today_close <= 1000:
             return None
@@ -512,7 +522,7 @@ def r12_threshold(
         base, step, level = 70, 15, 300
     else:
         base, step, level = 100, 25, 500
-    if today_close < level:
+    if trade_date < _R12_LADDER_START or today_close < level:
         return base
     return base + int(today_close // level) * step
 
