@@ -1154,6 +1154,25 @@ _DISTANCE_Z_SCALE = 3.0     # z × 3 → cap at ±3σ ≈ ±9 (close to ±10 cap
 _DISTANCE_CAP = 10.0
 
 
+def _clip(x: float, lo: float, hi: float) -> float:
+    """Clamp a Python float.
+
+    np.clip costs about 2.4us on a scalar -- it builds an array, dispatches a
+    ufunc and boxes the result. That is 77% of _zscore_close_vs_sma, which the
+    ScoreBoard calls hundreds of thousands of times per intraday snapshot pass.
+    This is about 0.02us.
+
+    Results are identical, NaN included: every comparison against NaN is False,
+    so both branches fall through and the NaN is returned, which is what
+    np.clip does.
+    """
+    if x < lo:
+        return lo
+    if x > hi:
+        return hi
+    return x
+
+
 def _dev_rolling_std(d: "StockData", sma_period: int):
     """Rolling std of (close - SMA(N)), computed once per stock and period.
 
@@ -1205,7 +1224,7 @@ def _zscore_close_vs_sma(d: "StockData", i: int, sma_period: int,
     if std <= 0:
         return 0.0
     z = dev_now / std
-    return float(np.clip(z * _DISTANCE_Z_SCALE, -cap, cap))
+    return _clip(z * _DISTANCE_Z_SCALE, -cap, cap)
 
 
 def _add_distance_rules(board: ScoreBoard) -> None:
@@ -1331,7 +1350,7 @@ def _vol_zscore(d: "StockData", i: int, market_vol: MarketVolSeries) -> float:
     if mv <= 0.0:
         return 0.0
     z = -(float(np.log(v / mv)) - _VOL_MU) / _VOL_SIGMA
-    return float(np.clip(z * _VOL_K, -_VOL_CLIP, _VOL_CLIP))
+    return _clip(z * _VOL_K, -_VOL_CLIP, _VOL_CLIP)
 
 
 def _add_volatility_rules(board: ScoreBoard, market_vol: MarketVolSeries) -> None:
