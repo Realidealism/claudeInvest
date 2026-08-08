@@ -1,6 +1,6 @@
 {
-  "as_of": "2026-08-05",
-  "score": 59.0,
+  "as_of": "2026-08-07",
+  "score": 61.7,
   "bucket": "無頂部訊號",
   "bucket_color": "#8a8a9a",
   "danger": false,
@@ -11,9 +11,9 @@
   "stance3_color": "#ef4444",
   "stance3_reason": "防守中（排列：中性）：高點防守（高信念頂部）／向下趨勢／波段停滯（過熱背景下跌破 5 日高）；漲回頂位之上／站回 5 日高／指數站回 13 日高／排列回多方／外資翻多且空頭力竭／恐慌急殺 V 任一則轉攻",
   "exposure": "空手",
-  "swing": false,
+  "swing": true,
   "near_high": false,
-  "pct_from_high": -6.6,
+  "pct_from_high": -7.4,
   "hi_window": 55,
   "alert": false,
   "alert_conditions": [
@@ -25,21 +25,21 @@
   "margin_alert": false,
   "margin_alert_conditions": [
     {
-      "name": "融資/成交量 布林 z ≥ +1.5σ（現 -1.6σ）",
+      "name": "融資/成交量 布林 z ≥ +1.5σ（現 -1.1σ）",
       "met": false
     }
   ],
   "limitup_alert": false,
   "limitup_alert_conditions": [
     {
-      "name": "漲停佔比 90 日乖離 z ≥ +1.0σ（現 +0.5σ、漲停 4.0%）",
+      "name": "漲停佔比 90 日乖離 z ≥ +1.0σ（現 -1.0σ、漲停 1.3%）",
       "met": false
     }
   ],
   "limitup_bear_alert": false,
   "limitup_bear_conditions": [
     {
-      "name": "漲停過熱（漲停佔比 90 日乖離 z ≥ +1.0σ，現 +0.5σ）",
+      "name": "漲停過熱（漲停佔比 90 日乖離 z ≥ +1.0σ，現 -1.0σ）",
       "met": false
     },
     {
@@ -52,15 +52,15 @@
   "top_vote_k": 3,
   "top_vote_conditions": [
     {
-      "name": "外資期貨淨空創 78 日新低",
+      "name": "外資期貨淨空（55 日乖離 z ≤ −1.6σ，投票用去趨勢，與紅燈的「創 78 日新低」不同尺）",
       "met": false
     },
     {
-      "name": "外資選擇權避險偏空（買賣權淨OI 252 日百分位 ≤ 33%，現 49%）",
+      "name": "外資選擇權避險偏空（買賣權淨OI 252 日百分位 ≤ 33%，現 48%）",
       "met": false
     },
     {
-      "name": "漲停過熱（90 日乖離 z ≥ +1.5σ，投票用門檻比漲停燈的 +1.0σ 嚴；現 +0.5σ）",
+      "name": "漲停過熱（90 日乖離 z ≥ +1.5σ，投票用門檻比漲停燈的 +1.0σ 嚴；現 -1.0σ）",
       "met": false
     },
     {
@@ -72,14 +72,14 @@
   "warn_conditions": [
     {
       "name": "頂部過熱燈亮（近 3 日）",
-      "met": true
+      "met": false
     },
     {
       "name": "排列尚未翻空（short 排列：中性）",
       "met": true
     },
     {
-      "name": "short 空頭排列 3 日急升 ≥ +6pp（現 -62.7pp）",
+      "name": "short 空頭排列 3 日急升 ≥ +6pp（現 -27.9pp）",
       "met": false
     }
   ],
@@ -103,82 +103,16 @@
       "key": "futures",
       "name": "外資期貨定位",
       "hot": 96.2,
-      "detail": "外資臺股期貨淨未平倉 -87,199 口（78日百分位越低越淨空＝越熱）"
+      "detail": "外資臺股期貨淨未平倉 -87,911 口（78日百分位越低越淨空＝越熱）"
     },
     {
       "key": "margin",
       "name": "融資水位",
-      "hot": 21.8,
-      "detail": "融資餘額金額 5,235億（距 55 日均 -1.13σ；+2σ=過熱）"
+      "hot": 27.3,
+      "detail": "融資餘額金額 5,377億（距 55 日均 -0.91σ；+2σ=過熱）"
     }
   ],
   "history": [
-    {
-      "date": "2025-07-24",
-      "score": 81.9,
-      "tx": 23374,
-      "label": "無頂部訊號",
-      "color": "#8a8a9a",
-      "stance": "攻擊",
-      "s3": "攻擊",
-      "x": true,
-      "panic": false,
-      "m_alert": false,
-      "l_alert": false,
-      "lb_alert": false,
-      "tv_alert": false,
-      "tv_n": 0,
-      "warn": false,
-      "swing": false,
-      "c": {
-        "futures": 76.9,
-        "margin": 87.0
-      }
-    },
-    {
-      "date": "2025-07-25",
-      "score": 81.4,
-      "tx": 23364,
-      "label": "無頂部訊號",
-      "color": "#8a8a9a",
-      "stance": "攻擊",
-      "s3": "攻擊",
-      "x": true,
-      "panic": false,
-      "m_alert": false,
-      "l_alert": false,
-      "lb_alert": false,
-      "tv_alert": false,
-      "tv_n": 0,
-      "warn": false,
-      "swing": false,
-      "c": {
-        "futures": 74.4,
-        "margin": 88.5
-      }
-    },
-    {
-      "date": "2025-07-28",
-      "score": 78.2,
-      "tx": 23413,
-      "label": "無頂部訊號",
-      "color": "#8a8a9a",
-      "stance": "攻擊",
-      "s3": "攻擊",
-      "x": true,
-      "panic": false,
-      "m_alert": false,
-      "l_alert": false,
-      "lb_alert": false,
-      "tv_alert": false,
-      "tv_n": 0,
-      "warn": false,
-      "swing": false,
-      "c": {
-        "futures": 65.4,
-        "margin": 90.9
-      }
-    },
     {
       "date": "2025-07-29",
       "score": 69.7,
@@ -1667,7 +1601,7 @@
       "l_alert": false,
       "lb_alert": false,
       "tv_alert": false,
-      "tv_n": 0,
+      "tv_n": 1,
       "warn": false,
       "swing": false,
       "c": {
@@ -1755,7 +1689,7 @@
       "l_alert": false,
       "lb_alert": false,
       "tv_alert": false,
-      "tv_n": 0,
+      "tv_n": 1,
       "warn": false,
       "swing": false,
       "c": {
@@ -1799,7 +1733,7 @@
       "l_alert": true,
       "lb_alert": true,
       "tv_alert": false,
-      "tv_n": 0,
+      "tv_n": 1,
       "warn": false,
       "swing": false,
       "c": {
@@ -1821,7 +1755,7 @@
       "l_alert": false,
       "lb_alert": false,
       "tv_alert": false,
-      "tv_n": 0,
+      "tv_n": 1,
       "warn": false,
       "swing": false,
       "c": {
@@ -1865,7 +1799,7 @@
       "l_alert": false,
       "lb_alert": false,
       "tv_alert": false,
-      "tv_n": 0,
+      "tv_n": 1,
       "warn": false,
       "swing": false,
       "c": {
@@ -1931,7 +1865,7 @@
       "l_alert": false,
       "lb_alert": false,
       "tv_alert": false,
-      "tv_n": 0,
+      "tv_n": 1,
       "warn": false,
       "swing": false,
       "c": {
@@ -2305,7 +2239,7 @@
       "l_alert": false,
       "lb_alert": false,
       "tv_alert": false,
-      "tv_n": 0,
+      "tv_n": 1,
       "warn": false,
       "swing": false,
       "c": {
@@ -2723,7 +2657,7 @@
       "l_alert": true,
       "lb_alert": false,
       "tv_alert": false,
-      "tv_n": 1,
+      "tv_n": 2,
       "warn": false,
       "swing": false,
       "c": {
@@ -3295,7 +3229,7 @@
       "l_alert": false,
       "lb_alert": false,
       "tv_alert": false,
-      "tv_n": 1,
+      "tv_n": 2,
       "warn": true,
       "swing": true,
       "c": {
@@ -3339,7 +3273,7 @@
       "l_alert": false,
       "lb_alert": false,
       "tv_alert": false,
-      "tv_n": 1,
+      "tv_n": 2,
       "warn": false,
       "swing": true,
       "c": {
@@ -3361,7 +3295,7 @@
       "l_alert": true,
       "lb_alert": true,
       "tv_alert": false,
-      "tv_n": 1,
+      "tv_n": 2,
       "warn": false,
       "swing": true,
       "c": {
@@ -3383,7 +3317,7 @@
       "l_alert": false,
       "lb_alert": false,
       "tv_alert": false,
-      "tv_n": 1,
+      "tv_n": 2,
       "warn": false,
       "swing": true,
       "c": {
@@ -3426,8 +3360,8 @@
       "m_alert": false,
       "l_alert": true,
       "lb_alert": true,
-      "tv_alert": false,
-      "tv_n": 2,
+      "tv_alert": true,
+      "tv_n": 3,
       "warn": false,
       "swing": false,
       "c": {
@@ -3470,8 +3404,8 @@
       "m_alert": false,
       "l_alert": true,
       "lb_alert": true,
-      "tv_alert": false,
-      "tv_n": 2,
+      "tv_alert": true,
+      "tv_n": 3,
       "warn": false,
       "swing": true,
       "c": {
@@ -4065,7 +3999,7 @@
       "l_alert": false,
       "lb_alert": false,
       "tv_alert": false,
-      "tv_n": 2,
+      "tv_n": 1,
       "warn": false,
       "swing": false,
       "c": {
@@ -4109,7 +4043,7 @@
       "l_alert": false,
       "lb_alert": false,
       "tv_alert": false,
-      "tv_n": 2,
+      "tv_n": 1,
       "warn": true,
       "swing": false,
       "c": {
@@ -4307,7 +4241,7 @@
       "l_alert": false,
       "lb_alert": false,
       "tv_alert": false,
-      "tv_n": 1,
+      "tv_n": 2,
       "warn": false,
       "swing": false,
       "c": {
@@ -4329,7 +4263,7 @@
       "l_alert": false,
       "lb_alert": false,
       "tv_alert": false,
-      "tv_n": 1,
+      "tv_n": 2,
       "warn": true,
       "swing": false,
       "c": {
@@ -4351,7 +4285,7 @@
       "l_alert": false,
       "lb_alert": false,
       "tv_alert": false,
-      "tv_n": 1,
+      "tv_n": 2,
       "warn": false,
       "swing": true,
       "c": {
@@ -4373,7 +4307,7 @@
       "l_alert": false,
       "lb_alert": false,
       "tv_alert": false,
-      "tv_n": 1,
+      "tv_n": 2,
       "warn": false,
       "swing": false,
       "c": {
@@ -4395,9 +4329,9 @@
       "l_alert": false,
       "lb_alert": false,
       "tv_alert": false,
-      "tv_n": 1,
+      "tv_n": 2,
       "warn": false,
-      "swing": false,
+      "swing": true,
       "c": {
         "futures": 89.7,
         "margin": 97.9
@@ -4419,7 +4353,7 @@
       "tv_alert": false,
       "tv_n": 1,
       "warn": false,
-      "swing": false,
+      "swing": true,
       "c": {
         "futures": 84.6,
         "margin": 100.0
@@ -4441,7 +4375,7 @@
       "tv_alert": false,
       "tv_n": 1,
       "warn": false,
-      "swing": false,
+      "swing": true,
       "c": {
         "futures": 84.6,
         "margin": 95.3
@@ -4463,7 +4397,7 @@
       "tv_alert": false,
       "tv_n": 1,
       "warn": false,
-      "swing": false,
+      "swing": true,
       "c": {
         "futures": 75.6,
         "margin": 95.9
@@ -4548,8 +4482,8 @@
       "m_alert": true,
       "l_alert": false,
       "lb_alert": false,
-      "tv_alert": false,
-      "tv_n": 2,
+      "tv_alert": true,
+      "tv_n": 3,
       "warn": false,
       "swing": false,
       "c": {
@@ -4680,8 +4614,8 @@
       "m_alert": false,
       "l_alert": true,
       "lb_alert": false,
-      "tv_alert": false,
-      "tv_n": 2,
+      "tv_alert": true,
+      "tv_n": 3,
       "warn": false,
       "swing": false,
       "c": {
@@ -4725,7 +4659,7 @@
       "l_alert": false,
       "lb_alert": false,
       "tv_alert": false,
-      "tv_n": 1,
+      "tv_n": 2,
       "warn": false,
       "swing": true,
       "c": {
@@ -4747,7 +4681,7 @@
       "l_alert": false,
       "lb_alert": false,
       "tv_alert": false,
-      "tv_n": 1,
+      "tv_n": 2,
       "warn": true,
       "swing": true,
       "c": {
@@ -4856,8 +4790,8 @@
       "m_alert": false,
       "l_alert": true,
       "lb_alert": true,
-      "tv_alert": false,
-      "tv_n": 2,
+      "tv_alert": true,
+      "tv_n": 3,
       "warn": false,
       "swing": false,
       "c": {
@@ -4893,9 +4827,9 @@
       "tx": 45877,
       "label": "無頂部訊號",
       "color": "#8a8a9a",
-      "stance": "攻擊",
-      "s3": "攻擊",
-      "x": true,
+      "stance": "防守",
+      "s3": "防守",
+      "x": false,
       "panic": false,
       "m_alert": false,
       "l_alert": false,
@@ -4915,9 +4849,9 @@
       "tx": 46465,
       "label": "無頂部訊號",
       "color": "#8a8a9a",
-      "stance": "攻擊",
-      "s3": "攻擊",
-      "x": true,
+      "stance": "防守",
+      "s3": "防守",
+      "x": false,
       "panic": false,
       "m_alert": false,
       "l_alert": true,
@@ -4976,9 +4910,9 @@
       }
     },
     {
-      "date": "2026-06-25",
-      "score": 96.4,
-      "tx": 46255,
+      "date": "2026-06-24",
+      "score": 95.8,
+      "tx": 46044,
       "label": "頂部過熱",
       "color": "#ef4444",
       "stance": "防守",
@@ -4994,12 +4928,34 @@
       "swing": true,
       "c": {
         "futures": 98.7,
-        "margin": 94.2
+        "margin": 92.9
+      }
+    },
+    {
+      "date": "2026-06-25",
+      "score": 95.1,
+      "tx": 46255,
+      "label": "無頂部訊號",
+      "color": "#8a8a9a",
+      "stance": "防守",
+      "s3": "防守",
+      "x": false,
+      "panic": false,
+      "m_alert": false,
+      "l_alert": false,
+      "lb_alert": false,
+      "tv_alert": false,
+      "tv_n": 2,
+      "warn": false,
+      "swing": true,
+      "c": {
+        "futures": 97.4,
+        "margin": 92.8
       }
     },
     {
       "date": "2026-06-26",
-      "score": 90.7,
+      "score": 89.3,
       "tx": 44572,
       "label": "無頂部訊號",
       "color": "#8a8a9a",
@@ -5011,17 +4967,17 @@
       "l_alert": false,
       "lb_alert": false,
       "tv_alert": false,
-      "tv_n": 1,
+      "tv_n": 2,
       "warn": false,
       "swing": true,
       "c": {
-        "futures": 96.2,
-        "margin": 85.1
+        "futures": 94.9,
+        "margin": 83.7
       }
     },
     {
       "date": "2026-06-29",
-      "score": 91.4,
+      "score": 90.1,
       "tx": 45000,
       "label": "無頂部訊號",
       "color": "#8a8a9a",
@@ -5033,23 +4989,23 @@
       "l_alert": false,
       "lb_alert": false,
       "tv_alert": false,
-      "tv_n": 1,
+      "tv_n": 2,
       "warn": false,
       "swing": true,
       "c": {
-        "futures": 97.4,
-        "margin": 85.4
+        "futures": 96.2,
+        "margin": 84.1
       }
     },
     {
       "date": "2026-06-30",
-      "score": 94.9,
+      "score": 93.7,
       "tx": 46126,
-      "label": "頂部過熱",
-      "color": "#ef4444",
-      "stance": "防守",
-      "s3": "防守",
-      "x": false,
+      "label": "無頂部訊號",
+      "color": "#8a8a9a",
+      "stance": "攻擊",
+      "s3": "攻擊",
+      "x": true,
       "panic": false,
       "m_alert": false,
       "l_alert": true,
@@ -5057,15 +5013,15 @@
       "tv_alert": true,
       "tv_n": 3,
       "warn": false,
-      "swing": true,
+      "swing": false,
       "c": {
-        "futures": 98.7,
-        "margin": 91.1
+        "futures": 97.4,
+        "margin": 89.9
       }
     },
     {
       "date": "2026-07-01",
-      "score": 93.8,
+      "score": 93.3,
       "tx": 47019,
       "label": "頂部過熱",
       "color": "#ef4444",
@@ -5082,12 +5038,12 @@
       "swing": false,
       "c": {
         "futures": 98.7,
-        "margin": 88.9
+        "margin": 87.8
       }
     },
     {
       "date": "2026-07-02",
-      "score": 95.4,
+      "score": 94.9,
       "tx": 46744,
       "label": "頂部過熱",
       "color": "#ef4444",
@@ -5104,12 +5060,12 @@
       "swing": true,
       "c": {
         "futures": 98.7,
-        "margin": 92.1
+        "margin": 91.0
       }
     },
     {
       "date": "2026-07-03",
-      "score": 94.7,
+      "score": 93.6,
       "tx": 46781,
       "label": "無頂部訊號",
       "color": "#8a8a9a",
@@ -5121,17 +5077,17 @@
       "l_alert": true,
       "lb_alert": false,
       "tv_alert": false,
-      "tv_n": 1,
+      "tv_n": 2,
       "warn": false,
       "swing": true,
       "c": {
-        "futures": 94.9,
-        "margin": 94.5
+        "futures": 93.6,
+        "margin": 93.6
       }
     },
     {
       "date": "2026-07-06",
-      "score": 92.7,
+      "score": 91.6,
       "tx": 46556,
       "label": "無頂部訊號",
       "color": "#8a8a9a",
@@ -5147,13 +5103,13 @@
       "warn": false,
       "swing": true,
       "c": {
-        "futures": 92.3,
-        "margin": 93.1
+        "futures": 91.0,
+        "margin": 92.3
       }
     },
     {
       "date": "2026-07-07",
-      "score": 87.4,
+      "score": 86.3,
       "tx": 45479,
       "label": "無頂部訊號",
       "color": "#8a8a9a",
@@ -5169,13 +5125,13 @@
       "warn": false,
       "swing": true,
       "c": {
-        "futures": 91.0,
-        "margin": 83.7
+        "futures": 89.7,
+        "margin": 82.8
       }
     },
     {
       "date": "2026-07-08",
-      "score": 89.4,
+      "score": 88.3,
       "tx": 45734,
       "label": "無頂部訊號",
       "color": "#8a8a9a",
@@ -5191,13 +5147,13 @@
       "warn": false,
       "swing": true,
       "c": {
-        "futures": 94.9,
-        "margin": 83.8
+        "futures": 93.6,
+        "margin": 83.0
       }
     },
     {
       "date": "2026-07-09",
-      "score": 88.1,
+      "score": 87.1,
       "tx": 45355,
       "label": "無頂部訊號",
       "color": "#8a8a9a",
@@ -5211,15 +5167,15 @@
       "tv_alert": false,
       "tv_n": 1,
       "warn": false,
-      "swing": false,
+      "swing": true,
       "c": {
-        "futures": 91.0,
-        "margin": 85.2
+        "futures": 89.7,
+        "margin": 84.4
       }
     },
     {
       "date": "2026-07-13",
-      "score": 88.6,
+      "score": 87.6,
       "tx": 45381,
       "label": "無頂部訊號",
       "color": "#8a8a9a",
@@ -5235,13 +5191,13 @@
       "warn": false,
       "swing": false,
       "c": {
-        "futures": 93.6,
-        "margin": 83.6
+        "futures": 92.3,
+        "margin": 82.9
       }
     },
     {
       "date": "2026-07-14",
-      "score": 86.4,
+      "score": 85.4,
       "tx": 44738,
       "label": "無頂部訊號",
       "color": "#8a8a9a",
@@ -5257,13 +5213,13 @@
       "warn": false,
       "swing": false,
       "c": {
-        "futures": 96.2,
-        "margin": 76.7
+        "futures": 94.9,
+        "margin": 76.0
       }
     },
     {
       "date": "2026-07-15",
-      "score": 82.8,
+      "score": 81.8,
       "tx": 45632,
       "label": "無頂部訊號",
       "color": "#8a8a9a",
@@ -5279,13 +5235,13 @@
       "warn": false,
       "swing": false,
       "c": {
-        "futures": 84.6,
-        "margin": 80.9
+        "futures": 83.3,
+        "margin": 80.3
       }
     },
     {
       "date": "2026-07-16",
-      "score": 88.8,
+      "score": 88.5,
       "tx": 45625,
       "label": "無頂部訊號",
       "color": "#8a8a9a",
@@ -5302,12 +5258,12 @@
       "swing": false,
       "c": {
         "futures": 97.4,
-        "margin": 80.2
+        "margin": 79.5
       }
     },
     {
       "date": "2026-07-17",
-      "score": 82.8,
+      "score": 82.3,
       "tx": 42671,
       "label": "頂部過熱",
       "color": "#ef4444",
@@ -5319,17 +5275,17 @@
       "l_alert": false,
       "lb_alert": false,
       "tv_alert": false,
-      "tv_n": 2,
+      "tv_n": 1,
       "warn": false,
-      "swing": true,
+      "swing": false,
       "c": {
         "futures": 98.7,
-        "margin": 66.9
+        "margin": 65.9
       }
     },
     {
       "date": "2026-07-20",
-      "score": 69.0,
+      "score": 67.8,
       "tx": 42450,
       "label": "無頂部訊號",
       "color": "#8a8a9a",
@@ -5343,15 +5299,15 @@
       "tv_alert": false,
       "tv_n": 1,
       "warn": false,
-      "swing": true,
+      "swing": false,
       "c": {
-        "futures": 80.8,
-        "margin": 57.2
+        "futures": 79.5,
+        "margin": 56.1
       }
     },
     {
       "date": "2026-07-21",
-      "score": 70.5,
+      "score": 69.3,
       "tx": 44233,
       "label": "無頂部訊號",
       "color": "#8a8a9a",
@@ -5365,15 +5321,15 @@
       "tv_alert": false,
       "tv_n": 1,
       "warn": false,
-      "swing": true,
+      "swing": false,
       "c": {
-        "futures": 80.8,
-        "margin": 60.1
+        "futures": 79.5,
+        "margin": 59.0
       }
     },
     {
       "date": "2026-07-22",
-      "score": 69.8,
+      "score": 68.6,
       "tx": 44826,
       "label": "無頂部訊號",
       "color": "#8a8a9a",
@@ -5387,15 +5343,15 @@
       "tv_alert": false,
       "tv_n": 0,
       "warn": false,
-      "swing": true,
+      "swing": false,
       "c": {
-        "futures": 76.9,
-        "margin": 62.6
+        "futures": 75.6,
+        "margin": 61.6
       }
     },
     {
       "date": "2026-07-23",
-      "score": 67.4,
+      "score": 66.3,
       "tx": 44851,
       "label": "無頂部訊號",
       "color": "#8a8a9a",
@@ -5411,13 +5367,13 @@
       "warn": false,
       "swing": false,
       "c": {
-        "futures": 73.1,
-        "margin": 61.8
+        "futures": 71.8,
+        "margin": 60.8
       }
     },
     {
       "date": "2026-07-24",
-      "score": 65.6,
+      "score": 64.4,
       "tx": 43655,
       "label": "無頂部訊號",
       "color": "#8a8a9a",
@@ -5433,13 +5389,13 @@
       "warn": false,
       "swing": false,
       "c": {
-        "futures": 73.1,
-        "margin": 58.1
+        "futures": 71.8,
+        "margin": 57.0
       }
     },
     {
       "date": "2026-07-27",
-      "score": 66.7,
+      "score": 65.4,
       "tx": 43634,
       "label": "無頂部訊號",
       "color": "#8a8a9a",
@@ -5455,13 +5411,13 @@
       "warn": false,
       "swing": false,
       "c": {
-        "futures": 80.8,
-        "margin": 52.7
+        "futures": 79.5,
+        "margin": 51.4
       }
     },
     {
       "date": "2026-07-28",
-      "score": 64.8,
+      "score": 63.2,
       "tx": 41603,
       "label": "無頂部訊號",
       "color": "#8a8a9a",
@@ -5477,13 +5433,13 @@
       "warn": false,
       "swing": false,
       "c": {
-        "futures": 91.0,
-        "margin": 38.5
+        "futures": 89.7,
+        "margin": 36.7
       }
     },
     {
       "date": "2026-07-29",
-      "score": 52.9,
+      "score": 51.1,
       "tx": 40039,
       "label": "無頂部訊號",
       "color": "#8a8a9a",
@@ -5499,13 +5455,13 @@
       "warn": false,
       "swing": false,
       "c": {
-        "futures": 91.0,
-        "margin": 14.9
+        "futures": 89.7,
+        "margin": 12.5
       }
     },
     {
       "date": "2026-07-30",
-      "score": 44.9,
+      "score": 43.2,
       "tx": 39933,
       "label": "無頂部訊號",
       "color": "#8a8a9a",
@@ -5521,13 +5477,13 @@
       "warn": false,
       "swing": false,
       "c": {
-        "futures": 83.3,
-        "margin": 6.6
+        "futures": 82.1,
+        "margin": 4.3
       }
     },
     {
       "date": "2026-07-31",
-      "score": 52.0,
+      "score": 50.3,
       "tx": 43120,
       "label": "無頂部訊號",
       "color": "#8a8a9a",
@@ -5543,13 +5499,13 @@
       "warn": false,
       "swing": false,
       "c": {
-        "futures": 89.7,
-        "margin": 14.2
+        "futures": 88.5,
+        "margin": 12.1
       }
     },
     {
       "date": "2026-08-03",
-      "score": 58.3,
+      "score": 57.4,
       "tx": 43386,
       "label": "頂部過熱",
       "color": "#ef4444",
@@ -5560,18 +5516,18 @@
       "m_alert": false,
       "l_alert": true,
       "lb_alert": true,
-      "tv_alert": true,
-      "tv_n": 3,
+      "tv_alert": false,
+      "tv_n": 2,
       "warn": false,
       "swing": false,
       "c": {
         "futures": 98.7,
-        "margin": 17.9
+        "margin": 16.1
       }
     },
     {
       "date": "2026-08-04",
-      "score": 59.3,
+      "score": 58.3,
       "tx": 43361,
       "label": "無頂部訊號",
       "color": "#8a8a9a",
@@ -5588,13 +5544,57 @@
       "swing": false,
       "c": {
         "futures": 97.4,
-        "margin": 21.2
+        "margin": 19.2
       }
     },
     {
       "date": "2026-08-05",
-      "score": 59.0,
+      "score": 58.1,
       "tx": 44612,
+      "label": "無頂部訊號",
+      "color": "#8a8a9a",
+      "stance": "攻擊",
+      "s3": "攻擊",
+      "x": true,
+      "panic": false,
+      "m_alert": false,
+      "l_alert": false,
+      "lb_alert": false,
+      "tv_alert": false,
+      "tv_n": 0,
+      "warn": false,
+      "swing": false,
+      "c": {
+        "futures": 96.2,
+        "margin": 20.0
+      }
+    },
+    {
+      "date": "2026-08-06",
+      "score": 61.2,
+      "tx": 44397,
+      "label": "無頂部訊號",
+      "color": "#8a8a9a",
+      "stance": "攻擊",
+      "s3": "攻擊",
+      "x": true,
+      "panic": false,
+      "m_alert": false,
+      "l_alert": false,
+      "lb_alert": false,
+      "tv_alert": false,
+      "tv_n": 0,
+      "warn": false,
+      "swing": false,
+      "c": {
+        "futures": 97.4,
+        "margin": 25.0
+      }
+    },
+    {
+      "date": "2026-08-07",
+      "score": 61.7,
+      "tx": 44226,
       "label": "無頂部訊號",
       "color": "#8a8a9a",
       "stance": "防守",
@@ -5607,10 +5607,10 @@
       "tv_alert": false,
       "tv_n": 0,
       "warn": false,
-      "swing": false,
+      "swing": true,
       "c": {
         "futures": 96.2,
-        "margin": 21.8
+        "margin": 27.3
       }
     }
   ]
