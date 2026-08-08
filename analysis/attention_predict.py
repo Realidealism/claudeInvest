@@ -134,6 +134,10 @@ def _load_prices(trade_date: date, lookback: int = 95) -> dict:
     return stocks, meta
 
 
+# 注意/處置 作業要點 applies to 上市 (TWSE) and 上櫃 (TPEx) only.
+ALERT_MARKETS = ("TWSE", "TPEx")
+
+
 def _is_common_stock(sec_type: str | None) -> bool:
     return sec_type in (None, "STOCK")
 
@@ -733,6 +737,14 @@ def predict_attention(trade_date: date) -> list[Alert]:
     alerts = []
     for sid, prices in stocks.items():
         m = {**meta_map[sid], "stock_id": sid}
+        # The 作業要點 covers 上市/上櫃 common stocks only. ETFs and 興櫃 (ESB)
+        # are outside it entirely — no such security has ever appeared in
+        # tw.stock_alerts — but _is_common_stock was only being applied to the
+        # market averages, so they were still being flagged.
+        if not _is_common_stock(m.get("security_type")):
+            continue
+        if m.get("market") not in ALERT_MARKETS:
+            continue
 
         # §3 returns a list
         alerts.extend(_check_rule_3(prices, m, mkt))

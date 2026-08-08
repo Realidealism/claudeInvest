@@ -15,6 +15,7 @@ from __future__ import annotations
 from datetime import date
 
 from analysis.attention_predict import (
+    ALERT_MARKETS,
     _calc_6d_avg_volume_ratio,
     _calc_6d_change_pct,
     _calc_nd_change_pct,
@@ -47,6 +48,8 @@ def closest_untriggered_threshold(ticker: str, today: date) -> str | None:
         cur.execute("SELECT market FROM tw.stocks WHERE stock_id = %s", (ticker,))
         row = cur.fetchone()
         market = row["market"] if row else "TWSE"
+        if market not in ALERT_MARKETS:
+            return None
         history = _load_history(cur, ticker, today)
         today_row, _src = _load_today_row(cur, ticker, today)
         outstanding = _load_outstanding_shares(cur, ticker)
@@ -330,6 +333,8 @@ def consec_rule1_eligible_days(ticker: str, today: date) -> tuple[int, dict | No
         cur.execute("SELECT market FROM tw.stocks WHERE stock_id = %s", (ticker,))
         row = cur.fetchone()
         market = row["market"] if row else "TWSE"
+        if market not in ALERT_MARKETS:
+            return 0, None
         history = _load_history(cur, ticker, today)
         today_row, _src = _load_today_row(cur, ticker, today)
     thresh = 30 if market == "TPEx" else 32
@@ -496,6 +501,8 @@ def format_today_thresholds(ticker: str, today: date, rule_codes: list[str]) -> 
         cur.execute("SELECT market FROM tw.stocks WHERE stock_id = %s", (ticker,))
         row = cur.fetchone()
         market = row["market"] if row else "TWSE"
+        if market not in ALERT_MARKETS:
+            return ""
         history = _load_history(cur, ticker, today)
         today_row, _src = _load_today_row(cur, ticker, today)
         outstanding = _load_outstanding_shares(cur, ticker)
@@ -606,6 +613,8 @@ def predict_today_attention(
         cur.execute("SELECT market FROM tw.stocks WHERE stock_id = %s", (ticker,))
         row = cur.fetchone()
         market = row["market"] if row else "TWSE"
+        if market not in ALERT_MARKETS:
+            return []
         history = _load_history(cur, ticker, today)
         today_row, _src = _load_today_row(cur, ticker, today)
         outstanding = _load_outstanding_shares(cur, ticker)
