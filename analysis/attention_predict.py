@@ -13,7 +13,8 @@ Implemented criteria (from TWSE 公布或通知注意交易資訊暨處置作業
   §10   6-day avg volume ≥5x 60-day avg
   §12   6-day price diff ≥100 (scaled for high-price stocks; from
         2026-08-10 TWSE only bites above 1,000元 with ≥300 bands)
-  §13   6-day SBL ratio ≥12% + SBL ≥5x 60-day avg
+  §13   6-day SBL ratio + SBL multiple vs 60-day avg (TWSE 12%/5x,
+        TPEx 9%/4x)
   §14   6-day day-trade ratio >60% + prev day >60%
 
 Disposal prediction:
@@ -566,8 +567,20 @@ def _check_rule_12(prices: list, meta: dict, mkt: dict) -> Alert | None:
     )
 
 
+# 第12款 (our §13) thresholds are market-specific. Reconstructed from the
+# ratios quoted in 注意 announcements: the minimum ever published is 12.01% /
+# 5.01x on TWSE but 9.00% / 4.00x on TPEx. Applying the TWSE pair to both
+# markets missed 326 of 447 TPEx announcements (73%).
+_R13_THRESHOLDS = {"TWSE": (12.0, 5.0), "TPEx": (9.0, 4.0)}
+
+
+def r13_thresholds(market: str) -> tuple[float, float]:
+    """§13 6-day SBL ratio (%) and prev-day SBL multiple, by market."""
+    return _R13_THRESHOLDS.get(market, _R13_THRESHOLDS["TWSE"])
+
+
 def _check_rule_13(prices: list, meta: dict, mkt: dict) -> Alert | None:
-    """§13 6日借券占比≥12% + 前日借券≥5倍60日均"""
+    """§13 6日借券占比≥門檻 + 前日借券≥門檻倍60日均 (門檻依市場, 見 r13_thresholds)"""
     if len(prices) < 61:
         return None
 
@@ -575,8 +588,9 @@ def _check_rule_13(prices: list, meta: dict, mkt: dict) -> Alert | None:
     total_vol_6d = sum(p["volume"] for p in prices[-6:])
     if total_vol_6d == 0:
         return None
+    ratio_th, mult_th = r13_thresholds(meta.get("market", "TWSE"))
     sbl_ratio = total_sbl_6d / total_vol_6d * 100
-    if sbl_ratio < 12:
+    if sbl_ratio < ratio_th:
         return None
 
     prev_sbl = prices[-2]["sbl_sell"]
@@ -584,7 +598,7 @@ def _check_rule_13(prices: list, meta: dict, mkt: dict) -> Alert | None:
     if avg60_sbl == 0:
         return None
     sbl_mult = prev_sbl / avg60_sbl
-    if sbl_mult < 5:
+    if sbl_mult < mult_th:
         return None
 
     return Alert(

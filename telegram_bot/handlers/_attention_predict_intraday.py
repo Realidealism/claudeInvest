@@ -20,6 +20,7 @@ from analysis.attention_predict import (
     _calc_nd_change_pct,
     _calc_volume_ratio,
     r12_threshold,
+    r13_thresholds,
 )
 from db.connection import get_cursor
 from telegram_bot.handlers._data_freshness import DataState
@@ -720,7 +721,8 @@ def predict_today_attention(
                         ("§8", f"6日{direction} {abs(chg6):.1f}% + 券資比 {short_margin_ratio:.1f}%{rough}")
                     )
 
-    # §13 6-day SBL borrow ratio ≥ 12% + prev day SBL ≥ 5× 60-day avg
+    # §13 6-day SBL borrow ratio + prev-day SBL multiple, thresholds by
+    # market (see analysis.attention_predict.r13_thresholds)
     # NB: today's sbl_sell is unknown intraday (synthesized as 0); 6-day sum
     # uses prior 6 sessions (prices[-7:-1]) for predictive accuracy.
     if len(prices) >= 62:
@@ -732,7 +734,8 @@ def predict_today_attention(
             avg60_sbl = sum(p["sbl_sell"] for p in prices[-62:-2]) / 60
             if avg60_sbl > 0:
                 sbl_mult = prev_sbl / avg60_sbl
-                if sbl_ratio >= 12 and sbl_mult >= 5:
+                ratio_th, mult_th = r13_thresholds(market)
+                if sbl_ratio >= ratio_th and sbl_mult >= mult_th:
                     out.append(
                         ("§13", f"6日借券占比 {sbl_ratio:.1f}% + 前日 {sbl_mult:.1f}× 60日均{clean}")
                     )
