@@ -26,9 +26,12 @@ CLI:
 
 from __future__ import annotations
 
+import ast
 import os
 import sys
-from datetime import date
+from collections import deque
+from datetime import date, datetime
+from pathlib import Path
 
 from db.connection import get_cursor
 from intraday.session import in_session, in_snapshot_session, now_tpe
@@ -156,6 +159,128 @@ def _dead_column_groups(latest: date) -> list[str]:
     return dead
 
 
+# ── Built artifacts vs their sources ───────────────────────────────────────
+# A committed change only reaches production once the exe carrying it is
+# rebuilt, and nothing enforces that: the sweeper ran code from 2026-06-15
+# for five weeks because no script covered its spec and nobody remembered.
+# Comparing an exe against every module it actually bundles catches that
+# without relying on anyone's memory.
+
+_REPO_ROOT = Path(__file__).resolve().parent.parent
+
+
+def _spec_contents(spec: Path) -> tuple[list[str], str | None]:
+    """(modules the exe bundles as roots, exe name) parsed from a .spec.
+
+    hiddenimports matter as much as the entry script: daily_update reaches its
+    scrapers through importlib, so a static walk from the entry alone would
+    miss every one of them.
+    """
+    try:
+        tree = ast.parse(spec.read_text(encoding="utf-8"))
+    except Exception:
+        return [], None
+
+    roots: list[str] = []
+    name: str | None = None
+    for node in ast.walk(tree):
+        if not isinstance(node, ast.Call) or not isinstance(node.func, ast.Name):
+            continue
+        if node.func.id == "Analysis":
+            if node.args and isinstance(node.args[0], (ast.List, ast.Tuple)):
+                for el in node.args[0].elts:
+                    if isinstance(el, ast.Constant) and isinstance(el.value, str):
+                        roots.append(Path(el.value).stem)
+            for kw in node.keywords:
+                if kw.arg == "hiddenimports" and isinstance(kw.value, (ast.List, ast.Tuple)):
+                    roots += [e.value for e in kw.value.elts
+                              if isinstance(e, ast.Constant) and isinstance(e.value, str)]
+        elif node.func.id == "EXE":
+            for kw in node.keywords:
+                if kw.arg == "name" and isinstance(kw.value, ast.Constant):
+                    name = kw.value.value
+    return roots, name
+
+
+def _module_file(dotted: str) -> Path | None:
+    p = _REPO_ROOT / (dotted.replace(".", "/") + ".py")
+    if p.exists():
+        return p
+    p = _REPO_ROOT / dotted.replace(".", "/") / "__init__.py"
+    return p if p.exists() else None
+
+
+def _module_imports(path: Path) -> set[str]:
+    try:
+        tree = ast.parse(path.read_text(encoding="utf-8"))
+    except Exception:
+        return set()
+    out: set[str] = set()
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Import):
+            out.update(a.name for a in node.names)
+        elif isinstance(node, ast.ImportFrom) and node.module and not node.level:
+            out.add(node.module)
+    return out
+
+
+def _bundled_sources(roots: list[str]) -> list[Path]:
+    """Every repo-local .py an exe built from these roots would contain."""
+    seen: set[str] = set()
+    files: list[Path] = []
+    queue = deque(roots)
+    while queue:
+        dotted = queue.popleft()
+        if dotted in seen:
+            continue
+        seen.add(dotted)
+        path = _module_file(dotted)
+        if path is None:            # stdlib or third party
+            continue
+        files.append(path)
+        queue.extend(m for m in _module_imports(path) if m not in seen)
+    return files
+
+
+def _maintained_specs() -> list[Path]:
+    """Specs some rebuild script actually builds.
+
+    Anything else in dist/ is a manual tool nobody keeps current --
+    historical_update.exe has been four months old for four months. Alerting
+    on those would put a permanent entry in the daily message, which would
+    destroy the point of the healthy path being a silent ping.
+    """
+    referenced = set()
+    for bat in _REPO_ROOT.glob("*.bat"):
+        try:
+            text = bat.read_text(encoding="ascii", errors="ignore")
+        except OSError:
+            continue
+        for spec in _REPO_ROOT.glob("*.spec"):
+            if spec.name in text:
+                referenced.add(spec)
+    return sorted(referenced)
+
+
+def _stale_exes() -> list[str]:
+    problems = []
+    for spec in _maintained_specs():
+        roots, name = _spec_contents(spec)
+        if not roots or not name:
+            continue
+        exe = _REPO_ROOT / "dist" / f"{name}.exe"
+        if not exe.exists():        # never deployed; nothing to be stale
+            continue
+        built = exe.stat().st_mtime
+        newer = [p for p in _bundled_sources(roots) if p.stat().st_mtime > built]
+        if newer:
+            rel = sorted(str(p.relative_to(_REPO_ROOT)).replace("\\", "/") for p in newer)
+            shown = ", ".join(rel[:4]) + (f" 等 {len(rel)} 檔" if len(rel) > 4 else "")
+            when = datetime.fromtimestamp(built).strftime("%m-%d %H:%M")
+            problems.append(f"{name}.exe 建於 {when}，落後於 {shown}")
+    return problems
+
+
 def run_daily() -> int:
     latest = _latest_trading_day()
     if latest is None:
@@ -170,6 +295,7 @@ def run_daily() -> int:
             stale.append(f"{label} 停在 {seen}")
 
     stale.extend(_dead_column_groups(latest))
+    stale.extend(_stale_exes())
 
     want = latest.strftime("%m-%d")
     if stale:
