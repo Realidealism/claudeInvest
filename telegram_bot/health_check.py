@@ -46,6 +46,34 @@ _DAILY_TABLES = [
     ("訊號快照", "tw.signal_snapshot", "snapshot_date"),
 ]
 
+# Column groups of tw.daily_prices that each come from one scraper leg, checked
+# per market. MAX(trade_date) advancing says nothing about these: when one leg
+# dies the rows are still written by the other legs, so the day looks complete
+# while a whole column is NULL for one market (TWSE institutional 2026-07-02,
+# SBL 2026-06-10, price limits 2026-06-30, after-hours 2026-05-12 all failed
+# this way and went unnoticed for weeks).
+_COLUMN_GROUPS = [
+    ("法人", "foreign_net"),
+    ("融資券", "margin_balance"),
+    ("借券", "sbl_balance"),
+    ("當沖", "dt_volume"),
+    ("零股", "ol_price"),
+    ("盤後", "ah_price"),
+    ("漲跌停", "limit_up"),
+    ("參考價", "ref_price"),
+]
+
+# Fraction of the trailing-median coverage below which a group counts as dead.
+# Calibrated over 2024-2026 (628 trading days, 28 firings): 25 are unambiguous
+# leg deaths -- 0 or 1 row against a median in the hundreds, with nothing in
+# between -- so the exact ratio barely matters for those. The remaining 3 are
+# real market behaviour: after-hours participation collapses on a limit-down
+# day (2025-04-07) and drifts near the line when the session thins out. That
+# is roughly one false alarm a year, accepted in exchange for catching a dead
+# leg the day it happens.
+_COLUMN_MIN_RATIO = 0.7
+_COLUMN_BASELINE_DAYS = 20
+
 # Intraday: alert when tw.intraday_quotes has not advanced for this long.
 _INTRADAY_STALE_MINUTES = 5
 
@@ -80,6 +108,54 @@ def _latest_trading_day():
     )
 
 
+def _dead_column_groups(latest: date) -> list[str]:
+    """Report column groups whose coverage collapsed on the latest trading day.
+
+    Compares each (market, group) against its own median over the preceding
+    _COLUMN_BASELINE_DAYS trading days, so a group that is legitimately sparse
+    (after-hours) is judged against its own level rather than a global one.
+    Groups whose baseline is 0 are skipped: they predate the data (TWSE
+    intraday odd-lot starts 2020-10-26) or genuinely carry nothing.
+    """
+    counts = ", ".join(
+        f"count(p.{col}) AS c_{col}" for _, col in _COLUMN_GROUPS
+    )
+    with get_cursor(commit=False) as cur:
+        cur.execute(
+            f"""
+            SELECT p.trade_date AS d, s.market AS m, {counts}
+            FROM tw.daily_prices p JOIN tw.stocks s USING (stock_id)
+            WHERE s.market IN ('TWSE', 'TPEx')
+              AND p.trade_date > %s - INTERVAL '60 days'
+              AND p.trade_date <= %s
+            GROUP BY 1, 2
+            ORDER BY 1
+            """,
+            (latest, latest),
+        )
+        rows = cur.fetchall()
+
+    dead = []
+    for market in ("TWSE", "TPEx"):
+        series = [r for r in rows if r["m"] == market]
+        today = [r for r in series if r["d"] == latest]
+        if not today:
+            dead.append(f"{market} 日線當日無資料")
+            continue
+        baseline = [r for r in series if r["d"] < latest][-_COLUMN_BASELINE_DAYS:]
+        if not baseline:
+            continue
+        for label, col in _COLUMN_GROUPS:
+            prior = sorted(r[f"c_{col}"] for r in baseline)
+            median = prior[len(prior) // 2]
+            actual = today[0][f"c_{col}"]
+            if median > 0 and actual < median * _COLUMN_MIN_RATIO:
+                dead.append(
+                    f"{market} {label} 僅 {actual} 檔有值（近{len(prior)}日中位 {median}）"
+                )
+    return dead
+
+
 def run_daily() -> int:
     latest = _latest_trading_day()
     if latest is None:
@@ -92,6 +168,8 @@ def run_daily() -> int:
         if d is None or d < latest:
             seen = d.strftime("%m-%d") if d else "無"
             stale.append(f"{label} 停在 {seen}")
+
+    stale.extend(_dead_column_groups(latest))
 
     want = latest.strftime("%m-%d")
     if stale:
