@@ -1154,17 +1154,54 @@ _DISTANCE_Z_SCALE = 3.0     # z × 3 → cap at ±3σ ≈ ±9 (close to ±10 cap
 _DISTANCE_CAP = 10.0
 
 
+def _dev_rolling_std(d: "StockData", sma_period: int):
+    """Rolling std of (close - SMA(N)), computed once per stock and period.
+
+    This used to be recomputed from scratch on every bar the ScoreBoard
+    touched: five distance cells, evaluated for the long card and again for
+    the short one, over every index in a signal array. Profiling an intraday
+    snapshot pass put 523k np.std calls at 19s of a 70s worker slice -- the
+    single largest cost in the pass, and the deviation series it slices is
+    fixed for a given stock and period.
+
+    The strided form is used rather than the usual cumulative-sums trick
+    because it must reproduce np.std bit for bit: these values feed the score,
+    and a last-place difference would move pct, which moves which trades a
+    backtest takes. Verified equal on real float32 series across five stocks
+    and all five periods; the cumsum form is not (it drifts ~1e-12).
+    """
+    cache = getattr(d, "_dev_std_cache", None)
+    if cache is None:
+        cache = {}
+        d._dev_std_cache = cache
+    out = cache.get(sma_period)
+    if out is not None:
+        return out
+
+    dev = d.close - d.close_result.ma.sma[sma_period]
+    n = len(dev)
+    w = _DISTANCE_STD_WINDOW
+    out = np.full(n, np.nan, dtype=np.float64)
+    if n >= w:
+        contiguous = np.ascontiguousarray(dev)
+        windows = np.lib.stride_tricks.as_strided(
+            contiguous,
+            shape=(n - w + 1, w),
+            strides=(contiguous.strides[0], contiguous.strides[0]),
+        )
+        out[w - 1:] = np.std(windows, axis=1)
+    cache[sma_period] = out
+    return out
+
+
 def _zscore_close_vs_sma(d: "StockData", i: int, sma_period: int,
                          cap: float = _DISTANCE_CAP) -> float:
     """Compute z-score of (close - SMA(N)) using 1-year rolling std."""
     if i < sma_period + _DISTANCE_STD_WINDOW:
         return 0.0
     sma_arr = d.close_result.ma.sma[sma_period]
-    close = d.close
-    dev_now = float(close[i] - sma_arr[i])
-    lo = i - _DISTANCE_STD_WINDOW + 1
-    dev_window = close[lo:i + 1] - sma_arr[lo:i + 1]
-    std = float(np.std(dev_window))
+    dev_now = float(d.close[i] - sma_arr[i])
+    std = float(_dev_rolling_std(d, sma_period)[i])
     if std <= 0:
         return 0.0
     z = dev_now / std
