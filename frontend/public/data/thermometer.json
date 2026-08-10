@@ -1,19 +1,19 @@
 {
-  "as_of": "2026-08-07",
-  "score": 61.7,
+  "as_of": "2026-08-10",
+  "score": 63.9,
   "bucket": "無頂部訊號",
   "bucket_color": "#8a8a9a",
   "danger": false,
-  "stance": "防守",
-  "stance_color": "#ef4444",
-  "stance_reason": "防守中（排列：中性）：高點防守（高信念頂部）／向下趨勢／波段停滯（過熱背景下跌破 5 日高）；漲回頂位之上／站回 5 日高／指數站回 13 日高／排列回多方／外資翻多且空頭力竭／恐慌急殺 V 任一則轉攻",
-  "stance3": "防守",
-  "stance3_color": "#ef4444",
-  "stance3_reason": "防守中（排列：中性）：高點防守（高信念頂部）／向下趨勢／波段停滯（過熱背景下跌破 5 日高）；漲回頂位之上／站回 5 日高／指數站回 13 日高／排列回多方／外資翻多且空頭力竭／恐慌急殺 V 任一則轉攻",
-  "exposure": "空手",
-  "swing": true,
+  "stance": "攻擊",
+  "stance_color": "#22c55e",
+  "stance_reason": "攻擊中（排列：中性，中性以上）",
+  "stance3": "攻擊",
+  "stance3_color": "#22c55e",
+  "stance3_reason": "攻擊中（排列：中性，中性以上）",
+  "exposure": "持有",
+  "swing": false,
   "near_high": false,
-  "pct_from_high": -7.4,
+  "pct_from_high": -5.9,
   "hi_window": 55,
   "alert": false,
   "alert_conditions": [
@@ -25,21 +25,21 @@
   "margin_alert": false,
   "margin_alert_conditions": [
     {
-      "name": "融資/成交量 布林 z ≥ +1.5σ（現 -1.1σ）",
+      "name": "融資/成交量 布林 z ≥ +1.5σ（現 -0.9σ）",
       "met": false
     }
   ],
   "limitup_alert": false,
   "limitup_alert_conditions": [
     {
-      "name": "漲停佔比 90 日乖離 z ≥ +1.0σ（現 -1.0σ、漲停 1.3%）",
+      "name": "漲停佔比 90 日乖離 z ≥ +1.0σ（現 +0.8σ、漲停 4.5%）",
       "met": false
     }
   ],
   "limitup_bear_alert": false,
   "limitup_bear_conditions": [
     {
-      "name": "漲停過熱（漲停佔比 90 日乖離 z ≥ +1.0σ，現 -1.0σ）",
+      "name": "漲停過熱（漲停佔比 90 日乖離 z ≥ +1.0σ，現 +0.8σ）",
       "met": false
     },
     {
@@ -56,11 +56,11 @@
       "met": false
     },
     {
-      "name": "外資選擇權避險偏空（買賣權淨OI 252 日百分位 ≤ 33%，現 48%）",
+      "name": "外資選擇權避險偏空（買賣權淨OI 252 日百分位 ≤ 33%，現 44%）",
       "met": false
     },
     {
-      "name": "漲停過熱（90 日乖離 z ≥ +1.5σ，投票用門檻比漲停燈的 +1.0σ 嚴；現 -1.0σ）",
+      "name": "漲停過熱（90 日乖離 z ≥ +1.5σ，投票用門檻比漲停燈的 +1.0σ 嚴；現 +0.8σ）",
       "met": false
     },
     {
@@ -79,7 +79,7 @@
       "met": true
     },
     {
-      "name": "short 空頭排列 3 日急升 ≥ +6pp（現 -27.9pp）",
+      "name": "short 空頭排列 3 日急升 ≥ +6pp（現 -6.8pp）",
       "met": false
     }
   ],
@@ -103,38 +103,16 @@
       "key": "futures",
       "name": "外資期貨定位",
       "hot": 96.2,
-      "detail": "外資臺股期貨淨未平倉 -87,911 口（78日百分位越低越淨空＝越熱）"
+      "detail": "外資臺股期貨淨未平倉 -89,201 口（78日百分位越低越淨空＝越熱）"
     },
     {
       "key": "margin",
       "name": "融資水位",
-      "hot": 27.3,
-      "detail": "融資餘額金額 5,377億（距 55 日均 -0.91σ；+2σ=過熱）"
+      "hot": 31.7,
+      "detail": "融資餘額金額 5,453億（距 55 日均 -0.73σ；+2σ=過熱）"
     }
   ],
   "history": [
-    {
-      "date": "2025-07-29",
-      "score": 69.7,
-      "tx": 23202,
-      "label": "無頂部訊號",
-      "color": "#8a8a9a",
-      "stance": "攻擊",
-      "s3": "攻擊",
-      "x": true,
-      "panic": false,
-      "m_alert": false,
-      "l_alert": false,
-      "lb_alert": false,
-      "tv_alert": false,
-      "tv_n": 0,
-      "warn": false,
-      "swing": false,
-      "c": {
-        "futures": 51.3,
-        "margin": 88.2
-      }
-    },
     {
       "date": "2025-07-30",
       "score": 65.0,
@@ -5611,6 +5589,28 @@
       "c": {
         "futures": 96.2,
         "margin": 27.3
+      }
+    },
+    {
+      "date": "2026-08-10",
+      "score": 63.9,
+      "tx": 44929,
+      "label": "無頂部訊號",
+      "color": "#8a8a9a",
+      "stance": "攻擊",
+      "s3": "攻擊",
+      "x": true,
+      "panic": false,
+      "m_alert": false,
+      "l_alert": false,
+      "lb_alert": false,
+      "tv_alert": false,
+      "tv_n": 0,
+      "warn": false,
+      "swing": false,
+      "c": {
+        "futures": 96.2,
+        "margin": 31.7
       }
     }
   ]

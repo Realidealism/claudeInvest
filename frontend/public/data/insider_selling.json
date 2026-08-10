@@ -1,6 +1,18 @@
 {
-  "updated_at": "2026-08-07T21:56:43",
+  "updated_at": "2026-08-10T21:53:20",
   "events": [
+    {
+      "type": "transfer",
+      "stock_id": "3167",
+      "company_name": "大量",
+      "date": "2026-08-10",
+      "insider_role": "董事本人",
+      "insider_name": "王作京",
+      "method": "洽特定人",
+      "shares": 7294483,
+      "security_kind": null,
+      "period": "115/08/10\r\n~\r\n115/08/12"
+    },
     {
       "type": "transfer",
       "stock_id": "1726",
@@ -30,6 +42,18 @@
       "stock_id": "9949",
       "company_name": "琉園",
       "date": "2026-08-03",
+      "insider_role": "經理人配偶",
+      "insider_name": "張文玲之配偶",
+      "method": "洽特定人",
+      "shares": 3917971,
+      "security_kind": null,
+      "period": "115/08/03\r\n~\r\n115/08/05"
+    },
+    {
+      "type": "transfer",
+      "stock_id": "9949",
+      "company_name": "琉園",
+      "date": "2026-08-03",
       "insider_role": "經理人本人",
       "insider_name": "王小樨",
       "method": "洽特定人",
@@ -39,15 +63,27 @@
     },
     {
       "type": "transfer",
-      "stock_id": "9949",
-      "company_name": "琉園",
-      "date": "2026-08-03",
-      "insider_role": "經理人配偶",
-      "insider_name": "張文玲之配偶",
+      "stock_id": "4130",
+      "company_name": "健亞",
+      "date": "2026-07-27",
+      "insider_role": "董事本人",
+      "insider_name": "行政院國家發展基金管理會",
       "method": "洽特定人",
-      "shares": 3917971,
+      "shares": 30700406,
       "security_kind": null,
-      "period": "115/08/03\r\n~\r\n115/08/05"
+      "period": "115/07/27\r\n~\r\n115/07/29"
+    },
+    {
+      "type": "transfer",
+      "stock_id": "4130",
+      "company_name": "健亞",
+      "date": "2026-07-27",
+      "insider_role": "大股東本人",
+      "insider_name": "強生化學製藥廠股份有限公司",
+      "method": "洽特定人",
+      "shares": 38386839,
+      "security_kind": null,
+      "period": "115/07/27\r\n~\r\n115/07/29"
     },
     {
       "type": "transfer",
@@ -82,30 +118,6 @@
       "insider_name": "朱佳真",
       "method": "洽特定人",
       "shares": 164959,
-      "security_kind": null,
-      "period": "115/07/27\r\n~\r\n115/07/29"
-    },
-    {
-      "type": "transfer",
-      "stock_id": "4130",
-      "company_name": "健亞",
-      "date": "2026-07-27",
-      "insider_role": "董事本人",
-      "insider_name": "行政院國家發展基金管理會",
-      "method": "洽特定人",
-      "shares": 30700406,
-      "security_kind": null,
-      "period": "115/07/27\r\n~\r\n115/07/29"
-    },
-    {
-      "type": "transfer",
-      "stock_id": "4130",
-      "company_name": "健亞",
-      "date": "2026-07-27",
-      "insider_role": "大股東本人",
-      "insider_name": "強生化學製藥廠股份有限公司",
-      "method": "洽特定人",
-      "shares": 38386839,
       "security_kind": null,
       "period": "115/07/27\r\n~\r\n115/07/29"
     },
@@ -222,10 +234,10 @@
       "stock_id": "6584",
       "company_name": "南俊國際",
       "date": "2026-06-26",
-      "insider_role": "法人董事代表人本人",
-      "insider_name": "吳怡珊",
+      "insider_role": "經理人本人",
+      "insider_name": "吳仁山",
       "method": "洽特定人",
-      "shares": 3523253,
+      "shares": 3523521,
       "security_kind": null,
       "period": "115/06/26\r\n~\r\n115/06/28"
     },
@@ -234,10 +246,10 @@
       "stock_id": "6584",
       "company_name": "南俊國際",
       "date": "2026-06-26",
-      "insider_role": "經理人本人",
-      "insider_name": "吳仁山",
+      "insider_role": "法人董事代表人本人",
+      "insider_name": "吳怡珊",
       "method": "洽特定人",
-      "shares": 3523521,
+      "shares": 3523253,
       "security_kind": null,
       "period": "115/06/26\r\n~\r\n115/06/28"
     },
@@ -780,71 +792,11 @@
       "shares": null,
       "security_kind": "普通股",
       "period": null
-    },
-    {
-      "type": "placement",
-      "stock_id": "1512",
-      "company_name": "瑞利",
-      "date": "2026-05-11",
-      "insider_role": null,
-      "insider_name": null,
-      "method": null,
-      "shares": null,
-      "security_kind": "普通股",
-      "period": null
-    },
-    {
-      "type": "placement",
-      "stock_id": "3018",
-      "company_name": "同開",
-      "date": "2026-05-11",
-      "insider_role": null,
-      "insider_name": null,
-      "method": null,
-      "shares": null,
-      "security_kind": "普通股",
-      "period": null
-    },
-    {
-      "type": "placement",
-      "stock_id": "3432",
-      "company_name": "台端",
-      "date": "2026-05-11",
-      "insider_role": null,
-      "insider_name": null,
-      "method": null,
-      "shares": null,
-      "security_kind": "普通股",
-      "period": null
-    },
-    {
-      "type": "placement",
-      "stock_id": "4513",
-      "company_name": "福裕",
-      "date": "2026-05-11",
-      "insider_role": null,
-      "insider_name": null,
-      "method": null,
-      "shares": null,
-      "security_kind": "普通股",
-      "period": null
-    },
-    {
-      "type": "placement",
-      "stock_id": "4804",
-      "company_name": "大略-KY",
-      "date": "2026-05-11",
-      "insider_role": null,
-      "insider_name": null,
-      "method": null,
-      "shares": null,
-      "security_kind": "普通股",
-      "period": null
     }
   ],
   "stats": {
     "transfer_events_30d": 14,
     "transfer_stocks_30d": 7,
-    "placement_events_30d": 3
+    "placement_events_30d": 2
   }
 }
