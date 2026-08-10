@@ -115,6 +115,31 @@ SWING_LOOK = 5
 SWING_VOTES = 2
 SWING_DROP = 0.5
 SWING_HI_WIN = 5
+# 波段層的排列降級 (輸出層, 不動 latch): 波段停滯日若排列仍在轉強, 只給「觀望」不給「防守」
+# —— 排列還在轉強的拉回, 儀表不該喊空手.
+# 兩條腿都要成立 (None = 關閉該腿): short 側看「多方領先且領先幅度比 SWING_WATCH_ARR 日前更
+# 大」, long 側看「多方排列占比比 SWING_WATCH_LONG 日前更高」—— long 只問多方有沒有變強, 不問
+# 空方是否同步變弱 (要求空方也降會擋掉「短線多方轉強、長空同時擴大」的日子, 2026-08-07 即是).
+# ★量化 (2026-08-10, tmp/_probe_swing_watch_long2.py): 82 個波段防守日中 15 天降級, 逐年
+# 2020:4/2022:2/2023:3/2024:1/2026:5. 崩跌段空手覆蓋七段中六段等於不降級 (只 2022 慢熊
+# 57.1→56.1%)、maxDD 完全不變、**近高危險日 recall -5/-8/-10% 三檔全部等於不降級**
+# (32.3/63.9/60.7), 逐年無一年差於只用 short 的版本. 唯一代價: 每單位曝險年化 47.04→45.08.
+# ★long 窗 1/2/3 是 plateau (45.08/45.00/45.00), >=5 掉到 44.26 且失去 2026-08-07.
+# ★★latch 版 (同條件改成擋 swing 進場) 兩輪皆否決, MUST NOT 重試:
+#   (1) 只用 short 的寬版本: 狀態機路徑被改掉、頂位錨在不同日子, 2026-07 整段高點防守瓦解
+#       (top 腿 92→72 天), 合池 PF 1.8584→1.8381、maxL -26.92→-32.84 (tmp/_swgate_factory_eval.py).
+#   (2) 加上 long 腿的緊版本: 破壞形狀消失 (top 92→92, 2026-06/07 逐日腿別一格未動), 合池 PF
+#       +0.0043、賺賠比 +0.010、maxL/maxG 不動, 但 buy 進場差異日只有 11 天 (低於 §6b 的 20 天
+#       門檻)、勝率 -0.02、淨損益只 +253pp/74440pp = 0.34%. ★否決的真因是增益來源不成立:
+#       2026-05 的 +161.7pp 來自 trend 腿被改標成 swing、而 swing 不在 _stance_block_dates()
+#       裡 (那是 sweep 15 的既有決定), 當天 short spread 是 +11~+18 (空方仍多) → 排列條件根本
+#       沒成立; 反向的 2020-12/2023-07 -50.6pp 則是空出來的位置被 top/trend 接手而多擋.
+#       方向由「哪條腿接手」決定, 與排列強弱無關 = 部位機器狀態重排的噪音 (tmp/_latch_eval.py,
+#       _probe_latch_v2.py). 想讓 buy 在趨勢腿防守日進場, 該動的是 _stance_block_dates() 的
+#       腿別/條件 (622 個 trend 日的樣本), 不是繞道改 swing latch.
+SWING_WATCH_ARR = 3
+SWING_WATCH_LONG = 1
+
 # 波段防守的續守上限: 它抓的是波段級停頓, 續跌本來就該交給趨勢腿, 沒必要一路守下去.
 # 5/10 日稽核發現續守日是這層最弱的部分 (109 個續守日 fwd10 +3.11%, 比基準高 2.01pp = 守進反彈).
 # 上限 5 天砍掉 54 個續守日而其他指標全同: 防守 40.0%→39.6%, 累報酬 +267.7%→+269.5%, 危險近高
@@ -265,6 +290,23 @@ OPT_BEARISH_PCTL = 0.33  # bull 落在 252日底 1/3 = 避險偏空 (B voter)
 TOP_VOTE_K = 3           # 高信念頂部門檻: A/B/D/E 四個過熱訊號 >=K 同時亮
 HISTORY_DAYS = 250 # sparkline length
 
+def _arr_bull_strengthening(m: pd.DataFrame) -> pd.Series:
+    """排列「多方仍強且持續轉強」: 波段層在這種日子只降級為觀望 (見 SWING_WATCH_ARR).
+
+    short 腿: 多方檔數多於空方 (arr_spread<0, spread = 空頭排列占比 − 多頭排列占比 pp) 且
+    領先幅度比 SWING_WATCH_ARR 日前更大. long 腿: 多頭排列占比比 SWING_WATCH_LONG 日前更高.
+    兩腿 AND; 常數設 None 即關掉該腿. 空方仍佔優、多方領先但正在收斂、或長線多方沒在回升的
+    日子, 照舊給防守.
+    """
+    ok = pd.Series(True, index=m.index)
+    if SWING_WATCH_ARR is not None:
+        sp = m["arr_spread"]
+        ok &= (sp < 0) & (sp < sp.shift(SWING_WATCH_ARR))
+    if SWING_WATCH_LONG is not None:
+        ok &= m["long_up_pct"] > m["long_up_pct"].shift(SWING_WATCH_LONG)
+    return ok.fillna(False)
+
+
 def _regime(score: float, near_high: bool, fresh_low: bool) -> tuple[str, str, bool]:
     """(label, colour, is_danger). 頂部過熱 (the real top warning) is 外資期貨-driven:
     among near-high days, foreign net-OI (期) is the ONLY component that separates
@@ -399,7 +441,7 @@ def compute_stance(short_trend, hot_wide, early_exit=None, reattack_safe=None,
 
 
 def derive_tri_state(defensive, modes, held, k=STANCE_TRI_TREND_K, j=STANCE_TRI_SWING_J,
-                     upgrade_ok=None):
+                     upgrade_ok=None, swing_watch=None):
     """攻防二元 latch → 三態 (攻擊/觀望/防守) + 路徑相依曝險. 決策層不動, 這是輸出端加層.
 
     高點防守 (top mode) 一律「防守」——5/10 日稽核證實它是唯一真在做事的腿 (fwd10 -2.94%、
@@ -409,6 +451,9 @@ def derive_tri_state(defensive, modes, held, k=STANCE_TRI_TREND_K, j=STANCE_TRI_
     upgrade_ok (每日 bool, None=無條件) → 趨勢腿守滿 k 天後還要它成立才升為防守, 否則續留
     觀望並逐日重判 (見 STANCE_TRI_UPGRADE_DROP). 只能延後每段的第一次升級 —— 升級後曝險已
     出場, 之後即使回到觀望也維持空手.
+    swing_watch (每日 bool, None=無條件) → 該日成立時波段層只給觀望不給防守 (見
+    SWING_WATCH_ARR / SWING_WATCH_LONG). 與 j 是 OR 關係, 且逐日重判 —— 排列一停止轉強
+    當天就回防守.
     回傳 (labels: list[str], exposure: np.ndarray[bool] True=持有)."""
     labels: list[str] = []
     exposure = np.zeros(len(defensive), dtype=bool)
@@ -420,7 +465,8 @@ def derive_tri_state(defensive, modes, held, k=STANCE_TRI_TREND_K, j=STANCE_TRI_
             lab = ("觀望" if held[i] <= k or (upgrade_ok is not None and not upgrade_ok[i])
                    else "防守")
         elif modes[i] == "swing":
-            lab = "觀望" if held[i] <= j else "防守"
+            lab = ("觀望" if held[i] <= j or (swing_watch is not None and swing_watch[i])
+                   else "防守")
         else:
             lab = "防守"
         if lab == "攻擊":
@@ -435,11 +481,20 @@ def derive_tri_state(defensive, modes, held, k=STANCE_TRI_TREND_K, j=STANCE_TRI_
 STANCE3_COLOR = {"攻擊": "#22c55e", "觀望": "#eab308", "防守": "#ef4444"}
 
 
-def _stance3_text(lab: str, exposed: bool, st_last: int) -> str:
-    """三態的說明文字 (daily 與 intraday 共用)."""
+def _stance3_text(lab: str, exposed: bool, st_last: int, swing_watch: bool = False) -> str:
+    """三態的說明文字 (daily 與 intraday 共用).
+
+    swing_watch=True 時的觀望來自波段層的排列降級 (SWING_WATCH_ARR / SWING_WATCH_LONG), 出場條件與趨勢腿的
+    觀望完全不同 (排列一停止轉強當天就回防守), 故走另一段文案.
+    """
     arr = ST_LABELS.get(st_last, "?")
     if lab == "攻擊":
         return f"攻擊中（排列：{arr}，中性以上）"
+    if lab == "觀望" and swing_watch:
+        return (f"觀望中（排列：{arr}）：波段停滯（過熱背景下跌破 {SWING_HI_WIN} 日高），但"
+                f"短線多方仍領先且持續轉強、長線多方排列占比同步回升，故先不加碼、"
+                f"{'續抱' if exposed else '續空手'}；任一條停止轉強即升為防守，"
+                f"站回 {SWING_HI_WIN} 日高則轉攻")
     if lab == "觀望":
         return (f"觀望中（排列：{arr}）：防守剛觸發、還沒站住，先不加碼但"
                 f"{'續抱' if exposed else '續空手'}；要守超過 {STANCE_TRI_TREND_K} 天"
@@ -496,7 +551,8 @@ def _load_merged_frame(cur) -> pd.DataFrame:
                           advance, advance_limit, decline, unchanged
                    FROM tw.index_prices WHERE index_id='TAIEX' ORDER BY trade_date""")
     ix = pd.DataFrame(cur.fetchall())
-    cur.execute("""SELECT trade_date, short_trend_total, short_down_total, total_stocks
+    cur.execute("""SELECT trade_date, short_trend_total, short_up_total, short_down_total,
+                          long_up_total, total_stocks
                    FROM tw.market_breadth ORDER BY trade_date""")
     br = pd.DataFrame(cur.fetchall())
     # 大台期貨 front-month OHLCV (per day = non-spread 一般 contract with MAX volume)
@@ -526,6 +582,12 @@ def _load_merged_frame(cur) -> pd.DataFrame:
     # short 空頭排列 占比 (total base): rising fast = deterioration accelerating
     br["sd_pct"] = (br["short_down_total"].astype(float)
                     / br["total_stocks"].replace(0, np.nan).astype(float) * 100)
+    # short 排列 空-多 價差 (pp, 正 = 空方檔數多於多方): SWING_WATCH_ARR 用來判「多方持續轉強」
+    _base = br["total_stocks"].replace(0, np.nan).astype(float)
+    br["arr_spread"] = ((br["short_down_total"].astype(float) - br["short_up_total"].astype(float))
+                        / _base * 100)
+    # long 多頭排列占比 (%): SWING_WATCH_LONG 用來判「長線多方開始回升」
+    br["long_up_pct"] = br["long_up_total"].astype(float) / _base * 100
     tv["d"] = pd.to_datetime(tv["trade_date"])
     for _k in ("o", "h", "l", "c", "v"):
         tv[_k] = tv[_k].astype(float)
@@ -542,7 +604,7 @@ def _load_merged_frame(cur) -> pd.DataFrame:
     else:
         opt = pd.DataFrame({"d": pd.Series(dtype="datetime64[ns]"), "opt_bull": pd.Series(dtype=float)})
     return (mg[["d", "mgn"]].merge(fu[["d", "noi"]], on="d")
-            .merge(ix[["d", "pct_from_high", "tx", "to", "lim"]], on="d").merge(br[["d", "st", "sd_pct"]], on="d")
+            .merge(ix[["d", "pct_from_high", "tx", "to", "lim"]], on="d").merge(br[["d", "st", "sd_pct", "arr_spread", "long_up_pct"]], on="d")
             .merge(tv[["d", "o", "h", "l", "c", "v", "ref"]], on="d")
             .merge(opt, on="d", how="left")   # LEFT: keep full history; opt_bull NaN pre-2023-06
             .sort_values("d").reset_index(drop=True))
@@ -600,6 +662,7 @@ def daily_stance_frame(cur) -> pd.DataFrame:
     m["swing"] = ((m["top_vote_n"] >= SWING_VOTES).rolling(SWING_LOOK, min_periods=1).max() > 0) \
         & (m["tx"] < _hi5 * (1 - SWING_DROP / 100))
     m["swing_exit"] = m["tx"] >= _hi5
+    m["swing_watch"] = _arr_bull_strengthening(m)
     m["trend_exit"] = m["tx"] >= m["tx"].rolling(TREND_EXIT_HI_WIN, min_periods=1).max()
     # 三態的條件式升級: 觀望要升防守, 指數必須真的跌破 5 日高 (跌勢展開) — 見 STANCE_TRI_UPGRADE_DROP
     m["tri_upgrade"] = m["tx"] < _hi5 * (1 - STANCE_TRI_UPGRADE_DROP / 100)
@@ -618,7 +681,8 @@ def daily_stance_frame(cur) -> pd.DataFrame:
     m["defensive"] = _def
     # 三態 (攻擊/觀望/防守) + 路徑相依曝險 — 輸出端加層, 不動上面的 latch 決策
     m["stance3"], m["exposure"] = derive_tri_state(_def, _modes, _held,
-                                                   upgrade_ok=m["tri_upgrade"].to_numpy())
+                                                   upgrade_ok=m["tri_upgrade"].to_numpy(),
+                                                   swing_watch=m["swing_watch"].to_numpy())
     m["mode"] = _modes
     m["held"] = _held
     return m
@@ -694,7 +758,8 @@ def build_thermometer(cur, today: date | None = None) -> dict:
         "stance_reason": _stance3_text("防守" if defensive else "攻擊", not defensive, int(last["st"])),
         "stance3": last["stance3"],
         "stance3_color": STANCE3_COLOR[last["stance3"]],
-        "stance3_reason": _stance3_text(last["stance3"], bool(last["exposure"]), int(last["st"])),
+        "stance3_reason": _stance3_text(last["stance3"], bool(last["exposure"]), int(last["st"]),
+                                        swing_watch=bool(last["swing_watch"]) and last["mode"] == "swing"),
         "exposure": "持有" if last["exposure"] else "空手",
         "swing": bool(last["swing"]),
         "near_high": a_near,
@@ -861,11 +926,14 @@ def build_intraday_stance(cur, volume_scale: float, now: datetime) -> dict | Non
     m["swing"] = ((_tvn >= SWING_VOTES).rolling(SWING_LOOK, min_periods=1).max() > 0) \
         & (m["tx"] < _hi5 * (1 - SWING_DROP / 100))
     m["swing_exit"] = m["tx"] >= _hi5
+    m["swing_watch"] = _arr_bull_strengthening(m)
     m["trend_exit"] = m["tx"] >= m["tx"].rolling(TREND_EXIT_HI_WIN, min_periods=1).max()
     m["tri_upgrade"] = m["tx"] < _hi5 * (1 - STANCE_TRI_UPGRADE_DROP / 100)
     if grafted and len(m) >= 2:
         # 這幾條都是拿 tx 做 rolling, 而 forming bar 的 tx 是前一日收盤 (盤中拿不到即時指數)
-        for _c in ("swing", "swing_exit", "trend_exit", "tri_upgrade"):
+        # swing_watch 跟著 swing 一起沿用收盤值: 波段層的判定整組來自收盤 latch, 半組即時
+        # 半組沿用會讓「該不該降級」與「有沒有波段防守」對不上同一天.
+        for _c in ("swing", "swing_watch", "swing_exit", "trend_exit", "tri_upgrade"):
             m.loc[m.index[-1], _c] = bool(m[_c].iloc[-2])
     defensive, _modes, _held = compute_stance(m["st"].to_numpy(), m["hot_wide"].to_numpy(),
                                               _early_reattack(m), _reattack_safe(m),
@@ -878,7 +946,8 @@ def build_intraday_stance(cur, volume_scale: float, now: datetime) -> dict | Non
                                               swing_max_hold=SWING_MAX_HOLD, return_modes=True)
     # 三態 + 路徑相依曝險: 整段歷史一起算, 故 forming bar 的觀望/曝險延續收盤 latch
     _labels, _expo = derive_tri_state(defensive, _modes, _held,
-                                      upgrade_ok=m["tri_upgrade"].to_numpy())
+                                      upgrade_ok=m["tri_upgrade"].to_numpy(),
+                                      swing_watch=m["swing_watch"].to_numpy())
 
     last = m.iloc[-1]
     is_def = bool(defensive[-1])
@@ -894,7 +963,8 @@ def build_intraday_stance(cur, volume_scale: float, now: datetime) -> dict | Non
         "stance_reason": _stance3_text("防守" if is_def else "攻擊", not is_def, st_last),
         "stance3": lab3,
         "stance3_color": STANCE3_COLOR[lab3],
-        "stance3_reason": _stance3_text(lab3, exposed, st_last),
+        "stance3_reason": _stance3_text(lab3, exposed, st_last,
+                                        swing_watch=bool(last["swing_watch"]) and _modes[-1] == "swing"),
         "exposure": "持有" if exposed else "空手",
         "short_trend": st_last,
     }
