@@ -77,6 +77,17 @@ _COLUMN_GROUPS = [
 _COLUMN_MIN_RATIO = 0.7
 _COLUMN_BASELINE_DAYS = 20
 
+# A capital reduction, split or par-value change halts a stock for several days
+# and it resumes at a price on a different scale. tw.daily_prices stores raw
+# closes, so the break stays in the series: 5904 went 720.00 -> 79.20 on
+# 2026-08-10 and then traded at 0.14x its own 20-day average, which is enough
+# to fire entry signals off nothing. Detecting the halt pattern needs no
+# external feed and covers TPEx and the emerging board, which the TWSE
+# reduction endpoint does not.
+_HALT_MIN_DAYS = 3
+_HALT_MIN_JUMP = 0.15
+_HALT_LOOKBACK_DAYS = 5   # trading days after resumption to keep reporting
+
 # Intraday: alert when tw.intraday_quotes has not advanced for this long.
 _INTRADAY_STALE_MINUTES = 5
 
@@ -281,6 +292,71 @@ def _stale_exes() -> list[str]:
     return problems
 
 
+def _corporate_actions(latest: date) -> list[str]:
+    """Stocks that resumed trading after a halt at a price on a new scale.
+
+    Reported whether or not tw.capital_changes knows about them: that table
+    only models reductions, so splits and par-value changes -- the ones that
+    move a price the furthest -- can never appear in it. The note says which
+    case it is so the reader knows whether a backfill is even possible.
+    """
+    with get_cursor(commit=False) as cur:
+        cur.execute(
+            """
+            SELECT trade_date AS d FROM tw.index_prices
+            WHERE index_id = 'TAIEX' AND trade_date <= %s
+            ORDER BY trade_date DESC LIMIT 40
+            """,
+            (latest,),
+        )
+        cal = [r["d"] for r in cur.fetchall()][::-1]
+        if len(cal) < _HALT_MIN_DAYS + 2:
+            return []
+        cur.execute(
+            """
+            SELECT p.stock_id, p.trade_date AS d, p.close_price, s.name
+            FROM tw.daily_prices p JOIN tw.stocks s USING (stock_id)
+            WHERE p.trade_date >= %s AND s.delisted_date IS NULL
+            ORDER BY p.stock_id, p.trade_date
+            """,
+            (cal[0],),
+        )
+        rows = cur.fetchall()
+        cur.execute(
+            "SELECT stock_id FROM tw.capital_changes WHERE effective_date >= %s",
+            (cal[0],),
+        )
+        known = {r["stock_id"] for r in cur.fetchall()}
+
+    traded: dict[str, dict] = {}
+    names: dict[str, str] = {}
+    for r in rows:
+        if r["close_price"] is not None:
+            traded.setdefault(r["stock_id"], {})[r["d"]] = float(r["close_price"])
+        names[r["stock_id"]] = r["name"] or ""
+
+    cutoff = cal[-_HALT_LOOKBACK_DAYS] if len(cal) >= _HALT_LOOKBACK_DAYS else cal[0]
+    found = []
+    for sid, prices in traded.items():
+        run = 0
+        for day in cal:
+            if day not in prices:
+                run += 1
+                continue
+            if run >= _HALT_MIN_DAYS and day >= cutoff:
+                before = [prices[x] for x in cal if x in prices and x < day]
+                if before and before[-1] > 0:
+                    jump = prices[day] / before[-1] - 1
+                    if abs(jump) >= _HALT_MIN_JUMP:
+                        tag = "已記於 capital_changes" if sid in known else "capital_changes 無紀錄"
+                        found.append(
+                            f"{sid} {names.get(sid, '')} {day:%m-%d} 復牌 "
+                            f"{before[-1]:g} -> {prices[day]:g} ({jump:+.0%})，{tag}"
+                        )
+            run = 0
+    return sorted(found)
+
+
 def run_daily() -> int:
     latest = _latest_trading_day()
     if latest is None:
@@ -297,12 +373,24 @@ def run_daily() -> int:
     stale.extend(_dead_column_groups(latest))
     stale.extend(_stale_exes())
 
+    actions = _corporate_actions(latest)
+
     want = latest.strftime("%m-%d")
+    sections = []
     if stale:
-        body = "盤後 pipeline 異常（應更新至 {}）：\n- {}".format(
-            want, "\n- ".join(stale)
+        sections.append(
+            "盤後 pipeline 異常（應更新至 {}）：\n- {}".format(
+                want, "\n- ".join(stale)
+            )
         )
-        send_sync(f"[{_TAG}] {body}")
+    if actions:
+        sections.append(
+            "公司行為，價格序列有未還原斷點：\n- {}".format(
+                "\n- ".join(actions)
+            )
+        )
+    if sections:
+        send_sync(f"[{_TAG}] " + "\n\n".join(sections))
         return 1
 
     send_sync(f"[{_TAG}] ✓ 系統正常（資料更新至 {want}）", silent=True)
