@@ -1,6 +1,18 @@
 {
-  "updated_at": "2026-08-11T21:54:56",
+  "updated_at": "2026-08-12T21:52:32",
   "events": [
+    {
+      "type": "placement",
+      "stock_id": "6695",
+      "company_name": "芯鼎",
+      "date": "2026-08-11",
+      "insider_role": null,
+      "insider_name": null,
+      "method": null,
+      "shares": null,
+      "security_kind": "普通股",
+      "period": null
+    },
     {
       "type": "transfer",
       "stock_id": "3167",
@@ -624,119 +636,11 @@
       "shares": null,
       "security_kind": "普通股",
       "period": null
-    },
-    {
-      "type": "transfer",
-      "stock_id": "4160",
-      "company_name": "訊聯基因",
-      "date": "2026-05-13",
-      "insider_role": "經理人本人",
-      "insider_name": "蔡政憲",
-      "method": "洽特定人",
-      "shares": 336263,
-      "security_kind": null,
-      "period": "115/05/13\r\n~\r\n115/05/15"
-    },
-    {
-      "type": "placement",
-      "stock_id": "2466",
-      "company_name": "冠西電",
-      "date": "2026-05-13",
-      "insider_role": null,
-      "insider_name": null,
-      "method": null,
-      "shares": null,
-      "security_kind": "普通股",
-      "period": null
-    },
-    {
-      "type": "placement",
-      "stock_id": "2472",
-      "company_name": "立隆電",
-      "date": "2026-05-13",
-      "insider_role": null,
-      "insider_name": null,
-      "method": null,
-      "shares": null,
-      "security_kind": "普通股",
-      "period": null
-    },
-    {
-      "type": "placement",
-      "stock_id": "3011",
-      "company_name": "今皓",
-      "date": "2026-05-13",
-      "insider_role": null,
-      "insider_name": null,
-      "method": null,
-      "shares": null,
-      "security_kind": "普通股",
-      "period": null
-    },
-    {
-      "type": "placement",
-      "stock_id": "3207",
-      "company_name": "耀勝",
-      "date": "2026-05-13",
-      "insider_role": null,
-      "insider_name": null,
-      "method": null,
-      "shares": null,
-      "security_kind": "普通股",
-      "period": null
-    },
-    {
-      "type": "placement",
-      "stock_id": "3455",
-      "company_name": "由田",
-      "date": "2026-05-13",
-      "insider_role": null,
-      "insider_name": null,
-      "method": null,
-      "shares": null,
-      "security_kind": "普通股",
-      "period": null
-    },
-    {
-      "type": "placement",
-      "stock_id": "3629",
-      "company_name": "地心引力",
-      "date": "2026-05-13",
-      "insider_role": null,
-      "insider_name": null,
-      "method": null,
-      "shares": null,
-      "security_kind": "普通股",
-      "period": null
-    },
-    {
-      "type": "placement",
-      "stock_id": "5227",
-      "company_name": "立凱-KY",
-      "date": "2026-05-13",
-      "insider_role": null,
-      "insider_name": null,
-      "method": null,
-      "shares": null,
-      "security_kind": "普通股",
-      "period": null
-    },
-    {
-      "type": "placement",
-      "stock_id": "5321",
-      "company_name": "美而快",
-      "date": "2026-05-13",
-      "insider_role": null,
-      "insider_name": null,
-      "method": null,
-      "shares": null,
-      "security_kind": "普通股",
-      "period": null
     }
   ],
   "stats": {
     "transfer_events_30d": 14,
     "transfer_stocks_30d": 7,
-    "placement_events_30d": 2
+    "placement_events_30d": 3
   }
 }
