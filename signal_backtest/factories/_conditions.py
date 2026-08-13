@@ -49,6 +49,24 @@ BUY_FLEE_POST_GATE = 28.0                 # post_strength short_pct floor (v358)
 # trades), so k is set to the low end of the 3-5 insensitive range.
 SELL_STANCE_GATE: tuple[int, float] | None = (3, 25.0)
 
+# v365: blank out the universe for a stock after a corporate action leaves an
+# unadjusted step in its price series. build_stock_data reads raw close_price
+# and a halted session has a NULL close, so the row vanishes and the bars from
+# either side of a reduction, split or par-value change end up adjacent. Every
+# rolling window spanning that seam is meaningless: 5904 resumed at 0.11x its
+# prior close on 2026-08-10 and traded at 0.14x its own 20-day average, which
+# was enough for buy_flee and then sell_flee to fire on nothing.
+#
+# The 40% threshold is not tunable -- the daily limit is +/-10%, so a single
+# bar beyond 40% cannot be a real move. The 377-bar window is the longest
+# lookback that reaches a decision (analysis.score LONG_PERIODS = 144/233/377),
+# not a swept value: choosing it by PF would be fitting to the artifacts, and
+# the artifacts are what this filter exists to remove.
+#
+# Set BREAK_BLACKOUT_BARS to None to disable and reproduce v364 bit-identically.
+BREAK_JUMP = 0.40
+BREAK_BLACKOUT_BARS: int | None = 377
+
 if TYPE_CHECKING:
     from backtest.data import StockData
 
@@ -56,6 +74,38 @@ BoolArray = NDArray[np.bool_]
 
 
 # ── Helpers ─────────────────────────────────────────────────────────────────
+
+
+def post_break_blackout(data: "StockData") -> BoolArray:
+    """Bars whose indicator history spans an unadjusted corporate-action seam.
+
+    True from the jump bar itself through BREAK_BLACKOUT_BARS bars after it,
+    which is how long the longest window still reaches back across the seam.
+    """
+    n = data.n
+    if BREAK_BLACKOUT_BARS is None or n == 0:
+        return np.zeros(n, dtype=np.bool_)
+    close = np.asarray(data.close, dtype=np.float64)
+    prev = np.empty(n, dtype=np.float64)
+    prev[0] = np.nan
+    prev[1:] = close[:-1]
+    with np.errstate(invalid="ignore", divide="ignore"):
+        jump = np.abs(close / prev - 1.0) > BREAK_JUMP
+    jump[0] = False
+    jump &= np.isfinite(prev) & (prev > 0)
+    if not jump.any():
+        return np.zeros(n, dtype=np.bool_)
+    # A bar is blacked out when any jump sits within the preceding window,
+    # so carry each jump forward for BREAK_BLACKOUT_BARS bars.
+    out = np.zeros(n, dtype=np.bool_)
+    remaining = 0
+    for i in range(n):
+        if jump[i]:
+            remaining = BREAK_BLACKOUT_BARS + 1
+        if remaining > 0:
+            out[i] = True
+            remaining -= 1
+    return out
 
 
 def _shift(arr: np.ndarray, k: int) -> np.ndarray:

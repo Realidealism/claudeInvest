@@ -30,12 +30,13 @@ from signal_backtest.signal import (
     DefenseRule, SignalSet, SignalSpec, TierConfig,
 )
 from signal_backtest.factories._conditions import (
-    pick_condition,
-    touch_condition,
     buy_condition,
-    sell_condition,
     buy_flee_signal,
+    pick_condition,
+    post_break_blackout,
+    sell_condition,
     sell_flee_signal,
+    touch_condition,
 )
 from signal_backtest.factories.pick_touch import pick_signal, touch_signal
 from signal_backtest.factories.buy_sell import buy_signal, sell_signal
@@ -48,7 +49,9 @@ if TYPE_CHECKING:
 def unified_long_factory(data: "StockData") -> SignalSpec:
     """統一做多 dynamic-tier：pick/buy/sell_flee 動態 tier，buy_flee 全局出場."""
     n = data.n
-    not_dead_fish = ~data.money_result.dead  # money_level >= 3 (>= 9M turnover)
+    not_dead_fish = ~data.money_result.dead & ~post_break_blackout(data)
+    # money_level >= 3 (>= 9M turnover); the second term drops bars whose
+    # history spans an unadjusted corporate-action seam (v365)
     pick = pick_condition(data) & not_dead_fish
     buy = buy_condition(data) & not_dead_fish
     sell_flee = sell_flee_signal(data) & not_dead_fish
@@ -83,7 +86,9 @@ def unified_long_factory(data: "StockData") -> SignalSpec:
 def unified_short_factory(data: "StockData") -> SignalSpec:
     """統一做空 dynamic-tier：touch/sell/buy_flee 動態 tier，sell_flee 全局出場."""
     n = data.n
-    not_dead_fish = ~data.money_result.dead  # money_level >= 3 (>= 9M turnover)
+    not_dead_fish = ~data.money_result.dead & ~post_break_blackout(data)
+    # money_level >= 3 (>= 9M turnover); the second term drops bars whose
+    # history spans an unadjusted corporate-action seam (v365)
     touch = touch_condition(data) & not_dead_fish
     sell = sell_condition(data) & not_dead_fish
     buy_flee = buy_flee_signal(data) & not_dead_fish

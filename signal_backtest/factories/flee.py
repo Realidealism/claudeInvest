@@ -20,6 +20,7 @@ from signal_backtest.factories._conditions import (
     _shift,
     _transient_giveback_exit,
     buy_flee_signal,
+    post_break_blackout,
     sell_flee_signal,
 )
 
@@ -30,7 +31,9 @@ if TYPE_CHECKING:
 def buy_flee_factory(data: "StockData") -> SignalSpec:
     """多翻空反轉 (short-only)."""
     n = data.n
-    not_dead_fish = ~data.money_result.dead  # money_level >= 3 (>= 9M turnover)
+    not_dead_fish = ~data.money_result.dead & ~post_break_blackout(data)
+    # money_level >= 3 (>= 9M turnover); the second term drops bars whose
+    # history spans an unadjusted corporate-action seam (v365)
     short_entry = buy_flee_signal(data) & not_dead_fish
     short_exit = sell_flee_signal(data)  # 出場：趨勢再反轉（空翻多）
     zero = np.zeros(n, dtype=np.bool_)
@@ -91,7 +94,9 @@ def buy_flee_factory(data: "StockData") -> SignalSpec:
 def sell_flee_factory(data: "StockData") -> SignalSpec:
     """空翻多反轉 (long-only)."""
     n = data.n
-    not_dead_fish = ~data.money_result.dead  # money_level >= 3 (>= 9M turnover)
+    not_dead_fish = ~data.money_result.dead & ~post_break_blackout(data)
+    # money_level >= 3 (>= 9M turnover); the second term drops bars whose
+    # history spans an unadjusted corporate-action seam (v365)
     long_entry = sell_flee_signal(data) & not_dead_fish
     long_exit = buy_flee_signal(data)  # 出場：趨勢再反轉（多翻空）
     zero = np.zeros(n, dtype=np.bool_)

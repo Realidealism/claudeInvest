@@ -15,12 +15,13 @@ from analysis.indicators import rolling_highest, rolling_lowest
 from signal_backtest.signal import DefenseRule, SignalSet, SignalSpec
 from signal_backtest.factories._conditions import (
     _long_pct_array,
-    _short_pct_array,
     _shift,
+    _short_pct_array,
     _stance_long_held,
     buy_condition,
-    sell_condition,
     buy_flee_signal,
+    post_break_blackout,
+    sell_condition,
     sell_flee_signal,
 )
 
@@ -29,13 +30,15 @@ if TYPE_CHECKING:
 
 # v361: tighten buy's long floor only once the thermometer's defensive latch has
 # run this many sessions. Set to None to disable (same-window controlled runs).
-STANCE_HELD_DEFENSE: int | None = 8
+STANCE_HELD_DEFENSE: int | None = 7
 
 
 def buy_signal(data: "StockData") -> SignalSpec:
     """波段多 (long-only)."""
     n = data.n
-    not_dead_fish = ~data.money_result.dead  # money_level >= 3 (>= 9M turnover)
+    not_dead_fish = ~data.money_result.dead & ~post_break_blackout(data)
+    # money_level >= 3 (>= 9M turnover); the second term drops bars whose
+    # history spans an unadjusted corporate-action seam (v365)
     long_entry = buy_condition(data) & not_dead_fish
     long_exit = buy_flee_signal(data)
     zero = np.zeros(n, dtype=np.bool_)
@@ -98,11 +101,12 @@ def buy_signal(data: "StockData") -> SignalSpec:
                     trigger=fake_support, source=rolling_lowest(data.low, 3),
                     max_days_after_entry=3),
     ]
-    # v361: latch age >= 8 sessions -> LL8 (sweep 36/37).
+    # v361: latch age >= k sessions -> LL8 (sweep 36/37). v364 moved k 8 -> 7
+    #   after the v363 thermometer change (sweep 53 re-verification).
     #   The threshold is the edge, not the tightening: the same tightening with
-    #   min_held=1 scores 1.8401 against a 1.8566 baseline, while gating it at
-    #   7-8 sessions is worth +0.025. k over 4/5/6/7/8/10/15 is an inverted U
-    #   peaking at 7-8 and decaying on both sides.
+    #   min_held=1 scores below the rule-off baseline (sweep 53: buy -0.0168),
+    #   while gating it at 6-8 sessions is worth +0.020~+0.026. k over
+    #   1/5/6/7/8/10 is an inverted U now peaking at 7.
     if STANCE_HELD_DEFENSE is not None:
         long_defense.append(
             DefenseRule(name=f"溫度計守滿{STANCE_HELD_DEFENSE}日→8日低",
@@ -178,7 +182,9 @@ def buy_signal(data: "StockData") -> SignalSpec:
 def sell_signal(data: "StockData") -> SignalSpec:
     """波段空 (short-only)."""
     n = data.n
-    not_dead_fish = ~data.money_result.dead  # money_level >= 3 (>= 9M turnover)
+    not_dead_fish = ~data.money_result.dead & ~post_break_blackout(data)
+    # money_level >= 3 (>= 9M turnover); the second term drops bars whose
+    # history spans an unadjusted corporate-action seam (v365)
     short_entry = sell_condition(data) & not_dead_fish
     short_exit = sell_flee_signal(data)
     zero = np.zeros(n, dtype=np.bool_)

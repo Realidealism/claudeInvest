@@ -21,13 +21,14 @@ from analysis.indicators import rolling_highest, rolling_lowest
 from signal_backtest.signal import DefenseRule, SignalSet, SignalSpec
 from signal_backtest.factories._conditions import (
     _long_pct_array,
-    _short_pct_array,
     _shift,
+    _short_pct_array,
     _transient_giveback_exit,
-    pick_condition,
-    touch_condition,
     buy_flee_signal,
+    pick_condition,
+    post_break_blackout,
     sell_flee_signal,
+    touch_condition,
 )
 
 if TYPE_CHECKING:
@@ -37,7 +38,9 @@ if TYPE_CHECKING:
 def pick_signal(data: "StockData") -> SignalSpec:
     """抄底 (long-only)."""
     n = data.n
-    not_dead_fish = ~data.money_result.dead  # money_level >= 3 (>= 9M turnover)
+    not_dead_fish = ~data.money_result.dead & ~post_break_blackout(data)
+    # money_level >= 3 (>= 9M turnover); the second term drops bars whose
+    # history spans an unadjusted corporate-action seam (v365)
     long_entry = pick_condition(data) & not_dead_fish
     long_exit = buy_flee_signal(data)
     zero = np.zeros(n, dtype=np.bool_)
@@ -123,7 +126,9 @@ def pick_signal(data: "StockData") -> SignalSpec:
 def touch_signal(data: "StockData") -> SignalSpec:
     """摸頭 (short-only)."""
     n = data.n
-    not_dead_fish = ~data.money_result.dead  # money_level >= 3 (>= 9M turnover)
+    not_dead_fish = ~data.money_result.dead & ~post_break_blackout(data)
+    # money_level >= 3 (>= 9M turnover); the second term drops bars whose
+    # history spans an unadjusted corporate-action seam (v365)
     short_entry = touch_condition(data) & not_dead_fish
     short_exit = sell_flee_signal(data)
     zero = np.zeros(n, dtype=np.bool_)
