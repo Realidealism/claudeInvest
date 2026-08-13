@@ -1,6 +1,6 @@
 {
-  "as_of": "2026-08-12",
-  "score": 61.3,
+  "as_of": "2026-08-13",
+  "score": 61.1,
   "bucket": "無頂部訊號",
   "bucket_color": "#8a8a9a",
   "danger": false,
@@ -13,7 +13,7 @@
   "exposure": "持有",
   "swing": false,
   "near_high": false,
-  "pct_from_high": -4.7,
+  "pct_from_high": -3.6,
   "hi_window": 55,
   "alert": false,
   "alert_conditions": [
@@ -25,7 +25,7 @@
   "margin_alert": false,
   "margin_alert_conditions": [
     {
-      "name": "融資/成交量 布林 z ≥ +1.5σ（現 -0.6σ）",
+      "name": "融資/成交量 布林 z ≥ +1.5σ（現 -0.4σ）",
       "met": false
     }
   ],
@@ -79,7 +79,7 @@
       "met": true
     },
     {
-      "name": "short 空頭排列 3 日急升 ≥ +6pp（現 +2.6pp）",
+      "name": "short 空頭排列 3 日急升 ≥ +6pp（現 +2.7pp）",
       "met": false
     }
   ],
@@ -102,39 +102,17 @@
     {
       "key": "futures",
       "name": "外資期貨定位",
-      "hot": 89.7,
-      "detail": "外資臺股期貨淨未平倉 -86,633 口（78日百分位越低越淨空＝越熱）"
+      "hot": 88.5,
+      "detail": "外資臺股期貨淨未平倉 -86,249 口（78日百分位越低越淨空＝越熱）"
     },
     {
       "key": "margin",
       "name": "融資水位",
-      "hot": 32.8,
-      "detail": "融資餘額金額 5,481億（距 55 日均 -0.69σ；+2σ=過熱）"
+      "hot": 33.7,
+      "detail": "融資餘額金額 5,498億（距 55 日均 -0.65σ；+2σ=過熱）"
     }
   ],
   "history": [
-    {
-      "date": "2025-08-01",
-      "score": 73.7,
-      "tx": 23434,
-      "label": "無頂部訊號",
-      "color": "#8a8a9a",
-      "stance": "防守",
-      "s3": "觀望",
-      "x": true,
-      "panic": false,
-      "m_alert": false,
-      "l_alert": false,
-      "lb_alert": false,
-      "tv_alert": false,
-      "tv_n": 0,
-      "warn": false,
-      "swing": false,
-      "c": {
-        "futures": 47.4,
-        "margin": 100.0
-      }
-    },
     {
       "date": "2025-08-04",
       "score": 72.4,
@@ -5611,6 +5589,28 @@
       "c": {
         "futures": 89.7,
         "margin": 32.8
+      }
+    },
+    {
+      "date": "2026-08-13",
+      "score": 61.1,
+      "tx": 46021,
+      "label": "無頂部訊號",
+      "color": "#8a8a9a",
+      "stance": "攻擊",
+      "s3": "攻擊",
+      "x": true,
+      "panic": false,
+      "m_alert": false,
+      "l_alert": false,
+      "lb_alert": false,
+      "tv_alert": false,
+      "tv_n": 0,
+      "warn": false,
+      "swing": false,
+      "c": {
+        "futures": 88.5,
+        "margin": 33.7
       }
     }
   ]
