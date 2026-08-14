@@ -1,23 +1,19 @@
 {
-  "latest_date": "2026-08-13",
+  "latest_date": "2026-08-14",
   "us": {
     "symbol": "^VIX",
     "label": "美股 VIX",
     "source": "Cboe",
     "latest": {
-      "close": 14.55,
+      "close": 14.63,
       "rating": "calm"
     },
     "thresholds": {
-      "p20": 15.78,
+      "p20": 15.77,
       "p50": 17.2,
       "p80": 19.87
     },
     "series": [
-      {
-        "date": "2025-08-21",
-        "close": 16.6
-      },
       {
         "date": "2025-08-22",
         "close": 14.22
@@ -1021,6 +1017,10 @@
       {
         "date": "2026-08-12",
         "close": 14.55
+      },
+      {
+        "date": "2026-08-13",
+        "close": 14.63
       }
     ]
   },
@@ -1029,13 +1029,13 @@
     "label": "半導體 VXSMH",
     "source": "Cboe (SMH ETF)",
     "latest": {
-      "close": 42.32,
+      "close": 41.43,
       "rating": "low"
     },
     "thresholds": {
-      "p20": 36.47,
-      "p50": 43.83,
-      "p80": 53.38
+      "p20": 36.51,
+      "p50": 43.81,
+      "p80": 53.19
     },
     "series": [
       {
@@ -1949,6 +1949,10 @@
       {
         "date": "2026-08-12",
         "close": 42.32
+      },
+      {
+        "date": "2026-08-13",
+        "close": 41.43
       }
     ]
   },
@@ -1957,14 +1961,14 @@
     "label": "台指 VIX",
     "source": "TAIFEX",
     "latest": {
-      "close": 31.19,
+      "close": 30.41,
       "rating": "calm",
-      "intraday_time": "134015"
+      "intraday_time": "090000"
     },
     "thresholds": {
-      "p20": 34.0,
+      "p20": 33.88,
       "p50": 36.56,
-      "p80": 38.95
+      "p80": 38.92
     },
     "series": [
       {
@@ -2421,7 +2425,11 @@
       },
       {
         "date": "2026-08-13",
-        "close": 31.19
+        "close": 31.09
+      },
+      {
+        "date": "2026-08-14",
+        "close": 30.41
       }
     ]
   }
