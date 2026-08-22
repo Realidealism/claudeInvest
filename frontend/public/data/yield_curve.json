@@ -1,5 +1,5 @@
 {
-  "latest_date": "2026-08-13",
+  "latest_date": "2026-08-21",
   "thresholds": {
     "flat": 0.0,
     "normal": 0.5,
@@ -8,68 +8,20 @@
   "spread_2y": {
     "label": "10Y - 2Y",
     "latest": {
-      "spread": 0.48,
-      "rating": "flat",
-      "date": "2026-08-13"
+      "spread": 0.5,
+      "rating": "normal",
+      "date": "2026-08-21"
     }
   },
   "spread_3m": {
     "label": "10Y - 3M",
     "latest": {
-      "spread": 0.76,
+      "spread": 0.86,
       "rating": "normal",
-      "date": "2026-08-13"
+      "date": "2026-08-21"
     }
   },
   "series": [
-    {
-      "date": "2023-08-14",
-      "dgs10": 4.19,
-      "dgs2": 4.96,
-      "dgs3mo": 5.56,
-      "spread_2y": -0.77,
-      "spread_3m": -1.37
-    },
-    {
-      "date": "2023-08-15",
-      "dgs10": 4.21,
-      "dgs2": 4.92,
-      "dgs3mo": 5.56,
-      "spread_2y": -0.71,
-      "spread_3m": -1.35
-    },
-    {
-      "date": "2023-08-16",
-      "dgs10": 4.28,
-      "dgs2": 4.97,
-      "dgs3mo": 5.56,
-      "spread_2y": -0.69,
-      "spread_3m": -1.28
-    },
-    {
-      "date": "2023-08-17",
-      "dgs10": 4.3,
-      "dgs2": 4.94,
-      "dgs3mo": 5.56,
-      "spread_2y": -0.64,
-      "spread_3m": -1.26
-    },
-    {
-      "date": "2023-08-18",
-      "dgs10": 4.26,
-      "dgs2": 4.92,
-      "dgs3mo": 5.55,
-      "spread_2y": -0.66,
-      "spread_3m": -1.29
-    },
-    {
-      "date": "2023-08-21",
-      "dgs10": 4.34,
-      "dgs2": 4.97,
-      "dgs3mo": 5.57,
-      "spread_2y": -0.63,
-      "spread_3m": -1.23
-    },
     {
       "date": "2023-08-22",
       "dgs10": 4.34,
@@ -6021,6 +5973,54 @@
       "dgs3mo": 3.87,
       "spread_2y": 0.48,
       "spread_3m": 0.76
+    },
+    {
+      "date": "2026-08-14",
+      "dgs10": 4.68,
+      "dgs2": 4.17,
+      "dgs3mo": 3.86,
+      "spread_2y": 0.51,
+      "spread_3m": 0.82
+    },
+    {
+      "date": "2026-08-17",
+      "dgs10": 4.72,
+      "dgs2": 4.19,
+      "dgs3mo": 3.87,
+      "spread_2y": 0.53,
+      "spread_3m": 0.85
+    },
+    {
+      "date": "2026-08-18",
+      "dgs10": 4.71,
+      "dgs2": 4.19,
+      "dgs3mo": 3.86,
+      "spread_2y": 0.52,
+      "spread_3m": 0.85
+    },
+    {
+      "date": "2026-08-19",
+      "dgs10": 4.65,
+      "dgs2": 4.19,
+      "dgs3mo": 3.86,
+      "spread_2y": 0.46,
+      "spread_3m": 0.79
+    },
+    {
+      "date": "2026-08-20",
+      "dgs10": 4.69,
+      "dgs2": 4.19,
+      "dgs3mo": 3.87,
+      "spread_2y": 0.5,
+      "spread_3m": 0.82
+    },
+    {
+      "date": "2026-08-21",
+      "dgs10": 4.74,
+      "dgs2": 4.24,
+      "dgs3mo": 3.88,
+      "spread_2y": 0.5,
+      "spread_3m": 0.86
     }
   ]
 }
