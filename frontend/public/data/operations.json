@@ -1,52 +1,123 @@
 {
-  "snapshot_date": "2026-08-24",
+  "snapshot_date": "2026-08-25",
   "signals": {
     "pick": [],
-    "touch": [],
+    "touch": [
+      {
+        "ticker": "5432",
+        "name": "新門",
+        "market": "TPEx",
+        "turnover": 13267693.0,
+        "streak": 1
+      }
+    ],
     "buy": [
       {
-        "ticker": "2301",
-        "name": "光寶科",
+        "ticker": "8039",
+        "name": "台虹",
         "market": "TWSE",
-        "turnover": 12589742080.0,
+        "turnover": 16795786240.0,
+        "streak": 1
+      },
+      {
+        "ticker": "6213",
+        "name": "聯茂",
+        "market": "TWSE",
+        "turnover": 13065021440.0,
+        "streak": 1
+      },
+      {
+        "ticker": "2881",
+        "name": "富邦金",
+        "market": "TWSE",
+        "turnover": 6567582720.0,
+        "streak": 1
+      },
+      {
+        "ticker": "2606",
+        "name": "裕民",
+        "market": "TWSE",
+        "turnover": 4389706240.0,
+        "streak": 1
+      },
+      {
+        "ticker": "6226",
+        "name": "光鼎",
+        "market": "TWSE",
+        "turnover": 1838803072.0,
         "streak": 1
       },
       {
         "ticker": "3234",
         "name": "光環",
         "market": "TPEx",
-        "turnover": 1248262784.0,
-        "streak": 1
+        "turnover": 1537449344.0,
+        "streak": 2
       },
       {
         "ticker": "6949",
         "name": "沛爾生醫-創",
         "market": "TWSE",
-        "turnover": 651011968.0,
+        "turnover": 1296303104.0,
+        "streak": 2
+      },
+      {
+        "ticker": "6538",
+        "name": "倉和",
+        "market": "TPEx",
+        "turnover": 1075929344.0,
         "streak": 1
       },
       {
-        "ticker": "2030",
-        "name": "彰源",
+        "ticker": "2612",
+        "name": "中航",
         "market": "TWSE",
-        "turnover": 151148544.0,
-        "streak": 2
+        "turnover": 457900992.0,
+        "streak": 1
       },
       {
-        "ticker": "2221",
-        "name": "大甲",
+        "ticker": "6782",
+        "name": "視陽",
+        "market": "TWSE",
+        "turnover": 430514848.0,
+        "streak": 1
+      },
+      {
+        "ticker": "3490",
+        "name": "單井",
         "market": "TPEx",
-        "turnover": 74483992.0,
-        "streak": 2
+        "turnover": 193504896.0,
+        "streak": 1
+      },
+      {
+        "ticker": "6224",
+        "name": "聚鼎",
+        "market": "TWSE",
+        "turnover": 157400896.0,
+        "streak": 1
+      },
+      {
+        "ticker": "6840",
+        "name": "東研信超",
+        "market": "TPEx",
+        "turnover": 27184520.0,
+        "streak": 1
+      },
+      {
+        "ticker": "2033",
+        "name": "佳大",
+        "market": "TWSE",
+        "turnover": 25668210.0,
+        "streak": 1
       }
     ],
     "sell": [],
     "buy_flee": [
       {
-        "ticker": "4746",
-        "name": "台耀",
+        "ticker": "1722",
+        "name": "台肥",
         "market": "TWSE",
-        "turnover": 49162388.0,
+        "turnover": 147552992.0,
         "streak": 1
       }
     ],
