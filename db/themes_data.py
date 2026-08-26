@@ -19,6 +19,19 @@ theme_path is "category > subcategory > name" (subcategory omitted when None);
 the full path is the key because a theme name is only unique within its branch.
 subcategory is the optional middle level (半導體上游 > IC設計 > 記憶體控制IC);
 use None for themes that sit directly under their category.
+
+Membership rule:
+  Broad themes (many members, used to watch a sector rotate) take a company
+  when the business reaches about a fifth of revenue. The bar sits at 20%
+  rather than higher because Taiwanese PCB revenue shares cluster at the two
+  ends — a firm is either a pure play above 90% or lands under 20%, and the
+  20~30% band is empty — so a stricter bar buys no extra purity, while 20%
+  still keeps out 華盈 (19%, a wire-harness maker).
+  Niche themes (few members, used to ask "who works in this corner") judge by
+  absolute scale instead. A product line worth 18% of a large firm can outsize
+  a small pure-play entirely, so excluding it by ratio is the bigger
+  distortion. 特殊材質基板 holds 同欣電 (ceramic substrate ~18% of revenue,
+  but larger in absolute terms than 九豪 as a whole) on this basis.
 """
 
 # (name, category, subcategory, description)
@@ -73,9 +86,10 @@ THEMES = [
     ('硬板', '印刷電路板', '中游', '雙面板、多層板、HDI 與軟硬結合板等剛性印刷電路板'),
     ('軟板', '印刷電路板', '中游', 'FPC 軟性印刷電路板'),
     ('製程耗材與加工服務', '印刷電路板', '設備與耗材', '磷銅球、鑽針、鑽孔墊板等製程耗材與鑽孔代工服務'),
-    ('製程藥水與回收', '印刷電路板', '設備與耗材', 'PCB 蝕刻、退錫與表面處理藥水，及含銅廢液回收再生'),
+    ('製程藥水', '印刷電路板', '設備與耗材', 'PCB 蝕刻、退錫與表面處理藥水，含製程廢液回收再生'),
     ('軟性銅箔基板與覆蓋膜', '印刷電路板', '上游', 'FCCL 軟性銅箔基板、覆蓋膜與保護膠片等軟板基材'),
     ('COF軟性載板', '印刷電路板', '中游', 'COF 捲帶式覆晶薄膜載板，面板驅動 IC 封裝用'),
+    ('特殊材質基板', '印刷電路板', '中游', '陶瓷基板、金屬基板等非玻纖／PI 材質的電路板'),
 ]
 
 # theme_path -> [股名, ...]   (use 股名, not 股號)
@@ -208,7 +222,7 @@ MAPPINGS = {
         '志超', '楠梓電', '競國', '定穎投控', '泰鼎-KY', '博智',
         '高技', '柏承', '邑昇', '霖宏',
         '育富', '慶生', '宇環', '佳總', '精成科', '相互',
-        '新復興', '欣興', '臻鼎-KY',
+        '新復興', '欣興', '臻鼎-KY', '松上', '晟鈦',
     ],
     '印刷電路板 > 中游 > 軟板': [
         '臻鼎-KY', '台郡', '嘉聯益', '同泰', '旭軟', '毅嘉',
@@ -232,14 +246,15 @@ MAPPINGS = {
     '印刷電路板 > 上游 > 銅箔': ['南亞', '金居', '榮科'],
     '印刷電路板 > 上游 > 聚亞醯胺樹脂': ['雙鍵', '長興', '達邁'],
     '印刷電路板 > 設備與耗材 > 製程耗材與加工服務': [
-        '晟鈦', '富榮綱', '凱崴', '尖點', '鉅橡',
+        '晟鈦', '凱崴', '尖點', '鉅橡',
     ],
-    '印刷電路板 > 設備與耗材 > 製程藥水與回收': ['昶昕', '揚博'],
+    '印刷電路板 > 設備與耗材 > 製程藥水': ['昶昕', '揚博'],
     '印刷電路板 > 上游 > 銅箔基板': [
         '南亞', '台光電', '聯茂', '台燿', '騰輝電子-KY',
     ],
     '印刷電路板 > 上游 > 軟性銅箔基板與覆蓋膜': ['律勝', '台虹', '亞電'],
     '印刷電路板 > 中游 > COF軟性載板': ['易華電'],
+    '印刷電路板 > 中游 > 特殊材質基板': ['九豪', '立誠', '同欣電', '聚鼎'],
     '印刷電路板 > 下游 > 基板組裝加工及相關製造': [
         '華通', '凱崴', '佳總', '楠梓電', '台郡', '泰詠',
         '精成科', '精星',
