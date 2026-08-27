@@ -30,7 +30,7 @@ import ast
 import os
 import sys
 from collections import deque
-from datetime import date, datetime
+from datetime import date, datetime, timezone
 from pathlib import Path
 
 from db.connection import get_cursor
@@ -47,6 +47,20 @@ _DAILY_TABLES = [
     ("市場廣度", "tw.market_breadth", "trade_date"),
     ("評分快照", "tw.score_snapshot", "snapshot_date"),
     ("訊號快照", "tw.signal_snapshot", "snapshot_date"),
+]
+
+# Sources that update on their own rhythm rather than every trading day, so the
+# "must equal the latest trading day" rule above would cry wolf. Each carries the
+# longest gap that is still normal for it:
+#   - the conference index refreshes daily inside daily_update
+#   - the annual-report sweep re-checks unfiled companies weekly out of season
+#   - affiliations come from quarterly financials and are refreshed by hand today,
+#     so only a gap wide enough to mean "nobody ran it for two quarters" is worth
+#     reporting
+_PERIODIC_TABLES = [
+    ("法說會索引", "tw.investor_conferences", "updated_at", 3),
+    ("年報產品別營收", "tw.product_revenue_status", "updated_at", 9),
+    ("轉投資關係", "tw.company_affiliations", "updated_at", 200),
 ]
 
 # Column groups of tw.daily_prices that each come from one scraper leg, checked
@@ -369,6 +383,15 @@ def run_daily() -> int:
         if d is None or d < latest:
             seen = d.strftime("%m-%d") if d else "無"
             stale.append(f"{label} 停在 {seen}")
+
+    for label, table, col, max_age in _PERIODIC_TABLES:
+        ts = _scalar(f"SELECT MAX({col}) AS d FROM {table}")
+        if ts is None:
+            stale.append(f"{label} 無任何資料")
+            continue
+        age = (datetime.now(timezone.utc) - ts).days
+        if age > max_age:
+            stale.append(f"{label} 已 {age} 天未更新（容許 {max_age} 天）")
 
     stale.extend(_dead_column_groups(latest))
     stale.extend(_stale_exes())
