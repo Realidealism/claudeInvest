@@ -403,6 +403,66 @@ def save_rows(rows: list[dict], index: dict | None = None) -> int:
     return saved
 
 
+def latest_filed_period(today=None) -> tuple[int, int]:
+    """Newest (year, season) whose financial report is due.
+
+    Deadlines are 5/15, 8/14, 11/14 for Q1-Q3 and 3/31 for the annual report, so
+    asking MOPS for a quarter before its deadline just returns empty pages for
+    every company.
+    """
+    from datetime import date as _date
+    today = today or _date.today()
+    y, md = today.year, (today.month, today.day)
+    if md >= (11, 14):
+        return y, 3
+    if md >= (8, 14):
+        return y, 2
+    if md >= (5, 15):
+        return y, 1
+    if md >= (3, 31):
+        return y - 1, 4
+    return y - 1, 3
+
+
+def quarterly_sweep(today=None) -> int:
+    """Refresh affiliations for the newest filed quarter.
+
+    Holdings move with acquisitions and disposals, and this table is what tells
+    us a theme counts one group's revenue twice, so a stale snapshot answers that
+    question wrongly rather than not at all.
+    """
+    year, season = latest_filed_period(today)
+    period = f"{year}Q{season}"
+    with get_cursor() as cur:
+        cur.execute(
+            """
+            SELECT s.stock_id FROM tw.stocks s
+            WHERE s.is_active AND s.security_type = 'STOCK'
+              AND NOT EXISTS (SELECT 1 FROM tw.company_affiliations a
+                              WHERE a.parent_id = s.stock_id AND a.period = %s)
+            ORDER BY s.stock_id
+            """, (period,))
+        targets = [r["stock_id"] for r in cur.fetchall()]
+    print(f"Affiliation sweep {period}: {len(targets)} pending")
+    index = _load_name_index()
+    saved = failed = empty = 0
+    for i, stock_id in enumerate(targets, 1):
+        try:
+            rows = fetch_one(stock_id, year, season)
+        except RuntimeError as e:
+            print(f"  {e}")
+            failed += 1
+            continue
+        if rows:
+            saved += save_rows(rows, index)
+        else:
+            empty += 1
+        if i % 100 == 0:
+            print(f"  [{i}/{len(targets)}] rows={saved} empty={empty} failed={failed}")
+    print(f"Sweep done {period}: {saved} rows, {empty} without the note, {failed} unreachable.")
+    return saved
+
+
 def _target_stocks() -> list[str]:
     with get_cursor() as cur:
         cur.execute(
@@ -414,12 +474,17 @@ def _target_stocks() -> list[str]:
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--year", type=int, required=True)
-    ap.add_argument("--season", type=int, required=True, choices=[1, 2, 3, 4])
+    ap.add_argument("--year", type=int)
+    ap.add_argument("--season", type=int, choices=[1, 2, 3, 4])
     ap.add_argument("--stocks", help="comma-separated stock ids")
     ap.add_argument("--all", action="store_true", help="every active listed stock")
+    ap.add_argument("--quarterly", action="store_true",
+                    help="scheduled sweep: newest filed quarter, companies still missing")
     args = ap.parse_args()
 
+    if args.quarterly:
+        quarterly_sweep()
+        return
     if args.stocks:
         targets = [s.strip() for s in args.stocks.split(",") if s.strip()]
     elif args.all:
