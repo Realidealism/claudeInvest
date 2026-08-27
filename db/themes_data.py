@@ -220,7 +220,7 @@ MAPPINGS = {
         '朋億*', '信紘科', '矽科宏晟', '華景電', '濾能', '創控',
         '聚賢研發-創', '銳澤', '千附',
             '洋基工程', '巨漢', '隆銘綠能',
-            '進典', '捷流閥業', '擎邦', '長佳',
+            '進典', '捷流閥業', '擎邦',
     ],
     '印刷電路板 > 中游 > IC載板': ['欣興', '景碩', '南電', '臻鼎-KY'],
     '印刷電路板 > 中游 > 硬板': [
@@ -274,3 +274,11 @@ MAPPINGS = {
         '大量',
     ],
 }
+
+# Watch list — kept, but the evidence is thinner than the rest:
+#   8064 東捷 (半導體設備 > 後段封測設備). Its 2025 report splits revenue
+#   into LCD 29.4% / LED 42.1% / other 28.5% with no semiconductor line of
+#   its own, so the exposure is at most 28.5% and cannot be shown to clear
+#   20%. Customers do include OSATs, and 2026 order intake leans towards
+#   advanced packaging, but an order book is not realised revenue. Recheck
+#   when the next annual report lands — the split should separate by then.
