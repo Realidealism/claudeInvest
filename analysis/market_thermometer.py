@@ -771,7 +771,7 @@ def build_thermometer(cur, today: date | None = None) -> dict:
         ],
         "margin_alert": bool(last["margin_overheat"]),
         "margin_alert_conditions": [
-            {"name": f"融資/成交量 布林 z ≥ +{MARGIN_OVERHEAT_Z:.1f}σ（現 {last['mt_z']:+.1f}σ）",
+            {"name": f"融資/成交金額 布林 z ≥ +{MARGIN_OVERHEAT_Z:.1f}σ（現 {last['mt_z']:+.1f}σ）",
              "met": bool(last["margin_overheat"])},
         ],
         "limitup_alert": bool(last["limitup_overheat"]),

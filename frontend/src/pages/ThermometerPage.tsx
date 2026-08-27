@@ -324,7 +324,7 @@ export default function ThermometerPage() {
             <span className="text-3xl font-bold" style={{ color: "#f59e0b" }}>⚠</span>
             <div>
               <div className="text-sm font-semibold" style={{ color: "#f59e0b" }}>頂部過熱·融資</div>
-              <div className="text-xs text-text-secondary">融資／成交量 布林 z ≥ +1.5σ（槓桿相對量能過熱）。★約 70% 假、獨家抓到 2025-03。</div>
+              <div className="text-xs text-text-secondary">融資／成交金額 布林 z ≥ +1.5σ（槓桿相對量能過熱）。★約 70% 假、獨家抓到 2025-03。</div>
             </div>
           </div>
         )}
@@ -423,7 +423,7 @@ export default function ThermometerPage() {
         </div>
       </div>
 
-      {/* 頂部過熱·融資（獨立第二燈，融資/成交量 布林 z） */}
+      {/* 頂部過熱·融資（獨立第二燈，融資/成交金額 布林 z） */}
       <div className={"mb-6 rounded border p-3 " + (data.margin_alert ? "border-[#f59e0b] bg-[#f59e0b]/10" : "border-border")}>
         <div className="flex items-center gap-2 mb-2">
           <span className={"px-2 py-0.5 rounded text-xs font-semibold " +
