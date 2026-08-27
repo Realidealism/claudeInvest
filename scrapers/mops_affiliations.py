@@ -430,6 +430,17 @@ def quarterly_sweep(today=None) -> int:
     Holdings move with acquisitions and disposals, and this table is what tells
     us a theme counts one group's revenue twice, so a stale snapshot answers that
     question wrongly rather than not at all.
+
+    ★ The two period types are NOT interchangeable:
+
+      Q4 (annual report) lists every investee, so it is the one to ask "which
+      companies does this group consist of" — the duplicate-revenue check.
+
+      Q1-Q3 (quarterly reports) only carry what moved or is material, so an
+      investee missing from them means "not disclosed this quarter", NOT
+      "disposed of": 2026Q2 omits 日月光/矽品, 華航/台灣虎航 and 矽格/台星科,
+      none of which were sold. Only an explicit percentage inside the same note
+      is a real change (矽統/紘康 100% -> 0%).
     """
     year, season = latest_filed_period(today)
     period = f"{year}Q{season}"
