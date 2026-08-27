@@ -83,6 +83,10 @@ SCRAPERS = [
     # Current-year AGM board (股東會開會日期, OpenAPI) — AGMs cluster in Q2;
     # exempt (0 rows outside the season is normal)
     ("Shareholder meetings (股東會)", "scrapers.shareholder_meetings", "scrape_date", False),
+    # Investor conferences (法說會): announcements arrive any day and carry a
+    # future date, so the index is refreshed daily and decks are archived once
+    # their conference has passed; exempt (quiet weeks are normal)
+    ("Investor conferences (法說會)", "scrapers.investor_conferences", "scrape_date", False),
     # Weekly/monthly (idempotent, run once per period) — all exempt: the
     # _run_completed guard makes 0 rows the norm on every day except the first
     # run of each period.
