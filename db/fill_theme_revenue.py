@@ -106,11 +106,13 @@ def fill(dry_run: bool = False) -> tuple[int, int]:
     with get_cursor() as cur:
         cur.execute(
             """
-            SELECT st.stock_id, st.theme_id, t.name AS theme, p.item, p.pct
+            SELECT st.stock_id, st.theme_id, t.name AS theme, p.item,
+                   p.pct_effective AS pct, p.pct_is_derived
             FROM tw.stock_themes st
             JOIN tw.themes t ON t.theme_id = st.theme_id
-            JOIN tw.product_revenue p ON p.stock_id = st.stock_id
-            WHERE p.pct IS NOT NULL
+            -- the view fills in the share for reports that printed amounts only
+            JOIN tw.product_revenue_share p ON p.stock_id = st.stock_id
+            WHERE p.pct_effective IS NOT NULL
             """)
         rows = [dict(r) for r in cur.fetchall()]
 
@@ -133,7 +135,9 @@ def fill(dry_run: bool = False) -> tuple[int, int]:
             cur.execute(
                 "UPDATE tw.stock_themes SET revenue_pct = %s, pct_item = %s, "
                 "pct_source = %s WHERE stock_id = %s AND theme_id = %s",
-                (row["pct"], row["item"][:60], "annual_report_2025", stock_id, theme_id))
+                (row["pct"], row["item"][:60],
+                 "annual_report_2025_derived" if row["pct_is_derived"] else "annual_report_2025",
+                 stock_id, theme_id))
     return len(best), len(rows)
 
 

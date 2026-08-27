@@ -144,7 +144,10 @@ def _clean(cell) -> str:
 # 「根據國際貨幣基金組織(IMF)於」 or 「百分比」 out of a market-commentary
 # paragraph and store them as products.
 PROSE_NOISE = ("百分比", "合計", "市場", "根據", "成長率", "年化", "表現", "預估",
-               "分析", "報告", "指出", "表示", "占比", "比重", "營收為", "較去年")
+               "分析", "報告", "指出", "表示", "占比", "比重", "營收為", "較去年",
+               # totals and P&L captions sit in the same table but are not products
+               "總額", "總計", "營業收入", "營業成本", "營業毛利", "營業利益",
+               "營業費用", "銷貨收入淨額")
 
 
 def _is_prose_noise(item: str) -> bool:
@@ -280,11 +283,20 @@ def _rows_from_table(table, fiscal_year) -> list[dict]:
     if labels and sum(any(w in x for w in REGION_WORDS) for x in labels) >= max(2, len(labels) // 3):
         return []
     out = []
+    # 廣宇 numbers its rows, so column 0 holds "1"/"2" and the product name sits
+    # one cell to the right; taking column 0 blindly stores the serial number.
+    label_col = 0
     for row in table[1:]:
         cells = [_clean(c) for c in row]
-        if not cells or not cells[0]:
+        if len(cells) > 1 and cells[0] and _to_num(cells[0]) is not None and _is_label(cells[1]):
+            label_col = 1
+            break
+
+    for row in table[1:]:
+        cells = [_clean(c) for c in row]
+        if not cells or len(cells) <= label_col or not cells[label_col]:
             continue
-        item = cells[0]
+        item = cells[label_col]
         if not _is_label(item):
             continue
         if (len(item) > 30 or any(h in item for h in ("合計", "總計", "小計", "年度", "項目", "比重"))
@@ -314,6 +326,13 @@ def _rows_from_prose(text: str) -> list[dict]:
         item = re.sub(r"^\d{4}年(?:度)?", "", item)
         if item and not any(w in item for w in REGION_WORDS) and not _is_prose_noise(item):
             out.append({"item": item[:60], "revenue": None, "pct": float(match.group(2))})
+    if not out:
+        # 「營業比重（民國114年度）：人機介面應用晶片100%。」 — the colon comes before
+        # the product and the percentage is glued to it, with no 占/佔 to anchor on.
+        for match in re.finditer(r"[：:]\s*([一-鿿A-Za-z][^\d%：:，,。]{1,20}?)(\d{1,3}(?:\.\d+)?)\s*%", text):
+            item = match.group(1).strip("（(）) 、")
+            if item and not any(w in item for w in REGION_WORDS) and not _is_prose_noise(item):
+                out.append({"item": item[:60], "revenue": None, "pct": float(match.group(2))})
     if not out:
         # 「營業比重：工業用紙：100%」 — a colon list rather than a sentence (1906 寶隆).
         for match in re.finditer(r"([一-鿿A-Za-z0-9（）()／/\-]{2,20}?)\s*[：:]\s*(\d{1,3}(?:\.\d+)?)\s*%", text):
