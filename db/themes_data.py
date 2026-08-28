@@ -39,8 +39,15 @@ Evidence:
   searching every 2025 filing for 光阻 or 靶材 returns zero rows even though
   新應材 and 光洋科 are pure plays. Those fall back to the report's prose, an
   investor-conference deck, or the company's own product pages, and each one
-  says which. 'pending' means the membership was carried over and still owes
-  an evidence line.
+  says which.
+
+  A membership that has neither is not left blank. db.fill_theme_revenue
+  stamps it 'filing_too_coarse' (the 2025 filing books one line for the whole
+  company, as IC designers routinely do) or 'no_filing' (no 營業比重 section
+  at all), so the gap can be queried instead of hiding as a NULL. Those are
+  inherited placements that still owe an evidence line — about a quarter of
+  the table, concentrated in IC 設計. 'pending' marks the handful whose
+  product line could not be identified at all.
 """
 
 # (name, category, subcategory, description)

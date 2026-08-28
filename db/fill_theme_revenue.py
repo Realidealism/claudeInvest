@@ -181,21 +181,38 @@ def apply_evidence() -> tuple[int, int]:
     """Stamp evidence_kind on every membership.
 
     A share found by the dictionary above is evidence in itself, so it is
-    stamped 'annual_report_table'. The rest come from MANUAL_EVIDENCE, where a
-    person wrote down which weaker source was used and why — the seed mirrors
-    the file and would otherwise wash that away on the next sync.
+    stamped 'annual_report_table'. Weaker sources come from MANUAL_EVIDENCE,
+    where a person wrote down which one was used and why — the seed mirrors the
+    file and would otherwise wash that away on the next sync.
+
+    Everything left over is stamped too, rather than left NULL, because "no
+    evidence" is a state worth being able to query:
+
+        filing_too_coarse  the 2025 filing exists but splits revenue at a
+                           granularity that cannot confirm this theme (IC
+                           designers routinely book one line, "IC 收入 99%")
+        no_filing          no 營業比重 section in the 2025 report at all
+
+    Both are inherited placements that predate this pass and still owe an
+    evidence line. Left as NULL they were invisible to every check.
     """
     from db.themes_data import MANUAL_EVIDENCE
 
     manual = 0
     with get_cursor() as cur:
+        cur.execute("UPDATE tw.stock_themes SET evidence_kind = NULL, note = NULL")
+        cur.execute(
+            """
+            UPDATE tw.stock_themes st SET evidence_kind = CASE WHEN EXISTS (
+                       SELECT 1 FROM tw.product_revenue p
+                        WHERE p.stock_id = st.stock_id AND p.fiscal_year = 2025)
+                   THEN 'filing_too_coarse' ELSE 'no_filing' END
+             WHERE st.revenue_pct IS NULL
+            """)
         cur.execute(
             "UPDATE tw.stock_themes SET evidence_kind = 'annual_report_table' "
             "WHERE revenue_pct IS NOT NULL")
         table = cur.rowcount
-        cur.execute(
-            "UPDATE tw.stock_themes SET evidence_kind = NULL, note = NULL "
-            "WHERE revenue_pct IS NULL")
         for path, entries in MANUAL_EVIDENCE.items():
             category, subcategory, theme = path.split(" > ")
             for stock_name, (kind, why) in entries.items():
