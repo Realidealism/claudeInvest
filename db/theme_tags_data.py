@@ -53,12 +53,20 @@ MEMBERS = {
         ('力旺', 'peripheral', 'company_site', '技術權利金 67.50%；IP 隨 ASIC 專案出貨'),
     ],
     'AI > HBM供應鏈': [
-        ('力積電', 'speculative', 'news', 'DRAM 代工與自研 1x nm，非 HBM 原廠'),
-        ('南亞科', 'speculative', 'news', '利基型 DRAM 廠，無 HBM 量產'),
-        ('華邦電', 'speculative', 'news', 'NOR 與利基 DRAM，無 HBM 量產'),
+        # Taiwan has no HBM maker, but it does have the logic layer and the
+        # test step: the base die under an HBM4 stack is a logic chip, and it
+        # is foundry work.
+        ('台積電', 'core', 'news', 'HBM4 base die 邏輯基底晶片代工，並負責與 GPU 的 CoWoS 整合'),
+        ('京元電子', 'peripheral', 'news', 'IC測試 58.78%；HBM 相關晶圓與成品測試'),
+        ('日月光投控', 'peripheral', 'news', '封裝與測試龍頭，承接 HBM 堆疊後段相關工序'),
+        ('穎崴', 'peripheral', 'news', '測試座供應，高頻寬記憶體測試介面'),
+        ('精測', 'peripheral', 'news', '探針卡供應，記憶體與邏輯測試介面'),
+        ('精材', 'peripheral', 'annual_report_prose', '晶圓級封裝與 TSV 製程能力，TSV 是堆疊的必要製程'),
         ('環球晶', 'peripheral', 'company_site', '矽晶圓供應，堆疊層數上升帶動用量'),
         ('台勝科', 'peripheral', 'company_site', '矽晶圓供應'),
-        ('精材', 'peripheral', 'annual_report_prose', '晶圓級封裝與 TSV 製程能力'),
+        ('力積電', 'speculative', 'news', 'DRAM 代工與自研 1x nm；非 HBM 原廠亦未接 HBM 代工'),
+        ('南亞科', 'speculative', 'news', '利基型 DRAM 廠，無 HBM 量產'),
+        ('華邦電', 'speculative', 'news', 'NOR 與利基 DRAM，無 HBM 量產'),
         ('家登', 'speculative', 'news', '晶圓與光罩載具，需求隨堆疊製程上升'),
         ('京鼎', 'speculative', 'news', '設備零組件與系統組裝，客戶含堆疊製程設備商'),
     ],
