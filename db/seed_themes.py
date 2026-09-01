@@ -1,161 +1,174 @@
+"""Sync db/theme_data.py into tw.company_theme_mapping.
+
+Same contract as db.seed_industry: the file states what holds now, the table
+keeps what held before. A membership dropped from the file is closed with an
+effective_to rather than deleted, so a backtest reading the table as of a past
+date keeps getting the same answer.
+
+    python -m db.seed_themes --check            # report, write nothing
+    python -m db.seed_themes                    # sync, dated today
+    python -m db.seed_themes --effective-from 2025-12-31
+
+Themes carry no revenue test — that is what separates them from the industry
+tree, and why evidence is required on every row instead. The loader refuses the
+whole run if any row lacks one, or if any company name fails to resolve.
 """
-Validating loader for stock themes (題材/概念股分類).
 
-Canonical source is db/themes_data.py, which is human-edited by STOCK NAME.
-Themes carry an optional middle level: category > subcategory > theme name.
-A theme is identified by that full path, so the same name may appear under two
-different branches (生產製程及檢測設備 exists under both 中游 and 下游).
-This script resolves names -> stock_id against tw.stocks (active common stocks
-only) and refuses to write anything if a single name fails to resolve.
-
-    python -m db.seed_themes --check   # validate + print report, no DB write
-    python -m db.seed_themes           # full sync: DB mirrors themes_data.py
-
-Full sync means themes/mappings absent from themes_data.py are DELETED.
-"""
-
-import sys
+import argparse
+from datetime import date
 
 from db.connection import get_cursor
-from db.themes_data import THEMES, MAPPINGS
+from db.theme_data import MEMBERS
+
+FIELDS = ("exposure_score", "evidence_kind", "evidence")
+FISCAL_YEAR = 2025
 
 
-def _active_name_index(cur):
-    """name -> [stock_id, ...] over active common stocks."""
+def _name_index(cur):
     cur.execute("""
         SELECT stock_id, name FROM tw.stocks
-        WHERE is_active = TRUE AND security_type = 'STOCK'
+        WHERE is_active AND security_type = 'STOCK'
     """)
-    index = {}
-    for row in cur.fetchall():
-        index.setdefault(row["name"], []).append(row["stock_id"])
-    return index
+    index, dupes = {}, set()
+    for r in cur.fetchall():
+        if r["name"] in index:
+            dupes.add(r["name"])
+        index[r["name"]] = r["stock_id"]
+    for d in dupes:
+        del index[d]
+    return index, dupes
 
 
-def theme_path(name, category, subcategory):
-    return " > ".join(x for x in (category, subcategory, name) if x)
+def resolve(cur):
+    index, dupes = _name_index(cur)
+    cur.execute("SELECT theme_code FROM tw.theme_master")
+    codes = {r["theme_code"] for r in cur.fetchall()}
 
-
-def validate(cur):
-    """Return (resolved, errors). resolved = {theme_path: [(name, stock_id), ...]}."""
-    errors = []
-
-    paths = [theme_path(n, c, sub) for n, c, sub, _d in THEMES]
-    for path in sorted(set(paths)):
-        if paths.count(path) > 1:
-            errors.append(f"THEMES: duplicate theme path {path!r}")
-
-    defined = set(paths)
-    for path in MAPPINGS:
-        if path not in defined:
-            errors.append(f"MAPPINGS: theme path {path!r} is not defined in THEMES")
-
-    index = _active_name_index(cur)
-    resolved = {}
-    for path, names in MAPPINGS.items():
-        pairs = []
-        seen = set()
-        for name in names:
-            if name in seen:
-                errors.append(f"{path}: duplicate stock name {name!r}")
+    resolved, problems = {}, []
+    for (theme_code, sub_theme), members in MEMBERS.items():
+        if theme_code not in codes:
+            problems.append(f"{theme_code}: not in tw.theme_master")
+            continue
+        for name, score, evidence_kind, evidence in members:
+            stock_id = index.get(name)
+            if stock_id is None:
+                why = "ambiguous name" if name in dupes else "not an active listed company"
+                problems.append(f"{theme_code}/{sub_theme} / {name}: {why}")
                 continue
-            seen.add(name)
-            hits = index.get(name, [])
-            if not hits:
-                errors.append(f"{path}: unknown stock name {name!r} (delisted / ETF / typo?)")
-            elif len(hits) > 1:
-                errors.append(f"{path}: ambiguous stock name {name!r} -> {hits}")
-            else:
-                pairs.append((name, hits[0]))
-        resolved[path] = pairs
-
-    return resolved, errors
-
-
-def report(resolved):
-    total = 0
-    for name, category, subcategory, _desc in THEMES:
-        path = theme_path(name, category, subcategory)
-        pairs = resolved.get(path, [])
-        total += len(pairs)
-        print(f"{chr(10)}[{path}]  ({len(pairs)})")
-        if not pairs:
-            print("  (no stocks)")
-        for stock_name, stock_id in pairs:
-            print(f"  {stock_id}  {stock_name}")
-    print(f"{chr(10)}{len(THEMES)} themes, {total} mappings.")
+            if not (evidence or "").strip():
+                problems.append(f"{theme_code}/{sub_theme} / {name}: empty evidence")
+                continue
+            key = (stock_id, theme_code, sub_theme)
+            if key in resolved:
+                problems.append(f"{theme_code}/{sub_theme} / {name}: listed twice")
+                continue
+            resolved[key] = {"exposure_score": score, "evidence_kind": evidence_kind,
+                             "evidence": evidence, "name": name}
+    return resolved, problems
 
 
-def sync(cur, resolved):
-    """Make DB an exact mirror of themes_data.py."""
-    for name, category, subcategory, description in THEMES:
+def current_layer(cur):
+    cur.execute("""
+        SELECT id, effective_from, stock_id, theme_code, sub_theme, exposure_score,
+               evidence_kind, evidence
+        FROM tw.company_theme_mapping
+        WHERE effective_to IS NULL
+    """)
+    return {(r["stock_id"], r["theme_code"], r["sub_theme"]): dict(r)
+            for r in cur.fetchall()}
+
+
+def _known_dates(cur):
+    cur.execute("""
+        SELECT stock_id, filing_date FROM tw.product_revenue_status
+        WHERE fiscal_year = %s AND filing_date IS NOT NULL
+    """, (FISCAL_YEAR,))
+    return {r["stock_id"]: r["filing_date"] for r in cur.fetchall()}
+
+
+def sync(cur, resolved, effective_from):
+    live = current_layer(cur)
+    known = _known_dates(cur)
+
+    added, changed, closed = [], [], []
+    for key, want in resolved.items():
+        have = live.get(key)
+        if have is None:
+            added.append(key)
+        elif any(have[f] != want[f] for f in FIELDS):
+            changed.append(key)
+    for key in live:
+        if key not in resolved:
+            closed.append(key)
+
+    # Same rule as db.seed_industry: a change dated to the row's own start date
+    # is a correction and is applied in place, not turned into history.
+    corrected = [k for k in changed if str(live[k]["effective_from"]) == str(effective_from)]
+    superseded = [k for k in changed if k not in corrected]
+
+    # A membership removed on the very day it started never held for any window.
+    # Closing it would leave a zero-length row that no as-of query can ever see,
+    # so it is deleted instead — the same reasoning as the correction path above.
+    retracted = [k for k in closed if str(live[k]["effective_from"]) == str(effective_from)]
+    for key in retracted:
+        cur.execute("DELETE FROM tw.company_theme_mapping WHERE id = %s", (live[key]["id"],))
+
+    for key in [k for k in closed if k not in retracted] + superseded:
+        cur.execute(
+            "UPDATE tw.company_theme_mapping SET effective_to = %s WHERE id = %s",
+            (effective_from, live[key]["id"]))
+
+    for key in corrected:
+        w = resolved[key]
         cur.execute("""
-            INSERT INTO tw.themes (name, category, subcategory, description)
-            VALUES (%s, %s, %s, %s)
-            ON CONFLICT (category, subcategory, name) DO UPDATE SET
-                description = EXCLUDED.description,
-                updated_at = NOW()
-        """, (name, category, subcategory, description))
+            UPDATE tw.company_theme_mapping
+               SET exposure_score = %s, evidence_kind = %s, evidence = %s
+             WHERE id = %s
+        """, (w["exposure_score"], w["evidence_kind"], w["evidence"], live[key]["id"]))
 
-    cur.execute("SELECT theme_id, category, subcategory, name FROM tw.themes")
-    rows = cur.fetchall()
-    theme_id_of = {
-        theme_path(r["name"], r["category"], r["subcategory"]): r["theme_id"] for r in rows
-    }
-    keep = {theme_path(n, c, sub) for n, c, sub, _d in THEMES}
-    stale = [tid for path, tid in theme_id_of.items() if path not in keep]
-    if stale:
-        cur.execute("DELETE FROM tw.stock_themes WHERE theme_id = ANY(%s)", (stale,))
-        cur.execute("DELETE FROM tw.themes WHERE theme_id = ANY(%s)", (stale,))
-        print(f"Removed {len(stale)} themes not present in themes_data.py")
+    for key in added + superseded:
+        stock_id, theme_code, sub_theme = key
+        w = resolved[key]
+        cur.execute("""
+            INSERT INTO tw.company_theme_mapping
+                   (stock_id, theme_code, sub_theme, exposure_score,
+                    evidence, evidence_kind, effective_from, known_date)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+        """, (stock_id, theme_code, sub_theme, w["exposure_score"], w["evidence"],
+              w["evidence_kind"], effective_from, known.get(stock_id)))
 
-    added = removed = 0
-    for path, pairs in resolved.items():
-        theme_id = theme_id_of[path]
-        wanted = {stock_id for _name, stock_id in pairs}
-        cur.execute("SELECT stock_id FROM tw.stock_themes WHERE theme_id = %s", (theme_id,))
-        current = {r["stock_id"] for r in cur.fetchall()}
-
-        for stock_id in sorted(wanted - current):
-            cur.execute(
-                "INSERT INTO tw.stock_themes (stock_id, theme_id) VALUES (%s, %s)",
-                (stock_id, theme_id),
-            )
-            added += 1
-        drop = sorted(current - wanted)
-        if drop:
-            cur.execute(
-                "DELETE FROM tw.stock_themes WHERE theme_id = %s AND stock_id = ANY(%s)",
-                (theme_id, drop),
-            )
-            removed += len(drop)
-
-    cur.execute("SELECT COUNT(*) AS cnt FROM tw.themes")
-    theme_count = cur.fetchone()["cnt"]
-    cur.execute("SELECT COUNT(*) AS cnt FROM tw.stock_themes")
-    mapping_count = cur.fetchone()["cnt"]
-    print(f"Synced: +{added} / -{removed} mappings. "
-          f"DB now holds {theme_count} themes, {mapping_count} mappings.")
+    return len(added), len(superseded), len(corrected), len(closed), len(retracted)
 
 
 def main():
-    check_only = "--check" in sys.argv[1:]
-    unknown = [a for a in sys.argv[1:] if a != "--check"]
-    if unknown:
-        sys.exit(f"Unknown argument(s): {unknown}. Use --check or no argument.")
+    ap = argparse.ArgumentParser(description=__doc__)
+    ap.add_argument("--check", action="store_true", help="report and write nothing")
+    ap.add_argument("--effective-from", default=date.today().isoformat())
+    args = ap.parse_args()
 
     with get_cursor() as cur:
-        resolved, errors = validate(cur)
-        report(resolved)
-        if errors:
-            print(f"\n{len(errors)} problem(s) — nothing written:")
-            for e in errors:
-                print(f"  ! {e}")
-            sys.exit(1)
-        if check_only:
-            print("\n--check: validation passed, no DB write.")
+        resolved, problems = resolve(cur)
+        if problems:
+            print(f"REFUSING TO WRITE — {len(problems)} problem(s):")
+            for p in problems[:40]:
+                print("  -", p)
+            raise SystemExit(1)
+
+        companies = len({s for s, _, _ in resolved})
+        print(f"file: {len(resolved)} memberships over {companies} companies, "
+              f"{len(MEMBERS)} themes")
+        if args.check:
+            live = current_layer(cur)
+            print(f"db:   {len(live)} current memberships")
+            print(f"would add {len(set(resolved) - set(live))}, "
+                  f"close {len(set(live) - set(resolved))}")
+            print("--check: nothing written")
             return
-        sync(cur, resolved)
+
+        added, superseded, corrected, closed, retracted = sync(cur, resolved, args.effective_from)
+
+    print(f"added {added}, superseded {superseded}, corrected {corrected}, "
+          f"closed {closed - retracted}, retracted {retracted}")
 
 
 if __name__ == "__main__":

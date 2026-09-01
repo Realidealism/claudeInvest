@@ -213,8 +213,10 @@ def _targets(args) -> list[tuple[str, str]]:
             cur.execute(
                 """
                 SELECT DISTINCT s.stock_id, s.name
-                  FROM tw.stock_themes st JOIN tw.stocks s USING(stock_id)
-                 WHERE st.evidence_kind IN ('filing_too_coarse', 'no_filing', 'pending')
+                  FROM tw.company_industry_exposure e
+                  JOIN tw.stocks s USING(stock_id)
+                 WHERE e.effective_to IS NULL
+                   AND e.evidence_kind IN ('filing_too_coarse', 'no_filing', 'pending')
                  ORDER BY 1
                 """)
         else:

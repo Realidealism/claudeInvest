@@ -28,6 +28,7 @@ import re
 import sys
 import time
 import unicodedata
+from datetime import date
 
 import pdfplumber
 import requests
@@ -45,6 +46,11 @@ _session = None
 _last_request = 0.0
 
 FILE_RE = re.compile(r"(\d{4}_\d{4}_\d{8}F\w*\d*\.pdf)")
+# The filing list prints the upload timestamp two cells after the filename:
+#   ...F04.pdf</a></td><td align='right'>7,006,132</td><td>115/05/21 19:02:58</td>
+FILE_DATE_RE = re.compile(
+    r"(\d{4}_\d{4}_\d{8}F\w*\d*\.pdf)</a>.*?(\d{2,3})/(\d{2})/(\d{2})\s+\d{2}:\d{2}:\d{2}",
+    re.S)
 LINK_RE = re.compile(r"href='(/pdf/[^']+\.pdf)'")
 # Chapter heading and table caption wording both vary; any hit marks a candidate page.
 SECTION_HINTS = ("主要商品", "營業比重", "產品別營收", "主要產品之銷售")
@@ -90,24 +96,50 @@ def _post(data: dict) -> str | None:
     return None
 
 
-def find_report(stock_id: str, fiscal_year: int) -> str | None:
-    """Filename of the Chinese annual report for a fiscal year, or None.
+def list_filings(stock_id: str, fiscal_year: int) -> dict[str, "date | None"]:
+    """Every filename on the filing list, mapped to the day it was uploaded.
 
     The listing is keyed by ROC *filing* year, which is the fiscal year + 1 in AD
     terms: FY2025 is filed in 2026 = ROC 115.
+
+    The upload timestamp is the only public statement of when a report became
+    readable, and known_date on a classification row needs exactly that — a
+    backtest reading a classification dated to the fiscal year would otherwise
+    be using knowledge from months before anyone had it (R021).
+
+    An empty dict means the request failed OR the company filed nothing; the two
+    are indistinguishable here, which is why callers must not read it as "no
+    report" without a second look.
     """
     roc_filing_year = fiscal_year + 1 - 1911
     html = _post({"step": "1", "colorchg": "1", "co_id": stock_id,
                   "year": str(roc_filing_year), "mtype": "F"})
     if not html:
-        return None
-    names = set(FILE_RE.findall(html))
+        return {}
+    out: dict[str, date | None] = {}
+    for name, roc_y, mm, dd in FILE_DATE_RE.findall(html):
+        try:
+            out.setdefault(name, date(int(roc_y) + 1911, int(mm), int(dd)))
+        except ValueError:
+            out.setdefault(name, None)
+    # A row whose timestamp cell is malformed still counts as a filing.
+    for name in FILE_RE.findall(html):
+        out.setdefault(name, None)
+    return out
+
+
+def _pick_report(filings, stock_id: str, fiscal_year: int) -> str | None:
     prefix = f"{fiscal_year}_{stock_id}_"
     for suffix in ("F04", "FE4"):
-        hits = sorted(n for n in names if n.startswith(prefix) and suffix in n)
+        hits = sorted(n for n in filings if n.startswith(prefix) and suffix in n)
         if hits:
             return hits[-1]
     return None
+
+
+def find_report(stock_id: str, fiscal_year: int) -> str | None:
+    """Filename of the Chinese annual report for a fiscal year, or None."""
+    return _pick_report(list_filings(stock_id, fiscal_year), stock_id, fiscal_year)
 
 
 def download_pdf(stock_id: str, filename: str) -> bytes | None:
@@ -545,6 +577,66 @@ def daily_sweep(today=None) -> int:
     return tally.get("ok", 0)
 
 
+def backfill_filing_dates(fiscal_year: int, stocks=None, pace: float = 6.0) -> dict:
+    """Fill tw.product_revenue_status.filing_date from the MOPS filing list.
+
+    Only rows that already name a source_file are touched: the filename is the
+    key we look the timestamp up by, and re-deriving it here would repeat work
+    the revenue sweep already did.
+
+    Nothing is written when the listing comes back empty. doc.twse.com.tw
+    answers a rate-limited request with the same empty page it uses for "this
+    company filed nothing", so an empty result is reported as unreachable and
+    left for a later run rather than being recorded as an absent date.
+
+    pace is why the default is six seconds and not the module's one-second
+    floor: at one second the listing endpoint returned empty for 277 of 385
+    companies, and every one of them answered when retried more slowly. The
+    limit is on sustained rate, so going faster does not finish sooner — it
+    just converts answers into blanks.
+    """
+    with get_cursor() as cur:
+        if stocks:
+            cur.execute(
+                "SELECT stock_id, source_file FROM tw.product_revenue_status "
+                "WHERE fiscal_year = %s AND source_file IS NOT NULL "
+                "  AND filing_date IS NULL AND stock_id = ANY(%s) ORDER BY stock_id",
+                (fiscal_year, list(stocks)))
+        else:
+            cur.execute(
+                "SELECT stock_id, source_file FROM tw.product_revenue_status "
+                "WHERE fiscal_year = %s AND source_file IS NOT NULL "
+                "  AND filing_date IS NULL ORDER BY stock_id", (fiscal_year,))
+        targets = [(r["stock_id"], r["source_file"]) for r in cur.fetchall()]
+
+    print(f"Filing-date backfill FY{fiscal_year}: {len(targets)} pending")
+    tally = {}
+    for i, (stock_id, source_file) in enumerate(targets, 1):
+        started = time.time()
+        filings = list_filings(stock_id, fiscal_year)
+        if not filings:
+            outcome = "unreachable"
+        elif source_file not in filings:
+            outcome = "not_listed"
+        elif filings[source_file] is None:
+            outcome = "no_timestamp"
+        else:
+            with get_cursor() as cur:
+                cur.execute(
+                    "UPDATE tw.product_revenue_status SET filing_date = %s "
+                    "WHERE stock_id = %s AND fiscal_year = %s",
+                    (filings[source_file], stock_id, fiscal_year))
+            outcome = "ok"
+        tally[outcome] = tally.get(outcome, 0) + 1
+        spare = pace - (time.time() - started)
+        if spare > 0 and i < len(targets):
+            time.sleep(spare)
+        if i % 50 == 0 or i == len(targets):
+            print(f"  [{i}/{len(targets)}] " + "  ".join(f"{k}={v}" for k, v in sorted(tally.items())))
+    print("Backfill done: " + "  ".join(f"{k}={v}" for k, v in sorted(tally.items())))
+    return tally
+
+
 def _targets(args) -> list[str]:
     if args.stocks:
         return [s.strip() for s in args.stocks.split(",") if s.strip()]
@@ -571,6 +663,8 @@ def main():
     ap.add_argument("--stocks", help="comma-separated stock ids")
     ap.add_argument("--all", action="store_true", help="every listed stock not done yet")
     ap.add_argument("--retry-failed", action="store_true")
+    ap.add_argument("--backfill-filing-date", action="store_true",
+                    help="fill filing_date on rows that already have a source_file")
     ap.add_argument("--daily", action="store_true",
                     help="scheduled sweep: pending + previously unfiled, current fiscal year")
     ap.add_argument("--pace", type=float, default=30.0,
@@ -579,6 +673,12 @@ def main():
     args = ap.parse_args()
     if args.daily:
         daily_sweep()
+        return
+    if args.backfill_filing_date:
+        if not args.year:
+            sys.exit("--backfill-filing-date needs --year")
+        stocks = [s.strip() for s in args.stocks.split(",") if s.strip()] if args.stocks else None
+        backfill_filing_dates(args.year, stocks, args.pace if args.pace != 30.0 else 6.0)
         return
     if not (args.stocks or args.all or args.retry_failed):
         sys.exit("Pass --stocks, --all, --retry-failed or --daily")
