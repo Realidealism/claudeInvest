@@ -11,38 +11,34 @@ be removed silently — the foreign key from tw.company_industry_exposure stops
 the delete and the run aborts. That is the intended behaviour. Retiring a node
 means moving its members first.
 
-The reference dictionaries are read straight from the V3.7 CSVs; they are
-static arrays with nothing to maintain by hand.
+The reference dictionaries come from db/reference_data.py — static arrays with
+nothing to maintain by hand, transcribed once so that nothing here has to reach
+outside the repository for data.
 
     python -m db.seed_skeleton --check    # report only, writes nothing
     python -m db.seed_skeleton            # sync
 """
 
 import argparse
-import csv
-import io
-import os
 
 from db.connection import get_cursor
 from db.industry_tree_data import NODES
 from db.theme_master_data import THEMES
+from db.reference_data import (
+    SUPPLY_CHAIN_POSITIONS, SUPPLY_CHAIN_LAYERS, CYCLE_ATTRIBUTES,
+    REGION_EXPOSURE_RULES, MANUFACTURING_MODES, TWSE_INDUSTRY_MAPPING, V37_RULES,
+)
 
-CSV_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
-                       "claude_code_export", "claude_code_export", "csv")
-
-# (csv filename, table, [(csv column, db column), ...])
+# (table, columns, rows) — keyed on the first column
 REFERENCE_DICTS = [
-    ("supply_chain_position.csv", "tw.supply_chain_position",
-     [("供應鏈位置", "position_name"), ("序", "seq"), ("說明 / 範例", "description")]),
-    ("supply_chain_layer.csv", "tw.supply_chain_layer",
-     [("Layer（分層）", "layer"), ("涵蓋位置", "coverage")]),
-    ("cycle_attributes.csv", "tw.cycle_attributes",
-     [("景氣屬性", "attribute"), ("代表產業", "representative_industries")]),
-    ("classification_rules.csv", "tw.classification_rules",
-     [("Rule ID", "rule_id"), ("規則", "rule"), ("說明", "description")]),
-    ("twse_33_official_mapping.csv", "tw.twse_industry_mapping",
-     [("證交所官方分類", "twse_official_category"), ("Master 大產業", "master_l1"),
-      ("Master 第二層", "master_l2_range"), ("Mapping Type", "mapping_type")]),
+    ("tw.supply_chain_position", ("position_name", "seq", "description"),
+     SUPPLY_CHAIN_POSITIONS),
+    ("tw.supply_chain_layer", ("layer", "coverage"), SUPPLY_CHAIN_LAYERS),
+    ("tw.cycle_attributes", ("attribute", "representative_industries"), CYCLE_ATTRIBUTES),
+    ("tw.classification_rules", ("rule_id", "rule", "description"), V37_RULES),
+    ("tw.twse_industry_mapping",
+     ("twse_official_category", "master_l1", "master_l2_range", "mapping_type"),
+     TWSE_INDUSTRY_MAPPING),
 ]
 
 
@@ -57,12 +53,6 @@ LOCAL_RULES = [
      "陞泰(電子材料)、蔚華科(測試設備)。判斷依據優先序為官方分類、"
      "年報是否有佣金收入等代理特徵、以及年報正文對自有產能的描述。"),
 ]
-
-
-def _read_csv(name):
-    path = os.path.join(CSV_DIR, name)
-    with io.open(path, encoding="utf-8-sig") as f:
-        return list(csv.DictReader(f))
 
 
 def validate():
@@ -129,20 +119,15 @@ def sync_themes(cur):
 
 def sync_reference_dicts(cur):
     counts = {}
-    for filename, table, cols in REFERENCE_DICTS:
-        rows = _read_csv(filename)
-        db_cols = [c[1] for c in cols]
+    for table, db_cols, rows in REFERENCE_DICTS:
         key = db_cols[0]
         placeholders = ", ".join(["%s"] * len(db_cols))
         updates = ", ".join(f"{c} = EXCLUDED.{c}" for c in db_cols[1:])
-        for r in rows:
-            values = [(r.get(src) or "").strip() or None for src, _ in cols]
-            if values[0] is None:
-                continue
+        for row in rows:
             cur.execute(
                 f"INSERT INTO {table} ({', '.join(db_cols)}) VALUES ({placeholders}) "
                 f"ON CONFLICT ({key}) DO UPDATE SET {updates}",
-                values,
+                row,
             )
         counts[table] = len(rows)
 
@@ -158,18 +143,15 @@ def sync_reference_dicts(cur):
     # region_exposure_rules and manufacturing_mode_examples have no natural key,
     # so they are replaced wholesale rather than upserted.
     cur.execute("DELETE FROM tw.region_exposure_rules")
-    for r in _read_csv("region_exposure_rules.csv"):
+    for row in REGION_EXPOSURE_RULES:
         cur.execute(
             "INSERT INTO tw.region_exposure_rules (section, item, value) VALUES (%s, %s, %s)",
-            (r.get("分類"), r.get("項目"), r.get("值")),
-        )
+            row)
     cur.execute("DELETE FROM tw.manufacturing_mode_examples")
-    for r in _read_csv("manufacturing_mode_examples.csv"):
+    for row in MANUFACTURING_MODES:
         cur.execute(
             "INSERT INTO tw.manufacturing_mode_examples (company, manufacturing_mode, product) "
-            "VALUES (%s, %s, %s)",
-            (r.get("公司"), r.get("製造模式"), r.get("產品")),
-        )
+            "VALUES (%s, %s, %s)", row)
     return counts
 
 

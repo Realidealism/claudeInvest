@@ -50,3 +50,7 @@ tools/*.exe
 # so the EOD whole-dir frontend push never sweeps it onto origin (an untracked
 # copy that origin tracks would block the intraday worktree checkout).
 frontend/public/data/futures_tx.json
+
+# Source spreadsheet export for the industry classification; its contents
+# were transcribed into db/reference_data.py and db/industry_tree_data.py
+claude_code_export/

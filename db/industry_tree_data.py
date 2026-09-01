@@ -7,8 +7,8 @@ there, and only 半導體/PCB/汽車EV/電機/航太 are cut to the third level.
 Node codes are the primary key and must stay stable: tw.company_industry_exposure
 references them, so renaming a node is safe but renumbering one moves its members.
 
-Generated once from 台股產業分類_Master_V3_7 (claude_code_export/csv/industry_tree.csv);
-hand-maintained from here on. Sync with: python -m db.seed_industry_tree
+Transcribed once from 台股產業分類_Master_V3_7, whose export directory is not in
+version control; this file is the tree now, and is hand-maintained. Sync with: python -m db.seed_industry_tree
 """
 
 # (node_code, parent_code, level, name, main_products)
