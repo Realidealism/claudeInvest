@@ -92,6 +92,9 @@ LOCAL_RULES = [
      "無此二者的裸數字不可比較——47.86% 是營收占比、30% 可能是產能或策略描述。"
      "未揭露時 Weight=NULL，不得臆測百分比。"
      "同一條營收線在第二個節點出現時該列 weight 必為 NULL 且 exposure_type='Indirect'。"
+     "★weight_pct 是**該節點的合計**而非單一年報線：一個節點可擁有公司的多條線，"
+     "weight_item 以 \" + \" 列出組成線（創意 A4-05＝委託設計 23.53%＋晶圓產品 75.38%＝98.91%）；"
+     "任一組成線解不出來則整筆留 NULL，不給部分和。"
      "★Revenue Exposure 等級不落地儲存，由 weight 經 view tw.v_company_industry_exposure "
      "機械推導（<20% Low／20-50% Medium／>=50% High）；非 Revenue 型權重不產生等級。"),
 
@@ -106,7 +109,9 @@ LOCAL_RULES = [
      "將其掛到對應的製造節點；該產品最多作為 Indirect Industry Exposure，"
      "**不得因此建立製造型 Core**。例：利機 V1 半導體通路 Direct + BT 載板 Indirect；"
      "港建 V1 Direct + 設備 Indirect。否則產業統計會把通路商錯算成製造商。"
-     "判斷依據優先序為官方分類、年報是否有佣金收入等代理特徵、以及年報正文對自有產能的描述。"),
+     "判斷依據以年報為主：是否有佣金/代理性收入、產品線是否為具名製造品、正文有無自有產能描述。"
+     "★官方分類僅作後驗參考不居優先（R002）——長華* 官方列電子通路業，但年報是 IC導線架 48.91% "
+     "加封膠樹酯 29.29% 且無佣金收入，實為製造商；若以官方分類為首要依據會把它誤判成通路。"),
 ]
 
 # 22 rules read as a list; grouped they read as a structure.

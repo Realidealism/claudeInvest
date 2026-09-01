@@ -1,8 +1,15 @@
 """Fill weight_pct on tw.company_industry_exposure from the annual report.
 
-This does no matching. Each exposure already names the product line it is read
-off (weight_item), so all that happens here is a lookup of that exact line in
-tw.product_revenue.
+This does no matching. Each exposure already names the product line or lines it
+is read off (weight_item), so all that happens here is a lookup of those exact
+lines in tw.product_revenue.
+
+A node can own several of a company's reported lines, and the exposure's weight
+is their total: 創意 books 委託設計(NRE) 23.5% and 晶圓產品 75.4% separately, but
+both are its ASIC design service business, so A4-05 carries 98.9%. Components are
+written as "line A + line B"; if any one of them fails to resolve the whole
+exposure is left NULL rather than given a partial sum, which would understate it
+in exactly the way the old keyword matcher did.
 
 That is the whole point of the rewrite. The predecessor guessed the line from a
 keyword table, which silently caught side businesses and missed the main one —
@@ -42,27 +49,44 @@ def main():
 
     with get_cursor() as cur:
         cur.execute("""
-            SELECT e.id, e.stock_id, e.node_code, e.weight_item, s.name,
-                   r.pct_effective AS pct, r.pct_is_derived
+            SELECT e.id, e.stock_id, e.node_code, e.weight_item, s.name
             FROM tw.company_industry_exposure e
             JOIN tw.stocks s ON s.stock_id = e.stock_id
-            LEFT JOIN tw.product_revenue_share r
-                   ON r.stock_id = e.stock_id AND r.fiscal_year = %s
-                  AND r.item = e.weight_item
             WHERE e.effective_to IS NULL
-        """, (args.year,))
+        """)
         rows = [dict(r) for r in cur.fetchall()]
 
+        cur.execute("""
+            SELECT stock_id, item, pct_effective, pct_is_derived
+            FROM tw.product_revenue_share
+            WHERE fiscal_year = %s AND pct_effective IS NOT NULL
+        """, (args.year,))
+        shares = {(r["stock_id"], r["item"]): (r["pct_effective"], r["pct_is_derived"])
+                  for r in cur.fetchall()}
+
         claimed = [r for r in rows if r["weight_item"]]
+        for r in claimed:
+            parts = [p.strip() for p in r["weight_item"].split(" + ")]
+            found = [shares.get((r["stock_id"], p)) for p in parts]
+            if any(f is None for f in found):
+                r["pct"] = None
+                r["missing"] = [p for p, f in zip(parts, found) if f is None]
+            else:
+                r["pct"] = sum(f[0] for f in found)
+                r["pct_is_derived"] = any(f[1] for f in found)
+                r["parts"] = len(parts)
         hit = [r for r in claimed if r["pct"] is not None]
         miss = [r for r in claimed if r["pct"] is None]
 
+        merged = sum(1 for r in hit if r.get("parts", 1) > 1)
         print(f"exposures {len(rows)}  naming an item {len(claimed)}  "
-              f"resolved {len(hit)}  unresolved {len(miss)}")
+              f"resolved {len(hit)} (of which {merged} sum several lines)  "
+              f"unresolved {len(miss)}")
         if miss:
             print("unresolved (weight_pct stays NULL):")
             for r in miss[:20]:
-                print(f"  {r['stock_id']} {r['name']} / {r['node_code']} — {r['weight_item']!r}")
+                print(f"  {r['stock_id']} {r['name']} / {r['node_code']} — "
+                      f"unresolved: {r['missing']}")
             if len(miss) > 20:
                 print(f"  ... and {len(miss) - 20} more")
 

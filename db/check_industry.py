@@ -12,8 +12,10 @@ schema cannot see:
     core        a company with exposures but no Core at all
     listing     a member that has been delisted, suspended, or is not an
                 ordinary share any more
-    stale       weight_item no longer matches any line in the current annual
-                report — usually the company renamed its segments
+    stale       a component of weight_item no longer matches any line in the
+                current annual report — usually the company renamed its
+                segments. weight_item may name several lines joined by " + "
+                when one node owns more than one of them, and each is checked
     below       the share behind an exposure is small, which may be correct for
                 a niche node and is a question either way
     double      the same revenue line carrying a share on two nodes (R004)
@@ -73,15 +75,20 @@ def check_listing(cur):
 
 def check_stale(cur):
     return _rows(cur, """
-        SELECT e.stock_id, s.name, e.node_code, e.weight_item
-        FROM tw.company_industry_exposure e
-        JOIN tw.stocks s ON s.stock_id = e.stock_id
-        WHERE e.effective_to IS NULL AND e.weight_item IS NOT NULL
-          AND NOT EXISTS (
-              SELECT 1 FROM tw.product_revenue_share r
-              WHERE r.stock_id = e.stock_id AND r.fiscal_year = %s
-                AND r.item = e.weight_item)
-        ORDER BY e.stock_id
+        WITH part AS (
+            SELECT e.stock_id, e.node_code, s.name,
+                   btrim(unnest(string_to_array(e.weight_item, ' + '))) AS item
+            FROM tw.company_industry_exposure e
+            JOIN tw.stocks s ON s.stock_id = e.stock_id
+            WHERE e.effective_to IS NULL AND e.weight_item IS NOT NULL
+        )
+        SELECT p.stock_id, p.name, p.node_code, p.item AS missing_item
+        FROM part p
+        WHERE NOT EXISTS (
+            SELECT 1 FROM tw.product_revenue_share r
+            WHERE r.stock_id = p.stock_id AND r.fiscal_year = %s
+              AND r.item = p.item)
+        ORDER BY p.stock_id
     """, (FISCAL_YEAR,))
 
 
