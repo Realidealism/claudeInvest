@@ -83,7 +83,7 @@ NODES = [
     ('A4-12', 'A4', 3, '顯示器驅動 IC (DDI)', None),
     ('A4-13', 'A4', 3, '射頻 IC (RF)', 'RFIC、PA、LNA、Switch、Filter、Tuner'),
     ('A4-14', 'A4', 3, '音訊 IC (Audio)', None),
-    ('A4-15', 'A4', 3, '感測 IC (Sensor)', 'Touch、Fingerprint、MEMS、Pressure、Temperature'),
+    ('A4-15', 'A4', 3, '感測 / HMI IC (Sensor)', 'Touch、Fingerprint、MEMS、Pressure、Temperature、人機介面控制 IC'),
     ('A4-16', 'A4', 3, '影像 IC (CIS/ISP)', None),
     ('A4-17', 'A4', 3, '馬達驅動 IC (Motor Driver)', None),
     ('A4-18', 'A4', 3, 'LED 驅動 IC', None),

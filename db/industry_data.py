@@ -33,6 +33,9 @@ Sync with: python -m db.seed_industry --check   (report only)
 
 # node_code -> [(name, role, weight_item, evidence_kind, evidence, exposure_type)]
 MEMBERS = {
+    "V2": [
+        ('日電貿', 'Core', '陶瓷電容 + 固態電容 + 電解電容', 'annual_report_table', '年報營業比重表：陶瓷電容 45.44% 加固態電容 26.32% 加電解電容 9.60%，被動元件代理合計 81.36%，大於其半導體代理 7.87%', 'Direct'),
+    ],
     "V1": [
         ('亞矽', 'Core', '處理器/核心邏輯晶片', 'annual_report_table', '年報營業比重表：處理器/核心邏輯晶片 41.12%', 'Direct'),
         ('倍微', 'Core', None, 'annual_report_prose', '年報業務範圍載明「通路」：印度等科技產業的製造佈局,帶領出完整、及時供應支援等具競爭力條件的電子零組件通路商。在過去三十幾年來一路伴隨主機板、筆記本電腦、伺服器、顯示', 'Direct'),
@@ -52,7 +55,7 @@ MEMBERS = {
         ('敦吉', 'Core', None, 'annual_report_prose', '年報業務範圍載明「通路」：電波暗室設計及建造、化學檢測服務。(二)產業概況1.產業之現況與發展(1)通路行銷從總體格局來看,庫存水位方面從2023年高庫存壓力,到20', 'Direct'),
         ('文曄', 'Core', '特定應用積體電路', 'annual_report_table', '年報營業比重表：特定應用積體電路 27.80%', 'Direct'),
         ('方土昶', 'Core', '記憶體元件', 'annual_report_table', '年報營業比重表：記憶體元件 98.62%', 'Direct'),
-        ('日電貿', 'Core', '半導體', 'annual_report_table', '年報營業比重表：半導體 7.87%', 'Direct'),
+        ('日電貿', 'Major', '半導體', 'annual_report_table', '年報營業比重表：半導體 7.87%', 'Direct'),
         ('昱捷', 'Core', '分散式元件', 'annual_report_table', '年報營業比重表：分散式元件 78.25%', 'Direct'),
         ('港建*', 'Core', '電子零件、設備及材料', 'annual_report_table', '年報營業比重表：電子零件、設備及材料 92.46% 加佣金收入 3.97%，為代理銷售', 'Direct'),
         ('益登', 'Core', '積體電路', 'annual_report_table', '年報營業比重表：積體電路 87.11%', 'Direct'),
@@ -133,7 +136,7 @@ MEMBERS = {
         ('川寶', 'Core', '半導體部門', 'annual_report_table', '年報營業比重表：半導體部門 68.97%', 'Direct'),
     ],
     "A2-03": [
-        ('天虹', 'Core', '半導體主設備', 'annual_report_table', '年報營業比重表：半導體主設備 31.16%', 'Direct'),
+        ('天虹', 'Core', '半導體主設備 + 半導體技術服務', 'annual_report_table', '年報營業比重表：半導體主設備 31.16% 加半導體技術服務 32.03%，服務對象為自家設備', 'Direct'),
     ],
     "A2-05": [
         ('弘塑', 'Core', '機台設備產品', 'company_site', '機台設備 69.86；濕製程設備同時供應晶圓廠與先進封裝產線', 'Direct'),
@@ -151,6 +154,8 @@ MEMBERS = {
     ],
     "A2-10": [
         ('京鼎', 'Core', '關鍵性零組件', 'annual_report_table', '年報營業比重表：關鍵性零組件 52.01%，另有半導體設備及系統組裝 45.52%，同屬本節點', 'Direct'),
+        ('千附', 'Core', '精密零組件收入', 'annual_report_table', '年報營業比重表：精密零組件收入 54.21%，大於其工程收入 38.39%（見 A7-01）', 'Direct'),
+        ('建暐', 'Major', '其他(精密零組件)', 'annual_report_table', '年報營業比重表：其他(精密零組件) 30.00%', 'Direct'),
         ('千附精密', 'Core', '光電及半導體設備零組件', 'annual_report_table', '年報營業比重表：光電及半導體設備零組件 72.18%', 'Direct'),
         ('台灣精材', 'Core', '陶瓷', 'annual_report_table', '年報營業比重表：陶瓷 69.60%', 'Direct'),
         ('大銀微系統', 'Core', '微米與奈米級定位系統', 'annual_report_prose', '微奈米定位系統 52.58，半導體設備用精密運動元件', 'Direct'),
@@ -354,8 +359,8 @@ MEMBERS = {
         ('久昌', 'Core', 'HALLIC', 'annual_report_table', '年報營業比重表：HALLIC 96.68%', 'Direct'),
         ('昇佳電子', 'Core', '感測晶片', 'annual_report_table', '年報營業比重表：感測晶片 99.87%', 'Direct'),
         ('矽創', 'Major', None, 'annual_report_prose', '年報業務範圍載明「感測晶片」：低功耗效能,應用覆蓋本公司物聯網、工控設備、與穿戴等顯示器驅動晶片產品線。在感測晶片市場上,面對供應鏈的結構性改變、設計朝向微型輕薄化、製造', 'Direct'),
+        ('義隆', 'Core', '消費性觸控積體電路', 'annual_report_table', '年報營業比重表：消費性觸控積體電路 27.72%；其筆電輸入裝置模組 69.92% 另計於 C11-01，本業為觸控/HMI 晶片設計，Core 依商業本質判定而非最大營收線（R023）', 'Direct'),
         ('禾瑞亞', 'Core', '觸控面板控制器/控制晶片', 'annual_report_table', '年報營業比重表：觸控面板控制器/控制晶片 96.00%', 'Direct'),
-        ('義隆', 'Core', '消費性觸控積體電路', 'annual_report_table', '年報營業比重表：消費性觸控積體電路 27.72%', 'Direct'),
     ],
     "A4-16": [
         ('傑霖科技', 'Core', '影像處理系統單晶片', 'annual_report_table', '年報營業比重表：影像處理系統單晶片 86.07%', 'Direct'),
@@ -454,10 +459,10 @@ MEMBERS = {
     ],
     "A7-01": [
         ('上品', 'Core', '氟素內襯設備', 'annual_report_table', '年報營業比重表：氟素內襯設備 59.12%', 'Direct'),
-        ('亞翔', 'Core', '機電工程', 'annual_report_table', '年報營業比重表：機電工程 25.01%', 'Direct'),
+        ('亞翔', 'Core', '機電工程 + 無塵室工程 + 製程管路工程 + 其他(含統包工程)', 'annual_report_table', '年報營業比重表：四條工程線合計 100%，統包工程即其無塵室 EPC 本業', 'Direct'),
         ('信紘科', 'Core', '高科技產業製程之廠務供應系統整合', 'annual_report_table', '年報營業比重表：高科技產業製程之廠務供應系統整合 92.37%', 'Direct'),
         ('創控', 'Core', None, 'annual_report_prose', '年報業務範圍載明「AMC」：監測數據之可信度。4.計劃開發之新商品(服務)(1)強化現有產品:MiTAPAMC/VOCs分析技術1縮短設備分析時間:能在更短時間內完成量', 'Direct'),
-        ('千附', 'Core', '工程收入', 'annual_report_table', '年報營業比重表：工程收入 38.39%', 'Direct'),
+        ('千附', 'Major', '工程收入', 'annual_report_table', '年報營業比重表：工程收入 38.39%', 'Direct'),
         ('巨漢', 'Core', '無塵室及機電空調統包工程收入', 'annual_report_table', '年報營業比重表：無塵室及機電空調統包工程收入 100.00%', 'Direct'),
         ('帆宣', 'Core', '自動化供應系統業務', 'annual_report_table', '年報營業比重表：自動化供應系統業務 38.94%', 'Direct'),
         ('捷流閥業', 'Core', None, 'annual_report_prose', '年報業務範圍載明「管路」：計2,269,129100.00%3.公司目前之商品(服務)項目「閥」是用於管路系統中,控制流體之機械裝置,金屬製品業年鑑指出「閥」以障礙物', 'Direct'),
@@ -602,6 +607,9 @@ MEMBERS = {
         ('訊芯-KY', 'Core', '高速光纖收發模組', 'annual_report_table', '年報營業比重表：高速光纖收發模組 61.55%，大於其 SiP 封裝 38.45%（見 A5-05）', 'Direct'),
         ('源傑科技', 'Core', '高速光連結模組及主動光纜', 'annual_report_table', '年報營業比重表：高速光連結模組及主動光纜 98.28%', 'Direct'),
     ],
+    "C11-01": [
+        ('義隆', 'Major', '筆電輸入裝置模組', 'annual_report_table', '年報營業比重表：筆電輸入裝置模組 69.92%；為其觸控 IC 的下游模組業務，Core 仍在 A4-15（R024）', 'Direct'),
+    ],
     "F7-01": [
         ('丹立', 'Core', '記憶體產品', 'annual_report_table', '年報營業比重表：記憶體產品 72.28%', 'Direct'),
         ('凌航', 'Core', 'DRAM記憶體產品', 'annual_report_table', '年報營業比重表：DRAM記憶體產品 80.92%', 'Direct'),
@@ -617,6 +625,7 @@ MEMBERS = {
         ('鈺寶-創', 'Core', '模組', 'annual_report_prose', '年報業務範圍載明「模組」：%3.公司目前之商品項目晶片產品(1)24位元高效能長距無線音訊傳輸晶片/模組(2)低耗能長距無線音訊傳輸晶片/模組(3)低耗能智能遙控器與', 'Direct'),
     ],
     "V6": [
+        ('偉詮電', 'Major', '電子元件代銷', 'annual_report_table', '年報營業比重表：電子元件代銷 33.00%；IC 設計本業另計，代銷屬其通路業務（R022）', 'Direct'),
         ('陞泰', 'Core', None, 'filing_too_coarse', '年報「電子材料 81.00%」證明其為電子材料相關通路（官方分類電子通路業），但無法證明 81% 屬電子零件代理此一細分類，故不計比重', 'Direct'),
     ],
     "V7-01": [
