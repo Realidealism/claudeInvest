@@ -46,6 +46,12 @@ REFERENCE_DICTS = [
 # They live here rather than in the CSV because the CSV is the imported draft
 # and should stay recognisably what was handed to us.
 LOCAL_RULES = [
+    ("R006", "各權重維度須標明來源與計算方式，不得混用",
+     "產業曝險可使用 Revenue／Profit／Capacity／Strategic Priority 等不同權重維度；"
+     "各維度須明確標示來源與計算方式，不得混用。"
+     "目前唯一有資料來源的是 Revenue（年報營業比重表，分母為合併營收）；"
+     "Profit 因台灣年報普遍不揭露分部損益而無來源，欄位已移除而非留白待猜（見 R020）。"),
+
     # R004 as drafted read as "one industry per company" to more than one
     # reader. The constraint is on the business line, not the company.
     ("R004", "同一業務曝險僅能有一個 Industry 歸屬",
@@ -68,19 +74,26 @@ LOCAL_RULES = [
      "Type：Direct（自有業務）／Indirect（該營收已被他處計入，見 R020、R022）。"
      "Theme 不是 exposure type——題材有獨立表與獨立契約（無營收判準、evidence 必填），"
      "若容許 exposure_type='Theme' 會與 R003「Theme 不可作為 Primary Industry」自相矛盾。"
-     "Confidence 為獨立欄位：A 財報明確／B 官方產品／C 供應鏈推估／D 市場題材。"),
+     "★evidence_kind 記錄**證據類型**，confidence 記錄**對該 Exposure 判斷的可信程度**，"
+     "兩者不得視為同義欄位、也不得由前者機械映射後者："
+     "欣興「印刷電路板 99.07%」是品質極高的財報證據，卻無法支持任何單一節點的配置——"
+     "證據品質高、節點歸屬信心不可得，兩件事同時成立。"),
 
     ("R019", "Core Industry 由曝險表推導，不手動維護",
      "推導依「業務群合併後之主要經濟曝險」判定，**不是**逕取單一營收品項最大值。"
      "例：精材測試服務 47.86% 大於晶圓級尺寸封裝 44.98%，但後者與後護層封裝 5.18% 同屬封裝業務群"
      "合計 50.16%，故 Core 為 A5-02 而非 A6-01。"
-     "★若無法唯一判定，Core 可為 NULL（待確認），載入器不因此拒收，由 db.check_industry 列出。"),
+     "★若無法唯一判定，Core 可為 NULL（待確認），載入器不因此拒收，由 db.check_industry 列出。"
+     "★Core ≠ Revenue Exposure Level：超豐無比重仍為 Core，精材 44.98% 的 revenue_exposure 是 Medium "
+     "但仍是 Core。前者是產業定位，後者是營收分箱。"),
 
     ("R020", "Weight 可為 NULL，且必須標明類型與分母",
      "Revenue／Profit／Capacity／Strategic 分開記錄，須標示 weight_type 與 weight_basis（分母）；"
      "無此二者的裸數字不可比較——47.86% 是營收占比、30% 可能是產能或策略描述。"
-     "未揭露時 Weight=NULL 並以 Confidence 標示精確度，不得臆測百分比。"
-     "同一條營收線在第二個節點出現時該列 weight 必為 NULL 且 exposure_type='Indirect'。"),
+     "未揭露時 Weight=NULL，不得臆測百分比。"
+     "同一條營收線在第二個節點出現時該列 weight 必為 NULL 且 exposure_type='Indirect'。"
+     "★Revenue Exposure 等級不落地儲存，由 weight 經 view tw.v_company_industry_exposure "
+     "機械推導（<20% Low／20-50% Medium／>=50% High）；非 Revenue 型權重不產生等級。"),
 
     ("R021", "時間三軸：Effective / Known / Evidence",
      "Effective_From/To＝這個分類何時成立；Known_Date＝我們最早何時可能知道（MOPS 申報日）；"
