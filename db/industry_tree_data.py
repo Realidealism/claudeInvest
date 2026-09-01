@@ -7,6 +7,16 @@ there, and only 半導體/PCB/汽車EV/電機/航太 are cut to the third level.
 Node codes are the primary key and must stay stable: tw.company_industry_exposure
 references them, so renaming a node is safe but renumbering one moves its members.
 
+Leaf names are bilingual — 電源管理 IC (PMIC) — because the name is what reaches
+the frontend's industry column, and that column is searched by plain substring
+(RevenueScreensPage). An English-only name is unreachable by a Chinese query and
+vice versa. The English half is the term people actually type, not a
+translation, which is why 軟板 keeps (FPC) and ASIC 設計服務 keeps neither.
+
+Names stay to one term; enumerations belong in main_products. The draft put them
+in the name — 'Test Socket / Load Board / Test Interface' — which reads as a
+definition and overflows any table it lands in.
+
 Transcribed once from 台股產業分類_Master_V3_7, whose export directory is not in
 version control; this file is the tree now, and is hand-maintained. Sync with: python -m db.seed_industry_tree
 """
@@ -27,7 +37,7 @@ NODES = [
     ('A1-10', 'A1', 3, '光罩 / Photomask', 'Mask Blank、Photomask、EUV Mask、Mask Repair'),
     ('A1-11', 'A1', 3, '石英/陶瓷', '石英、陶瓷、SiC零件、AlN、高純度材料'),
     ('A1-12', 'A1', 3, '封裝材料', '封裝膠、Underfill、Die Attach、Silver Paste、Mold Compound、銅球/柱'),
-    ('A1-13', 'A1', 3, 'Lead Frame', '導線架、IC沖壓件、Lead Frame plating'),
+    ('A1-13', 'A1', 3, '導線架 (Lead Frame)', '導線架、IC沖壓件、Lead Frame plating'),
     # Ceramic substrate sits beside 石英/陶瓷 rather than under B: its makers are
     # ceramic component houses, and B is organised around laminate boards.
     ('A1-14', 'A1', 3, '陶瓷基板', '氧化鋁/氮化鋁陶瓷基板、DBC、AMB、陶瓷電路板'),
@@ -52,9 +62,9 @@ NODES = [
     ('A3-01', 'A3', 3, 'Foundry (純晶圓代工)', '台積電、聯電、世界、力積電'),
     ('A3-02', 'A3', 3, 'IDM', '整合元件製造（自有 fab）'),
     ('A3-03', 'A3', 3, 'DRAM 製造', 'DRAM（南亞科、華邦電、力積電）'),
-    ('A3-04', 'A3', 3, 'Power Semiconductor', 'MOSFET、IGBT、SiC、GaN'),
-    ('A3-05', 'A3', 3, 'CIS', 'CMOS Image Sensor、BSI、CIS製程'),
-    ('A3-06', 'A3', 3, 'Compound Semiconductor', 'GaAs、GaN、SiC、InP、RF（漢磊、嘉晶、全新）'),
+    ('A3-04', 'A3', 3, '功率半導體製造 (Power)', 'MOSFET、IGBT、SiC、GaN'),
+    ('A3-05', 'A3', 3, '影像感測製程 (CIS)', 'CMOS Image Sensor、BSI、CIS製程'),
+    ('A3-06', 'A3', 3, '化合物半導體製造 (GaN/SiC)', 'GaAs、GaN、SiC、InP、RF（漢磊、嘉晶、全新）'),
     # DRAM and NAND run on separate cycles, so they are separate nodes; a maker
     # of both (華邦電) carries an exposure to each rather than one blended row.
     ('A3-07', 'A3', 3, 'NOR / NAND Flash 製造', 'NOR Flash、NAND Flash（旺宏、華邦電）'),
@@ -63,21 +73,21 @@ NODES = [
     ('A4-02', 'A4', 3, 'GPU', '繪圖 / 運算 GPU'),
     ('A4-03', 'A4', 3, 'NPU / AI Accelerator', 'AI 加速器'),
     ('A4-04', 'A4', 3, 'AI ASIC', 'AI 專用晶片'),
-    ('A4-05', 'A4', 3, 'ASIC Design Service', '創意、世芯、智原'),
-    ('A4-06', 'A4', 3, 'Silicon IP', 'CPU/Interface/Memory/Security IP、SerDes（力旺、晶心科、M31）'),
-    ('A4-07', 'A4', 3, 'PMIC', '電源管理、DC/DC、LDO、Charger、Power IC'),
-    ('A4-08', 'A4', 3, 'MCU', None),
+    ('A4-05', 'A4', 3, 'ASIC 設計服務', '創意、世芯、智原'),
+    ('A4-06', 'A4', 3, '矽智財 (Silicon IP)', 'CPU/Interface/Memory/Security IP、SerDes（力旺、晶心科、M31）'),
+    ('A4-07', 'A4', 3, '電源管理 IC (PMIC)', '電源管理、DC/DC、LDO、Charger、Power IC'),
+    ('A4-08', 'A4', 3, '微控制器 IC (MCU)', None),
     ('A4-09', 'A4', 3, '多媒體 SoC', '多媒體/影音 SoC、數位影像控制晶片、消費性 SoC'),
     ('A4-10', 'A4', 3, '網通 IC', 'Ethernet、Switch、Router、Wi-Fi、PHY、Network Processor'),
-    ('A4-11', 'A4', 3, 'PCIe/USB/Interface', None),
-    ('A4-12', 'A4', 3, 'Display Driver', None),
-    ('A4-13', 'A4', 3, 'RF', 'RFIC、PA、LNA、Switch、Filter、Tuner'),
-    ('A4-14', 'A4', 3, 'Audio', None),
-    ('A4-15', 'A4', 3, 'Sensor', 'Touch、Fingerprint、MEMS、Pressure、Temperature'),
-    ('A4-16', 'A4', 3, 'CIS/ISP', None),
-    ('A4-17', 'A4', 3, 'Motor Driver', None),
-    ('A4-18', 'A4', 3, 'LED Driver', None),
-    ('A4-19', 'A4', 3, 'Memory Controller', 'DRAM/NAND Controller、SSD Controller（群聯、慧榮）'),
+    ('A4-11', 'A4', 3, '輸出入介面 IC (I/O)', 'PCIe、USB、Thunderbolt、橋接 IC'),
+    ('A4-12', 'A4', 3, '顯示器驅動 IC (DDI)', None),
+    ('A4-13', 'A4', 3, '射頻 IC (RF)', 'RFIC、PA、LNA、Switch、Filter、Tuner'),
+    ('A4-14', 'A4', 3, '音訊 IC (Audio)', None),
+    ('A4-15', 'A4', 3, '感測 IC (Sensor)', 'Touch、Fingerprint、MEMS、Pressure、Temperature'),
+    ('A4-16', 'A4', 3, '影像 IC (CIS/ISP)', None),
+    ('A4-17', 'A4', 3, '馬達驅動 IC (Motor Driver)', None),
+    ('A4-18', 'A4', 3, 'LED 驅動 IC', None),
+    ('A4-19', 'A4', 3, '記憶體控制 IC (Ctrl)', 'DRAM/NAND Controller、SSD Controller（群聯、慧榮）'),
     ('A4-20', 'A4', 3, 'Security IC / Secure Element', 'Secure Element、eSE、TPM、加密IC、安全MCU'),
     # A4-19 is the controller, not the memory die: 晶豪科/鈺創/愛普 design the
     # memory itself and have no fab, so neither A3-03 nor A4-19 fits them.
@@ -91,14 +101,14 @@ NODES = [
     ('A5-02', 'A5', 3, '先進封裝', 'CoWoS、SoIC、Fan-Out、Hybrid Bonding、2.5D/3D'),
     ('A5-03', 'A5', 3, 'RDL / TSV / Interposer', None),
     ('A5-04', 'A5', 3, 'HBM Packaging', '（HBM 本身為 Theme T07）'),
-    ('A5-05', 'A5', 3, 'OSAT', '日月光、矽品、力成、京元、南茂、超豐、頎邦'),
+    ('A5-05', 'A5', 3, '封裝測試代工 (OSAT)', '日月光、矽品、力成、京元、南茂、超豐、頎邦'),
     ('A6', 'A', 2, '測試 / 可靠度 / FA', None),
-    ('A6-01', 'A6', 3, 'IC Test / Wafer Sort / Final Test', None),
-    ('A6-02', 'A6', 3, 'Probe / Probe Card / Probe Interface', '旺矽、雍智'),
-    ('A6-03', 'A6', 3, 'Test Socket / Load Board / Test Interface', None),
+    ('A6-01', 'A6', 3, 'IC 測試服務 (IC Test)', 'Wafer Sort、Final Test、系統級測試'),
+    ('A6-02', 'A6', 3, '探針卡 (Probe Card)', 'Probe、Probe Card、Probe Interface（旺矽、雍智）'),
+    ('A6-03', 'A6', 3, '測試座 (Test Socket)', 'Test Socket、Load Board、Test Interface'),
     ('A6-04', 'A6', 3, 'Burn-in', None),
     ('A6-05', 'A6', 3, 'Reliability', None),
-    ('A6-06', 'A6', 3, 'Failure Analysis', '宜特、閎康、汎銓'),
+    ('A6-06', 'A6', 3, '失效分析 (FA)', '宜特、閎康、汎銓'),
     ('A6-07', 'A6', 3, 'HBM Test', 'HBM 測試（見 Theme T07）'),
     ('A7', 'A', 2, '半導體廠務', None),
     ('A7-01', 'A7', 3, '廠務系統', '無塵室、HVAC、Gas、Chemical、Water、Wastewater、Power、Pollution Control、Facility Automation'),
@@ -107,7 +117,7 @@ NODES = [
     ('B1-01', 'B1', 3, '一般 CCL', 'FR-4、CEM-3、一般消費/工業用銅箔基板'),
     ('B1-02', 'B1', 3, '玻纖布', '玻璃紗、玻纖布、Low Dk、Low CTE'),
     ('B1-03', 'B1', 3, '樹脂', 'Epoxy、PPO、PPE、Cyanate Ester、BT Resin'),
-    ('B1-04', 'B1', 3, 'PI', 'PI Film、FCCL、Coverlay'),
+    ('B1-04', 'B1', 3, '軟性銅箔基板 (FCCL/PI)', 'PI Film、FCCL、Coverlay'),
     ('B1-05', 'B1', 3, '銅箔', 'ED Copper、RA Copper、HVLP、VLP'),
     # AI board material and consumer board material are the same product class
     # on paper and different businesses in practice — different customers,
@@ -117,7 +127,7 @@ NODES = [
     ('B1-07', 'B1', 3, '聚亞醯胺樹脂', 'PI Resin、PI Varnish'),
     ('B2', 'B', 2, 'PCB製造', None),
     ('B2-01', 'B2', 3, '硬板 / 多層板 / HDI', '一般硬板、多層板、HDI、高層數板、Server/AI Server PCB、車用PCB'),
-    ('B2-02', 'B2', 3, 'FPC', 'FPC、RFPCB、Camera/Display/Battery FPC'),
+    ('B2-02', 'B2', 3, '軟板 (FPC)', 'FPC、RFPCB、Camera/Display/Battery FPC'),
     ('B2-03', 'B2', 3, '軟硬結合', None),
     ('B2-04', 'B2', 3, '高速高頻 PCB', 'AI / HPC 用高頻高速板'),
     ('B2-05', 'B2', 3, 'HDI / SLP', None),
@@ -204,7 +214,7 @@ NODES = [
     ('F6', 'F', 2, '電池相關零件', None),
     ('F6-01', 'F6', 3, '電池', 'BMS、Battery connector、Protection IC、Battery pack'),
     ('F7', 'F', 2, '記憶體模組 / SSD', None),
-    ('F7-01', 'F7', 3, 'Memory Module / SSD Component', 'DRAM Module、SSD（威剛、宇瞻、十銓）；系統端見 C9 System/Enterprise Storage'),
+    ('F7-01', 'F7', 3, '記憶體模組 (Module)', 'DRAM Module、SSD（威剛、宇瞻、十銓）；系統端見 C9 System/Enterprise Storage'),
     ('G', None, 1, '電機 / 自動化 / 機器人', None),
     ('G1', 'G', 2, '工業自動化', None),
     ('G1-01', 'G1', 3, '自動化', 'PLC、IPC、Motion Control、Servo、Robot、Vision'),
@@ -355,7 +365,7 @@ NODES = [
     ('V5', 'V', 2, '網通通路', None),
     ('V6', 'V', 2, '電子零件代理', None),
     ('V7', 'V', 2, '電子製造服務 (EMS)', None),
-    ('V7-01', 'V7', 3, 'EMS', 'EMS、ODM、OEM、Module、System Integration、Box Build'),
+    ('V7-01', 'V7', 3, '電子製造服務 (EMS)', 'EMS、ODM、OEM、Module、System Integration、Box Build'),
     ('W', None, 1, '金融 / 保險 / 證券', None),
     ('W1', 'W', 2, '銀行', '商業銀行、國內/外商銀行、數位銀行'),
     ('W2', 'W', 2, '金融服務', None),

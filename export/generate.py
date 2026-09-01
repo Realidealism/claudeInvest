@@ -424,14 +424,18 @@ def export_hermit(cur, out: Path):
         WHERE s.snapshot_date = %s
         ORDER BY s.rank
     """, (latest,))
+    rows = cur.fetchall()
+    chain = _chain_industry(cur)
     picks = []
-    for r in cur.fetchall():
+    for r in rows:
+        node = chain.get(r["stock_id"])
         picks.append({
             "rank": r["rank"],
             "ticker": r["stock_id"],
             "name": r["name"],
             "market": r["market"],
-            "industry": r["industry"],
+            "industry": node or r["industry"],
+            "industry_source": "chain" if node else "official",
             "score": r["score"],
             "grade": r["grade"],
             "rules": {
@@ -626,6 +630,21 @@ _REVENUE_STRATEGIES = [
 ]
 
 
+def _chain_industry(cur) -> dict:
+    """Stock id -> the name of its Core node in the industry chain.
+
+    tw.stocks.industry is the exchange's category: 34 buckets, so 半導體業 covers
+    everything from a wafer fab to a probe-card maker. Where the chain has
+    classified a company we can say which part it is instead.
+
+    Coverage is 387 of 2,337 listed companies and concentrated in semiconductors
+    and PCB, so this returns a lookup rather than a replacement — callers fall
+    back to the official category and record which one they used.
+    """
+    cur.execute("SELECT stock_id, core_business FROM tw.v_company_core_business")
+    return {r["stock_id"]: r["core_business"] for r in cur.fetchall()}
+
+
 def export_revenue_screens(cur, out: Path, n_months: int = 4):
     """Run all 8 monthly-revenue screeners for the most recent n_months and
     bundle results into a single JSON for the frontend. Each screen() opens
@@ -688,6 +707,8 @@ def export_revenue_screens(cur, out: Path, n_months: int = 4):
                 screen_cache[cache_key] = []
         return screen_cache[cache_key]
 
+    chain = _chain_industry(cur)
+
     data = {}
     for ym in months:
         data[ym] = {}
@@ -710,6 +731,10 @@ def export_revenue_screens(cur, out: Path, n_months: int = 4):
                 # Always carry market for the TradingView link, even if not
                 # displayed as a column.
                 row["market"] = r.get("market")
+                node = chain.get(stock_id)
+                if node:
+                    row["industry"] = node
+                row["industry_source"] = "chain" if node else "official"
                 row["is_new"] = bool(prev_ids is not None and stock_id not in prev_ids)
                 rows.append(row)
 
