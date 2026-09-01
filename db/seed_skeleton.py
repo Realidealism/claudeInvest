@@ -46,13 +46,66 @@ REFERENCE_DICTS = [
 # They live here rather than in the CSV because the CSV is the imported draft
 # and should stay recognisably what was handed to us.
 LOCAL_RULES = [
+    # R004 as drafted read as "one industry per company" to more than one
+    # reader. The constraint is on the business line, not the company.
+    ("R004", "同一業務曝險僅能有一個 Industry 歸屬",
+     "公司可同時存在多個 Industry Exposure；不同業務線可分別歸屬不同 Industry 節點，"
+     "但同一業務線不得重複計入多個節點。例：欣興的 ABF 載板歸 B3-01、硬板歸 B2-01，兩者並存；"
+     "但同一條年報營收線不得同時在兩個節點計入比重（見 R020 與 R022）。"),
+
+    # "新產品" was too wide: a product can be new and still have a home.
+    ("R005", "尚未有適當 Industry 節點的新興技術/產品優先進入 Theme",
+     "若已有適當 Industry 節點，Industry 與 Theme 可並存，不必二選一。"
+     "HBM 即為此例：Theme T07 與 A3 Memory／A5 HBM Packaging／A6 HBM Test 同時成立（見 R017）。"),
+
+    ("R015", "A3 兩維度：製造模式 × 產品類型",
+     "Foundry/IDM＝製造模式（商業模式）；Memory/Power/CIS/Compound＝產品類型。"
+     "★兩者可同時存在、不互斥：一家 IDM 可同時掛 Power 與 Compound 產品節點；"
+     "Foundry 不是產品分類，不可被讀成 A3 的一個產品格。"),
+
+    # Theme leaves the exposure type: it has its own table and its own contract.
+    ("R018", "Exposure Type 只有 Direct / Indirect；Confidence 另計",
+     "Type：Direct（自有業務）／Indirect（該營收已被他處計入，見 R020、R022）。"
+     "Theme 不是 exposure type——題材有獨立表與獨立契約（無營收判準、evidence 必填），"
+     "若容許 exposure_type='Theme' 會與 R003「Theme 不可作為 Primary Industry」自相矛盾。"
+     "Confidence 為獨立欄位：A 財報明確／B 官方產品／C 供應鏈推估／D 市場題材。"),
+
+    ("R019", "Core Industry 由曝險表推導，不手動維護",
+     "推導依「業務群合併後之主要經濟曝險」判定，**不是**逕取單一營收品項最大值。"
+     "例：精材測試服務 47.86% 大於晶圓級尺寸封裝 44.98%，但後者與後護層封裝 5.18% 同屬封裝業務群"
+     "合計 50.16%，故 Core 為 A5-02 而非 A6-01。"
+     "★若無法唯一判定，Core 可為 NULL（待確認），載入器不因此拒收，由 db.check_industry 列出。"),
+
+    ("R020", "Weight 可為 NULL，且必須標明類型與分母",
+     "Revenue／Profit／Capacity／Strategic 分開記錄，須標示 weight_type 與 weight_basis（分母）；"
+     "無此二者的裸數字不可比較——47.86% 是營收占比、30% 可能是產能或策略描述。"
+     "未揭露時 Weight=NULL 並以 Confidence 標示精確度，不得臆測百分比。"
+     "同一條營收線在第二個節點出現時該列 weight 必為 NULL 且 exposure_type='Indirect'。"),
+
+    ("R021", "時間三軸：Effective / Known / Evidence",
+     "Effective_From/To＝這個分類何時成立；Known_Date＝我們最早何時可能知道（MOPS 申報日）；"
+     "Evidence_Period_End＝證據本身對應哪個期間（FY2025 年報＝2025-12-31）。三者不可互相代替。"
+     "回測一律以 Known_Date 過濾以避免 look-ahead；Effective_To 保持 NULL 表示仍為現行層，"
+     "不可拿會計年度結束日去填，否則現行層會整批失效。"),
+
     ("R022", "通路/代理商的產品線不得據以認定製造歸屬",
-     "若公司為通路/代理商，其產品線中出現設備、材料、載板、IC 等品項時，"
-     "不得僅因產品名稱將其掛到對應的製造節點；該產品最多作為 Indirect 曝險。"
-     "否則產業統計會把通路商錯算成製造商——實例：港建(設備)、利機(BT載板)、"
-     "陞泰(電子材料)、蔚華科(測試設備)。判斷依據優先序為官方分類、"
-     "年報是否有佣金收入等代理特徵、以及年報正文對自有產能的描述。"),
+     "若公司為通路/代理商，其產品線中出現設備、材料、載板、IC 等品項時，不得僅因產品名稱"
+     "將其掛到對應的製造節點；該產品最多作為 Indirect Industry Exposure，"
+     "**不得因此建立製造型 Core**。例：利機 V1 半導體通路 Direct + BT 載板 Indirect；"
+     "港建 V1 Direct + 設備 Indirect。否則產業統計會把通路商錯算成製造商。"
+     "判斷依據優先序為官方分類、年報是否有佣金收入等代理特徵、以及年報正文對自有產能的描述。"),
 ]
+
+# 22 rules read as a list; grouped they read as a structure.
+RULE_CATEGORIES = {
+    "產業分類": ["R001", "R002", "R004", "R011", "R015", "R016", "R019", "R022"],
+    "題材": ["R003", "R005", "R010", "R012", "R017"],
+    "權重與證據": ["R006", "R018", "R020"],
+    "供應鏈": ["R007"],
+    "集團與生態系": ["R013", "R014"],
+    "公司屬性": ["R008", "R009"],
+    "時間": ["R021"],
+}
 
 
 def validate():
@@ -131,6 +184,7 @@ def sync_reference_dicts(cur):
             )
         counts[table] = len(rows)
 
+    rule_category = {rid: cat for cat, ids in RULE_CATEGORIES.items() for rid in ids}
     for rule_id, rule, description in LOCAL_RULES:
         cur.execute("""
             INSERT INTO tw.classification_rules (rule_id, rule, description)
@@ -138,7 +192,12 @@ def sync_reference_dicts(cur):
             ON CONFLICT (rule_id) DO UPDATE SET
                 rule = EXCLUDED.rule, description = EXCLUDED.description
         """, (rule_id, rule, description))
-    counts["tw.classification_rules"] += len(LOCAL_RULES)
+    counts["tw.classification_rules"] += sum(
+        1 for r in LOCAL_RULES if r[0] not in {x[0] for x in V37_RULES})
+
+    for rule_id, category in rule_category.items():
+        cur.execute("UPDATE tw.classification_rules SET category = %s WHERE rule_id = %s",
+                    (category, rule_id))
 
     # region_exposure_rules and manufacturing_mode_examples have no natural key,
     # so they are replaced wholesale rather than upserted.

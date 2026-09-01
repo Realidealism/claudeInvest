@@ -31,6 +31,9 @@ from db.industry_data import MEMBERS
 
 FIELDS = ("role", "weight_item", "evidence_kind", "evidence", "exposure_type")
 FISCAL_YEAR = 2025
+# The annual report evidences the year it reports on, not the day it was filed.
+EVIDENCE_PERIOD_END = "2025-12-31"
+DATED_EVIDENCE = ("annual_report_table", "annual_report_prose", "filing_too_coarse")
 
 
 def _name_index(cur):
@@ -85,10 +88,13 @@ def resolve(cur):
             if stock_id in cores:
                 problems.append(f"{v['name']}: Core on both {cores[stock_id]} and {node_code}")
             cores[stock_id] = node_code
-    for (stock_id, _), v in resolved.items():
-        if stock_id not in cores:
-            problems.append(f"{v['name']}: no Core exposure")
-            cores[stock_id] = None
+    # A company with no Core is allowed (R019): where the exposures cannot be
+    # ranked into one, saying so beats inventing a winner. It is reported by
+    # db.check_industry rather than refused here.
+    coreless = sorted({v["name"] for (sid, _), v in resolved.items() if sid not in cores})
+    if coreless:
+        print(f"note: {len(coreless)} company(ies) with no Core exposure: "
+              + "、".join(coreless[:8]) + ("…" if len(coreless) > 8 else ""))
 
     return resolved, problems
 
@@ -165,11 +171,12 @@ def sync(cur, resolved, effective_from):
         cur.execute("""
             INSERT INTO tw.company_industry_exposure
                    (stock_id, node_code, role, weight_item, evidence, evidence_kind,
-                    exposure_type, effective_from, known_date)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+                    exposure_type, effective_from, known_date, evidence_period_end)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
         """, (stock_id, node_code, w["role"], w["weight_item"], w["evidence"],
               w["evidence_kind"], w["exposure_type"], effective_from,
-              known.get(stock_id)))
+              known.get(stock_id),
+              EVIDENCE_PERIOD_END if w["evidence_kind"] in DATED_EVIDENCE else None))
 
     return len(added), len(superseded), len(corrected), len(closed), len(retracted)
 

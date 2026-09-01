@@ -15,6 +15,11 @@ quarter of reports print amounts and no ratio, and that view derives the share
 from the amounts while recording that it did (pct_is_derived). weight_source
 keeps the distinction so a derived share is never mistaken for a printed one.
 
+A share is written with its type and denominator (R020). Every share here is a
+revenue share against consolidated revenue, because that is what the annual
+report's 營業比重 table measures; a capacity or strategic weight would be a
+different kind of number and is not derivable from this source.
+
 Shares are cleared before being rewritten, so a weight_item that stops matching
 leaves no stale number behind.
 
@@ -67,7 +72,8 @@ def main():
 
         cur.execute("""
             UPDATE tw.company_industry_exposure
-               SET weight_pct = NULL, weight_source = NULL
+               SET weight_pct = NULL, weight_source = NULL,
+                   weight_type = NULL, weight_basis = NULL
              WHERE effective_to IS NULL
         """)
         for r in hit:
@@ -75,7 +81,8 @@ def main():
                       else "annual_report_item")
             cur.execute("""
                 UPDATE tw.company_industry_exposure
-                   SET weight_pct = %s, weight_source = %s
+                   SET weight_pct = %s, weight_source = %s,
+                       weight_type = 'Revenue', weight_basis = 'consolidated_revenue'
                  WHERE id = %s
             """, (r["pct"], source, r["id"]))
 
