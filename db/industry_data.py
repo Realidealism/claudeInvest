@@ -231,7 +231,7 @@ MEMBERS = {
     ],
     "A2-12": [
         ('印能科技', 'Core', '氣動與熱能製程解決方案', 'company_site', '氣動與熱能製程解決方案 73.26；先進封裝翹曲控制製程設備', 'Direct'),
-        ('單井', 'Core', None, 'annual_report_prose', '光電半導體封裝模具類 27 加自動化設備類 8，年報商品表列 P-DIP/SOIC/BGA 封裝模具待查', 'Direct'),
+        ('單井', 'Core', '光電、半導體封裝模具類(SET) + 光電、半導體自動化設備類(SET)', 'annual_report_table', '年報營業比重表：封裝模具類 27% 加自動化設備類 8%（原存資料漏列這兩條最大線，2026-09-02 更正）', 'Direct'),
         ('均華', 'Core', '半導體製程設備及相關精密模具', 'company_site', '半導體製程設備及精密模具 93.90；黏晶與先進封裝製程設備', 'Direct'),
         ('弘塑', 'Major', None, 'company_site', '已於前段製程設備列先進封裝設備與前段製程設備兩格', 'Indirect'),
         ('梭特', 'Core', 'IC半導體設備', 'annual_report_table', '年報營業比重表：IC半導體設備 88.24%', 'Direct'),
@@ -430,16 +430,16 @@ MEMBERS = {
         ('偉詮電', 'Major', None, 'annual_report_prose', '年報業務範圍載明「馬達驅動」：pervisorIC)。(2)智慧應用IC:-氣冷散熱方案如高整合度智慧風扇馬達驅動與控制IC。-液冷散熱方案如水泵馬達控制IC、漏液偵測I', 'Direct'),
         ('普誠', 'Major', None, 'annual_report_prose', '年報業務範圍載明「馬達驅動」：%註:包含數位影像處理器、客戶委託設計IC、電源管理系列IC、馬達驅動系列IC、遙控IC及微處理器控制IC等項目。3.目前之商品項目項目主要', 'Direct'),
         ('茂達', 'Major', '放大及驅動IC', 'annual_report_table', '年報營業比重表：放大及驅動IC 29.05%，含筆電散熱風扇馬達驅動與控制IC', 'Direct'),
-        ('點晶', 'Core', '轉動移動偵測與馬達驅動晶片', 'annual_report_table', '年報營業比重表：轉動移動偵測與馬達驅動晶片 100.00%', 'Direct'),
+        ('點晶', 'Major', '轉動移動偵測與馬達驅動晶片', 'annual_report_table', '年報營業比重表：轉動移動偵測與馬達驅動晶片 6.90%（原存 100% 為解析取錯欄，2026-09-02 更正）', 'Direct'),
     ],
     "A4-18": [
         ('聚積', 'Core', 'LED驅動積體電路', 'annual_report_table', '年報營業比重表：LED驅動積體電路 99.76%', 'Direct'),
-        ('點晶', 'Major', None, 'annual_report_prose', '年報業務範圍載明「LED驅動」：顛覆目前認知馬達一定有噪音之傳統印象。54(2)靜態混合訊號系列產品:2.1LED驅動管理晶片LED之相關應用已成為未來節約能源之關鍵產業。', 'Direct'),
+        ('點晶', 'Core', '靜態偵測與驅動混合數位及類比晶片', 'annual_report_table', '年報營業比重表：靜態偵測與驅動混合數位及類比晶片 93.10%，即其年報所稱靜態混合訊號系列（LED 驅動管理晶片）', 'Direct'),
     ],
     "A4-19": [
         ('安國', 'Major', '資訊及消費性產品的週邊及控制IC', 'annual_report_table', '年報營業比重表：資訊及消費性產品的週邊及控制IC 33.08%', 'Direct'),
         ('群聯', 'Minor', '控制晶片', 'annual_report_table', '年報營業比重表：控制晶片 19.26%', 'Direct'),
-        ('點序', 'Core', None, 'annual_report_prose', '年報業務範圍載明「記憶體控制」：一致的隨機訪問時間。2.產業上、中、下游之關聯性本公司所經營之產品,主係快閃記憶體控制晶片的研發設計,屬於半導體產業之IC設計業。如下圖(N', 'Direct'),
+        ('點序', 'Core', 'Flash Controller + Packaged Controller', 'annual_report_table', '年報營業比重表：Flash Controller 96.65% 加 Packaged Controller 0.35%（原存「其它 100%」為解析取到最小線，2026-09-02 更正）', 'Direct'),
     ],
     "A4-21": [
         ('愛普*', 'Core', None, 'annual_report_prose', '年報業務範圍載明「記憶體IC」：體相關的研發、設計、製造與銷售,並提供矽智財的技術支援與授權,為全球非標準型記憶體IC設計之領導廠商,以優越的品質與整合性的服務,協助客戶實', 'Direct'),
@@ -504,7 +504,7 @@ MEMBERS = {
     "A6-03": [
         ('穎崴', 'Core', '測試治具TestSockets', 'annual_report_table', '年報營業比重表：測試治具TestSockets 56.00%', 'Direct'),
         ('精測', 'Major', 'IC測試板', 'annual_report_table', '年報營業比重表：IC測試板 25.12%', 'Direct'),
-        ('雍智科技', 'Core', None, 'annual_report_prose', '年報業務範圍載明「探針卡」：品及服務主要為製造及銷售半導體晶圓測試之各種測試載板,包含前段測試載板(晶圓探針卡測試載板)、後段測試載板(IC測試載板及IC老化測試載板)', 'Direct'),
+        ('雍智科技', 'Core', '半導體晶圓測試-後段測試載板 + 半導體晶圓測試-前段測試載板', 'annual_report_table', '年報業務範圍載明「探針卡」：品及服務主要為製造及銷售半導體晶圓測試之各種測試載板,包含前段測試載板(晶圓探針卡測試載板)、後段測試載板(IC測試載板及IC老化測試載板)', 'Direct'),
     ],
     "A6-06": [
         ('宜特', 'Core', '檢測服務收入', 'annual_report_table', '年報營業比重表：檢測服務收入 100.00%', 'Direct'),
