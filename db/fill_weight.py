@@ -49,7 +49,8 @@ def main():
 
     with get_cursor() as cur:
         cur.execute("""
-            SELECT e.id, e.stock_id, e.node_code, e.weight_item, s.name
+            SELECT e.id, e.stock_id, e.node_code, e.weight_item, e.evidence_kind,
+                   s.name
             FROM tw.company_industry_exposure e
             JOIN tw.stocks s ON s.stock_id = e.stock_id
             WHERE e.effective_to IS NULL
@@ -64,7 +65,14 @@ def main():
         shares = {(r["stock_id"], r["item"]): (r["pct_effective"], r["pct_is_derived"])
                   for r in cur.fetchall()}
 
-        claimed = [r for r in rows if r["weight_item"]]
+        # A weight_item is kept as evidence even when the filing is too coarse to
+        # give the node a total (R020). Those rows name a real reported line, so
+        # they would resolve here — and the number would be the line's, not the
+        # node's. They stay NULL.
+        coarse = [r for r in rows if r["weight_item"]
+                  and r["evidence_kind"] == "filing_too_coarse"]
+        claimed = [r for r in rows if r["weight_item"]
+                   and r["evidence_kind"] != "filing_too_coarse"]
         for r in claimed:
             parts = [p.strip() for p in r["weight_item"].split(" + ")]
             found = [shares.get((r["stock_id"], p)) for p in parts]
@@ -81,7 +89,8 @@ def main():
         merged = sum(1 for r in hit if r.get("parts", 1) > 1)
         print(f"exposures {len(rows)}  naming an item {len(claimed)}  "
               f"resolved {len(hit)} (of which {merged} sum several lines)  "
-              f"unresolved {len(miss)}")
+              f"unresolved {len(miss)}  "
+              f"held NULL as filing_too_coarse {len(coarse)}")
         if miss:
             print("unresolved (weight_pct stays NULL):")
             for r in miss[:20]:
