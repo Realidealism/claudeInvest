@@ -7,8 +7,13 @@ effective_to, never deleted. Backtests read the table as of a date and would
 silently change their answers if history were rewritten under them.
 
     python -m db.seed_industry --check          # report, write nothing
-    python -m db.seed_industry                  # sync, dated today
-    python -m db.seed_industry --effective-from 2025-12-31
+    python -m db.seed_industry                  # sync into the FY2025 layer
+    python -m db.seed_industry --effective-from 2026-12-31   # open the FY2026 layer
+
+Editing what we believe about a period is a correction and replaces the row.
+History opens only when the period does: a superseded row should describe a
+window during which the classification really was different, never a window
+during which we happened to be wrong.
 
 Company names, not ids: an active listed name resolves to one company, and a
 mistyped id resolves quietly to the wrong one. Any name that fails to resolve
@@ -149,15 +154,17 @@ def sync(cur, resolved, effective_from):
         if key not in resolved:
             closed.append(key)
 
-    # A change dated to the day the row already starts is a correction, not a new
-    # version: closing it would leave a zero-length row and collide with the
-    # (stock, node, effective_from) uniqueness. Only a later date makes history.
+    # A change within the same evidence period is a correction of our reading, not
+    # a change in the world, and it replaces the row rather than closing it. The
+    # alternative writes history that was never true: 精材 booked 44.98% because we
+    # had missed its second line, and superseding would have left a period during
+    # which the database says that was the figure. A new layer opens when the
+    # evidence period does — when the FY2026 reports land, not when we edit.
     corrected = [k for k in changed if str(live[k]["effective_from"]) == str(effective_from)]
     superseded = [k for k in changed if k not in corrected]
 
-    # A membership removed on the very day it started never held for any window.
-    # Closing it would leave a zero-length row that no as-of query can ever see,
-    # so it is deleted instead — the same reasoning as the correction path above.
+    # A membership removed within the same evidence period was never true either,
+    # so it is deleted rather than closed — same reasoning as the correction path.
     retracted = [k for k in closed if str(live[k]["effective_from"]) == str(effective_from)]
     for key in retracted:
         cur.execute("DELETE FROM tw.company_industry_exposure WHERE id = %s", (live[key]["id"],))
@@ -217,8 +224,11 @@ def sync(cur, resolved, effective_from):
 def main():
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--check", action="store_true", help="report and write nothing")
-    ap.add_argument("--effective-from", default=date.today().isoformat(),
-                    help="the day the current layer takes effect (default today)")
+    ap.add_argument("--effective-from", default=EVIDENCE_PERIOD_END,
+                    help="the evidence period this layer belongs to; pass a later "
+                         "date only when the facts themselves changed, which is "
+                         "when a new filing year arrives — editing our own reading "
+                         "is a correction and must keep the same date")
     args = ap.parse_args()
 
     with get_cursor() as cur:
