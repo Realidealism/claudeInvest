@@ -1,6 +1,6 @@
 {
-  "generated_at": "2026-09-01T21:52:07",
-  "export_date": "2026-09-01",
+  "generated_at": "2026-09-02T21:52:30",
+  "export_date": "2026-09-02",
   "available_months": [
     "2026-08",
     "2026-07",
@@ -442,9 +442,106 @@
           "mom_pct": 770.85,
           "market": "TPEx",
           "is_new": true
+        },
+        {
+          "stock_id": "3006",
+          "name": "晶豪科",
+          "industry": "半導體業",
+          "revenue": 7904796,
+          "rev_vs_avg_pct": 502.73,
+          "yoy_pct": 605.24,
+          "cum_yoy_pct": 324.38,
+          "mom_pct": 16.5,
+          "market": "TWSE",
+          "is_new": false
+        },
+        {
+          "stock_id": "2419",
+          "name": "仲琦",
+          "industry": "通信網路業",
+          "revenue": 2011067,
+          "rev_vs_avg_pct": 149.98,
+          "yoy_pct": 245.59,
+          "cum_yoy_pct": 22.18,
+          "mom_pct": 202.53,
+          "market": "TWSE",
+          "is_new": true
+        },
+        {
+          "stock_id": "3004",
+          "name": "豐達科",
+          "industry": "鋼鐵工業",
+          "revenue": 526282,
+          "rev_vs_avg_pct": 142.9,
+          "yoy_pct": 62.3,
+          "cum_yoy_pct": 40.47,
+          "mom_pct": 6.47,
+          "market": "TWSE",
+          "is_new": true
+        },
+        {
+          "stock_id": "8109",
+          "name": "博大",
+          "industry": "電子零組件業",
+          "revenue": 227249,
+          "rev_vs_avg_pct": 84.02,
+          "yoy_pct": 56.12,
+          "cum_yoy_pct": 30.7,
+          "mom_pct": 7.39,
+          "market": "TPEx",
+          "is_new": false
+        },
+        {
+          "stock_id": "4749",
+          "name": "新應材",
+          "industry": "半導體業",
+          "revenue": 484959,
+          "rev_vs_avg_pct": 98.25,
+          "yoy_pct": 41.95,
+          "cum_yoy_pct": 20.99,
+          "mom_pct": 16.86,
+          "market": "TPEx",
+          "is_new": true
+        },
+        {
+          "stock_id": "3563",
+          "name": "牧德",
+          "industry": "光電業",
+          "revenue": 361158,
+          "rev_vs_avg_pct": 92.04,
+          "yoy_pct": 35.68,
+          "cum_yoy_pct": 14.39,
+          "mom_pct": 0.41,
+          "market": "TWSE",
+          "is_new": false
+        },
+        {
+          "stock_id": "3023",
+          "name": "信邦",
+          "industry": "電子零組件業",
+          "revenue": 3280576,
+          "rev_vs_avg_pct": 62.06,
+          "yoy_pct": 32.47,
+          "cum_yoy_pct": 13.93,
+          "mom_pct": 3.58,
+          "market": "TWSE",
+          "is_new": false
         }
       ],
-      "turnaround": [],
+      "turnaround": [
+        {
+          "stock_id": "2419",
+          "name": "仲琦",
+          "industry": "通信網路業",
+          "revenue": 2011067,
+          "yoy_pct": 245.59,
+          "prev_yoy_pct": -3.85,
+          "decline_months": 4,
+          "mom_pct": 202.53,
+          "market": "TWSE",
+          "is_new": true
+        }
+      ],
       "streak": [
         {
           "stock_id": "6712",
@@ -475,6 +572,34 @@
           "is_new": false
         },
         {
+          "stock_id": "3563",
+          "name": "牧德",
+          "industry": "光電業",
+          "revenue": 361158,
+          "yoy_pct": 35.68,
+          "streak": 24,
+          "avg_yoy_pct": 93.49,
+          "min_yoy_pct": 3.75,
+          "max_yoy_pct": 226.17,
+          "mom_pct": 0.41,
+          "market": "TWSE",
+          "is_new": false
+        },
+        {
+          "stock_id": "3004",
+          "name": "豐達科",
+          "industry": "鋼鐵工業",
+          "revenue": 526282,
+          "yoy_pct": 62.3,
+          "streak": 24,
+          "avg_yoy_pct": 23.0,
+          "min_yoy_pct": 0.23,
+          "max_yoy_pct": 62.3,
+          "mom_pct": 6.47,
+          "market": "TWSE",
+          "is_new": false
+        },
+        {
           "stock_id": "3030",
           "name": "德律",
           "industry": "其他電子業",
@@ -487,6 +612,174 @@
           "mom_pct": -3.48,
           "market": "TWSE",
           "is_new": false
+        },
+        {
+          "stock_id": "2408",
+          "name": "南亞科",
+          "industry": "半導體業",
+          "revenue": 44690268,
+          "yoy_pct": 560.85,
+          "streak": 15,
+          "avg_yoy_pct": 439.43,
+          "min_yoy_pct": 21.14,
+          "max_yoy_pct": 730.14,
+          "mom_pct": 1.87,
+          "market": "TWSE",
+          "is_new": false
+        },
+        {
+          "stock_id": "6491",
+          "name": "晶碩",
+          "industry": "生技醫療業",
+          "revenue": 750382,
+          "yoy_pct": 18.88,
+          "streak": 15,
+          "avg_yoy_pct": 16.94,
+          "min_yoy_pct": 0.78,
+          "max_yoy_pct": 36.71,
+          "mom_pct": 0.64,
+          "market": "TWSE",
+          "is_new": false
+        },
+        {
+          "stock_id": "3006",
+          "name": "晶豪科",
+          "industry": "半導體業",
+          "revenue": 7904796,
+          "yoy_pct": 605.24,
+          "streak": 12,
+          "avg_yoy_pct": 223.62,
+          "min_yoy_pct": 5.96,
+          "max_yoy_pct": 605.24,
+          "mom_pct": 16.5,
+          "market": "TWSE",
+          "is_new": false
+        },
+        {
+          "stock_id": "3564",
+          "name": "其陽",
+          "industry": "通信網路業",
+          "revenue": 269866,
+          "yoy_pct": 47.82,
+          "streak": 12,
+          "avg_yoy_pct": 20.07,
+          "min_yoy_pct": 3.02,
+          "max_yoy_pct": 80.14,
+          "mom_pct": -8.83,
+          "market": "TPEx",
+          "is_new": false
+        },
+        {
+          "stock_id": "8086",
+          "name": "宏捷科",
+          "industry": "半導體業",
+          "revenue": 421572,
+          "yoy_pct": 12.56,
+          "streak": 12,
+          "avg_yoy_pct": 44.31,
+          "min_yoy_pct": 12.56,
+          "max_yoy_pct": 90.17,
+          "mom_pct": 0.71,
+          "market": "TPEx",
+          "is_new": false
+        },
+        {
+          "stock_id": "3530",
+          "name": "晶相光",
+          "industry": "半導體業",
+          "revenue": 178015,
+          "yoy_pct": 14.05,
+          "streak": 11,
+          "avg_yoy_pct": 40.88,
+          "min_yoy_pct": 14.05,
+          "max_yoy_pct": 80.39,
+          "mom_pct": 3.23,
+          "market": "TWSE",
+          "is_new": false
+        },
+        {
+          "stock_id": "8374",
+          "name": "羅昇",
+          "industry": "電機機械",
+          "revenue": 476925,
+          "yoy_pct": 35.41,
+          "streak": 9,
+          "avg_yoy_pct": 35.02,
+          "min_yoy_pct": 3.9,
+          "max_yoy_pct": 62.73,
+          "mom_pct": -7.71,
+          "market": "TWSE",
+          "is_new": false
+        },
+        {
+          "stock_id": "2397",
+          "name": "友通",
+          "industry": "電腦及週邊設備業",
+          "revenue": 1239331,
+          "yoy_pct": 48.01,
+          "streak": 9,
+          "avg_yoy_pct": 28.14,
+          "min_yoy_pct": 3.28,
+          "max_yoy_pct": 51.27,
+          "mom_pct": -3.54,
+          "market": "TWSE",
+          "is_new": false
+        },
+        {
+          "stock_id": "8109",
+          "name": "博大",
+          "industry": "電子零組件業",
+          "revenue": 227249,
+          "yoy_pct": 56.12,
+          "streak": 6,
+          "avg_yoy_pct": 34.72,
+          "min_yoy_pct": 20.65,
+          "max_yoy_pct": 56.12,
+          "mom_pct": 7.39,
+          "market": "TPEx",
+          "is_new": true
+        },
+        {
+          "stock_id": "3023",
+          "name": "信邦",
+          "industry": "電子零組件業",
+          "revenue": 3280576,
+          "yoy_pct": 32.47,
+          "streak": 6,
+          "avg_yoy_pct": 19.85,
+          "min_yoy_pct": 7.55,
+          "max_yoy_pct": 32.47,
+          "mom_pct": 3.58,
+          "market": "TWSE",
+          "is_new": true
+        },
+        {
+          "stock_id": "3168",
+          "name": "眾福科",
+          "industry": "光電業",
+          "revenue": 381999,
+          "yoy_pct": 38.86,
+          "streak": 6,
+          "avg_yoy_pct": 22.21,
+          "min_yoy_pct": 7.77,
+          "max_yoy_pct": 40.46,
+          "mom_pct": 3.53,
+          "market": "TWSE",
+          "is_new": true
+        },
+        {
+          "stock_id": "3591",
+          "name": "艾笛森",
+          "industry": "光電業",
+          "revenue": 271207,
+          "yoy_pct": 44.13,
+          "streak": 6,
+          "avg_yoy_pct": 20.93,
+          "min_yoy_pct": 1.3,
+          "max_yoy_pct": 44.13,
+          "mom_pct": 0.63,
+          "market": "TWSE",
+          "is_new": true
         }
       ],
       "off_season": [
@@ -504,6 +797,19 @@
           "is_new": false
         },
         {
+          "stock_id": "4743",
+          "name": "合一",
+          "industry": "生技醫療業",
+          "revenue": 5913,
+          "beat_pct": 32.74,
+          "seasonal_coeff": 0.9,
+          "hist_avg": 4455,
+          "yoy_pct": -39.4,
+          "mom_pct": -31.87,
+          "market": "TPEx",
+          "is_new": true
+        },
+        {
           "stock_id": "5508",
           "name": "永信建",
           "industry": "建材營造業",
@@ -517,10 +823,52 @@
           "is_new": true
         }
       ],
-      "deceleration": [],
+      "deceleration": [
+        {
+          "stock_id": "8374",
+          "name": "羅昇",
+          "industry": "電機機械",
+          "revenue": 476925,
+          "yoy_pct": 35.41,
+          "peak_yoy_pct": 62.73,
+          "yoy_drop_pct": 27.32,
+          "growth_streak": 9,
+          "decel_months": 4,
+          "mom_pct": -7.71,
+          "market": "TWSE",
+          "is_new": false
+        }
+      ],
       "decline": [],
       "historic_low": [],
-      "peak_miss": []
+      "peak_miss": [
+        {
+          "stock_id": "6171",
+          "name": "大城地產",
+          "industry": "建材營造業",
+          "revenue": 33,
+          "miss_pct": -99.98,
+          "seasonal_coeff": 1.31,
+          "hist_avg": 153559,
+          "yoy_pct": -99.9,
+          "mom_pct": -2.94,
+          "market": "TPEx",
+          "is_new": true
+        },
+        {
+          "stock_id": "5490",
+          "name": "同亨",
+          "industry": "電腦及週邊設備業",
+          "revenue": 109488,
+          "miss_pct": -24.43,
+          "seasonal_coeff": 1.035,
+          "hist_avg": 144878,
+          "yoy_pct": -6.77,
+          "mom_pct": -22.19,
+          "market": "TPEx",
+          "is_new": true
+        }
+      ]
     },
     "2026-07": {
       "three_arrows": [
@@ -3131,6 +3479,30 @@
           "is_new": true
         },
         {
+          "stock_id": "2498",
+          "name": "宏達電",
+          "industry": "通信網路業",
+          "revenue": 178710,
+          "yoy_pct": 21.2,
+          "prev_yoy_pct": -8.53,
+          "decline_months": 5,
+          "mom_pct": -38.88,
+          "market": "TWSE",
+          "is_new": true
+        },
+        {
+          "stock_id": "6527",
+          "name": "明達醫",
+          "industry": "生技醫療業",
+          "revenue": 73105,
+          "yoy_pct": 25.22,
+          "prev_yoy_pct": -17.37,
+          "decline_months": 5,
+          "mom_pct": 6.33,
+          "market": "TPEx",
+          "is_new": true
+        },
+        {
           "stock_id": "8917",
           "name": "欣泰",
           "industry": "油電燃氣業",
@@ -3139,6 +3511,18 @@
           "prev_yoy_pct": -8.36,
           "decline_months": 5,
           "mom_pct": 0.43,
+          "market": "TPEx",
+          "is_new": true
+        },
+        {
+          "stock_id": "5315",
+          "name": "光聯",
+          "industry": "光電業",
+          "revenue": 143294,
+          "yoy_pct": 7.1,
+          "prev_yoy_pct": -8.35,
+          "decline_months": 5,
+          "mom_pct": -3.64,
           "market": "TPEx",
           "is_new": true
         },
@@ -3155,15 +3539,15 @@
           "is_new": true
         },
         {
-          "stock_id": "2498",
-          "name": "宏達電",
-          "industry": "通信網路業",
-          "revenue": 178710,
-          "yoy_pct": 21.2,
-          "prev_yoy_pct": -8.53,
+          "stock_id": "6859",
+          "name": "伯特光",
+          "industry": "光電業",
+          "revenue": 54812,
+          "yoy_pct": 0.24,
+          "prev_yoy_pct": -34.46,
           "decline_months": 5,
-          "mom_pct": -38.88,
-          "market": "TWSE",
+          "mom_pct": 26.75,
+          "market": "TPEx",
           "is_new": true
         },
         {
@@ -3179,30 +3563,6 @@
           "is_new": true
         },
         {
-          "stock_id": "6527",
-          "name": "明達醫",
-          "industry": "生技醫療業",
-          "revenue": 73105,
-          "yoy_pct": 25.22,
-          "prev_yoy_pct": -17.37,
-          "decline_months": 5,
-          "mom_pct": 6.33,
-          "market": "TPEx",
-          "is_new": true
-        },
-        {
-          "stock_id": "6859",
-          "name": "伯特光",
-          "industry": "光電業",
-          "revenue": 54812,
-          "yoy_pct": 0.24,
-          "prev_yoy_pct": -34.46,
-          "decline_months": 5,
-          "mom_pct": 26.75,
-          "market": "TPEx",
-          "is_new": true
-        },
-        {
           "stock_id": "4550",
           "name": "長佳",
           "industry": "電機機械",
@@ -3211,18 +3571,6 @@
           "prev_yoy_pct": -28.05,
           "decline_months": 5,
           "mom_pct": -9.54,
-          "market": "TPEx",
-          "is_new": true
-        },
-        {
-          "stock_id": "5315",
-          "name": "光聯",
-          "industry": "光電業",
-          "revenue": 143294,
-          "yoy_pct": 7.1,
-          "prev_yoy_pct": -8.35,
-          "decline_months": 5,
-          "mom_pct": -3.64,
           "market": "TPEx",
           "is_new": true
         },
@@ -3491,18 +3839,6 @@
           "is_new": true
         },
         {
-          "stock_id": "3014",
-          "name": "聯陽",
-          "industry": "半導體業",
-          "revenue": 642451,
-          "yoy_pct": 8.76,
-          "prev_yoy_pct": -1.12,
-          "decline_months": 3,
-          "mom_pct": 4.83,
-          "market": "TWSE",
-          "is_new": true
-        },
-        {
           "stock_id": "6929",
           "name": "佑全",
           "industry": "生技醫療業",
@@ -3512,6 +3848,18 @@
           "decline_months": 3,
           "mom_pct": 4.91,
           "market": "TPEx",
+          "is_new": true
+        },
+        {
+          "stock_id": "3014",
+          "name": "聯陽",
+          "industry": "半導體業",
+          "revenue": 642451,
+          "yoy_pct": 8.76,
+          "prev_yoy_pct": -1.12,
+          "decline_months": 3,
+          "mom_pct": 4.83,
+          "market": "TWSE",
           "is_new": true
         },
         {
@@ -3849,20 +4197,6 @@
           "is_new": false
         },
         {
-          "stock_id": "6223",
-          "name": "旺矽",
-          "industry": "半導體業",
-          "revenue": 1805362,
-          "yoy_pct": 66.5,
-          "streak": 42,
-          "avg_yoy_pct": 27.64,
-          "min_yoy_pct": 0.72,
-          "max_yoy_pct": 66.5,
-          "mom_pct": -1.5,
-          "market": "TPEx",
-          "is_new": false
-        },
-        {
           "stock_id": "2432",
           "name": "倚天酷碁-創",
           "industry": "電腦及週邊設備業",
@@ -3888,6 +4222,20 @@
           "max_yoy_pct": 150.01,
           "mom_pct": 5.51,
           "market": "TWSE",
+          "is_new": false
+        },
+        {
+          "stock_id": "6223",
+          "name": "旺矽",
+          "industry": "半導體業",
+          "revenue": 1805362,
+          "yoy_pct": 66.5,
+          "streak": 42,
+          "avg_yoy_pct": 27.64,
+          "min_yoy_pct": 0.72,
+          "max_yoy_pct": 66.5,
+          "mom_pct": -1.5,
+          "market": "TPEx",
           "is_new": false
         },
         {
@@ -4129,6 +4477,20 @@
           "is_new": false
         },
         {
+          "stock_id": "6683",
+          "name": "雍智科技",
+          "industry": "半導體業",
+          "revenue": 230193,
+          "yoy_pct": 24.37,
+          "streak": 31,
+          "avg_yoy_pct": 25.52,
+          "min_yoy_pct": 0.34,
+          "max_yoy_pct": 59.45,
+          "mom_pct": -0.48,
+          "market": "TPEx",
+          "is_new": false
+        },
+        {
           "stock_id": "5274",
           "name": "信驊",
           "industry": "半導體業",
@@ -4168,20 +4530,6 @@
           "max_yoy_pct": 41.83,
           "mom_pct": 10.18,
           "market": "TWSE",
-          "is_new": false
-        },
-        {
-          "stock_id": "6683",
-          "name": "雍智科技",
-          "industry": "半導體業",
-          "revenue": 230193,
-          "yoy_pct": 24.37,
-          "streak": 31,
-          "avg_yoy_pct": 25.52,
-          "min_yoy_pct": 0.34,
-          "max_yoy_pct": 59.45,
-          "mom_pct": -0.48,
-          "market": "TPEx",
           "is_new": false
         },
         {
@@ -4269,6 +4617,20 @@
           "is_new": false
         },
         {
+          "stock_id": "8155",
+          "name": "博智",
+          "industry": "電子零組件業",
+          "revenue": 557144,
+          "yoy_pct": 52.01,
+          "streak": 29,
+          "avg_yoy_pct": 35.44,
+          "min_yoy_pct": 4.75,
+          "max_yoy_pct": 83.34,
+          "mom_pct": 3.41,
+          "market": "TPEx",
+          "is_new": false
+        },
+        {
           "stock_id": "1316",
           "name": "上曜",
           "industry": "建材營造業",
@@ -4335,20 +4697,6 @@
           "min_yoy_pct": 5.66,
           "max_yoy_pct": 1700.79,
           "mom_pct": 6.77,
-          "market": "TPEx",
-          "is_new": false
-        },
-        {
-          "stock_id": "8155",
-          "name": "博智",
-          "industry": "電子零組件業",
-          "revenue": 557144,
-          "yoy_pct": 52.01,
-          "streak": 29,
-          "avg_yoy_pct": 35.44,
-          "min_yoy_pct": 4.75,
-          "max_yoy_pct": 83.34,
-          "mom_pct": 3.41,
           "market": "TPEx",
           "is_new": false
         },
@@ -4689,20 +5037,6 @@
           "is_new": false
         },
         {
-          "stock_id": "6217",
-          "name": "中探針",
-          "industry": "電子零組件業",
-          "revenue": 421657,
-          "yoy_pct": 27.8,
-          "streak": 25,
-          "avg_yoy_pct": 28.64,
-          "min_yoy_pct": 2.54,
-          "max_yoy_pct": 55.74,
-          "mom_pct": -1.72,
-          "market": "TPEx",
-          "is_new": false
-        },
-        {
           "stock_id": "7769",
           "name": "鴻勁",
           "industry": "半導體業",
@@ -4714,6 +5048,20 @@
           "max_yoy_pct": 357.96,
           "mom_pct": -1.04,
           "market": "TWSE",
+          "is_new": false
+        },
+        {
+          "stock_id": "6217",
+          "name": "中探針",
+          "industry": "電子零組件業",
+          "revenue": 421657,
+          "yoy_pct": 27.8,
+          "streak": 25,
+          "avg_yoy_pct": 28.64,
+          "min_yoy_pct": 2.54,
+          "max_yoy_pct": 55.74,
+          "mom_pct": -1.72,
+          "market": "TPEx",
           "is_new": false
         },
         {
@@ -4801,20 +5149,6 @@
           "is_new": false
         },
         {
-          "stock_id": "6209",
-          "name": "今國光",
-          "industry": "光電業",
-          "revenue": 524235,
-          "yoy_pct": 93.16,
-          "streak": 22,
-          "avg_yoy_pct": 51.24,
-          "min_yoy_pct": 0.2,
-          "max_yoy_pct": 101.67,
-          "mom_pct": 21.17,
-          "market": "TWSE",
-          "is_new": false
-        },
-        {
           "stock_id": "5475",
           "name": "德宏",
           "industry": "電子零組件業",
@@ -4826,6 +5160,20 @@
           "max_yoy_pct": 264.03,
           "mom_pct": 31.61,
           "market": "TPEx",
+          "is_new": false
+        },
+        {
+          "stock_id": "6209",
+          "name": "今國光",
+          "industry": "光電業",
+          "revenue": 524235,
+          "yoy_pct": 93.16,
+          "streak": 22,
+          "avg_yoy_pct": 51.24,
+          "min_yoy_pct": 0.2,
+          "max_yoy_pct": 101.67,
+          "mom_pct": 21.17,
+          "market": "TWSE",
           "is_new": false
         },
         {
@@ -5179,6 +5527,34 @@
           "is_new": false
         },
         {
+          "stock_id": "3372",
+          "name": "典範",
+          "industry": "半導體業",
+          "revenue": 126159,
+          "yoy_pct": 22.84,
+          "streak": 18,
+          "avg_yoy_pct": 26.11,
+          "min_yoy_pct": 11.55,
+          "max_yoy_pct": 60.14,
+          "mom_pct": 11.56,
+          "market": "TPEx",
+          "is_new": false
+        },
+        {
+          "stock_id": "3587",
+          "name": "閎康",
+          "industry": "其他電子業",
+          "revenue": 563117,
+          "yoy_pct": 18.56,
+          "streak": 18,
+          "avg_yoy_pct": 12.67,
+          "min_yoy_pct": 1.89,
+          "max_yoy_pct": 26.87,
+          "mom_pct": 0.84,
+          "market": "TPEx",
+          "is_new": false
+        },
+        {
           "stock_id": "4127",
           "name": "天良",
           "industry": "生技醫療業",
@@ -5277,16 +5653,16 @@
           "is_new": false
         },
         {
-          "stock_id": "3587",
-          "name": "閎康",
-          "industry": "其他電子業",
-          "revenue": 563117,
-          "yoy_pct": 18.56,
+          "stock_id": "8088",
+          "name": "品安",
+          "industry": "半導體業",
+          "revenue": 216457,
+          "yoy_pct": 44.86,
           "streak": 18,
-          "avg_yoy_pct": 12.67,
-          "min_yoy_pct": 1.89,
-          "max_yoy_pct": 26.87,
-          "mom_pct": 0.84,
+          "avg_yoy_pct": 56.45,
+          "min_yoy_pct": 1.02,
+          "max_yoy_pct": 159.66,
+          "mom_pct": 75.05,
           "market": "TPEx",
           "is_new": false
         },
@@ -5302,34 +5678,6 @@
           "max_yoy_pct": 607.83,
           "mom_pct": 22.17,
           "market": "TWSE",
-          "is_new": false
-        },
-        {
-          "stock_id": "8088",
-          "name": "品安",
-          "industry": "半導體業",
-          "revenue": 216457,
-          "yoy_pct": 44.86,
-          "streak": 18,
-          "avg_yoy_pct": 56.45,
-          "min_yoy_pct": 1.02,
-          "max_yoy_pct": 159.66,
-          "mom_pct": 75.05,
-          "market": "TPEx",
-          "is_new": false
-        },
-        {
-          "stock_id": "3372",
-          "name": "典範",
-          "industry": "半導體業",
-          "revenue": 126159,
-          "yoy_pct": 22.84,
-          "streak": 18,
-          "avg_yoy_pct": 26.11,
-          "min_yoy_pct": 11.55,
-          "max_yoy_pct": 60.14,
-          "mom_pct": 11.56,
-          "market": "TPEx",
           "is_new": false
         },
         {
@@ -5459,20 +5807,6 @@
           "is_new": false
         },
         {
-          "stock_id": "4771",
-          "name": "望隼",
-          "industry": "生技醫療業",
-          "revenue": 314572,
-          "yoy_pct": 11.68,
-          "streak": 18,
-          "avg_yoy_pct": 24.4,
-          "min_yoy_pct": 2.29,
-          "max_yoy_pct": 47.26,
-          "mom_pct": -20.33,
-          "market": "TWSE",
-          "is_new": false
-        },
-        {
           "stock_id": "8271",
           "name": "宇瞻",
           "industry": "半導體業",
@@ -5483,6 +5817,20 @@
           "min_yoy_pct": 11.46,
           "max_yoy_pct": 360.82,
           "mom_pct": -4.2,
+          "market": "TWSE",
+          "is_new": false
+        },
+        {
+          "stock_id": "4771",
+          "name": "望隼",
+          "industry": "生技醫療業",
+          "revenue": 314572,
+          "yoy_pct": 11.68,
+          "streak": 18,
+          "avg_yoy_pct": 24.4,
+          "min_yoy_pct": 2.29,
+          "max_yoy_pct": 47.26,
+          "mom_pct": -20.33,
           "market": "TWSE",
           "is_new": false
         },
@@ -5669,20 +6017,6 @@
           "is_new": false
         },
         {
-          "stock_id": "6237",
-          "name": "驊訊",
-          "industry": "半導體業",
-          "revenue": 59139,
-          "yoy_pct": 65.71,
-          "streak": 16,
-          "avg_yoy_pct": 26.44,
-          "min_yoy_pct": 1.16,
-          "max_yoy_pct": 116.12,
-          "mom_pct": 51.7,
-          "market": "TPEx",
-          "is_new": false
-        },
-        {
           "stock_id": "8299",
           "name": "群聯",
           "industry": "半導體業",
@@ -5711,20 +6045,6 @@
           "is_new": false
         },
         {
-          "stock_id": "2892",
-          "name": "第一金",
-          "industry": "金融保險業",
-          "revenue": 7765813,
-          "yoy_pct": 2.37,
-          "streak": 16,
-          "avg_yoy_pct": 15.23,
-          "min_yoy_pct": 1.39,
-          "max_yoy_pct": 41.98,
-          "mom_pct": 7.39,
-          "market": "TWSE",
-          "is_new": false
-        },
-        {
           "stock_id": "2890",
           "name": "永豐金",
           "industry": "金融保險業",
@@ -5735,6 +6055,20 @@
           "min_yoy_pct": 3.32,
           "max_yoy_pct": 87.36,
           "mom_pct": 2.8,
+          "market": "TWSE",
+          "is_new": false
+        },
+        {
+          "stock_id": "2892",
+          "name": "第一金",
+          "industry": "金融保險業",
+          "revenue": 7765813,
+          "yoy_pct": 2.37,
+          "streak": 16,
+          "avg_yoy_pct": 15.23,
+          "min_yoy_pct": 1.39,
+          "max_yoy_pct": 41.98,
+          "mom_pct": 7.39,
           "market": "TWSE",
           "is_new": false
         },
@@ -5750,6 +6084,20 @@
           "max_yoy_pct": 192.15,
           "mom_pct": 2.29,
           "market": "TWSE",
+          "is_new": false
+        },
+        {
+          "stock_id": "6237",
+          "name": "驊訊",
+          "industry": "半導體業",
+          "revenue": 59139,
+          "yoy_pct": 65.71,
+          "streak": 16,
+          "avg_yoy_pct": 26.44,
+          "min_yoy_pct": 1.16,
+          "max_yoy_pct": 116.12,
+          "mom_pct": 51.7,
+          "market": "TPEx",
           "is_new": false
         },
         {
@@ -5879,20 +6227,6 @@
           "is_new": false
         },
         {
-          "stock_id": "6125",
-          "name": "廣運",
-          "industry": "光電業",
-          "revenue": 365339,
-          "yoy_pct": 4.04,
-          "streak": 14,
-          "avg_yoy_pct": 46.11,
-          "min_yoy_pct": 4.04,
-          "max_yoy_pct": 79.2,
-          "mom_pct": 0.73,
-          "market": "TPEx",
-          "is_new": false
-        },
-        {
           "stock_id": "1788",
           "name": "杏昌",
           "industry": "生技醫療業",
@@ -5949,20 +6283,6 @@
           "is_new": false
         },
         {
-          "stock_id": "2408",
-          "name": "南亞科",
-          "industry": "半導體業",
-          "revenue": 43867609,
-          "yoy_pct": 719.61,
-          "streak": 14,
-          "avg_yoy_pct": 430.75,
-          "min_yoy_pct": 21.14,
-          "max_yoy_pct": 730.14,
-          "mom_pct": 49.26,
-          "market": "TWSE",
-          "is_new": false
-        },
-        {
           "stock_id": "6265",
           "name": "方土昶",
           "industry": "電子通路業",
@@ -5974,6 +6294,20 @@
           "max_yoy_pct": 1209.51,
           "mom_pct": 2.4,
           "market": "TPEx",
+          "is_new": false
+        },
+        {
+          "stock_id": "2408",
+          "name": "南亞科",
+          "industry": "半導體業",
+          "revenue": 43867609,
+          "yoy_pct": 719.61,
+          "streak": 14,
+          "avg_yoy_pct": 430.75,
+          "min_yoy_pct": 21.14,
+          "max_yoy_pct": 730.14,
+          "mom_pct": 49.26,
+          "market": "TWSE",
           "is_new": false
         },
         {
@@ -6001,6 +6335,20 @@
           "min_yoy_pct": 1.46,
           "max_yoy_pct": 84.83,
           "mom_pct": 5.14,
+          "market": "TPEx",
+          "is_new": false
+        },
+        {
+          "stock_id": "6125",
+          "name": "廣運",
+          "industry": "光電業",
+          "revenue": 365339,
+          "yoy_pct": 4.04,
+          "streak": 14,
+          "avg_yoy_pct": 46.11,
+          "min_yoy_pct": 4.04,
+          "max_yoy_pct": 79.2,
+          "mom_pct": 0.73,
           "market": "TPEx",
           "is_new": false
         },
@@ -6103,6 +6451,20 @@
           "is_new": false
         },
         {
+          "stock_id": "8936",
+          "name": "國統",
+          "industry": "其他業",
+          "revenue": 534947,
+          "yoy_pct": 5.81,
+          "streak": 13,
+          "avg_yoy_pct": 27.6,
+          "min_yoy_pct": 2.49,
+          "max_yoy_pct": 57.23,
+          "mom_pct": -0.79,
+          "market": "TPEx",
+          "is_new": false
+        },
+        {
           "stock_id": "7610",
           "name": "聯友金屬-創",
           "industry": "綠能環保",
@@ -6142,20 +6504,6 @@
           "max_yoy_pct": 76.64,
           "mom_pct": 16.12,
           "market": "TWSE",
-          "is_new": false
-        },
-        {
-          "stock_id": "8936",
-          "name": "國統",
-          "industry": "其他業",
-          "revenue": 534947,
-          "yoy_pct": 5.81,
-          "streak": 13,
-          "avg_yoy_pct": 27.6,
-          "min_yoy_pct": 2.49,
-          "max_yoy_pct": 57.23,
-          "mom_pct": -0.79,
-          "market": "TPEx",
           "is_new": false
         },
         {
@@ -6369,6 +6717,20 @@
           "is_new": false
         },
         {
+          "stock_id": "6213",
+          "name": "聯茂",
+          "industry": "電子零組件業",
+          "revenue": 4749174,
+          "yoy_pct": 96.88,
+          "streak": 12,
+          "avg_yoy_pct": 25.48,
+          "min_yoy_pct": 0.53,
+          "max_yoy_pct": 96.88,
+          "mom_pct": 12.7,
+          "market": "TWSE",
+          "is_new": false
+        },
+        {
           "stock_id": "7788",
           "name": "松川精密",
           "industry": "電子零組件業",
@@ -6411,6 +6773,20 @@
           "is_new": false
         },
         {
+          "stock_id": "5345",
+          "name": "馥鴻",
+          "industry": "其他業",
+          "revenue": 2685,
+          "yoy_pct": 328.91,
+          "streak": 12,
+          "avg_yoy_pct": 550.63,
+          "min_yoy_pct": 151.38,
+          "max_yoy_pct": 1505.66,
+          "mom_pct": -42.04,
+          "market": "TPEx",
+          "is_new": false
+        },
+        {
           "stock_id": "2885",
           "name": "元大金",
           "industry": "金融保險業",
@@ -6439,20 +6815,6 @@
           "is_new": false
         },
         {
-          "stock_id": "6213",
-          "name": "聯茂",
-          "industry": "電子零組件業",
-          "revenue": 4749174,
-          "yoy_pct": 96.88,
-          "streak": 12,
-          "avg_yoy_pct": 25.48,
-          "min_yoy_pct": 0.53,
-          "max_yoy_pct": 96.88,
-          "mom_pct": 12.7,
-          "market": "TWSE",
-          "is_new": false
-        },
-        {
           "stock_id": "6005",
           "name": "群益證",
           "industry": "金融保險業",
@@ -6464,20 +6826,6 @@
           "max_yoy_pct": 301.6,
           "mom_pct": -43.87,
           "market": "TWSE",
-          "is_new": false
-        },
-        {
-          "stock_id": "5345",
-          "name": "馥鴻",
-          "industry": "其他業",
-          "revenue": 2685,
-          "yoy_pct": 328.91,
-          "streak": 12,
-          "avg_yoy_pct": 550.63,
-          "min_yoy_pct": 151.38,
-          "max_yoy_pct": 1505.66,
-          "mom_pct": -42.04,
-          "market": "TPEx",
           "is_new": false
         },
         {
@@ -6705,48 +7053,6 @@
           "is_new": false
         },
         {
-          "stock_id": "3006",
-          "name": "晶豪科",
-          "industry": "半導體業",
-          "revenue": 6784662,
-          "yoy_pct": 491.06,
-          "streak": 11,
-          "avg_yoy_pct": 188.93,
-          "min_yoy_pct": 5.96,
-          "max_yoy_pct": 491.06,
-          "mom_pct": 40.02,
-          "market": "TWSE",
-          "is_new": false
-        },
-        {
-          "stock_id": "1294",
-          "name": "漢田生技",
-          "industry": "食品工業",
-          "revenue": 69919,
-          "yoy_pct": 22.26,
-          "streak": 11,
-          "avg_yoy_pct": 32.8,
-          "min_yoy_pct": 3.29,
-          "max_yoy_pct": 117.94,
-          "mom_pct": -15.08,
-          "market": "TPEx",
-          "is_new": false
-        },
-        {
-          "stock_id": "1593",
-          "name": "祺驊",
-          "industry": "運動休閒",
-          "revenue": 122407,
-          "yoy_pct": 13.48,
-          "streak": 11,
-          "avg_yoy_pct": 12.75,
-          "min_yoy_pct": 1.34,
-          "max_yoy_pct": 25.17,
-          "mom_pct": 6.01,
-          "market": "TPEx",
-          "is_new": false
-        },
-        {
           "stock_id": "3105",
           "name": "穩懋",
           "industry": "半導體業",
@@ -6775,6 +7081,48 @@
           "is_new": false
         },
         {
+          "stock_id": "3006",
+          "name": "晶豪科",
+          "industry": "半導體業",
+          "revenue": 6784662,
+          "yoy_pct": 491.06,
+          "streak": 11,
+          "avg_yoy_pct": 188.93,
+          "min_yoy_pct": 5.96,
+          "max_yoy_pct": 491.06,
+          "mom_pct": 40.02,
+          "market": "TWSE",
+          "is_new": false
+        },
+        {
+          "stock_id": "1593",
+          "name": "祺驊",
+          "industry": "運動休閒",
+          "revenue": 122407,
+          "yoy_pct": 13.48,
+          "streak": 11,
+          "avg_yoy_pct": 12.75,
+          "min_yoy_pct": 1.34,
+          "max_yoy_pct": 25.17,
+          "mom_pct": 6.01,
+          "market": "TPEx",
+          "is_new": false
+        },
+        {
+          "stock_id": "1294",
+          "name": "漢田生技",
+          "industry": "食品工業",
+          "revenue": 69919,
+          "yoy_pct": 22.26,
+          "streak": 11,
+          "avg_yoy_pct": 32.8,
+          "min_yoy_pct": 3.29,
+          "max_yoy_pct": 117.94,
+          "mom_pct": -15.08,
+          "market": "TPEx",
+          "is_new": false
+        },
+        {
           "stock_id": "2337",
           "name": "旺宏",
           "industry": "半導體業",
@@ -6785,20 +7133,6 @@
           "min_yoy_pct": 9.42,
           "max_yoy_pct": 216.09,
           "mom_pct": 11.04,
-          "market": "TWSE",
-          "is_new": false
-        },
-        {
-          "stock_id": "6531",
-          "name": "愛普*",
-          "industry": "半導體業",
-          "revenue": 1103906,
-          "yoy_pct": 144.57,
-          "streak": 11,
-          "avg_yoy_pct": 86.41,
-          "min_yoy_pct": 14.03,
-          "max_yoy_pct": 146.68,
-          "mom_pct": 36.08,
           "market": "TWSE",
           "is_new": false
         },
@@ -6817,16 +7151,16 @@
           "is_new": false
         },
         {
-          "stock_id": "4916",
-          "name": "事欣科",
-          "industry": "電腦及週邊設備業",
-          "revenue": 520554,
-          "yoy_pct": 128.95,
+          "stock_id": "6531",
+          "name": "愛普*",
+          "industry": "半導體業",
+          "revenue": 1103906,
+          "yoy_pct": 144.57,
           "streak": 11,
-          "avg_yoy_pct": 52.16,
-          "min_yoy_pct": 9.79,
-          "max_yoy_pct": 128.95,
-          "mom_pct": 3.79,
+          "avg_yoy_pct": 86.41,
+          "min_yoy_pct": 14.03,
+          "max_yoy_pct": 146.68,
+          "mom_pct": 36.08,
           "market": "TWSE",
           "is_new": false
         },
@@ -6842,6 +7176,20 @@
           "max_yoy_pct": 228.67,
           "mom_pct": -3.33,
           "market": "TPEx",
+          "is_new": false
+        },
+        {
+          "stock_id": "4916",
+          "name": "事欣科",
+          "industry": "電腦及週邊設備業",
+          "revenue": 520554,
+          "yoy_pct": 128.95,
+          "streak": 11,
+          "avg_yoy_pct": 52.16,
+          "min_yoy_pct": 9.79,
+          "max_yoy_pct": 128.95,
+          "mom_pct": 3.79,
+          "market": "TWSE",
           "is_new": false
         },
         {
@@ -7111,6 +7459,20 @@
           "is_new": false
         },
         {
+          "stock_id": "5386",
+          "name": "青雲",
+          "industry": "電腦及週邊設備業",
+          "revenue": 1992270,
+          "yoy_pct": 716.24,
+          "streak": 10,
+          "avg_yoy_pct": 418.17,
+          "min_yoy_pct": 67.04,
+          "max_yoy_pct": 1025.37,
+          "mom_pct": 27.11,
+          "market": "TPEx",
+          "is_new": false
+        },
+        {
           "stock_id": "8489",
           "name": "三貝德",
           "industry": "其他業",
@@ -7121,20 +7483,6 @@
           "min_yoy_pct": 6.21,
           "max_yoy_pct": 73.41,
           "mom_pct": -7.09,
-          "market": "TPEx",
-          "is_new": false
-        },
-        {
-          "stock_id": "5478",
-          "name": "智冠",
-          "industry": "文化創意業",
-          "revenue": 552538,
-          "yoy_pct": 7.72,
-          "streak": 10,
-          "avg_yoy_pct": 12.32,
-          "min_yoy_pct": 0.71,
-          "max_yoy_pct": 43.29,
-          "mom_pct": 1.57,
           "market": "TPEx",
           "is_new": false
         },
@@ -7181,6 +7529,20 @@
           "is_new": false
         },
         {
+          "stock_id": "3491",
+          "name": "昇達科",
+          "industry": "通信網路業",
+          "revenue": 230139,
+          "yoy_pct": 82.02,
+          "streak": 10,
+          "avg_yoy_pct": 62.55,
+          "min_yoy_pct": 21.11,
+          "max_yoy_pct": 112.56,
+          "mom_pct": -10.35,
+          "market": "TPEx",
+          "is_new": false
+        },
+        {
           "stock_id": "3016",
           "name": "嘉晶",
           "industry": "半導體業",
@@ -7209,16 +7571,16 @@
           "is_new": false
         },
         {
-          "stock_id": "3491",
-          "name": "昇達科",
-          "industry": "通信網路業",
-          "revenue": 230139,
-          "yoy_pct": 82.02,
+          "stock_id": "5478",
+          "name": "智冠",
+          "industry": "文化創意業",
+          "revenue": 552538,
+          "yoy_pct": 7.72,
           "streak": 10,
-          "avg_yoy_pct": 62.55,
-          "min_yoy_pct": 21.11,
-          "max_yoy_pct": 112.56,
-          "mom_pct": -10.35,
+          "avg_yoy_pct": 12.32,
+          "min_yoy_pct": 0.71,
+          "max_yoy_pct": 43.29,
+          "mom_pct": 1.57,
           "market": "TPEx",
           "is_new": false
         },
@@ -7233,20 +7595,6 @@
           "min_yoy_pct": 7.37,
           "max_yoy_pct": 131.85,
           "mom_pct": -24.26,
-          "market": "TWSE",
-          "is_new": false
-        },
-        {
-          "stock_id": "2606",
-          "name": "裕民",
-          "industry": "航運業",
-          "revenue": 1764365,
-          "yoy_pct": 26.34,
-          "streak": 10,
-          "avg_yoy_pct": 21.14,
-          "min_yoy_pct": 3.07,
-          "max_yoy_pct": 41.78,
-          "mom_pct": 2.88,
           "market": "TWSE",
           "is_new": false
         },
@@ -7293,17 +7641,17 @@
           "is_new": false
         },
         {
-          "stock_id": "5386",
-          "name": "青雲",
-          "industry": "電腦及週邊設備業",
-          "revenue": 1992270,
-          "yoy_pct": 716.24,
+          "stock_id": "2606",
+          "name": "裕民",
+          "industry": "航運業",
+          "revenue": 1764365,
+          "yoy_pct": 26.34,
           "streak": 10,
-          "avg_yoy_pct": 418.17,
-          "min_yoy_pct": 67.04,
-          "max_yoy_pct": 1025.37,
-          "mom_pct": 27.11,
-          "market": "TPEx",
+          "avg_yoy_pct": 21.14,
+          "min_yoy_pct": 3.07,
+          "max_yoy_pct": 41.78,
+          "mom_pct": 2.88,
+          "market": "TWSE",
           "is_new": false
         },
         {
@@ -7825,20 +8173,6 @@
           "is_new": false
         },
         {
-          "stock_id": "4551",
-          "name": "智伸科",
-          "industry": "汽車工業",
-          "revenue": 824857,
-          "yoy_pct": 23.12,
-          "streak": 9,
-          "avg_yoy_pct": 17.79,
-          "min_yoy_pct": 2.08,
-          "max_yoy_pct": 30.66,
-          "mom_pct": 10.0,
-          "market": "TWSE",
-          "is_new": false
-        },
-        {
           "stock_id": "3416",
           "name": "融程電",
           "industry": "電腦及週邊設備業",
@@ -7849,6 +8183,20 @@
           "min_yoy_pct": 8.4,
           "max_yoy_pct": 56.33,
           "mom_pct": 13.93,
+          "market": "TWSE",
+          "is_new": false
+        },
+        {
+          "stock_id": "4551",
+          "name": "智伸科",
+          "industry": "汽車工業",
+          "revenue": 824857,
+          "yoy_pct": 23.12,
+          "streak": 9,
+          "avg_yoy_pct": 17.79,
+          "min_yoy_pct": 2.08,
+          "max_yoy_pct": 30.66,
+          "mom_pct": 10.0,
           "market": "TWSE",
           "is_new": false
         },
@@ -7881,16 +8229,30 @@
           "is_new": false
         },
         {
-          "stock_id": "6425",
-          "name": "易發",
-          "industry": "電機機械",
-          "revenue": 178759,
-          "yoy_pct": 226.95,
+          "stock_id": "3285",
+          "name": "微端",
+          "industry": "其他電子業",
+          "revenue": 104722,
+          "yoy_pct": 95.97,
           "streak": 8,
-          "avg_yoy_pct": 62.49,
-          "min_yoy_pct": 0.85,
-          "max_yoy_pct": 226.95,
-          "mom_pct": 6.74,
+          "avg_yoy_pct": 88.7,
+          "min_yoy_pct": 2.33,
+          "max_yoy_pct": 216.75,
+          "mom_pct": -14.24,
+          "market": "TPEx",
+          "is_new": false
+        },
+        {
+          "stock_id": "6680",
+          "name": "鑫創電子",
+          "industry": "電腦及週邊設備業",
+          "revenue": 37284,
+          "yoy_pct": 8.09,
+          "streak": 8,
+          "avg_yoy_pct": 19.37,
+          "min_yoy_pct": 6.99,
+          "max_yoy_pct": 36.42,
+          "mom_pct": -32.52,
           "market": "TPEx",
           "is_new": false
         },
@@ -7909,20 +8271,6 @@
           "is_new": false
         },
         {
-          "stock_id": "8415",
-          "name": "大國鋼",
-          "industry": "鋼鐵工業",
-          "revenue": 2666400,
-          "yoy_pct": 36.76,
-          "streak": 8,
-          "avg_yoy_pct": 19.44,
-          "min_yoy_pct": 5.43,
-          "max_yoy_pct": 36.76,
-          "mom_pct": 1.29,
-          "market": "TPEx",
-          "is_new": false
-        },
-        {
           "stock_id": "1216",
           "name": "統一",
           "industry": "食品工業",
@@ -7937,31 +8285,17 @@
           "is_new": false
         },
         {
-          "stock_id": "6680",
-          "name": "鑫創電子",
-          "industry": "電腦及週邊設備業",
-          "revenue": 37284,
-          "yoy_pct": 8.09,
+          "stock_id": "8415",
+          "name": "大國鋼",
+          "industry": "鋼鐵工業",
+          "revenue": 2666400,
+          "yoy_pct": 36.76,
           "streak": 8,
-          "avg_yoy_pct": 19.37,
-          "min_yoy_pct": 6.99,
-          "max_yoy_pct": 36.42,
-          "mom_pct": -32.52,
+          "avg_yoy_pct": 19.44,
+          "min_yoy_pct": 5.43,
+          "max_yoy_pct": 36.76,
+          "mom_pct": 1.29,
           "market": "TPEx",
-          "is_new": false
-        },
-        {
-          "stock_id": "3010",
-          "name": "華立",
-          "industry": "電子通路業",
-          "revenue": 8540313,
-          "yoy_pct": 31.45,
-          "streak": 8,
-          "avg_yoy_pct": 17.93,
-          "min_yoy_pct": 3.21,
-          "max_yoy_pct": 31.45,
-          "mom_pct": 9.75,
-          "market": "TWSE",
           "is_new": false
         },
         {
@@ -7975,20 +8309,6 @@
           "min_yoy_pct": 14.59,
           "max_yoy_pct": 66.92,
           "mom_pct": 17.32,
-          "market": "TPEx",
-          "is_new": false
-        },
-        {
-          "stock_id": "3285",
-          "name": "微端",
-          "industry": "其他電子業",
-          "revenue": 104722,
-          "yoy_pct": 95.97,
-          "streak": 8,
-          "avg_yoy_pct": 88.7,
-          "min_yoy_pct": 2.33,
-          "max_yoy_pct": 216.75,
-          "mom_pct": -14.24,
           "market": "TPEx",
           "is_new": false
         },
@@ -8007,6 +8327,20 @@
           "is_new": false
         },
         {
+          "stock_id": "3010",
+          "name": "華立",
+          "industry": "電子通路業",
+          "revenue": 8540313,
+          "yoy_pct": 31.45,
+          "streak": 8,
+          "avg_yoy_pct": 17.93,
+          "min_yoy_pct": 3.21,
+          "max_yoy_pct": 31.45,
+          "mom_pct": 9.75,
+          "market": "TWSE",
+          "is_new": false
+        },
+        {
           "stock_id": "3706",
           "name": "神達",
           "industry": "電腦及週邊設備業",
@@ -8018,6 +8352,20 @@
           "max_yoy_pct": 80.93,
           "mom_pct": -18.16,
           "market": "TWSE",
+          "is_new": false
+        },
+        {
+          "stock_id": "6425",
+          "name": "易發",
+          "industry": "電機機械",
+          "revenue": 178759,
+          "yoy_pct": 226.95,
+          "streak": 8,
+          "avg_yoy_pct": 62.49,
+          "min_yoy_pct": 0.85,
+          "max_yoy_pct": 226.95,
+          "mom_pct": 6.74,
+          "market": "TPEx",
           "is_new": false
         },
         {
@@ -8077,20 +8425,6 @@
           "is_new": false
         },
         {
-          "stock_id": "3605",
-          "name": "宏致",
-          "industry": "電子零組件業",
-          "revenue": 1154175,
-          "yoy_pct": 29.81,
-          "streak": 8,
-          "avg_yoy_pct": 14.98,
-          "min_yoy_pct": 0.04,
-          "max_yoy_pct": 29.81,
-          "mom_pct": 3.28,
-          "market": "TWSE",
-          "is_new": false
-        },
-        {
           "stock_id": "4949",
           "name": "有成精密",
           "industry": "光電業",
@@ -8101,6 +8435,20 @@
           "min_yoy_pct": 5.79,
           "max_yoy_pct": 98.64,
           "mom_pct": 9.2,
+          "market": "TWSE",
+          "is_new": false
+        },
+        {
+          "stock_id": "3605",
+          "name": "宏致",
+          "industry": "電子零組件業",
+          "revenue": 1154175,
+          "yoy_pct": 29.81,
+          "streak": 8,
+          "avg_yoy_pct": 14.98,
+          "min_yoy_pct": 0.04,
+          "max_yoy_pct": 29.81,
+          "mom_pct": 3.28,
           "market": "TWSE",
           "is_new": false
         },
@@ -8217,20 +8565,6 @@
           "is_new": false
         },
         {
-          "stock_id": "6177",
-          "name": "達麗",
-          "industry": "建材營造業",
-          "revenue": 1101399,
-          "yoy_pct": 470.04,
-          "streak": 8,
-          "avg_yoy_pct": 745.94,
-          "min_yoy_pct": 149.18,
-          "max_yoy_pct": 1653.94,
-          "mom_pct": -56.0,
-          "market": "TWSE",
-          "is_new": false
-        },
-        {
           "stock_id": "6183",
           "name": "關貿",
           "industry": "資訊服務業",
@@ -8241,6 +8575,20 @@
           "min_yoy_pct": 0.56,
           "max_yoy_pct": 42.52,
           "mom_pct": 38.89,
+          "market": "TWSE",
+          "is_new": false
+        },
+        {
+          "stock_id": "6177",
+          "name": "達麗",
+          "industry": "建材營造業",
+          "revenue": 1101399,
+          "yoy_pct": 470.04,
+          "streak": 8,
+          "avg_yoy_pct": 745.94,
+          "min_yoy_pct": 149.18,
+          "max_yoy_pct": 1653.94,
+          "mom_pct": -56.0,
           "market": "TWSE",
           "is_new": false
         },
@@ -8399,16 +8747,16 @@
           "is_new": false
         },
         {
-          "stock_id": "4502",
-          "name": "健信",
-          "industry": "電機機械",
-          "revenue": 118612,
-          "yoy_pct": 48.21,
+          "stock_id": "3141",
+          "name": "晶宏",
+          "industry": "半導體業",
+          "revenue": 215671,
+          "yoy_pct": 39.6,
           "streak": 7,
-          "avg_yoy_pct": 30.68,
-          "min_yoy_pct": 6.32,
-          "max_yoy_pct": 48.21,
-          "mom_pct": 12.99,
+          "avg_yoy_pct": 15.06,
+          "min_yoy_pct": 5.18,
+          "max_yoy_pct": 39.6,
+          "mom_pct": 15.89,
           "market": "TPEx",
           "is_new": false
         },
@@ -8427,6 +8775,20 @@
           "is_new": false
         },
         {
+          "stock_id": "4502",
+          "name": "健信",
+          "industry": "電機機械",
+          "revenue": 118612,
+          "yoy_pct": 48.21,
+          "streak": 7,
+          "avg_yoy_pct": 30.68,
+          "min_yoy_pct": 6.32,
+          "max_yoy_pct": 48.21,
+          "mom_pct": 12.99,
+          "market": "TPEx",
+          "is_new": false
+        },
+        {
           "stock_id": "6187",
           "name": "萬潤",
           "industry": "半導體業",
@@ -8441,17 +8803,31 @@
           "is_new": false
         },
         {
-          "stock_id": "2351",
-          "name": "順德",
-          "industry": "半導體業",
-          "revenue": 1328046,
-          "yoy_pct": 54.0,
+          "stock_id": "8087",
+          "name": "麗升能源",
+          "industry": "綠能環保",
+          "revenue": 27557,
+          "yoy_pct": 133.45,
           "streak": 7,
-          "avg_yoy_pct": 28.64,
-          "min_yoy_pct": 1.74,
-          "max_yoy_pct": 54.0,
-          "mom_pct": 9.41,
-          "market": "TWSE",
+          "avg_yoy_pct": 604.2,
+          "min_yoy_pct": 23.3,
+          "max_yoy_pct": 2881.23,
+          "mom_pct": 37.95,
+          "market": "TPEx",
+          "is_new": false
+        },
+        {
+          "stock_id": "8183",
+          "name": "精星",
+          "industry": "其他電子業",
+          "revenue": 855049,
+          "yoy_pct": 55.75,
+          "streak": 7,
+          "avg_yoy_pct": 29.59,
+          "min_yoy_pct": 6.2,
+          "max_yoy_pct": 64.66,
+          "mom_pct": 10.86,
+          "market": "TPEx",
           "is_new": false
         },
         {
@@ -8465,6 +8841,20 @@
           "min_yoy_pct": 0.19,
           "max_yoy_pct": 47.3,
           "mom_pct": -2.67,
+          "market": "TWSE",
+          "is_new": false
+        },
+        {
+          "stock_id": "2351",
+          "name": "順德",
+          "industry": "半導體業",
+          "revenue": 1328046,
+          "yoy_pct": 54.0,
+          "streak": 7,
+          "avg_yoy_pct": 28.64,
+          "min_yoy_pct": 1.74,
+          "max_yoy_pct": 54.0,
+          "mom_pct": 9.41,
           "market": "TWSE",
           "is_new": false
         },
@@ -8483,16 +8873,30 @@
           "is_new": false
         },
         {
-          "stock_id": "8183",
-          "name": "精星",
-          "industry": "其他電子業",
-          "revenue": 855049,
-          "yoy_pct": 55.75,
+          "stock_id": "4973",
+          "name": "廣穎",
+          "industry": "半導體業",
+          "revenue": 1008161,
+          "yoy_pct": 228.14,
           "streak": 7,
-          "avg_yoy_pct": 29.59,
-          "min_yoy_pct": 6.2,
-          "max_yoy_pct": 64.66,
-          "mom_pct": 10.86,
+          "avg_yoy_pct": 134.24,
+          "min_yoy_pct": 42.53,
+          "max_yoy_pct": 228.14,
+          "mom_pct": 16.98,
+          "market": "TPEx",
+          "is_new": false
+        },
+        {
+          "stock_id": "5263",
+          "name": "智崴",
+          "industry": "文化創意業",
+          "revenue": 202279,
+          "yoy_pct": 87.12,
+          "streak": 7,
+          "avg_yoy_pct": 53.83,
+          "min_yoy_pct": 1.06,
+          "max_yoy_pct": 90.23,
+          "mom_pct": 0.73,
           "market": "TPEx",
           "is_new": false
         },
@@ -8525,48 +8929,6 @@
           "is_new": false
         },
         {
-          "stock_id": "3141",
-          "name": "晶宏",
-          "industry": "半導體業",
-          "revenue": 215671,
-          "yoy_pct": 39.6,
-          "streak": 7,
-          "avg_yoy_pct": 15.06,
-          "min_yoy_pct": 5.18,
-          "max_yoy_pct": 39.6,
-          "mom_pct": 15.89,
-          "market": "TPEx",
-          "is_new": false
-        },
-        {
-          "stock_id": "5263",
-          "name": "智崴",
-          "industry": "文化創意業",
-          "revenue": 202279,
-          "yoy_pct": 87.12,
-          "streak": 7,
-          "avg_yoy_pct": 53.83,
-          "min_yoy_pct": 1.06,
-          "max_yoy_pct": 90.23,
-          "mom_pct": 0.73,
-          "market": "TPEx",
-          "is_new": false
-        },
-        {
-          "stock_id": "5514",
-          "name": "三豐",
-          "industry": "建材營造業",
-          "revenue": 1528,
-          "yoy_pct": 217.01,
-          "streak": 7,
-          "avg_yoy_pct": 19915.38,
-          "min_yoy_pct": 217.01,
-          "max_yoy_pct": 109732.99,
-          "mom_pct": -12.63,
-          "market": "TPEx",
-          "is_new": false
-        },
-        {
           "stock_id": "2412",
           "name": "中華電",
           "industry": "通信網路業",
@@ -8578,6 +8940,20 @@
           "max_yoy_pct": 12.21,
           "mom_pct": -6.82,
           "market": "TWSE",
+          "is_new": false
+        },
+        {
+          "stock_id": "6829",
+          "name": "千附精密",
+          "industry": "半導體業",
+          "revenue": 201265,
+          "yoy_pct": 22.98,
+          "streak": 7,
+          "avg_yoy_pct": 41.13,
+          "min_yoy_pct": 6.29,
+          "max_yoy_pct": 107.14,
+          "mom_pct": -7.18,
+          "market": "TPEx",
           "is_new": false
         },
         {
@@ -8623,30 +8999,16 @@
           "is_new": false
         },
         {
-          "stock_id": "8087",
-          "name": "麗升能源",
-          "industry": "綠能環保",
-          "revenue": 27557,
-          "yoy_pct": 133.45,
+          "stock_id": "5514",
+          "name": "三豐",
+          "industry": "建材營造業",
+          "revenue": 1528,
+          "yoy_pct": 217.01,
           "streak": 7,
-          "avg_yoy_pct": 604.2,
-          "min_yoy_pct": 23.3,
-          "max_yoy_pct": 2881.23,
-          "mom_pct": 37.95,
-          "market": "TPEx",
-          "is_new": false
-        },
-        {
-          "stock_id": "6829",
-          "name": "千附精密",
-          "industry": "半導體業",
-          "revenue": 201265,
-          "yoy_pct": 22.98,
-          "streak": 7,
-          "avg_yoy_pct": 41.13,
-          "min_yoy_pct": 6.29,
-          "max_yoy_pct": 107.14,
-          "mom_pct": -7.18,
+          "avg_yoy_pct": 19915.38,
+          "min_yoy_pct": 217.01,
+          "max_yoy_pct": 109732.99,
+          "mom_pct": -12.63,
           "market": "TPEx",
           "is_new": false
         },
@@ -8662,20 +9024,6 @@
           "max_yoy_pct": 45.24,
           "mom_pct": -6.8,
           "market": "TWSE",
-          "is_new": false
-        },
-        {
-          "stock_id": "4973",
-          "name": "廣穎",
-          "industry": "半導體業",
-          "revenue": 1008161,
-          "yoy_pct": 228.14,
-          "streak": 7,
-          "avg_yoy_pct": 134.24,
-          "min_yoy_pct": 42.53,
-          "max_yoy_pct": 228.14,
-          "mom_pct": 16.98,
-          "market": "TPEx",
           "is_new": false
         },
         {
@@ -8777,6 +9125,20 @@
           "is_new": false
         },
         {
+          "stock_id": "2464",
+          "name": "盟立",
+          "industry": "其他電子業",
+          "revenue": 862979,
+          "yoy_pct": 62.1,
+          "streak": 7,
+          "avg_yoy_pct": 26.1,
+          "min_yoy_pct": 7.79,
+          "max_yoy_pct": 62.1,
+          "mom_pct": 6.19,
+          "market": "TWSE",
+          "is_new": false
+        },
+        {
           "stock_id": "2465",
           "name": "麗臺",
           "industry": "電腦及週邊設備業",
@@ -8801,20 +9163,6 @@
           "min_yoy_pct": 7.81,
           "max_yoy_pct": 31.32,
           "mom_pct": -15.87,
-          "market": "TWSE",
-          "is_new": false
-        },
-        {
-          "stock_id": "2464",
-          "name": "盟立",
-          "industry": "其他電子業",
-          "revenue": 862979,
-          "yoy_pct": 62.1,
-          "streak": 7,
-          "avg_yoy_pct": 26.1,
-          "min_yoy_pct": 7.79,
-          "max_yoy_pct": 62.1,
-          "mom_pct": 6.19,
           "market": "TWSE",
           "is_new": false
         },
@@ -9029,20 +9377,6 @@
           "is_new": false
         },
         {
-          "stock_id": "9958",
-          "name": "世紀鋼",
-          "industry": "鋼鐵工業",
-          "revenue": 1931466,
-          "yoy_pct": 91.16,
-          "streak": 7,
-          "avg_yoy_pct": 38.22,
-          "min_yoy_pct": 3.39,
-          "max_yoy_pct": 91.16,
-          "mom_pct": -9.68,
-          "market": "TWSE",
-          "is_new": false
-        },
-        {
           "stock_id": "9935",
           "name": "慶豐富",
           "industry": "居家生活",
@@ -9053,6 +9387,20 @@
           "min_yoy_pct": 0.47,
           "max_yoy_pct": 17.01,
           "mom_pct": -3.94,
+          "market": "TWSE",
+          "is_new": false
+        },
+        {
+          "stock_id": "9958",
+          "name": "世紀鋼",
+          "industry": "鋼鐵工業",
+          "revenue": 1931466,
+          "yoy_pct": 91.16,
+          "streak": 7,
+          "avg_yoy_pct": 38.22,
+          "min_yoy_pct": 3.39,
+          "max_yoy_pct": 91.16,
+          "mom_pct": -9.68,
           "market": "TWSE",
           "is_new": false
         },
@@ -9225,20 +9573,6 @@
           "is_new": true
         },
         {
-          "stock_id": "6419",
-          "name": "京晨科",
-          "industry": "光電業",
-          "revenue": 171113,
-          "yoy_pct": 474.47,
-          "streak": 6,
-          "avg_yoy_pct": 287.98,
-          "min_yoy_pct": 37.58,
-          "max_yoy_pct": 474.47,
-          "mom_pct": 17.8,
-          "market": "TPEx",
-          "is_new": true
-        },
-        {
           "stock_id": "8171",
           "name": "天宇",
           "industry": "綠能環保",
@@ -9277,6 +9611,20 @@
           "min_yoy_pct": 5.98,
           "max_yoy_pct": 32.13,
           "mom_pct": 19.85,
+          "market": "TPEx",
+          "is_new": true
+        },
+        {
+          "stock_id": "2752",
+          "name": "豆府",
+          "industry": "觀光餐旅",
+          "revenue": 363362,
+          "yoy_pct": 4.11,
+          "streak": 6,
+          "avg_yoy_pct": 13.05,
+          "min_yoy_pct": 4.11,
+          "max_yoy_pct": 24.27,
+          "mom_pct": 0.07,
           "market": "TPEx",
           "is_new": true
         },
@@ -9323,16 +9671,30 @@
           "is_new": true
         },
         {
-          "stock_id": "2752",
-          "name": "豆府",
-          "industry": "觀光餐旅",
-          "revenue": 363362,
-          "yoy_pct": 4.11,
+          "stock_id": "6419",
+          "name": "京晨科",
+          "industry": "光電業",
+          "revenue": 171113,
+          "yoy_pct": 474.47,
           "streak": 6,
-          "avg_yoy_pct": 13.05,
-          "min_yoy_pct": 4.11,
-          "max_yoy_pct": 24.27,
-          "mom_pct": 0.07,
+          "avg_yoy_pct": 287.98,
+          "min_yoy_pct": 37.58,
+          "max_yoy_pct": 474.47,
+          "mom_pct": 17.8,
+          "market": "TPEx",
+          "is_new": true
+        },
+        {
+          "stock_id": "6613",
+          "name": "朋億*",
+          "industry": "其他電子業",
+          "revenue": 1292507,
+          "yoy_pct": 64.32,
+          "streak": 6,
+          "avg_yoy_pct": 61.54,
+          "min_yoy_pct": 6.79,
+          "max_yoy_pct": 120.45,
+          "mom_pct": -35.14,
           "market": "TPEx",
           "is_new": true
         },
@@ -9361,6 +9723,20 @@
           "min_yoy_pct": 68.8,
           "max_yoy_pct": 686.38,
           "mom_pct": -33.84,
+          "market": "TPEx",
+          "is_new": true
+        },
+        {
+          "stock_id": "7747",
+          "name": "昕奇雲端",
+          "industry": "數位雲端",
+          "revenue": 153172,
+          "yoy_pct": 35.17,
+          "streak": 6,
+          "avg_yoy_pct": 14.24,
+          "min_yoy_pct": 1.97,
+          "max_yoy_pct": 35.17,
+          "mom_pct": 11.66,
           "market": "TPEx",
           "is_new": true
         },
@@ -9407,20 +9783,6 @@
           "is_new": true
         },
         {
-          "stock_id": "6613",
-          "name": "朋億*",
-          "industry": "其他電子業",
-          "revenue": 1292507,
-          "yoy_pct": 64.32,
-          "streak": 6,
-          "avg_yoy_pct": 61.54,
-          "min_yoy_pct": 6.79,
-          "max_yoy_pct": 120.45,
-          "mom_pct": -35.14,
-          "market": "TPEx",
-          "is_new": true
-        },
-        {
           "stock_id": "6961",
           "name": "旅天下",
           "industry": "觀光餐旅",
@@ -9431,20 +9793,6 @@
           "min_yoy_pct": 1.69,
           "max_yoy_pct": 17.5,
           "mom_pct": 17.52,
-          "market": "TPEx",
-          "is_new": true
-        },
-        {
-          "stock_id": "7747",
-          "name": "昕奇雲端",
-          "industry": "數位雲端",
-          "revenue": 153172,
-          "yoy_pct": 35.17,
-          "streak": 6,
-          "avg_yoy_pct": 14.24,
-          "min_yoy_pct": 1.97,
-          "max_yoy_pct": 35.17,
-          "mom_pct": 11.66,
           "market": "TPEx",
           "is_new": true
         },
@@ -9547,20 +9895,6 @@
           "is_new": true
         },
         {
-          "stock_id": "1259",
-          "name": "安心",
-          "industry": "觀光餐旅",
-          "revenue": 550828,
-          "yoy_pct": 7.76,
-          "streak": 6,
-          "avg_yoy_pct": 5.32,
-          "min_yoy_pct": 1.96,
-          "max_yoy_pct": 11.53,
-          "mom_pct": 3.29,
-          "market": "TPEx",
-          "is_new": true
-        },
-        {
           "stock_id": "1268",
           "name": "漢來美食",
           "industry": "觀光餐旅",
@@ -9575,17 +9909,17 @@
           "is_new": true
         },
         {
-          "stock_id": "2702",
-          "name": "華園",
+          "stock_id": "1259",
+          "name": "安心",
           "industry": "觀光餐旅",
-          "revenue": 147632,
-          "yoy_pct": 21.91,
+          "revenue": 550828,
+          "yoy_pct": 7.76,
           "streak": 6,
-          "avg_yoy_pct": 9.75,
-          "min_yoy_pct": 1.57,
-          "max_yoy_pct": 21.91,
-          "mom_pct": 7.98,
-          "market": "TWSE",
+          "avg_yoy_pct": 5.32,
+          "min_yoy_pct": 1.96,
+          "max_yoy_pct": 11.53,
+          "mom_pct": 3.29,
+          "market": "TPEx",
           "is_new": true
         },
         {
@@ -9599,6 +9933,20 @@
           "min_yoy_pct": 7.83,
           "max_yoy_pct": 24.01,
           "mom_pct": 2.48,
+          "market": "TWSE",
+          "is_new": true
+        },
+        {
+          "stock_id": "2702",
+          "name": "華園",
+          "industry": "觀光餐旅",
+          "revenue": 147632,
+          "yoy_pct": 21.91,
+          "streak": 6,
+          "avg_yoy_pct": 9.75,
+          "min_yoy_pct": 1.57,
+          "max_yoy_pct": 21.91,
+          "mom_pct": 7.98,
           "market": "TWSE",
           "is_new": true
         },
@@ -12330,20 +12678,6 @@
           "is_new": true
         },
         {
-          "stock_id": "2892",
-          "name": "第一金",
-          "industry": "金融保險業",
-          "revenue": 7765813,
-          "yoy_pct": 2.37,
-          "peak_yoy_pct": 41.98,
-          "yoy_drop_pct": 39.61,
-          "growth_streak": 16,
-          "decel_months": 3,
-          "mom_pct": 7.39,
-          "market": "TWSE",
-          "is_new": true
-        },
-        {
           "stock_id": "2889",
           "name": "國票金",
           "industry": "金融保險業",
@@ -12354,6 +12688,20 @@
           "growth_streak": 13,
           "decel_months": 3,
           "mom_pct": -33.05,
+          "market": "TWSE",
+          "is_new": true
+        },
+        {
+          "stock_id": "2892",
+          "name": "第一金",
+          "industry": "金融保險業",
+          "revenue": 7765813,
+          "yoy_pct": 2.37,
+          "peak_yoy_pct": 41.98,
+          "yoy_drop_pct": 39.61,
+          "growth_streak": 16,
+          "decel_months": 3,
+          "mom_pct": 7.39,
           "market": "TWSE",
           "is_new": true
         },
@@ -12442,20 +12790,6 @@
           "is_new": true
         },
         {
-          "stock_id": "4771",
-          "name": "望隼",
-          "industry": "生技醫療業",
-          "revenue": 314572,
-          "yoy_pct": 11.68,
-          "peak_yoy_pct": 47.26,
-          "yoy_drop_pct": 35.58,
-          "growth_streak": 18,
-          "decel_months": 3,
-          "mom_pct": -20.33,
-          "market": "TWSE",
-          "is_new": true
-        },
-        {
           "stock_id": "8271",
           "name": "宇瞻",
           "industry": "半導體業",
@@ -12466,6 +12800,20 @@
           "growth_streak": 18,
           "decel_months": 3,
           "mom_pct": -4.2,
+          "market": "TWSE",
+          "is_new": true
+        },
+        {
+          "stock_id": "4771",
+          "name": "望隼",
+          "industry": "生技醫療業",
+          "revenue": 314572,
+          "yoy_pct": 11.68,
+          "peak_yoy_pct": 47.26,
+          "yoy_drop_pct": 35.58,
+          "growth_streak": 18,
+          "decel_months": 3,
+          "mom_pct": -20.33,
           "market": "TWSE",
           "is_new": true
         },
@@ -17473,18 +17821,6 @@
           "is_new": true
         },
         {
-          "stock_id": "2915",
-          "name": "潤泰全",
-          "industry": "貿易百貨業",
-          "revenue": 237277,
-          "yoy_pct": 12.84,
-          "prev_yoy_pct": -21.83,
-          "decline_months": 8,
-          "mom_pct": 37.14,
-          "market": "TWSE",
-          "is_new": true
-        },
-        {
           "stock_id": "3548",
           "name": "兆利",
           "industry": "電子零組件業",
@@ -17494,6 +17830,18 @@
           "decline_months": 8,
           "mom_pct": -5.44,
           "market": "TPEx",
+          "is_new": true
+        },
+        {
+          "stock_id": "2915",
+          "name": "潤泰全",
+          "industry": "貿易百貨業",
+          "revenue": 237277,
+          "yoy_pct": 12.84,
+          "prev_yoy_pct": -21.83,
+          "decline_months": 8,
+          "mom_pct": 37.14,
+          "market": "TWSE",
           "is_new": true
         },
         {
@@ -17593,18 +17941,6 @@
           "is_new": true
         },
         {
-          "stock_id": "6708",
-          "name": "天擎",
-          "industry": "半導體業",
-          "revenue": 32787,
-          "yoy_pct": 8.75,
-          "prev_yoy_pct": -3.47,
-          "decline_months": 5,
-          "mom_pct": 20.1,
-          "market": "TPEx",
-          "is_new": true
-        },
-        {
           "stock_id": "3541",
           "name": "西柏",
           "industry": "其他電子業",
@@ -17613,6 +17949,18 @@
           "prev_yoy_pct": -15.8,
           "decline_months": 5,
           "mom_pct": 0.25,
+          "market": "TPEx",
+          "is_new": true
+        },
+        {
+          "stock_id": "3434",
+          "name": "哲固",
+          "industry": "光電業",
+          "revenue": 70074,
+          "yoy_pct": 36.43,
+          "prev_yoy_pct": -31.83,
+          "decline_months": 5,
+          "mom_pct": 67.29,
           "market": "TPEx",
           "is_new": true
         },
@@ -17629,14 +17977,14 @@
           "is_new": true
         },
         {
-          "stock_id": "3434",
-          "name": "哲固",
-          "industry": "光電業",
-          "revenue": 70074,
-          "yoy_pct": 36.43,
-          "prev_yoy_pct": -31.83,
+          "stock_id": "6708",
+          "name": "天擎",
+          "industry": "半導體業",
+          "revenue": 32787,
+          "yoy_pct": 8.75,
+          "prev_yoy_pct": -3.47,
           "decline_months": 5,
-          "mom_pct": 67.29,
+          "mom_pct": 20.1,
           "market": "TPEx",
           "is_new": true
         },
@@ -17677,6 +18025,18 @@
           "is_new": true
         },
         {
+          "stock_id": "8111",
+          "name": "立碁",
+          "industry": "光電業",
+          "revenue": 71200,
+          "yoy_pct": 2.34,
+          "prev_yoy_pct": -5.79,
+          "decline_months": 4,
+          "mom_pct": 3.7,
+          "market": "TPEx",
+          "is_new": true
+        },
+        {
           "stock_id": "6835",
           "name": "圓裕",
           "industry": "電子零組件業",
@@ -17689,18 +18049,6 @@
           "is_new": true
         },
         {
-          "stock_id": "6266",
-          "name": "泰詠",
-          "industry": "電子零組件業",
-          "revenue": 241766,
-          "yoy_pct": 1.59,
-          "prev_yoy_pct": -6.57,
-          "decline_months": 4,
-          "mom_pct": -17.95,
-          "market": "TPEx",
-          "is_new": true
-        },
-        {
           "stock_id": "2354",
           "name": "鴻準",
           "industry": "其他電子業",
@@ -17710,6 +18058,18 @@
           "decline_months": 4,
           "mom_pct": 71.9,
           "market": "TWSE",
+          "is_new": true
+        },
+        {
+          "stock_id": "4174",
+          "name": "浩鼎",
+          "industry": "生技醫療業",
+          "revenue": 10316,
+          "yoy_pct": 165.94,
+          "prev_yoy_pct": -59.54,
+          "decline_months": 4,
+          "mom_pct": 580.47,
+          "market": "TPEx",
           "is_new": true
         },
         {
@@ -17737,18 +18097,6 @@
           "is_new": true
         },
         {
-          "stock_id": "4174",
-          "name": "浩鼎",
-          "industry": "生技醫療業",
-          "revenue": 10316,
-          "yoy_pct": 165.94,
-          "prev_yoy_pct": -59.54,
-          "decline_months": 4,
-          "mom_pct": 580.47,
-          "market": "TPEx",
-          "is_new": true
-        },
-        {
           "stock_id": "4707",
           "name": "磐亞",
           "industry": "化學工業",
@@ -17757,6 +18105,30 @@
           "prev_yoy_pct": -5.3,
           "decline_months": 4,
           "mom_pct": 52.88,
+          "market": "TPEx",
+          "is_new": true
+        },
+        {
+          "stock_id": "6266",
+          "name": "泰詠",
+          "industry": "電子零組件業",
+          "revenue": 241766,
+          "yoy_pct": 1.59,
+          "prev_yoy_pct": -6.57,
+          "decline_months": 4,
+          "mom_pct": -17.95,
+          "market": "TPEx",
+          "is_new": true
+        },
+        {
+          "stock_id": "6535",
+          "name": "順藥",
+          "industry": "生技醫療業",
+          "revenue": 4973,
+          "yoy_pct": 233.53,
+          "prev_yoy_pct": -64.55,
+          "decline_months": 4,
+          "mom_pct": 6275.64,
           "market": "TPEx",
           "is_new": true
         },
@@ -17785,18 +18157,6 @@
           "is_new": true
         },
         {
-          "stock_id": "6535",
-          "name": "順藥",
-          "industry": "生技醫療業",
-          "revenue": 4973,
-          "yoy_pct": 233.53,
-          "prev_yoy_pct": -64.55,
-          "decline_months": 4,
-          "mom_pct": 6275.64,
-          "market": "TPEx",
-          "is_new": true
-        },
-        {
           "stock_id": "6761",
           "name": "穩得",
           "industry": "電子零組件業",
@@ -17805,18 +18165,6 @@
           "prev_yoy_pct": -4.63,
           "decline_months": 4,
           "mom_pct": -0.03,
-          "market": "TPEx",
-          "is_new": true
-        },
-        {
-          "stock_id": "8111",
-          "name": "立碁",
-          "industry": "光電業",
-          "revenue": 71200,
-          "yoy_pct": 2.34,
-          "prev_yoy_pct": -5.79,
-          "decline_months": 4,
-          "mom_pct": 3.7,
           "market": "TPEx",
           "is_new": true
         },
@@ -18001,18 +18349,6 @@
           "is_new": true
         },
         {
-          "stock_id": "1470",
-          "name": "大統新創",
-          "industry": "紡織纖維",
-          "revenue": 74110,
-          "yoy_pct": 10.84,
-          "prev_yoy_pct": -18.4,
-          "decline_months": 4,
-          "mom_pct": 33.98,
-          "market": "TWSE",
-          "is_new": true
-        },
-        {
           "stock_id": "1437",
           "name": "勤益控",
           "industry": "其他業",
@@ -18021,6 +18357,18 @@
           "prev_yoy_pct": -0.61,
           "decline_months": 4,
           "mom_pct": 90.12,
+          "market": "TWSE",
+          "is_new": true
+        },
+        {
+          "stock_id": "1470",
+          "name": "大統新創",
+          "industry": "紡織纖維",
+          "revenue": 74110,
+          "yoy_pct": 10.84,
+          "prev_yoy_pct": -18.4,
+          "decline_months": 4,
+          "mom_pct": 33.98,
           "market": "TWSE",
           "is_new": true
         },
@@ -18085,6 +18433,18 @@
           "is_new": true
         },
         {
+          "stock_id": "7718",
+          "name": "友鋮",
+          "industry": "鋼鐵工業",
+          "revenue": 224496,
+          "yoy_pct": 14.01,
+          "prev_yoy_pct": -2.84,
+          "decline_months": 3,
+          "mom_pct": -1.56,
+          "market": "TPEx",
+          "is_new": true
+        },
+        {
           "stock_id": "1796",
           "name": "金穎生技",
           "industry": "食品工業",
@@ -18097,14 +18457,26 @@
           "is_new": true
         },
         {
-          "stock_id": "7718",
-          "name": "友鋮",
-          "industry": "鋼鐵工業",
-          "revenue": 224496,
-          "yoy_pct": 14.01,
-          "prev_yoy_pct": -2.84,
+          "stock_id": "3499",
+          "name": "環天科",
+          "industry": "通信網路業",
+          "revenue": 31330,
+          "yoy_pct": 24.41,
+          "prev_yoy_pct": -26.05,
           "decline_months": 3,
-          "mom_pct": -1.56,
+          "mom_pct": 20.56,
+          "market": "TPEx",
+          "is_new": true
+        },
+        {
+          "stock_id": "5512",
+          "name": "力麒",
+          "industry": "建材營造業",
+          "revenue": 462380,
+          "yoy_pct": 9.76,
+          "prev_yoy_pct": -1.34,
+          "decline_months": 3,
+          "mom_pct": 16.4,
           "market": "TPEx",
           "is_new": true
         },
@@ -18130,30 +18502,6 @@
           "decline_months": 3,
           "mom_pct": 2.99,
           "market": "TWSE",
-          "is_new": true
-        },
-        {
-          "stock_id": "3499",
-          "name": "環天科",
-          "industry": "通信網路業",
-          "revenue": 31330,
-          "yoy_pct": 24.41,
-          "prev_yoy_pct": -26.05,
-          "decline_months": 3,
-          "mom_pct": 20.56,
-          "market": "TPEx",
-          "is_new": true
-        },
-        {
-          "stock_id": "5512",
-          "name": "力麒",
-          "industry": "建材營造業",
-          "revenue": 462380,
-          "yoy_pct": 9.76,
-          "prev_yoy_pct": -1.34,
-          "decline_months": 3,
-          "mom_pct": 16.4,
-          "market": "TPEx",
           "is_new": true
         },
         {
@@ -18455,20 +18803,6 @@
           "is_new": false
         },
         {
-          "stock_id": "6223",
-          "name": "旺矽",
-          "industry": "半導體業",
-          "revenue": 1832915,
-          "yoy_pct": 65.07,
-          "streak": 41,
-          "avg_yoy_pct": 26.69,
-          "min_yoy_pct": 0.72,
-          "max_yoy_pct": 65.07,
-          "mom_pct": -3.9,
-          "market": "TPEx",
-          "is_new": false
-        },
-        {
           "stock_id": "2432",
           "name": "倚天酷碁-創",
           "industry": "電腦及週邊設備業",
@@ -18494,6 +18828,20 @@
           "max_yoy_pct": 150.01,
           "mom_pct": 11.0,
           "market": "TWSE",
+          "is_new": false
+        },
+        {
+          "stock_id": "6223",
+          "name": "旺矽",
+          "industry": "半導體業",
+          "revenue": 1832915,
+          "yoy_pct": 65.07,
+          "streak": 41,
+          "avg_yoy_pct": 26.69,
+          "min_yoy_pct": 0.72,
+          "max_yoy_pct": 65.07,
+          "mom_pct": -3.9,
+          "market": "TPEx",
           "is_new": false
         },
         {
@@ -18749,6 +19097,34 @@
           "is_new": false
         },
         {
+          "stock_id": "4128",
+          "name": "中天",
+          "industry": "生技醫療業",
+          "revenue": 161136,
+          "yoy_pct": 11.86,
+          "streak": 30,
+          "avg_yoy_pct": 9.07,
+          "min_yoy_pct": 1.29,
+          "max_yoy_pct": 19.29,
+          "mom_pct": 1.81,
+          "market": "TPEx",
+          "is_new": false
+        },
+        {
+          "stock_id": "6683",
+          "name": "雍智科技",
+          "industry": "半導體業",
+          "revenue": 231316,
+          "yoy_pct": 24.55,
+          "streak": 30,
+          "avg_yoy_pct": 25.56,
+          "min_yoy_pct": 0.34,
+          "max_yoy_pct": 59.45,
+          "mom_pct": 14.11,
+          "market": "TPEx",
+          "is_new": false
+        },
+        {
           "stock_id": "5274",
           "name": "信驊",
           "industry": "半導體業",
@@ -18791,20 +19167,6 @@
           "is_new": false
         },
         {
-          "stock_id": "6683",
-          "name": "雍智科技",
-          "industry": "半導體業",
-          "revenue": 231316,
-          "yoy_pct": 24.55,
-          "streak": 30,
-          "avg_yoy_pct": 25.56,
-          "min_yoy_pct": 0.34,
-          "max_yoy_pct": 59.45,
-          "mom_pct": 14.11,
-          "market": "TPEx",
-          "is_new": false
-        },
-        {
           "stock_id": "7738",
           "name": "東聯互動",
           "industry": "數位雲端",
@@ -18815,20 +19177,6 @@
           "min_yoy_pct": 8.22,
           "max_yoy_pct": 66.43,
           "mom_pct": -3.29,
-          "market": "TPEx",
-          "is_new": false
-        },
-        {
-          "stock_id": "4128",
-          "name": "中天",
-          "industry": "生技醫療業",
-          "revenue": 161136,
-          "yoy_pct": 11.86,
-          "streak": 30,
-          "avg_yoy_pct": 9.07,
-          "min_yoy_pct": 1.29,
-          "max_yoy_pct": 19.29,
-          "mom_pct": 1.81,
           "market": "TPEx",
           "is_new": false
         },
@@ -18903,6 +19251,20 @@
           "is_new": false
         },
         {
+          "stock_id": "8155",
+          "name": "博智",
+          "industry": "電子零組件業",
+          "revenue": 538756,
+          "yoy_pct": 31.9,
+          "streak": 28,
+          "avg_yoy_pct": 34.85,
+          "min_yoy_pct": 4.75,
+          "max_yoy_pct": 83.34,
+          "mom_pct": 4.18,
+          "market": "TPEx",
+          "is_new": false
+        },
+        {
           "stock_id": "1316",
           "name": "上曜",
           "industry": "建材營造業",
@@ -18969,20 +19331,6 @@
           "min_yoy_pct": 5.66,
           "max_yoy_pct": 1700.79,
           "mom_pct": 7.57,
-          "market": "TPEx",
-          "is_new": false
-        },
-        {
-          "stock_id": "8155",
-          "name": "博智",
-          "industry": "電子零組件業",
-          "revenue": 538756,
-          "yoy_pct": 31.9,
-          "streak": 28,
-          "avg_yoy_pct": 34.85,
-          "min_yoy_pct": 4.75,
-          "max_yoy_pct": 83.34,
-          "mom_pct": 4.18,
           "market": "TPEx",
           "is_new": false
         },
@@ -19323,20 +19671,6 @@
           "is_new": false
         },
         {
-          "stock_id": "6217",
-          "name": "中探針",
-          "industry": "電子零組件業",
-          "revenue": 429066,
-          "yoy_pct": 43.91,
-          "streak": 24,
-          "avg_yoy_pct": 28.67,
-          "min_yoy_pct": 2.54,
-          "max_yoy_pct": 55.74,
-          "mom_pct": 5.79,
-          "market": "TPEx",
-          "is_new": false
-        },
-        {
           "stock_id": "7769",
           "name": "鴻勁",
           "industry": "半導體業",
@@ -19348,6 +19682,20 @@
           "max_yoy_pct": 357.96,
           "mom_pct": 28.38,
           "market": "TWSE",
+          "is_new": false
+        },
+        {
+          "stock_id": "6217",
+          "name": "中探針",
+          "industry": "電子零組件業",
+          "revenue": 429066,
+          "yoy_pct": 43.91,
+          "streak": 24,
+          "avg_yoy_pct": 28.67,
+          "min_yoy_pct": 2.54,
+          "max_yoy_pct": 55.74,
+          "mom_pct": 5.79,
+          "market": "TPEx",
           "is_new": false
         },
         {
@@ -19435,20 +19783,6 @@
           "is_new": false
         },
         {
-          "stock_id": "6209",
-          "name": "今國光",
-          "industry": "光電業",
-          "revenue": 432643,
-          "yoy_pct": 73.31,
-          "streak": 21,
-          "avg_yoy_pct": 49.25,
-          "min_yoy_pct": 0.2,
-          "max_yoy_pct": 101.67,
-          "mom_pct": 5.89,
-          "market": "TWSE",
-          "is_new": false
-        },
-        {
           "stock_id": "5475",
           "name": "德宏",
           "industry": "電子零組件業",
@@ -19460,6 +19794,20 @@
           "max_yoy_pct": 214.96,
           "mom_pct": -3.57,
           "market": "TPEx",
+          "is_new": false
+        },
+        {
+          "stock_id": "6209",
+          "name": "今國光",
+          "industry": "光電業",
+          "revenue": 432643,
+          "yoy_pct": 73.31,
+          "streak": 21,
+          "avg_yoy_pct": 49.25,
+          "min_yoy_pct": 0.2,
+          "max_yoy_pct": 101.67,
+          "mom_pct": 5.89,
+          "market": "TWSE",
           "is_new": false
         },
         {
@@ -19827,6 +20175,34 @@
           "is_new": false
         },
         {
+          "stock_id": "3372",
+          "name": "典範",
+          "industry": "半導體業",
+          "revenue": 113086,
+          "yoy_pct": 12.47,
+          "streak": 17,
+          "avg_yoy_pct": 26.3,
+          "min_yoy_pct": 11.55,
+          "max_yoy_pct": 60.14,
+          "mom_pct": 2.45,
+          "market": "TPEx",
+          "is_new": false
+        },
+        {
+          "stock_id": "3587",
+          "name": "閎康",
+          "industry": "其他電子業",
+          "revenue": 558424,
+          "yoy_pct": 11.01,
+          "streak": 17,
+          "avg_yoy_pct": 12.33,
+          "min_yoy_pct": 1.89,
+          "max_yoy_pct": 26.87,
+          "mom_pct": 2.56,
+          "market": "TPEx",
+          "is_new": false
+        },
+        {
           "stock_id": "4127",
           "name": "天良",
           "industry": "生技醫療業",
@@ -19925,16 +20301,16 @@
           "is_new": false
         },
         {
-          "stock_id": "3587",
-          "name": "閎康",
-          "industry": "其他電子業",
-          "revenue": 558424,
-          "yoy_pct": 11.01,
+          "stock_id": "8088",
+          "name": "品安",
+          "industry": "半導體業",
+          "revenue": 123653,
+          "yoy_pct": 1.02,
           "streak": 17,
-          "avg_yoy_pct": 12.33,
-          "min_yoy_pct": 1.89,
-          "max_yoy_pct": 26.87,
-          "mom_pct": 2.56,
+          "avg_yoy_pct": 57.13,
+          "min_yoy_pct": 1.02,
+          "max_yoy_pct": 159.66,
+          "mom_pct": -18.33,
           "market": "TPEx",
           "is_new": false
         },
@@ -19950,34 +20326,6 @@
           "max_yoy_pct": 607.83,
           "mom_pct": -12.57,
           "market": "TWSE",
-          "is_new": false
-        },
-        {
-          "stock_id": "8088",
-          "name": "品安",
-          "industry": "半導體業",
-          "revenue": 123653,
-          "yoy_pct": 1.02,
-          "streak": 17,
-          "avg_yoy_pct": 57.13,
-          "min_yoy_pct": 1.02,
-          "max_yoy_pct": 159.66,
-          "mom_pct": -18.33,
-          "market": "TPEx",
-          "is_new": false
-        },
-        {
-          "stock_id": "3372",
-          "name": "典範",
-          "industry": "半導體業",
-          "revenue": 113086,
-          "yoy_pct": 12.47,
-          "streak": 17,
-          "avg_yoy_pct": 26.3,
-          "min_yoy_pct": 11.55,
-          "max_yoy_pct": 60.14,
-          "mom_pct": 2.45,
-          "market": "TPEx",
           "is_new": false
         },
         {
@@ -20107,20 +20455,6 @@
           "is_new": false
         },
         {
-          "stock_id": "4771",
-          "name": "望隼",
-          "industry": "生技醫療業",
-          "revenue": 394887,
-          "yoy_pct": 31.26,
-          "streak": 17,
-          "avg_yoy_pct": 25.15,
-          "min_yoy_pct": 2.29,
-          "max_yoy_pct": 47.26,
-          "mom_pct": 3.64,
-          "market": "TWSE",
-          "is_new": false
-        },
-        {
           "stock_id": "8271",
           "name": "宇瞻",
           "industry": "半導體業",
@@ -20131,6 +20465,20 @@
           "min_yoy_pct": 11.46,
           "max_yoy_pct": 360.82,
           "mom_pct": -3.61,
+          "market": "TWSE",
+          "is_new": false
+        },
+        {
+          "stock_id": "4771",
+          "name": "望隼",
+          "industry": "生技醫療業",
+          "revenue": 394887,
+          "yoy_pct": 31.26,
+          "streak": 17,
+          "avg_yoy_pct": 25.15,
+          "min_yoy_pct": 2.29,
+          "max_yoy_pct": 47.26,
+          "mom_pct": 3.64,
           "market": "TWSE",
           "is_new": false
         },
@@ -20317,20 +20665,6 @@
           "is_new": false
         },
         {
-          "stock_id": "6237",
-          "name": "驊訊",
-          "industry": "半導體業",
-          "revenue": 38983,
-          "yoy_pct": 7.55,
-          "streak": 15,
-          "avg_yoy_pct": 23.82,
-          "min_yoy_pct": 1.16,
-          "max_yoy_pct": 116.12,
-          "mom_pct": -16.38,
-          "market": "TPEx",
-          "is_new": false
-        },
-        {
           "stock_id": "8299",
           "name": "群聯",
           "industry": "半導體業",
@@ -20359,20 +20693,6 @@
           "is_new": false
         },
         {
-          "stock_id": "2892",
-          "name": "第一金",
-          "industry": "金融保險業",
-          "revenue": 7231164,
-          "yoy_pct": 9.73,
-          "streak": 15,
-          "avg_yoy_pct": 16.09,
-          "min_yoy_pct": 1.39,
-          "max_yoy_pct": 41.98,
-          "mom_pct": -1.01,
-          "market": "TWSE",
-          "is_new": false
-        },
-        {
           "stock_id": "2890",
           "name": "永豐金",
           "industry": "金融保險業",
@@ -20383,6 +20703,20 @@
           "min_yoy_pct": 3.32,
           "max_yoy_pct": 87.36,
           "mom_pct": -2.95,
+          "market": "TWSE",
+          "is_new": false
+        },
+        {
+          "stock_id": "2892",
+          "name": "第一金",
+          "industry": "金融保險業",
+          "revenue": 7231164,
+          "yoy_pct": 9.73,
+          "streak": 15,
+          "avg_yoy_pct": 16.09,
+          "min_yoy_pct": 1.39,
+          "max_yoy_pct": 41.98,
+          "mom_pct": -1.01,
           "market": "TWSE",
           "is_new": false
         },
@@ -20398,6 +20732,20 @@
           "max_yoy_pct": 192.15,
           "mom_pct": -17.74,
           "market": "TWSE",
+          "is_new": false
+        },
+        {
+          "stock_id": "6237",
+          "name": "驊訊",
+          "industry": "半導體業",
+          "revenue": 38983,
+          "yoy_pct": 7.55,
+          "streak": 15,
+          "avg_yoy_pct": 23.82,
+          "min_yoy_pct": 1.16,
+          "max_yoy_pct": 116.12,
+          "mom_pct": -16.38,
+          "market": "TPEx",
           "is_new": false
         },
         {
@@ -20541,20 +20889,6 @@
           "is_new": false
         },
         {
-          "stock_id": "6125",
-          "name": "廣運",
-          "industry": "光電業",
-          "revenue": 362674,
-          "yoy_pct": 22.57,
-          "streak": 13,
-          "avg_yoy_pct": 49.35,
-          "min_yoy_pct": 15.39,
-          "max_yoy_pct": 79.2,
-          "mom_pct": 2.95,
-          "market": "TPEx",
-          "is_new": false
-        },
-        {
           "stock_id": "1788",
           "name": "杏昌",
           "industry": "生技醫療業",
@@ -20611,20 +20945,6 @@
           "is_new": false
         },
         {
-          "stock_id": "2408",
-          "name": "南亞科",
-          "industry": "半導體業",
-          "revenue": 29388309,
-          "yoy_pct": 621.34,
-          "streak": 13,
-          "avg_yoy_pct": 408.53,
-          "min_yoy_pct": 21.14,
-          "max_yoy_pct": 730.14,
-          "mom_pct": 6.21,
-          "market": "TWSE",
-          "is_new": false
-        },
-        {
           "stock_id": "6265",
           "name": "方土昶",
           "industry": "電子通路業",
@@ -20636,6 +20956,20 @@
           "max_yoy_pct": 1209.51,
           "mom_pct": 15.06,
           "market": "TPEx",
+          "is_new": false
+        },
+        {
+          "stock_id": "2408",
+          "name": "南亞科",
+          "industry": "半導體業",
+          "revenue": 29388309,
+          "yoy_pct": 621.34,
+          "streak": 13,
+          "avg_yoy_pct": 408.53,
+          "min_yoy_pct": 21.14,
+          "max_yoy_pct": 730.14,
+          "mom_pct": 6.21,
+          "market": "TWSE",
           "is_new": false
         },
         {
@@ -20663,6 +20997,20 @@
           "min_yoy_pct": 1.46,
           "max_yoy_pct": 82.23,
           "mom_pct": 5.65,
+          "market": "TPEx",
+          "is_new": false
+        },
+        {
+          "stock_id": "6125",
+          "name": "廣運",
+          "industry": "光電業",
+          "revenue": 362674,
+          "yoy_pct": 22.57,
+          "streak": 13,
+          "avg_yoy_pct": 49.35,
+          "min_yoy_pct": 15.39,
+          "max_yoy_pct": 79.2,
+          "mom_pct": 2.95,
           "market": "TPEx",
           "is_new": false
         },
@@ -20779,6 +21127,20 @@
           "is_new": false
         },
         {
+          "stock_id": "8936",
+          "name": "國統",
+          "industry": "其他業",
+          "revenue": 539254,
+          "yoy_pct": 21.24,
+          "streak": 12,
+          "avg_yoy_pct": 29.42,
+          "min_yoy_pct": 2.49,
+          "max_yoy_pct": 57.23,
+          "mom_pct": 6.4,
+          "market": "TPEx",
+          "is_new": false
+        },
+        {
           "stock_id": "7610",
           "name": "聯友金屬-創",
           "industry": "綠能環保",
@@ -20821,17 +21183,17 @@
           "is_new": false
         },
         {
-          "stock_id": "8936",
-          "name": "國統",
-          "industry": "其他業",
-          "revenue": 539254,
-          "yoy_pct": 21.24,
+          "stock_id": "2889",
+          "name": "國票金",
+          "industry": "金融保險業",
+          "revenue": 1660239,
+          "yoy_pct": 100.04,
           "streak": 12,
-          "avg_yoy_pct": 29.42,
-          "min_yoy_pct": 2.49,
-          "max_yoy_pct": 57.23,
-          "mom_pct": 6.4,
-          "market": "TPEx",
+          "avg_yoy_pct": 355.24,
+          "min_yoy_pct": 9.27,
+          "max_yoy_pct": 3640.86,
+          "mom_pct": 4.5,
+          "market": "TWSE",
           "is_new": false
         },
         {
@@ -20845,20 +21207,6 @@
           "min_yoy_pct": 16.09,
           "max_yoy_pct": 1118.75,
           "mom_pct": 19.49,
-          "market": "TWSE",
-          "is_new": false
-        },
-        {
-          "stock_id": "2889",
-          "name": "國票金",
-          "industry": "金融保險業",
-          "revenue": 1660239,
-          "yoy_pct": 100.04,
-          "streak": 12,
-          "avg_yoy_pct": 355.24,
-          "min_yoy_pct": 9.27,
-          "max_yoy_pct": 3640.86,
-          "mom_pct": 4.5,
           "market": "TWSE",
           "is_new": false
         },
@@ -21073,6 +21421,20 @@
           "is_new": false
         },
         {
+          "stock_id": "6213",
+          "name": "聯茂",
+          "industry": "電子零組件業",
+          "revenue": 4213673,
+          "yoy_pct": 47.94,
+          "streak": 11,
+          "avg_yoy_pct": 18.99,
+          "min_yoy_pct": 0.53,
+          "max_yoy_pct": 47.94,
+          "mom_pct": 10.8,
+          "market": "TWSE",
+          "is_new": false
+        },
+        {
           "stock_id": "7788",
           "name": "松川精密",
           "industry": "電子零組件業",
@@ -21101,6 +21463,20 @@
           "is_new": false
         },
         {
+          "stock_id": "1416",
+          "name": "廣豐",
+          "industry": "其他業",
+          "revenue": 48734,
+          "yoy_pct": 68.33,
+          "streak": 11,
+          "avg_yoy_pct": 29.75,
+          "min_yoy_pct": 5.04,
+          "max_yoy_pct": 68.33,
+          "mom_pct": 20.26,
+          "market": "TWSE",
+          "is_new": false
+        },
+        {
           "stock_id": "2314",
           "name": "台揚",
           "industry": "通信網路業",
@@ -21115,17 +21491,17 @@
           "is_new": false
         },
         {
-          "stock_id": "1416",
-          "name": "廣豐",
+          "stock_id": "5345",
+          "name": "馥鴻",
           "industry": "其他業",
-          "revenue": 48734,
-          "yoy_pct": 68.33,
+          "revenue": 4633,
+          "yoy_pct": 1067.0,
           "streak": 11,
-          "avg_yoy_pct": 29.75,
-          "min_yoy_pct": 5.04,
-          "max_yoy_pct": 68.33,
-          "mom_pct": 20.26,
-          "market": "TWSE",
+          "avg_yoy_pct": 570.78,
+          "min_yoy_pct": 151.38,
+          "max_yoy_pct": 1505.66,
+          "mom_pct": -22.22,
+          "market": "TPEx",
           "is_new": false
         },
         {
@@ -21157,20 +21533,6 @@
           "is_new": false
         },
         {
-          "stock_id": "6213",
-          "name": "聯茂",
-          "industry": "電子零組件業",
-          "revenue": 4213673,
-          "yoy_pct": 47.94,
-          "streak": 11,
-          "avg_yoy_pct": 18.99,
-          "min_yoy_pct": 0.53,
-          "max_yoy_pct": 47.94,
-          "mom_pct": 10.8,
-          "market": "TWSE",
-          "is_new": false
-        },
-        {
           "stock_id": "6005",
           "name": "群益證",
           "industry": "金融保險業",
@@ -21182,20 +21544,6 @@
           "max_yoy_pct": 301.6,
           "mom_pct": -4.02,
           "market": "TWSE",
-          "is_new": false
-        },
-        {
-          "stock_id": "5345",
-          "name": "馥鴻",
-          "industry": "其他業",
-          "revenue": 4633,
-          "yoy_pct": 1067.0,
-          "streak": 11,
-          "avg_yoy_pct": 570.78,
-          "min_yoy_pct": 151.38,
-          "max_yoy_pct": 1505.66,
-          "mom_pct": -22.22,
-          "market": "TPEx",
           "is_new": false
         },
         {
@@ -21423,48 +21771,6 @@
           "is_new": false
         },
         {
-          "stock_id": "3006",
-          "name": "晶豪科",
-          "industry": "半導體業",
-          "revenue": 4845479,
-          "yoy_pct": 328.35,
-          "streak": 10,
-          "avg_yoy_pct": 158.72,
-          "min_yoy_pct": 5.96,
-          "max_yoy_pct": 349.21,
-          "mom_pct": 8.48,
-          "market": "TWSE",
-          "is_new": false
-        },
-        {
-          "stock_id": "1294",
-          "name": "漢田生技",
-          "industry": "食品工業",
-          "revenue": 82336,
-          "yoy_pct": 17.44,
-          "streak": 10,
-          "avg_yoy_pct": 33.86,
-          "min_yoy_pct": 3.29,
-          "max_yoy_pct": 117.94,
-          "mom_pct": 20.57,
-          "market": "TPEx",
-          "is_new": false
-        },
-        {
-          "stock_id": "1593",
-          "name": "祺驊",
-          "industry": "運動休閒",
-          "revenue": 115466,
-          "yoy_pct": 5.33,
-          "streak": 10,
-          "avg_yoy_pct": 12.67,
-          "min_yoy_pct": 1.34,
-          "max_yoy_pct": 25.17,
-          "mom_pct": 10.33,
-          "market": "TPEx",
-          "is_new": false
-        },
-        {
           "stock_id": "3105",
           "name": "穩懋",
           "industry": "半導體業",
@@ -21493,6 +21799,48 @@
           "is_new": false
         },
         {
+          "stock_id": "3006",
+          "name": "晶豪科",
+          "industry": "半導體業",
+          "revenue": 4845479,
+          "yoy_pct": 328.35,
+          "streak": 10,
+          "avg_yoy_pct": 158.72,
+          "min_yoy_pct": 5.96,
+          "max_yoy_pct": 349.21,
+          "mom_pct": 8.48,
+          "market": "TWSE",
+          "is_new": false
+        },
+        {
+          "stock_id": "1593",
+          "name": "祺驊",
+          "industry": "運動休閒",
+          "revenue": 115466,
+          "yoy_pct": 5.33,
+          "streak": 10,
+          "avg_yoy_pct": 12.67,
+          "min_yoy_pct": 1.34,
+          "max_yoy_pct": 25.17,
+          "mom_pct": 10.33,
+          "market": "TPEx",
+          "is_new": false
+        },
+        {
+          "stock_id": "1294",
+          "name": "漢田生技",
+          "industry": "食品工業",
+          "revenue": 82336,
+          "yoy_pct": 17.44,
+          "streak": 10,
+          "avg_yoy_pct": 33.86,
+          "min_yoy_pct": 3.29,
+          "max_yoy_pct": 117.94,
+          "mom_pct": 20.57,
+          "market": "TPEx",
+          "is_new": false
+        },
+        {
           "stock_id": "2337",
           "name": "旺宏",
           "industry": "半導體業",
@@ -21503,20 +21851,6 @@
           "min_yoy_pct": 9.42,
           "max_yoy_pct": 216.09,
           "mom_pct": 11.2,
-          "market": "TWSE",
-          "is_new": false
-        },
-        {
-          "stock_id": "6531",
-          "name": "愛普*",
-          "industry": "半導體業",
-          "revenue": 811206,
-          "yoy_pct": 59.48,
-          "streak": 10,
-          "avg_yoy_pct": 80.6,
-          "min_yoy_pct": 14.03,
-          "max_yoy_pct": 146.68,
-          "mom_pct": 8.37,
           "market": "TWSE",
           "is_new": false
         },
@@ -21535,16 +21869,16 @@
           "is_new": false
         },
         {
-          "stock_id": "4916",
-          "name": "事欣科",
-          "industry": "電腦及週邊設備業",
-          "revenue": 501534,
-          "yoy_pct": 80.52,
+          "stock_id": "6531",
+          "name": "愛普*",
+          "industry": "半導體業",
+          "revenue": 811206,
+          "yoy_pct": 59.48,
           "streak": 10,
-          "avg_yoy_pct": 44.48,
-          "min_yoy_pct": 9.79,
-          "max_yoy_pct": 104.35,
-          "mom_pct": 11.33,
+          "avg_yoy_pct": 80.6,
+          "min_yoy_pct": 14.03,
+          "max_yoy_pct": 146.68,
+          "mom_pct": 8.37,
           "market": "TWSE",
           "is_new": false
         },
@@ -21560,6 +21894,20 @@
           "max_yoy_pct": 228.67,
           "mom_pct": 11.34,
           "market": "TPEx",
+          "is_new": false
+        },
+        {
+          "stock_id": "4916",
+          "name": "事欣科",
+          "industry": "電腦及週邊設備業",
+          "revenue": 501534,
+          "yoy_pct": 80.52,
+          "streak": 10,
+          "avg_yoy_pct": 44.48,
+          "min_yoy_pct": 9.79,
+          "max_yoy_pct": 104.35,
+          "mom_pct": 11.33,
+          "market": "TWSE",
           "is_new": false
         },
         {
@@ -21829,6 +22177,20 @@
           "is_new": false
         },
         {
+          "stock_id": "5386",
+          "name": "青雲",
+          "industry": "電腦及週邊設備業",
+          "revenue": 1567303,
+          "yoy_pct": 442.3,
+          "streak": 9,
+          "avg_yoy_pct": 385.05,
+          "min_yoy_pct": 67.04,
+          "max_yoy_pct": 1025.37,
+          "mom_pct": -35.52,
+          "market": "TPEx",
+          "is_new": false
+        },
+        {
           "stock_id": "8489",
           "name": "三貝德",
           "industry": "其他業",
@@ -21839,20 +22201,6 @@
           "min_yoy_pct": 6.21,
           "max_yoy_pct": 73.41,
           "mom_pct": 15.33,
-          "market": "TPEx",
-          "is_new": false
-        },
-        {
-          "stock_id": "5478",
-          "name": "智冠",
-          "industry": "文化創意業",
-          "revenue": 543958,
-          "yoy_pct": 2.66,
-          "streak": 9,
-          "avg_yoy_pct": 12.83,
-          "min_yoy_pct": 0.71,
-          "max_yoy_pct": 43.29,
-          "mom_pct": -3.1,
           "market": "TPEx",
           "is_new": false
         },
@@ -21899,6 +22247,20 @@
           "is_new": false
         },
         {
+          "stock_id": "3491",
+          "name": "昇達科",
+          "industry": "通信網路業",
+          "revenue": 256723,
+          "yoy_pct": 89.38,
+          "streak": 9,
+          "avg_yoy_pct": 60.38,
+          "min_yoy_pct": 21.11,
+          "max_yoy_pct": 112.56,
+          "mom_pct": -13.34,
+          "market": "TPEx",
+          "is_new": false
+        },
+        {
           "stock_id": "3016",
           "name": "嘉晶",
           "industry": "半導體業",
@@ -21927,16 +22289,16 @@
           "is_new": false
         },
         {
-          "stock_id": "3491",
-          "name": "昇達科",
-          "industry": "通信網路業",
-          "revenue": 256723,
-          "yoy_pct": 89.38,
+          "stock_id": "5478",
+          "name": "智冠",
+          "industry": "文化創意業",
+          "revenue": 543958,
+          "yoy_pct": 2.66,
           "streak": 9,
-          "avg_yoy_pct": 60.38,
-          "min_yoy_pct": 21.11,
-          "max_yoy_pct": 112.56,
-          "mom_pct": -13.34,
+          "avg_yoy_pct": 12.83,
+          "min_yoy_pct": 0.71,
+          "max_yoy_pct": 43.29,
+          "mom_pct": -3.1,
           "market": "TPEx",
           "is_new": false
         },
@@ -21951,20 +22313,6 @@
           "min_yoy_pct": 7.37,
           "max_yoy_pct": 131.85,
           "mom_pct": 39.77,
-          "market": "TWSE",
-          "is_new": false
-        },
-        {
-          "stock_id": "2606",
-          "name": "裕民",
-          "industry": "航運業",
-          "revenue": 1714892,
-          "yoy_pct": 35.52,
-          "streak": 9,
-          "avg_yoy_pct": 20.57,
-          "min_yoy_pct": 3.07,
-          "max_yoy_pct": 41.78,
-          "mom_pct": 6.69,
           "market": "TWSE",
           "is_new": false
         },
@@ -22011,17 +22359,17 @@
           "is_new": false
         },
         {
-          "stock_id": "5386",
-          "name": "青雲",
-          "industry": "電腦及週邊設備業",
-          "revenue": 1567303,
-          "yoy_pct": 442.3,
+          "stock_id": "2606",
+          "name": "裕民",
+          "industry": "航運業",
+          "revenue": 1714892,
+          "yoy_pct": 35.52,
           "streak": 9,
-          "avg_yoy_pct": 385.05,
-          "min_yoy_pct": 67.04,
-          "max_yoy_pct": 1025.37,
-          "mom_pct": -35.52,
-          "market": "TPEx",
+          "avg_yoy_pct": 20.57,
+          "min_yoy_pct": 3.07,
+          "max_yoy_pct": 41.78,
+          "mom_pct": 6.69,
+          "market": "TWSE",
           "is_new": false
         },
         {
@@ -22305,6 +22653,20 @@
           "is_new": false
         },
         {
+          "stock_id": "3516",
+          "name": "亞帝歐",
+          "industry": "光電業",
+          "revenue": 95106,
+          "yoy_pct": 18.49,
+          "streak": 8,
+          "avg_yoy_pct": 25.32,
+          "min_yoy_pct": 1.31,
+          "max_yoy_pct": 51.71,
+          "mom_pct": 10.63,
+          "market": "TPEx",
+          "is_new": false
+        },
+        {
           "stock_id": "2542",
           "name": "興富發",
           "industry": "建材營造業",
@@ -22386,20 +22748,6 @@
           "max_yoy_pct": 32.86,
           "mom_pct": 14.75,
           "market": "TWSE",
-          "is_new": false
-        },
-        {
-          "stock_id": "3516",
-          "name": "亞帝歐",
-          "industry": "光電業",
-          "revenue": 95106,
-          "yoy_pct": 18.49,
-          "streak": 8,
-          "avg_yoy_pct": 25.32,
-          "min_yoy_pct": 1.31,
-          "max_yoy_pct": 51.71,
-          "mom_pct": 10.63,
-          "market": "TPEx",
           "is_new": false
         },
         {
@@ -22571,20 +22919,6 @@
           "is_new": false
         },
         {
-          "stock_id": "4551",
-          "name": "智伸科",
-          "industry": "汽車工業",
-          "revenue": 749868,
-          "yoy_pct": 30.66,
-          "streak": 8,
-          "avg_yoy_pct": 17.13,
-          "min_yoy_pct": 2.08,
-          "max_yoy_pct": 30.66,
-          "mom_pct": -1.4,
-          "market": "TWSE",
-          "is_new": false
-        },
-        {
           "stock_id": "3416",
           "name": "融程電",
           "industry": "電腦及週邊設備業",
@@ -22595,6 +22929,20 @@
           "min_yoy_pct": 8.4,
           "max_yoy_pct": 56.33,
           "mom_pct": 11.83,
+          "market": "TWSE",
+          "is_new": false
+        },
+        {
+          "stock_id": "4551",
+          "name": "智伸科",
+          "industry": "汽車工業",
+          "revenue": 749868,
+          "yoy_pct": 30.66,
+          "streak": 8,
+          "avg_yoy_pct": 17.13,
+          "min_yoy_pct": 2.08,
+          "max_yoy_pct": 30.66,
+          "mom_pct": -1.4,
           "market": "TWSE",
           "is_new": false
         },
@@ -22627,16 +22975,30 @@
           "is_new": false
         },
         {
-          "stock_id": "6425",
-          "name": "易發",
-          "industry": "電機機械",
-          "revenue": 167462,
-          "yoy_pct": 25.87,
+          "stock_id": "3285",
+          "name": "微端",
+          "industry": "其他電子業",
+          "revenue": 122118,
+          "yoy_pct": 137.15,
           "streak": 7,
-          "avg_yoy_pct": 38.99,
-          "min_yoy_pct": 0.85,
-          "max_yoy_pct": 114.97,
-          "mom_pct": -9.77,
+          "avg_yoy_pct": 87.67,
+          "min_yoy_pct": 2.33,
+          "max_yoy_pct": 216.75,
+          "mom_pct": -13.66,
+          "market": "TPEx",
+          "is_new": false
+        },
+        {
+          "stock_id": "6680",
+          "name": "鑫創電子",
+          "industry": "電腦及週邊設備業",
+          "revenue": 55255,
+          "yoy_pct": 6.99,
+          "streak": 7,
+          "avg_yoy_pct": 20.98,
+          "min_yoy_pct": 6.99,
+          "max_yoy_pct": 36.42,
+          "mom_pct": 19.35,
           "market": "TPEx",
           "is_new": false
         },
@@ -22655,20 +23017,6 @@
           "is_new": false
         },
         {
-          "stock_id": "8415",
-          "name": "大國鋼",
-          "industry": "鋼鐵工業",
-          "revenue": 2632302,
-          "yoy_pct": 36.57,
-          "streak": 7,
-          "avg_yoy_pct": 16.96,
-          "min_yoy_pct": 5.43,
-          "max_yoy_pct": 36.57,
-          "mom_pct": 12.87,
-          "market": "TPEx",
-          "is_new": false
-        },
-        {
           "stock_id": "1216",
           "name": "統一",
           "industry": "食品工業",
@@ -22683,31 +23031,17 @@
           "is_new": false
         },
         {
-          "stock_id": "6680",
-          "name": "鑫創電子",
-          "industry": "電腦及週邊設備業",
-          "revenue": 55255,
-          "yoy_pct": 6.99,
+          "stock_id": "8415",
+          "name": "大國鋼",
+          "industry": "鋼鐵工業",
+          "revenue": 2632302,
+          "yoy_pct": 36.57,
           "streak": 7,
-          "avg_yoy_pct": 20.98,
-          "min_yoy_pct": 6.99,
-          "max_yoy_pct": 36.42,
-          "mom_pct": 19.35,
+          "avg_yoy_pct": 16.96,
+          "min_yoy_pct": 5.43,
+          "max_yoy_pct": 36.57,
+          "mom_pct": 12.87,
           "market": "TPEx",
-          "is_new": false
-        },
-        {
-          "stock_id": "3010",
-          "name": "華立",
-          "industry": "電子通路業",
-          "revenue": 7781396,
-          "yoy_pct": 13.92,
-          "streak": 7,
-          "avg_yoy_pct": 16.0,
-          "min_yoy_pct": 3.21,
-          "max_yoy_pct": 28.13,
-          "mom_pct": -3.05,
-          "market": "TWSE",
           "is_new": false
         },
         {
@@ -22721,20 +23055,6 @@
           "min_yoy_pct": 14.59,
           "max_yoy_pct": 65.88,
           "mom_pct": -6.37,
-          "market": "TPEx",
-          "is_new": false
-        },
-        {
-          "stock_id": "3285",
-          "name": "微端",
-          "industry": "其他電子業",
-          "revenue": 122118,
-          "yoy_pct": 137.15,
-          "streak": 7,
-          "avg_yoy_pct": 87.67,
-          "min_yoy_pct": 2.33,
-          "max_yoy_pct": 216.75,
-          "mom_pct": -13.66,
           "market": "TPEx",
           "is_new": false
         },
@@ -22753,6 +23073,20 @@
           "is_new": false
         },
         {
+          "stock_id": "3010",
+          "name": "華立",
+          "industry": "電子通路業",
+          "revenue": 7781396,
+          "yoy_pct": 13.92,
+          "streak": 7,
+          "avg_yoy_pct": 16.0,
+          "min_yoy_pct": 3.21,
+          "max_yoy_pct": 28.13,
+          "mom_pct": -3.05,
+          "market": "TWSE",
+          "is_new": false
+        },
+        {
           "stock_id": "3706",
           "name": "神達",
           "industry": "電腦及週邊設備業",
@@ -22764,6 +23098,20 @@
           "max_yoy_pct": 80.93,
           "mom_pct": 14.98,
           "market": "TWSE",
+          "is_new": false
+        },
+        {
+          "stock_id": "6425",
+          "name": "易發",
+          "industry": "電機機械",
+          "revenue": 167462,
+          "yoy_pct": 25.87,
+          "streak": 7,
+          "avg_yoy_pct": 38.99,
+          "min_yoy_pct": 0.85,
+          "max_yoy_pct": 114.97,
+          "mom_pct": -9.77,
+          "market": "TPEx",
           "is_new": false
         },
         {
@@ -22823,20 +23171,6 @@
           "is_new": false
         },
         {
-          "stock_id": "3605",
-          "name": "宏致",
-          "industry": "電子零組件業",
-          "revenue": 1117512,
-          "yoy_pct": 29.81,
-          "streak": 7,
-          "avg_yoy_pct": 12.86,
-          "min_yoy_pct": 0.04,
-          "max_yoy_pct": 29.81,
-          "mom_pct": 0.83,
-          "market": "TWSE",
-          "is_new": false
-        },
-        {
           "stock_id": "4949",
           "name": "有成精密",
           "industry": "光電業",
@@ -22847,6 +23181,20 @@
           "min_yoy_pct": 5.79,
           "max_yoy_pct": 68.69,
           "mom_pct": 8.85,
+          "market": "TWSE",
+          "is_new": false
+        },
+        {
+          "stock_id": "3605",
+          "name": "宏致",
+          "industry": "電子零組件業",
+          "revenue": 1117512,
+          "yoy_pct": 29.81,
+          "streak": 7,
+          "avg_yoy_pct": 12.86,
+          "min_yoy_pct": 0.04,
+          "max_yoy_pct": 29.81,
+          "mom_pct": 0.83,
           "market": "TWSE",
           "is_new": false
         },
@@ -22977,20 +23325,6 @@
           "is_new": false
         },
         {
-          "stock_id": "6177",
-          "name": "達麗",
-          "industry": "建材營造業",
-          "revenue": 2503589,
-          "yoy_pct": 1322.16,
-          "streak": 7,
-          "avg_yoy_pct": 785.35,
-          "min_yoy_pct": 149.18,
-          "max_yoy_pct": 1653.94,
-          "mom_pct": 478.4,
-          "market": "TWSE",
-          "is_new": false
-        },
-        {
           "stock_id": "6183",
           "name": "關貿",
           "industry": "資訊服務業",
@@ -23001,6 +23335,20 @@
           "min_yoy_pct": 0.56,
           "max_yoy_pct": 15.78,
           "mom_pct": 9.22,
+          "market": "TWSE",
+          "is_new": false
+        },
+        {
+          "stock_id": "6177",
+          "name": "達麗",
+          "industry": "建材營造業",
+          "revenue": 2503589,
+          "yoy_pct": 1322.16,
+          "streak": 7,
+          "avg_yoy_pct": 785.35,
+          "min_yoy_pct": 149.18,
+          "max_yoy_pct": 1653.94,
+          "mom_pct": 478.4,
           "market": "TWSE",
           "is_new": false
         },
@@ -23173,30 +23521,16 @@
           "is_new": false
         },
         {
-          "stock_id": "4502",
-          "name": "健信",
-          "industry": "電機機械",
-          "revenue": 104968,
-          "yoy_pct": 36.37,
+          "stock_id": "3141",
+          "name": "晶宏",
+          "industry": "半導體業",
+          "revenue": 186093,
+          "yoy_pct": 10.85,
           "streak": 6,
-          "avg_yoy_pct": 27.76,
-          "min_yoy_pct": 6.32,
-          "max_yoy_pct": 42.96,
-          "mom_pct": -0.14,
-          "market": "TPEx",
-          "is_new": true
-        },
-        {
-          "stock_id": "4506",
-          "name": "崇友",
-          "industry": "電機機械",
-          "revenue": 500976,
-          "yoy_pct": 12.28,
-          "streak": 6,
-          "avg_yoy_pct": 10.96,
-          "min_yoy_pct": 0.59,
-          "max_yoy_pct": 28.82,
-          "mom_pct": -10.34,
+          "avg_yoy_pct": 10.97,
+          "min_yoy_pct": 5.18,
+          "max_yoy_pct": 19.89,
+          "mom_pct": 1.63,
           "market": "TPEx",
           "is_new": true
         },
@@ -23215,6 +23549,20 @@
           "is_new": true
         },
         {
+          "stock_id": "4502",
+          "name": "健信",
+          "industry": "電機機械",
+          "revenue": 104968,
+          "yoy_pct": 36.37,
+          "streak": 6,
+          "avg_yoy_pct": 27.76,
+          "min_yoy_pct": 6.32,
+          "max_yoy_pct": 42.96,
+          "mom_pct": -0.14,
+          "market": "TPEx",
+          "is_new": true
+        },
+        {
           "stock_id": "6187",
           "name": "萬潤",
           "industry": "半導體業",
@@ -23229,16 +23577,44 @@
           "is_new": true
         },
         {
-          "stock_id": "2351",
-          "name": "順德",
-          "industry": "半導體業",
-          "revenue": 1213743,
-          "yoy_pct": 51.72,
+          "stock_id": "8087",
+          "name": "麗升能源",
+          "industry": "綠能環保",
+          "revenue": 19976,
+          "yoy_pct": 80.96,
           "streak": 6,
-          "avg_yoy_pct": 24.41,
-          "min_yoy_pct": 1.74,
-          "max_yoy_pct": 51.72,
-          "mom_pct": 4.97,
+          "avg_yoy_pct": 682.66,
+          "min_yoy_pct": 23.3,
+          "max_yoy_pct": 2881.23,
+          "mom_pct": -56.96,
+          "market": "TPEx",
+          "is_new": true
+        },
+        {
+          "stock_id": "8183",
+          "name": "精星",
+          "industry": "其他電子業",
+          "revenue": 771224,
+          "yoy_pct": 64.66,
+          "streak": 6,
+          "avg_yoy_pct": 25.23,
+          "min_yoy_pct": 6.2,
+          "max_yoy_pct": 64.66,
+          "mom_pct": 10.98,
+          "market": "TPEx",
+          "is_new": true
+        },
+        {
+          "stock_id": "2362",
+          "name": "藍天",
+          "industry": "電腦及週邊設備業",
+          "revenue": 2231200,
+          "yoy_pct": 30.25,
+          "streak": 6,
+          "avg_yoy_pct": 18.65,
+          "min_yoy_pct": 3.87,
+          "max_yoy_pct": 37.74,
+          "mom_pct": -7.25,
           "market": "TWSE",
           "is_new": true
         },
@@ -23257,16 +23633,16 @@
           "is_new": true
         },
         {
-          "stock_id": "2362",
-          "name": "藍天",
-          "industry": "電腦及週邊設備業",
-          "revenue": 2231200,
-          "yoy_pct": 30.25,
+          "stock_id": "2351",
+          "name": "順德",
+          "industry": "半導體業",
+          "revenue": 1213743,
+          "yoy_pct": 51.72,
           "streak": 6,
-          "avg_yoy_pct": 18.65,
-          "min_yoy_pct": 3.87,
-          "max_yoy_pct": 37.74,
-          "mom_pct": -7.25,
+          "avg_yoy_pct": 24.41,
+          "min_yoy_pct": 1.74,
+          "max_yoy_pct": 51.72,
+          "mom_pct": 4.97,
           "market": "TWSE",
           "is_new": true
         },
@@ -23285,16 +23661,30 @@
           "is_new": true
         },
         {
-          "stock_id": "8183",
-          "name": "精星",
-          "industry": "其他電子業",
-          "revenue": 771224,
-          "yoy_pct": 64.66,
+          "stock_id": "4973",
+          "name": "廣穎",
+          "industry": "半導體業",
+          "revenue": 861821,
+          "yoy_pct": 197.3,
           "streak": 6,
-          "avg_yoy_pct": 25.23,
-          "min_yoy_pct": 6.2,
-          "max_yoy_pct": 64.66,
-          "mom_pct": 10.98,
+          "avg_yoy_pct": 118.59,
+          "min_yoy_pct": 42.53,
+          "max_yoy_pct": 197.3,
+          "mom_pct": 3.18,
+          "market": "TPEx",
+          "is_new": true
+        },
+        {
+          "stock_id": "5263",
+          "name": "智崴",
+          "industry": "文化創意業",
+          "revenue": 200811,
+          "yoy_pct": 90.23,
+          "streak": 6,
+          "avg_yoy_pct": 48.29,
+          "min_yoy_pct": 1.06,
+          "max_yoy_pct": 90.23,
+          "mom_pct": 22.09,
           "market": "TPEx",
           "is_new": true
         },
@@ -23327,48 +23717,6 @@
           "is_new": true
         },
         {
-          "stock_id": "3141",
-          "name": "晶宏",
-          "industry": "半導體業",
-          "revenue": 186093,
-          "yoy_pct": 10.85,
-          "streak": 6,
-          "avg_yoy_pct": 10.97,
-          "min_yoy_pct": 5.18,
-          "max_yoy_pct": 19.89,
-          "mom_pct": 1.63,
-          "market": "TPEx",
-          "is_new": true
-        },
-        {
-          "stock_id": "5263",
-          "name": "智崴",
-          "industry": "文化創意業",
-          "revenue": 200811,
-          "yoy_pct": 90.23,
-          "streak": 6,
-          "avg_yoy_pct": 48.29,
-          "min_yoy_pct": 1.06,
-          "max_yoy_pct": 90.23,
-          "mom_pct": 22.09,
-          "market": "TPEx",
-          "is_new": true
-        },
-        {
-          "stock_id": "5514",
-          "name": "三豐",
-          "industry": "建材營造業",
-          "revenue": 1749,
-          "yoy_pct": 262.86,
-          "streak": 6,
-          "avg_yoy_pct": 23198.44,
-          "min_yoy_pct": 262.86,
-          "max_yoy_pct": 109732.99,
-          "mom_pct": -46.01,
-          "market": "TPEx",
-          "is_new": true
-        },
-        {
           "stock_id": "2412",
           "name": "中華電",
           "industry": "通信網路業",
@@ -23380,6 +23728,20 @@
           "max_yoy_pct": 12.21,
           "mom_pct": 9.31,
           "market": "TWSE",
+          "is_new": true
+        },
+        {
+          "stock_id": "6829",
+          "name": "千附精密",
+          "industry": "半導體業",
+          "revenue": 216837,
+          "yoy_pct": 69.4,
+          "streak": 6,
+          "avg_yoy_pct": 44.15,
+          "min_yoy_pct": 6.29,
+          "max_yoy_pct": 107.14,
+          "mom_pct": 20.49,
+          "market": "TPEx",
           "is_new": true
         },
         {
@@ -23425,30 +23787,30 @@
           "is_new": true
         },
         {
-          "stock_id": "8087",
-          "name": "麗升能源",
-          "industry": "綠能環保",
-          "revenue": 19976,
-          "yoy_pct": 80.96,
+          "stock_id": "4506",
+          "name": "崇友",
+          "industry": "電機機械",
+          "revenue": 500976,
+          "yoy_pct": 12.28,
           "streak": 6,
-          "avg_yoy_pct": 682.66,
-          "min_yoy_pct": 23.3,
-          "max_yoy_pct": 2881.23,
-          "mom_pct": -56.96,
+          "avg_yoy_pct": 10.96,
+          "min_yoy_pct": 0.59,
+          "max_yoy_pct": 28.82,
+          "mom_pct": -10.34,
           "market": "TPEx",
           "is_new": true
         },
         {
-          "stock_id": "6829",
-          "name": "千附精密",
-          "industry": "半導體業",
-          "revenue": 216837,
-          "yoy_pct": 69.4,
+          "stock_id": "5514",
+          "name": "三豐",
+          "industry": "建材營造業",
+          "revenue": 1749,
+          "yoy_pct": 262.86,
           "streak": 6,
-          "avg_yoy_pct": 44.15,
-          "min_yoy_pct": 6.29,
-          "max_yoy_pct": 107.14,
-          "mom_pct": 20.49,
+          "avg_yoy_pct": 23198.44,
+          "min_yoy_pct": 262.86,
+          "max_yoy_pct": 109732.99,
+          "mom_pct": -46.01,
           "market": "TPEx",
           "is_new": true
         },
@@ -23477,20 +23839,6 @@
           "min_yoy_pct": 4.98,
           "max_yoy_pct": 129.6,
           "mom_pct": -53.07,
-          "market": "TPEx",
-          "is_new": true
-        },
-        {
-          "stock_id": "4973",
-          "name": "廣穎",
-          "industry": "半導體業",
-          "revenue": 861821,
-          "yoy_pct": 197.3,
-          "streak": 6,
-          "avg_yoy_pct": 118.59,
-          "min_yoy_pct": 42.53,
-          "max_yoy_pct": 197.3,
-          "mom_pct": 3.18,
           "market": "TPEx",
           "is_new": true
         },
@@ -23607,6 +23955,20 @@
           "is_new": true
         },
         {
+          "stock_id": "2464",
+          "name": "盟立",
+          "industry": "其他電子業",
+          "revenue": 812626,
+          "yoy_pct": 43.05,
+          "streak": 6,
+          "avg_yoy_pct": 20.1,
+          "min_yoy_pct": 7.79,
+          "max_yoy_pct": 43.05,
+          "mom_pct": 15.8,
+          "market": "TWSE",
+          "is_new": true
+        },
+        {
           "stock_id": "2465",
           "name": "麗臺",
           "industry": "電腦及週邊設備業",
@@ -23631,20 +23993,6 @@
           "min_yoy_pct": 7.81,
           "max_yoy_pct": 31.32,
           "mom_pct": 33.22,
-          "market": "TWSE",
-          "is_new": true
-        },
-        {
-          "stock_id": "2464",
-          "name": "盟立",
-          "industry": "其他電子業",
-          "revenue": 812626,
-          "yoy_pct": 43.05,
-          "streak": 6,
-          "avg_yoy_pct": 20.1,
-          "min_yoy_pct": 7.79,
-          "max_yoy_pct": 43.05,
-          "mom_pct": 15.8,
           "market": "TWSE",
           "is_new": true
         },
@@ -23873,20 +24221,6 @@
           "is_new": true
         },
         {
-          "stock_id": "9958",
-          "name": "世紀鋼",
-          "industry": "鋼鐵工業",
-          "revenue": 2138665,
-          "yoy_pct": 64.09,
-          "streak": 6,
-          "avg_yoy_pct": 29.4,
-          "min_yoy_pct": 3.39,
-          "max_yoy_pct": 64.09,
-          "mom_pct": 25.2,
-          "market": "TWSE",
-          "is_new": true
-        },
-        {
           "stock_id": "9935",
           "name": "慶豐富",
           "industry": "居家生活",
@@ -23897,6 +24231,20 @@
           "min_yoy_pct": 0.47,
           "max_yoy_pct": 17.01,
           "mom_pct": 11.25,
+          "market": "TWSE",
+          "is_new": true
+        },
+        {
+          "stock_id": "9958",
+          "name": "世紀鋼",
+          "industry": "鋼鐵工業",
+          "revenue": 2138665,
+          "yoy_pct": 64.09,
+          "streak": 6,
+          "avg_yoy_pct": 29.4,
+          "min_yoy_pct": 3.39,
+          "max_yoy_pct": 64.09,
+          "mom_pct": 25.2,
           "market": "TWSE",
           "is_new": true
         },
@@ -26122,6 +26470,20 @@
           "is_new": true
         },
         {
+          "stock_id": "3372",
+          "name": "典範",
+          "industry": "半導體業",
+          "revenue": 113086,
+          "yoy_pct": 12.47,
+          "peak_yoy_pct": 60.14,
+          "yoy_drop_pct": 47.67,
+          "growth_streak": 17,
+          "decel_months": 3,
+          "mom_pct": 2.45,
+          "market": "TPEx",
+          "is_new": true
+        },
+        {
           "stock_id": "3498",
           "name": "陽程",
           "industry": "其他電子業",
@@ -26160,6 +26522,20 @@
           "growth_streak": 8,
           "decel_months": 3,
           "mom_pct": -35.45,
+          "market": "TPEx",
+          "is_new": true
+        },
+        {
+          "stock_id": "6903",
+          "name": "巨漢",
+          "industry": "其他電子業",
+          "revenue": 714953,
+          "yoy_pct": 163.86,
+          "peak_yoy_pct": 586.45,
+          "yoy_drop_pct": 422.59,
+          "growth_streak": 13,
+          "decel_months": 3,
+          "mom_pct": 7.31,
           "market": "TPEx",
           "is_new": true
         },
@@ -26216,34 +26592,6 @@
           "growth_streak": 54,
           "decel_months": 3,
           "mom_pct": 14.98,
-          "market": "TPEx",
-          "is_new": true
-        },
-        {
-          "stock_id": "6903",
-          "name": "巨漢",
-          "industry": "其他電子業",
-          "revenue": 714953,
-          "yoy_pct": 163.86,
-          "peak_yoy_pct": 586.45,
-          "yoy_drop_pct": 422.59,
-          "growth_streak": 13,
-          "decel_months": 3,
-          "mom_pct": 7.31,
-          "market": "TPEx",
-          "is_new": true
-        },
-        {
-          "stock_id": "3372",
-          "name": "典範",
-          "industry": "半導體業",
-          "revenue": 113086,
-          "yoy_pct": 12.47,
-          "peak_yoy_pct": 60.14,
-          "yoy_drop_pct": 47.67,
-          "growth_streak": 17,
-          "decel_months": 3,
-          "mom_pct": 2.45,
           "market": "TPEx",
           "is_new": true
         },
@@ -30545,18 +30893,6 @@
           "is_new": true
         },
         {
-          "stock_id": "1319",
-          "name": "東陽",
-          "industry": "汽車工業",
-          "revenue": 1847625,
-          "yoy_pct": 2.54,
-          "prev_yoy_pct": -14.11,
-          "decline_months": 12,
-          "mom_pct": -8.03,
-          "market": "TWSE",
-          "is_new": true
-        },
-        {
           "stock_id": "8933",
           "name": "愛地雅",
           "industry": "運動休閒",
@@ -30566,6 +30902,18 @@
           "decline_months": 12,
           "mom_pct": 23.18,
           "market": "TPEx",
+          "is_new": true
+        },
+        {
+          "stock_id": "1319",
+          "name": "東陽",
+          "industry": "汽車工業",
+          "revenue": 1847625,
+          "yoy_pct": 2.54,
+          "prev_yoy_pct": -14.11,
+          "decline_months": 12,
+          "mom_pct": -8.03,
+          "market": "TWSE",
           "is_new": true
         },
         {
@@ -30605,18 +30953,6 @@
           "is_new": true
         },
         {
-          "stock_id": "3051",
-          "name": "力特",
-          "industry": "光電業",
-          "revenue": 200178,
-          "yoy_pct": 36.6,
-          "prev_yoy_pct": -5.71,
-          "decline_months": 11,
-          "mom_pct": 14.06,
-          "market": "TWSE",
-          "is_new": true
-        },
-        {
           "stock_id": "7584",
           "name": "樂意",
           "industry": "文化創意業",
@@ -30626,6 +30962,18 @@
           "decline_months": 11,
           "mom_pct": 48.85,
           "market": "TPEx",
+          "is_new": true
+        },
+        {
+          "stock_id": "3051",
+          "name": "力特",
+          "industry": "光電業",
+          "revenue": 200178,
+          "yoy_pct": 36.6,
+          "prev_yoy_pct": -5.71,
+          "decline_months": 11,
+          "mom_pct": 14.06,
+          "market": "TWSE",
           "is_new": true
         },
         {
@@ -30725,18 +31073,6 @@
           "is_new": true
         },
         {
-          "stock_id": "4938",
-          "name": "和碩",
-          "industry": "電腦及週邊設備業",
-          "revenue": 95962959,
-          "yoy_pct": 11.99,
-          "prev_yoy_pct": -15.24,
-          "decline_months": 7,
-          "mom_pct": 10.06,
-          "market": "TWSE",
-          "is_new": true
-        },
-        {
           "stock_id": "3712",
           "name": "永崴投控",
           "industry": "電腦及週邊設備業",
@@ -30745,6 +31081,18 @@
           "prev_yoy_pct": -8.29,
           "decline_months": 7,
           "mom_pct": -21.33,
+          "market": "TWSE",
+          "is_new": true
+        },
+        {
+          "stock_id": "4938",
+          "name": "和碩",
+          "industry": "電腦及週邊設備業",
+          "revenue": 95962959,
+          "yoy_pct": 11.99,
+          "prev_yoy_pct": -15.24,
+          "decline_months": 7,
+          "mom_pct": 10.06,
           "market": "TWSE",
           "is_new": true
         },
@@ -30785,18 +31133,6 @@
           "is_new": true
         },
         {
-          "stock_id": "1454",
-          "name": "台富",
-          "industry": "紡織纖維",
-          "revenue": 126202,
-          "yoy_pct": 7.83,
-          "prev_yoy_pct": -20.89,
-          "decline_months": 6,
-          "mom_pct": 1.54,
-          "market": "TWSE",
-          "is_new": true
-        },
-        {
           "stock_id": "3349",
           "name": "寶德",
           "industry": "電腦及週邊設備業",
@@ -30806,6 +31142,18 @@
           "decline_months": 6,
           "mom_pct": 214.88,
           "market": "TPEx",
+          "is_new": true
+        },
+        {
+          "stock_id": "1454",
+          "name": "台富",
+          "industry": "紡織纖維",
+          "revenue": 126202,
+          "yoy_pct": 7.83,
+          "prev_yoy_pct": -20.89,
+          "decline_months": 6,
+          "mom_pct": 1.54,
+          "market": "TWSE",
           "is_new": true
         },
         {
@@ -30953,6 +31301,30 @@
           "is_new": true
         },
         {
+          "stock_id": "7736",
+          "name": "虎山",
+          "industry": "汽車工業",
+          "revenue": 154677,
+          "yoy_pct": 24.55,
+          "prev_yoy_pct": -41.09,
+          "decline_months": 3,
+          "mom_pct": 81.87,
+          "market": "TWSE",
+          "is_new": true
+        },
+        {
+          "stock_id": "6969",
+          "name": "成信實業*-創",
+          "industry": "綠能環保",
+          "revenue": 23620,
+          "yoy_pct": 1.67,
+          "prev_yoy_pct": -24.12,
+          "decline_months": 3,
+          "mom_pct": 11.18,
+          "market": "TWSE",
+          "is_new": true
+        },
+        {
           "stock_id": "2462",
           "name": "良得電",
           "industry": "電子零組件業",
@@ -30973,150 +31345,6 @@
           "prev_yoy_pct": -97.03,
           "decline_months": 3,
           "mom_pct": 9513.19,
-          "market": "TWSE",
-          "is_new": true
-        },
-        {
-          "stock_id": "6969",
-          "name": "成信實業*-創",
-          "industry": "綠能環保",
-          "revenue": 23620,
-          "yoy_pct": 1.67,
-          "prev_yoy_pct": -24.12,
-          "decline_months": 3,
-          "mom_pct": 11.18,
-          "market": "TWSE",
-          "is_new": true
-        },
-        {
-          "stock_id": "7736",
-          "name": "虎山",
-          "industry": "汽車工業",
-          "revenue": 154677,
-          "yoy_pct": 24.55,
-          "prev_yoy_pct": -41.09,
-          "decline_months": 3,
-          "mom_pct": 81.87,
-          "market": "TWSE",
-          "is_new": true
-        },
-        {
-          "stock_id": "6241",
-          "name": "鑫永洋",
-          "industry": "通信網路業",
-          "revenue": 75580,
-          "yoy_pct": 22.88,
-          "prev_yoy_pct": -9.17,
-          "decline_months": 3,
-          "mom_pct": 35.09,
-          "market": "TPEx",
-          "is_new": true
-        },
-        {
-          "stock_id": "3206",
-          "name": "志豐",
-          "industry": "電子零組件業",
-          "revenue": 317875,
-          "yoy_pct": 19.47,
-          "prev_yoy_pct": -7.83,
-          "decline_months": 3,
-          "mom_pct": 13.27,
-          "market": "TPEx",
-          "is_new": true
-        },
-        {
-          "stock_id": "1434",
-          "name": "福懋",
-          "industry": "紡織纖維",
-          "revenue": 2497994,
-          "yoy_pct": 5.63,
-          "prev_yoy_pct": -5.12,
-          "decline_months": 3,
-          "mom_pct": -3.35,
-          "market": "TWSE",
-          "is_new": true
-        },
-        {
-          "stock_id": "1414",
-          "name": "東和",
-          "industry": "紡織纖維",
-          "revenue": 45981,
-          "yoy_pct": 11.12,
-          "prev_yoy_pct": -2.65,
-          "decline_months": 3,
-          "mom_pct": -0.51,
-          "market": "TWSE",
-          "is_new": true
-        },
-        {
-          "stock_id": "2035",
-          "name": "唐榮",
-          "industry": "鋼鐵工業",
-          "revenue": 984709,
-          "yoy_pct": 26.59,
-          "prev_yoy_pct": -2.51,
-          "decline_months": 3,
-          "mom_pct": -12.68,
-          "market": "TPEx",
-          "is_new": true
-        },
-        {
-          "stock_id": "1586",
-          "name": "和勤",
-          "industry": "電機機械",
-          "revenue": 198262,
-          "yoy_pct": 17.25,
-          "prev_yoy_pct": -4.54,
-          "decline_months": 3,
-          "mom_pct": -3.92,
-          "market": "TPEx",
-          "is_new": true
-        },
-        {
-          "stock_id": "1595",
-          "name": "川寶",
-          "industry": "電子零組件業",
-          "revenue": 89998,
-          "yoy_pct": 173.85,
-          "prev_yoy_pct": -24.09,
-          "decline_months": 3,
-          "mom_pct": 56.15,
-          "market": "TPEx",
-          "is_new": true
-        },
-        {
-          "stock_id": "5519",
-          "name": "隆大",
-          "industry": "建材營造業",
-          "revenue": 172901,
-          "yoy_pct": 88.65,
-          "prev_yoy_pct": -23.13,
-          "decline_months": 3,
-          "mom_pct": 47.1,
-          "market": "TWSE",
-          "is_new": true
-        },
-        {
-          "stock_id": "3527",
-          "name": "聚積",
-          "industry": "半導體業",
-          "revenue": 134860,
-          "yoy_pct": 15.91,
-          "prev_yoy_pct": -19.93,
-          "decline_months": 3,
-          "mom_pct": 27.38,
-          "market": "TPEx",
-          "is_new": true
-        },
-        {
-          "stock_id": "2340",
-          "name": "台亞",
-          "industry": "半導體業",
-          "revenue": 407468,
-          "yoy_pct": 5.66,
-          "prev_yoy_pct": -8.91,
-          "decline_months": 3,
-          "mom_pct": 27.77,
           "market": "TWSE",
           "is_new": true
         },
@@ -31145,6 +31373,90 @@
           "is_new": true
         },
         {
+          "stock_id": "5520",
+          "name": "力泰",
+          "industry": "建材營造業",
+          "revenue": 369113,
+          "yoy_pct": 0.8,
+          "prev_yoy_pct": -7.59,
+          "decline_months": 3,
+          "mom_pct": 17.12,
+          "market": "TPEx",
+          "is_new": true
+        },
+        {
+          "stock_id": "1586",
+          "name": "和勤",
+          "industry": "電機機械",
+          "revenue": 198262,
+          "yoy_pct": 17.25,
+          "prev_yoy_pct": -4.54,
+          "decline_months": 3,
+          "mom_pct": -3.92,
+          "market": "TPEx",
+          "is_new": true
+        },
+        {
+          "stock_id": "1595",
+          "name": "川寶",
+          "industry": "電子零組件業",
+          "revenue": 89998,
+          "yoy_pct": 173.85,
+          "prev_yoy_pct": -24.09,
+          "decline_months": 3,
+          "mom_pct": 56.15,
+          "market": "TPEx",
+          "is_new": true
+        },
+        {
+          "stock_id": "3206",
+          "name": "志豐",
+          "industry": "電子零組件業",
+          "revenue": 317875,
+          "yoy_pct": 19.47,
+          "prev_yoy_pct": -7.83,
+          "decline_months": 3,
+          "mom_pct": 13.27,
+          "market": "TPEx",
+          "is_new": true
+        },
+        {
+          "stock_id": "1414",
+          "name": "東和",
+          "industry": "紡織纖維",
+          "revenue": 45981,
+          "yoy_pct": 11.12,
+          "prev_yoy_pct": -2.65,
+          "decline_months": 3,
+          "mom_pct": -0.51,
+          "market": "TWSE",
+          "is_new": true
+        },
+        {
+          "stock_id": "1434",
+          "name": "福懋",
+          "industry": "紡織纖維",
+          "revenue": 2497994,
+          "yoy_pct": 5.63,
+          "prev_yoy_pct": -5.12,
+          "decline_months": 3,
+          "mom_pct": -3.35,
+          "market": "TWSE",
+          "is_new": true
+        },
+        {
+          "stock_id": "3527",
+          "name": "聚積",
+          "industry": "半導體業",
+          "revenue": 134860,
+          "yoy_pct": 15.91,
+          "prev_yoy_pct": -19.93,
+          "decline_months": 3,
+          "mom_pct": 27.38,
+          "market": "TPEx",
+          "is_new": true
+        },
+        {
           "stock_id": "5230",
           "name": "雷笛克光學",
           "industry": "光電業",
@@ -31153,6 +31465,66 @@
           "prev_yoy_pct": -4.74,
           "decline_months": 3,
           "mom_pct": 2.71,
+          "market": "TPEx",
+          "is_new": true
+        },
+        {
+          "stock_id": "2035",
+          "name": "唐榮",
+          "industry": "鋼鐵工業",
+          "revenue": 984709,
+          "yoy_pct": 26.59,
+          "prev_yoy_pct": -2.51,
+          "decline_months": 3,
+          "mom_pct": -12.68,
+          "market": "TPEx",
+          "is_new": true
+        },
+        {
+          "stock_id": "5403",
+          "name": "中菲",
+          "industry": "資訊服務業",
+          "revenue": 295755,
+          "yoy_pct": 10.58,
+          "prev_yoy_pct": -7.78,
+          "decline_months": 3,
+          "mom_pct": 4.67,
+          "market": "TPEx",
+          "is_new": true
+        },
+        {
+          "stock_id": "5519",
+          "name": "隆大",
+          "industry": "建材營造業",
+          "revenue": 172901,
+          "yoy_pct": 88.65,
+          "prev_yoy_pct": -23.13,
+          "decline_months": 3,
+          "mom_pct": 47.1,
+          "market": "TWSE",
+          "is_new": true
+        },
+        {
+          "stock_id": "2340",
+          "name": "台亞",
+          "industry": "半導體業",
+          "revenue": 407468,
+          "yoy_pct": 5.66,
+          "prev_yoy_pct": -8.91,
+          "decline_months": 3,
+          "mom_pct": 27.77,
+          "market": "TWSE",
+          "is_new": true
+        },
+        {
+          "stock_id": "6241",
+          "name": "鑫永洋",
+          "industry": "通信網路業",
+          "revenue": 75580,
+          "yoy_pct": 22.88,
+          "prev_yoy_pct": -9.17,
+          "decline_months": 3,
+          "mom_pct": 35.09,
           "market": "TPEx",
           "is_new": true
         },
@@ -31214,30 +31586,6 @@
           "decline_months": 3,
           "mom_pct": 3.12,
           "market": "TWSE",
-          "is_new": true
-        },
-        {
-          "stock_id": "5520",
-          "name": "力泰",
-          "industry": "建材營造業",
-          "revenue": 369113,
-          "yoy_pct": 0.8,
-          "prev_yoy_pct": -7.59,
-          "decline_months": 3,
-          "mom_pct": 17.12,
-          "market": "TPEx",
-          "is_new": true
-        },
-        {
-          "stock_id": "5403",
-          "name": "中菲",
-          "industry": "資訊服務業",
-          "revenue": 295755,
-          "yoy_pct": 10.58,
-          "prev_yoy_pct": -7.78,
-          "decline_months": 3,
-          "mom_pct": 4.67,
-          "market": "TPEx",
           "is_new": true
         },
         {
@@ -31325,18 +31673,6 @@
           "is_new": true
         },
         {
-          "stock_id": "2390",
-          "name": "云辰",
-          "industry": "其他電子業",
-          "revenue": 63164,
-          "yoy_pct": 20.74,
-          "prev_yoy_pct": -10.78,
-          "decline_months": 3,
-          "mom_pct": 22.38,
-          "market": "TWSE",
-          "is_new": true
-        },
-        {
           "stock_id": "2393",
           "name": "億光",
           "industry": "光電業",
@@ -31345,6 +31681,18 @@
           "prev_yoy_pct": -2.92,
           "decline_months": 3,
           "mom_pct": 1.03,
+          "market": "TWSE",
+          "is_new": true
+        },
+        {
+          "stock_id": "2390",
+          "name": "云辰",
+          "industry": "其他電子業",
+          "revenue": 63164,
+          "yoy_pct": 20.74,
+          "prev_yoy_pct": -10.78,
+          "decline_months": 3,
+          "mom_pct": 22.38,
           "market": "TWSE",
           "is_new": true
         },
@@ -31709,20 +32057,6 @@
           "is_new": false
         },
         {
-          "stock_id": "6223",
-          "name": "旺矽",
-          "industry": "半導體業",
-          "revenue": 1907342,
-          "yoy_pct": 57.81,
-          "streak": 40,
-          "avg_yoy_pct": 25.73,
-          "min_yoy_pct": 0.72,
-          "max_yoy_pct": 57.81,
-          "mom_pct": 28.35,
-          "market": "TPEx",
-          "is_new": false
-        },
-        {
           "stock_id": "2432",
           "name": "倚天酷碁-創",
           "industry": "電腦及週邊設備業",
@@ -31748,6 +32082,20 @@
           "max_yoy_pct": 150.01,
           "mom_pct": 1.53,
           "market": "TWSE",
+          "is_new": false
+        },
+        {
+          "stock_id": "6223",
+          "name": "旺矽",
+          "industry": "半導體業",
+          "revenue": 1907342,
+          "yoy_pct": 57.81,
+          "streak": 40,
+          "avg_yoy_pct": 25.73,
+          "min_yoy_pct": 0.72,
+          "max_yoy_pct": 57.81,
+          "mom_pct": 28.35,
+          "market": "TPEx",
           "is_new": false
         },
         {
@@ -32017,6 +32365,34 @@
           "is_new": false
         },
         {
+          "stock_id": "4128",
+          "name": "中天",
+          "industry": "生技醫療業",
+          "revenue": 158261,
+          "yoy_pct": 4.11,
+          "streak": 29,
+          "avg_yoy_pct": 8.97,
+          "min_yoy_pct": 1.29,
+          "max_yoy_pct": 19.29,
+          "mom_pct": -1.01,
+          "market": "TPEx",
+          "is_new": false
+        },
+        {
+          "stock_id": "6683",
+          "name": "雍智科技",
+          "industry": "半導體業",
+          "revenue": 202710,
+          "yoy_pct": 12.31,
+          "streak": 29,
+          "avg_yoy_pct": 25.6,
+          "min_yoy_pct": 0.34,
+          "max_yoy_pct": 59.45,
+          "mom_pct": -6.83,
+          "market": "TPEx",
+          "is_new": false
+        },
+        {
           "stock_id": "5274",
           "name": "信驊",
           "industry": "半導體業",
@@ -32059,20 +32435,6 @@
           "is_new": false
         },
         {
-          "stock_id": "6683",
-          "name": "雍智科技",
-          "industry": "半導體業",
-          "revenue": 202710,
-          "yoy_pct": 12.31,
-          "streak": 29,
-          "avg_yoy_pct": 25.6,
-          "min_yoy_pct": 0.34,
-          "max_yoy_pct": 59.45,
-          "mom_pct": -6.83,
-          "market": "TPEx",
-          "is_new": false
-        },
-        {
           "stock_id": "7738",
           "name": "東聯互動",
           "industry": "數位雲端",
@@ -32083,20 +32445,6 @@
           "min_yoy_pct": 8.38,
           "max_yoy_pct": 66.43,
           "mom_pct": 10.65,
-          "market": "TPEx",
-          "is_new": false
-        },
-        {
-          "stock_id": "4128",
-          "name": "中天",
-          "industry": "生技醫療業",
-          "revenue": 158261,
-          "yoy_pct": 4.11,
-          "streak": 29,
-          "avg_yoy_pct": 8.97,
-          "min_yoy_pct": 1.29,
-          "max_yoy_pct": 19.29,
-          "mom_pct": -1.01,
           "market": "TPEx",
           "is_new": false
         },
@@ -32171,6 +32519,20 @@
           "is_new": false
         },
         {
+          "stock_id": "8155",
+          "name": "博智",
+          "industry": "電子零組件業",
+          "revenue": 517137,
+          "yoy_pct": 29.65,
+          "streak": 27,
+          "avg_yoy_pct": 34.96,
+          "min_yoy_pct": 4.75,
+          "max_yoy_pct": 83.34,
+          "mom_pct": -3.93,
+          "market": "TPEx",
+          "is_new": false
+        },
+        {
           "stock_id": "1316",
           "name": "上曜",
           "industry": "建材營造業",
@@ -32237,20 +32599,6 @@
           "min_yoy_pct": 5.66,
           "max_yoy_pct": 1700.79,
           "mom_pct": 9.01,
-          "market": "TPEx",
-          "is_new": false
-        },
-        {
-          "stock_id": "8155",
-          "name": "博智",
-          "industry": "電子零組件業",
-          "revenue": 517137,
-          "yoy_pct": 29.65,
-          "streak": 27,
-          "avg_yoy_pct": 34.96,
-          "min_yoy_pct": 4.75,
-          "max_yoy_pct": 83.34,
-          "mom_pct": -3.93,
           "market": "TPEx",
           "is_new": false
         },
@@ -32605,20 +32953,6 @@
           "is_new": false
         },
         {
-          "stock_id": "6217",
-          "name": "中探針",
-          "industry": "電子零組件業",
-          "revenue": 405545,
-          "yoy_pct": 51.18,
-          "streak": 23,
-          "avg_yoy_pct": 28.01,
-          "min_yoy_pct": 2.54,
-          "max_yoy_pct": 55.74,
-          "mom_pct": 13.0,
-          "market": "TPEx",
-          "is_new": false
-        },
-        {
           "stock_id": "7769",
           "name": "鴻勁",
           "industry": "半導體業",
@@ -32630,6 +32964,20 @@
           "max_yoy_pct": 357.96,
           "mom_pct": -5.34,
           "market": "TWSE",
+          "is_new": false
+        },
+        {
+          "stock_id": "6217",
+          "name": "中探針",
+          "industry": "電子零組件業",
+          "revenue": 405545,
+          "yoy_pct": 51.18,
+          "streak": 23,
+          "avg_yoy_pct": 28.01,
+          "min_yoy_pct": 2.54,
+          "max_yoy_pct": 55.74,
+          "mom_pct": 13.0,
+          "market": "TPEx",
           "is_new": false
         },
         {
@@ -32717,20 +33065,6 @@
           "is_new": false
         },
         {
-          "stock_id": "6209",
-          "name": "今國光",
-          "industry": "光電業",
-          "revenue": 408564,
-          "yoy_pct": 70.66,
-          "streak": 20,
-          "avg_yoy_pct": 48.04,
-          "min_yoy_pct": 0.2,
-          "max_yoy_pct": 101.67,
-          "mom_pct": -1.49,
-          "market": "TWSE",
-          "is_new": false
-        },
-        {
           "stock_id": "5475",
           "name": "德宏",
           "industry": "電子零組件業",
@@ -32742,6 +33076,20 @@
           "max_yoy_pct": 214.96,
           "mom_pct": 13.84,
           "market": "TPEx",
+          "is_new": false
+        },
+        {
+          "stock_id": "6209",
+          "name": "今國光",
+          "industry": "光電業",
+          "revenue": 408564,
+          "yoy_pct": 70.66,
+          "streak": 20,
+          "avg_yoy_pct": 48.04,
+          "min_yoy_pct": 0.2,
+          "max_yoy_pct": 101.67,
+          "mom_pct": -1.49,
+          "market": "TWSE",
           "is_new": false
         },
         {
@@ -33123,6 +33471,34 @@
           "is_new": false
         },
         {
+          "stock_id": "3372",
+          "name": "典範",
+          "industry": "半導體業",
+          "revenue": 110372,
+          "yoy_pct": 15.7,
+          "streak": 16,
+          "avg_yoy_pct": 27.16,
+          "min_yoy_pct": 11.55,
+          "max_yoy_pct": 60.14,
+          "mom_pct": -3.9,
+          "market": "TPEx",
+          "is_new": false
+        },
+        {
+          "stock_id": "3587",
+          "name": "閎康",
+          "industry": "其他電子業",
+          "revenue": 544461,
+          "yoy_pct": 26.87,
+          "streak": 16,
+          "avg_yoy_pct": 12.41,
+          "min_yoy_pct": 1.89,
+          "max_yoy_pct": 26.87,
+          "mom_pct": 0.68,
+          "market": "TPEx",
+          "is_new": false
+        },
+        {
           "stock_id": "4127",
           "name": "天良",
           "industry": "生技醫療業",
@@ -33221,16 +33597,16 @@
           "is_new": false
         },
         {
-          "stock_id": "3587",
-          "name": "閎康",
-          "industry": "其他電子業",
-          "revenue": 544461,
-          "yoy_pct": 26.87,
+          "stock_id": "8088",
+          "name": "品安",
+          "industry": "半導體業",
+          "revenue": 151418,
+          "yoy_pct": 59.63,
           "streak": 16,
-          "avg_yoy_pct": 12.41,
-          "min_yoy_pct": 1.89,
-          "max_yoy_pct": 26.87,
-          "mom_pct": 0.68,
+          "avg_yoy_pct": 60.64,
+          "min_yoy_pct": 2.13,
+          "max_yoy_pct": 159.66,
+          "mom_pct": 55.89,
           "market": "TPEx",
           "is_new": false
         },
@@ -33246,34 +33622,6 @@
           "max_yoy_pct": 607.83,
           "mom_pct": -52.19,
           "market": "TWSE",
-          "is_new": false
-        },
-        {
-          "stock_id": "8088",
-          "name": "品安",
-          "industry": "半導體業",
-          "revenue": 151418,
-          "yoy_pct": 59.63,
-          "streak": 16,
-          "avg_yoy_pct": 60.64,
-          "min_yoy_pct": 2.13,
-          "max_yoy_pct": 159.66,
-          "mom_pct": 55.89,
-          "market": "TPEx",
-          "is_new": false
-        },
-        {
-          "stock_id": "3372",
-          "name": "典範",
-          "industry": "半導體業",
-          "revenue": 110372,
-          "yoy_pct": 15.7,
-          "streak": 16,
-          "avg_yoy_pct": 27.16,
-          "min_yoy_pct": 11.55,
-          "max_yoy_pct": 60.14,
-          "mom_pct": -3.9,
-          "market": "TPEx",
           "is_new": false
         },
         {
@@ -33417,20 +33765,6 @@
           "is_new": false
         },
         {
-          "stock_id": "4771",
-          "name": "望隼",
-          "industry": "生技醫療業",
-          "revenue": 381003,
-          "yoy_pct": 33.13,
-          "streak": 16,
-          "avg_yoy_pct": 24.76,
-          "min_yoy_pct": 2.29,
-          "max_yoy_pct": 47.26,
-          "mom_pct": -9.32,
-          "market": "TWSE",
-          "is_new": false
-        },
-        {
           "stock_id": "8271",
           "name": "宇瞻",
           "industry": "半導體業",
@@ -33441,6 +33775,20 @@
           "min_yoy_pct": 11.46,
           "max_yoy_pct": 360.82,
           "mom_pct": -19.17,
+          "market": "TWSE",
+          "is_new": false
+        },
+        {
+          "stock_id": "4771",
+          "name": "望隼",
+          "industry": "生技醫療業",
+          "revenue": 381003,
+          "yoy_pct": 33.13,
+          "streak": 16,
+          "avg_yoy_pct": 24.76,
+          "min_yoy_pct": 2.29,
+          "max_yoy_pct": 47.26,
+          "mom_pct": -9.32,
           "market": "TWSE",
           "is_new": false
         },
@@ -33655,20 +34003,6 @@
           "is_new": false
         },
         {
-          "stock_id": "6237",
-          "name": "驊訊",
-          "industry": "半導體業",
-          "revenue": 46623,
-          "yoy_pct": 33.55,
-          "streak": 14,
-          "avg_yoy_pct": 24.98,
-          "min_yoy_pct": 1.16,
-          "max_yoy_pct": 116.12,
-          "mom_pct": -44.69,
-          "market": "TPEx",
-          "is_new": false
-        },
-        {
           "stock_id": "8299",
           "name": "群聯",
           "industry": "半導體業",
@@ -33697,20 +34031,6 @@
           "is_new": false
         },
         {
-          "stock_id": "2892",
-          "name": "第一金",
-          "industry": "金融保險業",
-          "revenue": 7305350,
-          "yoy_pct": 36.7,
-          "streak": 14,
-          "avg_yoy_pct": 16.54,
-          "min_yoy_pct": 1.39,
-          "max_yoy_pct": 41.98,
-          "mom_pct": -0.22,
-          "market": "TWSE",
-          "is_new": false
-        },
-        {
           "stock_id": "2890",
           "name": "永豐金",
           "industry": "金融保險業",
@@ -33721,6 +34041,20 @@
           "min_yoy_pct": 3.32,
           "max_yoy_pct": 87.36,
           "mom_pct": 4.89,
+          "market": "TWSE",
+          "is_new": false
+        },
+        {
+          "stock_id": "2892",
+          "name": "第一金",
+          "industry": "金融保險業",
+          "revenue": 7305350,
+          "yoy_pct": 36.7,
+          "streak": 14,
+          "avg_yoy_pct": 16.54,
+          "min_yoy_pct": 1.39,
+          "max_yoy_pct": 41.98,
+          "mom_pct": -0.22,
           "market": "TWSE",
           "is_new": false
         },
@@ -33736,6 +34070,20 @@
           "max_yoy_pct": 192.15,
           "mom_pct": 12.91,
           "market": "TWSE",
+          "is_new": false
+        },
+        {
+          "stock_id": "6237",
+          "name": "驊訊",
+          "industry": "半導體業",
+          "revenue": 46623,
+          "yoy_pct": 33.55,
+          "streak": 14,
+          "avg_yoy_pct": 24.98,
+          "min_yoy_pct": 1.16,
+          "max_yoy_pct": 116.12,
+          "mom_pct": -44.69,
+          "market": "TPEx",
           "is_new": false
         },
         {
@@ -33893,20 +34241,6 @@
           "is_new": false
         },
         {
-          "stock_id": "6125",
-          "name": "廣運",
-          "industry": "光電業",
-          "revenue": 352260,
-          "yoy_pct": 79.2,
-          "streak": 12,
-          "avg_yoy_pct": 51.58,
-          "min_yoy_pct": 15.39,
-          "max_yoy_pct": 79.2,
-          "mom_pct": 3.21,
-          "market": "TPEx",
-          "is_new": false
-        },
-        {
           "stock_id": "1788",
           "name": "杏昌",
           "industry": "生技醫療業",
@@ -33963,20 +34297,6 @@
           "is_new": false
         },
         {
-          "stock_id": "2408",
-          "name": "南亞科",
-          "industry": "半導體業",
-          "revenue": 27669563,
-          "yoy_pct": 730.14,
-          "streak": 12,
-          "avg_yoy_pct": 390.8,
-          "min_yoy_pct": 21.14,
-          "max_yoy_pct": 730.14,
-          "mom_pct": 8.54,
-          "market": "TWSE",
-          "is_new": false
-        },
-        {
           "stock_id": "6265",
           "name": "方土昶",
           "industry": "電子通路業",
@@ -33988,6 +34308,20 @@
           "max_yoy_pct": 1076.35,
           "mom_pct": 8.07,
           "market": "TPEx",
+          "is_new": false
+        },
+        {
+          "stock_id": "2408",
+          "name": "南亞科",
+          "industry": "半導體業",
+          "revenue": 27669563,
+          "yoy_pct": 730.14,
+          "streak": 12,
+          "avg_yoy_pct": 390.8,
+          "min_yoy_pct": 21.14,
+          "max_yoy_pct": 730.14,
+          "mom_pct": 8.54,
+          "market": "TWSE",
           "is_new": false
         },
         {
@@ -34015,6 +34349,20 @@
           "min_yoy_pct": 1.46,
           "max_yoy_pct": 82.23,
           "mom_pct": 10.11,
+          "market": "TPEx",
+          "is_new": false
+        },
+        {
+          "stock_id": "6125",
+          "name": "廣運",
+          "industry": "光電業",
+          "revenue": 352260,
+          "yoy_pct": 79.2,
+          "streak": 12,
+          "avg_yoy_pct": 51.58,
+          "min_yoy_pct": 15.39,
+          "max_yoy_pct": 79.2,
+          "mom_pct": 3.21,
           "market": "TPEx",
           "is_new": false
         },
@@ -34159,6 +34507,20 @@
           "is_new": false
         },
         {
+          "stock_id": "8936",
+          "name": "國統",
+          "industry": "其他業",
+          "revenue": 506789,
+          "yoy_pct": 11.16,
+          "streak": 11,
+          "avg_yoy_pct": 30.16,
+          "min_yoy_pct": 2.49,
+          "max_yoy_pct": 57.23,
+          "mom_pct": -8.92,
+          "market": "TPEx",
+          "is_new": false
+        },
+        {
           "stock_id": "7610",
           "name": "聯友金屬-創",
           "industry": "綠能環保",
@@ -34201,17 +34563,17 @@
           "is_new": false
         },
         {
-          "stock_id": "8936",
-          "name": "國統",
-          "industry": "其他業",
-          "revenue": 506789,
-          "yoy_pct": 11.16,
+          "stock_id": "2889",
+          "name": "國票金",
+          "industry": "金融保險業",
+          "revenue": 1588661,
+          "yoy_pct": 147.94,
           "streak": 11,
-          "avg_yoy_pct": 30.16,
-          "min_yoy_pct": 2.49,
-          "max_yoy_pct": 57.23,
-          "mom_pct": -8.92,
-          "market": "TPEx",
+          "avg_yoy_pct": 378.44,
+          "min_yoy_pct": 9.27,
+          "max_yoy_pct": 3640.86,
+          "mom_pct": 5.74,
+          "market": "TWSE",
           "is_new": false
         },
         {
@@ -34225,20 +34587,6 @@
           "min_yoy_pct": 16.09,
           "max_yoy_pct": 1118.75,
           "mom_pct": -13.8,
-          "market": "TWSE",
-          "is_new": false
-        },
-        {
-          "stock_id": "2889",
-          "name": "國票金",
-          "industry": "金融保險業",
-          "revenue": 1588661,
-          "yoy_pct": 147.94,
-          "streak": 11,
-          "avg_yoy_pct": 378.44,
-          "min_yoy_pct": 9.27,
-          "max_yoy_pct": 3640.86,
-          "mom_pct": 5.74,
           "market": "TWSE",
           "is_new": false
         },
@@ -34467,6 +34815,20 @@
           "is_new": false
         },
         {
+          "stock_id": "6213",
+          "name": "聯茂",
+          "industry": "電子零組件業",
+          "revenue": 3802864,
+          "yoy_pct": 29.31,
+          "streak": 10,
+          "avg_yoy_pct": 16.1,
+          "min_yoy_pct": 0.53,
+          "max_yoy_pct": 42.19,
+          "mom_pct": 8.23,
+          "market": "TWSE",
+          "is_new": false
+        },
+        {
           "stock_id": "5880",
           "name": "合庫金",
           "industry": "金融保險業",
@@ -34509,6 +34871,20 @@
           "is_new": false
         },
         {
+          "stock_id": "1416",
+          "name": "廣豐",
+          "industry": "其他業",
+          "revenue": 40522,
+          "yoy_pct": 61.12,
+          "streak": 10,
+          "avg_yoy_pct": 25.89,
+          "min_yoy_pct": 5.04,
+          "max_yoy_pct": 61.12,
+          "mom_pct": 20.74,
+          "market": "TWSE",
+          "is_new": false
+        },
+        {
           "stock_id": "2314",
           "name": "台揚",
           "industry": "通信網路業",
@@ -34523,17 +34899,17 @@
           "is_new": false
         },
         {
-          "stock_id": "1416",
-          "name": "廣豐",
+          "stock_id": "5345",
+          "name": "馥鴻",
           "industry": "其他業",
-          "revenue": 40522,
-          "yoy_pct": 61.12,
+          "revenue": 5957,
+          "yoy_pct": 1505.66,
           "streak": 10,
-          "avg_yoy_pct": 25.89,
-          "min_yoy_pct": 5.04,
-          "max_yoy_pct": 61.12,
-          "mom_pct": 20.74,
-          "market": "TWSE",
+          "avg_yoy_pct": 521.16,
+          "min_yoy_pct": 151.38,
+          "max_yoy_pct": 1505.66,
+          "mom_pct": 44.34,
+          "market": "TPEx",
           "is_new": false
         },
         {
@@ -34565,20 +34941,6 @@
           "is_new": false
         },
         {
-          "stock_id": "6213",
-          "name": "聯茂",
-          "industry": "電子零組件業",
-          "revenue": 3802864,
-          "yoy_pct": 29.31,
-          "streak": 10,
-          "avg_yoy_pct": 16.1,
-          "min_yoy_pct": 0.53,
-          "max_yoy_pct": 42.19,
-          "mom_pct": 8.23,
-          "market": "TWSE",
-          "is_new": false
-        },
-        {
           "stock_id": "6005",
           "name": "群益證",
           "industry": "金融保險業",
@@ -34590,20 +34952,6 @@
           "max_yoy_pct": 301.6,
           "mom_pct": -18.27,
           "market": "TWSE",
-          "is_new": false
-        },
-        {
-          "stock_id": "5345",
-          "name": "馥鴻",
-          "industry": "其他業",
-          "revenue": 5957,
-          "yoy_pct": 1505.66,
-          "streak": 10,
-          "avg_yoy_pct": 521.16,
-          "min_yoy_pct": 151.38,
-          "max_yoy_pct": 1505.66,
-          "mom_pct": 44.34,
-          "market": "TPEx",
           "is_new": false
         },
         {
@@ -34845,20 +35193,6 @@
           "is_new": false
         },
         {
-          "stock_id": "5371",
-          "name": "中光電",
-          "industry": "光電業",
-          "revenue": 3242705,
-          "yoy_pct": 6.05,
-          "streak": 9,
-          "avg_yoy_pct": 11.07,
-          "min_yoy_pct": 0.75,
-          "max_yoy_pct": 27.79,
-          "mom_pct": 2.25,
-          "market": "TPEx",
-          "is_new": false
-        },
-        {
           "stock_id": "2548",
           "name": "華固",
           "industry": "建材營造業",
@@ -34873,6 +35207,34 @@
           "is_new": false
         },
         {
+          "stock_id": "5371",
+          "name": "中光電",
+          "industry": "光電業",
+          "revenue": 3242705,
+          "yoy_pct": 6.05,
+          "streak": 9,
+          "avg_yoy_pct": 11.07,
+          "min_yoy_pct": 0.75,
+          "max_yoy_pct": 27.79,
+          "mom_pct": 2.25,
+          "market": "TPEx",
+          "is_new": false
+        },
+        {
+          "stock_id": "3105",
+          "name": "穩懋",
+          "industry": "半導體業",
+          "revenue": 1755488,
+          "yoy_pct": 40.3,
+          "streak": 9,
+          "avg_yoy_pct": 32.05,
+          "min_yoy_pct": 24.66,
+          "max_yoy_pct": 48.89,
+          "mom_pct": 1.23,
+          "market": "TPEx",
+          "is_new": false
+        },
+        {
           "stock_id": "2353",
           "name": "宏碁",
           "industry": "電腦及週邊設備業",
@@ -34884,6 +35246,20 @@
           "max_yoy_pct": 68.39,
           "mom_pct": -16.43,
           "market": "TWSE",
+          "is_new": false
+        },
+        {
+          "stock_id": "3374",
+          "name": "精材",
+          "industry": "半導體業",
+          "revenue": 696852,
+          "yoy_pct": 43.32,
+          "streak": 9,
+          "avg_yoy_pct": 22.21,
+          "min_yoy_pct": 5.62,
+          "max_yoy_pct": 45.8,
+          "mom_pct": -3.72,
+          "market": "TPEx",
           "is_new": false
         },
         {
@@ -34915,20 +35291,6 @@
           "is_new": false
         },
         {
-          "stock_id": "1294",
-          "name": "漢田生技",
-          "industry": "食品工業",
-          "revenue": 68286,
-          "yoy_pct": 31.23,
-          "streak": 9,
-          "avg_yoy_pct": 35.68,
-          "min_yoy_pct": 3.29,
-          "max_yoy_pct": 117.94,
-          "mom_pct": -10.91,
-          "market": "TPEx",
-          "is_new": false
-        },
-        {
           "stock_id": "1593",
           "name": "祺驊",
           "industry": "運動休閒",
@@ -34943,30 +35305,16 @@
           "is_new": false
         },
         {
-          "stock_id": "3105",
-          "name": "穩懋",
-          "industry": "半導體業",
-          "revenue": 1755488,
-          "yoy_pct": 40.3,
+          "stock_id": "1294",
+          "name": "漢田生技",
+          "industry": "食品工業",
+          "revenue": 68286,
+          "yoy_pct": 31.23,
           "streak": 9,
-          "avg_yoy_pct": 32.05,
-          "min_yoy_pct": 24.66,
-          "max_yoy_pct": 48.89,
-          "mom_pct": 1.23,
-          "market": "TPEx",
-          "is_new": false
-        },
-        {
-          "stock_id": "3374",
-          "name": "精材",
-          "industry": "半導體業",
-          "revenue": 696852,
-          "yoy_pct": 43.32,
-          "streak": 9,
-          "avg_yoy_pct": 22.21,
-          "min_yoy_pct": 5.62,
-          "max_yoy_pct": 45.8,
-          "mom_pct": -3.72,
+          "avg_yoy_pct": 35.68,
+          "min_yoy_pct": 3.29,
+          "max_yoy_pct": 117.94,
+          "mom_pct": -10.91,
           "market": "TPEx",
           "is_new": false
         },
@@ -34985,20 +35333,6 @@
           "is_new": false
         },
         {
-          "stock_id": "6531",
-          "name": "愛普*",
-          "industry": "半導體業",
-          "revenue": 748539,
-          "yoy_pct": 89.34,
-          "streak": 9,
-          "avg_yoy_pct": 82.94,
-          "min_yoy_pct": 14.03,
-          "max_yoy_pct": 146.68,
-          "mom_pct": -6.91,
-          "market": "TWSE",
-          "is_new": false
-        },
-        {
           "stock_id": "6494",
           "name": "九齊",
           "industry": "半導體業",
@@ -35013,16 +35347,16 @@
           "is_new": false
         },
         {
-          "stock_id": "4916",
-          "name": "事欣科",
-          "industry": "電腦及週邊設備業",
-          "revenue": 450454,
-          "yoy_pct": 104.35,
+          "stock_id": "6531",
+          "name": "愛普*",
+          "industry": "半導體業",
+          "revenue": 748539,
+          "yoy_pct": 89.34,
           "streak": 9,
-          "avg_yoy_pct": 40.48,
-          "min_yoy_pct": 9.79,
-          "max_yoy_pct": 104.35,
-          "mom_pct": 6.05,
+          "avg_yoy_pct": 82.94,
+          "min_yoy_pct": 14.03,
+          "max_yoy_pct": 146.68,
+          "mom_pct": -6.91,
           "market": "TWSE",
           "is_new": false
         },
@@ -35038,6 +35372,20 @@
           "max_yoy_pct": 228.67,
           "mom_pct": -43.8,
           "market": "TPEx",
+          "is_new": false
+        },
+        {
+          "stock_id": "4916",
+          "name": "事欣科",
+          "industry": "電腦及週邊設備業",
+          "revenue": 450454,
+          "yoy_pct": 104.35,
+          "streak": 9,
+          "avg_yoy_pct": 40.48,
+          "min_yoy_pct": 9.79,
+          "max_yoy_pct": 104.35,
+          "mom_pct": 6.05,
+          "market": "TWSE",
           "is_new": false
         },
         {
@@ -35321,6 +35669,20 @@
           "is_new": false
         },
         {
+          "stock_id": "5386",
+          "name": "青雲",
+          "industry": "電腦及週邊設備業",
+          "revenue": 2430798,
+          "yoy_pct": 412.79,
+          "streak": 8,
+          "avg_yoy_pct": 377.89,
+          "min_yoy_pct": 67.04,
+          "max_yoy_pct": 1025.37,
+          "mom_pct": -4.12,
+          "market": "TPEx",
+          "is_new": false
+        },
+        {
           "stock_id": "8489",
           "name": "三貝德",
           "industry": "其他業",
@@ -35331,20 +35693,6 @@
           "min_yoy_pct": 6.21,
           "max_yoy_pct": 73.41,
           "mom_pct": -5.73,
-          "market": "TPEx",
-          "is_new": false
-        },
-        {
-          "stock_id": "5478",
-          "name": "智冠",
-          "industry": "文化創意業",
-          "revenue": 561407,
-          "yoy_pct": 7.69,
-          "streak": 8,
-          "avg_yoy_pct": 14.1,
-          "min_yoy_pct": 0.71,
-          "max_yoy_pct": 43.29,
-          "mom_pct": -0.02,
           "market": "TPEx",
           "is_new": false
         },
@@ -35391,6 +35739,20 @@
           "is_new": false
         },
         {
+          "stock_id": "3491",
+          "name": "昇達科",
+          "industry": "通信網路業",
+          "revenue": 296253,
+          "yoy_pct": 57.24,
+          "streak": 8,
+          "avg_yoy_pct": 56.76,
+          "min_yoy_pct": 21.11,
+          "max_yoy_pct": 112.56,
+          "mom_pct": -15.12,
+          "market": "TPEx",
+          "is_new": false
+        },
+        {
           "stock_id": "3016",
           "name": "嘉晶",
           "industry": "半導體業",
@@ -35419,16 +35781,16 @@
           "is_new": false
         },
         {
-          "stock_id": "3491",
-          "name": "昇達科",
-          "industry": "通信網路業",
-          "revenue": 296253,
-          "yoy_pct": 57.24,
+          "stock_id": "5478",
+          "name": "智冠",
+          "industry": "文化創意業",
+          "revenue": 561407,
+          "yoy_pct": 7.69,
           "streak": 8,
-          "avg_yoy_pct": 56.76,
-          "min_yoy_pct": 21.11,
-          "max_yoy_pct": 112.56,
-          "mom_pct": -15.12,
+          "avg_yoy_pct": 14.1,
+          "min_yoy_pct": 0.71,
+          "max_yoy_pct": 43.29,
+          "mom_pct": -0.02,
           "market": "TPEx",
           "is_new": false
         },
@@ -35443,34 +35805,6 @@
           "min_yoy_pct": 7.37,
           "max_yoy_pct": 82.91,
           "mom_pct": 8.39,
-          "market": "TWSE",
-          "is_new": false
-        },
-        {
-          "stock_id": "6154",
-          "name": "順發",
-          "industry": "電子通路業",
-          "revenue": 325148,
-          "yoy_pct": 5.41,
-          "streak": 8,
-          "avg_yoy_pct": 5.73,
-          "min_yoy_pct": 0.08,
-          "max_yoy_pct": 11.75,
-          "mom_pct": 8.11,
-          "market": "TPEx",
-          "is_new": false
-        },
-        {
-          "stock_id": "2606",
-          "name": "裕民",
-          "industry": "航運業",
-          "revenue": 1607321,
-          "yoy_pct": 41.78,
-          "streak": 8,
-          "avg_yoy_pct": 18.7,
-          "min_yoy_pct": 3.07,
-          "max_yoy_pct": 41.78,
-          "mom_pct": -4.96,
           "market": "TWSE",
           "is_new": false
         },
@@ -35503,6 +35837,20 @@
           "is_new": false
         },
         {
+          "stock_id": "6154",
+          "name": "順發",
+          "industry": "電子通路業",
+          "revenue": 325148,
+          "yoy_pct": 5.41,
+          "streak": 8,
+          "avg_yoy_pct": 5.73,
+          "min_yoy_pct": 0.08,
+          "max_yoy_pct": 11.75,
+          "mom_pct": 8.11,
+          "market": "TPEx",
+          "is_new": false
+        },
+        {
           "stock_id": "6788",
           "name": "華景電",
           "industry": "半導體業",
@@ -35517,17 +35865,17 @@
           "is_new": false
         },
         {
-          "stock_id": "5386",
-          "name": "青雲",
-          "industry": "電腦及週邊設備業",
-          "revenue": 2430798,
-          "yoy_pct": 412.79,
+          "stock_id": "2606",
+          "name": "裕民",
+          "industry": "航運業",
+          "revenue": 1607321,
+          "yoy_pct": 41.78,
           "streak": 8,
-          "avg_yoy_pct": 377.89,
-          "min_yoy_pct": 67.04,
-          "max_yoy_pct": 1025.37,
-          "mom_pct": -4.12,
-          "market": "TPEx",
+          "avg_yoy_pct": 18.7,
+          "min_yoy_pct": 3.07,
+          "max_yoy_pct": 41.78,
+          "mom_pct": -4.96,
+          "market": "TWSE",
           "is_new": false
         },
         {
@@ -35811,6 +36159,20 @@
           "is_new": false
         },
         {
+          "stock_id": "3516",
+          "name": "亞帝歐",
+          "industry": "光電業",
+          "revenue": 85962,
+          "yoy_pct": 32.31,
+          "streak": 7,
+          "avg_yoy_pct": 26.3,
+          "min_yoy_pct": 1.31,
+          "max_yoy_pct": 51.71,
+          "mom_pct": -10.97,
+          "market": "TPEx",
+          "is_new": false
+        },
+        {
           "stock_id": "2542",
           "name": "興富發",
           "industry": "建材營造業",
@@ -35853,6 +36215,20 @@
           "is_new": false
         },
         {
+          "stock_id": "6874",
+          "name": "倍力",
+          "industry": "資訊服務業",
+          "revenue": 157520,
+          "yoy_pct": 38.5,
+          "streak": 7,
+          "avg_yoy_pct": 62.44,
+          "min_yoy_pct": 20.17,
+          "max_yoy_pct": 138.34,
+          "mom_pct": 60.25,
+          "market": "TPEx",
+          "is_new": false
+        },
+        {
           "stock_id": "6234",
           "name": "高僑",
           "industry": "光電業",
@@ -35877,20 +36253,6 @@
           "min_yoy_pct": 0.35,
           "max_yoy_pct": 25.29,
           "mom_pct": -4.81,
-          "market": "TPEx",
-          "is_new": false
-        },
-        {
-          "stock_id": "6874",
-          "name": "倍力",
-          "industry": "資訊服務業",
-          "revenue": 157520,
-          "yoy_pct": 38.5,
-          "streak": 7,
-          "avg_yoy_pct": 62.44,
-          "min_yoy_pct": 20.17,
-          "max_yoy_pct": 138.34,
-          "mom_pct": 60.25,
           "market": "TPEx",
           "is_new": false
         },
@@ -35920,20 +36282,6 @@
           "max_yoy_pct": 30.64,
           "mom_pct": -3.45,
           "market": "TWSE",
-          "is_new": false
-        },
-        {
-          "stock_id": "3516",
-          "name": "亞帝歐",
-          "industry": "光電業",
-          "revenue": 85962,
-          "yoy_pct": 32.31,
-          "streak": 7,
-          "avg_yoy_pct": 26.3,
-          "min_yoy_pct": 1.31,
-          "max_yoy_pct": 51.71,
-          "mom_pct": -10.97,
-          "market": "TPEx",
           "is_new": false
         },
         {
@@ -36091,20 +36439,6 @@
           "is_new": false
         },
         {
-          "stock_id": "3583",
-          "name": "辛耘",
-          "industry": "半導體業",
-          "revenue": 971001,
-          "yoy_pct": 1.49,
-          "streak": 7,
-          "avg_yoy_pct": 10.87,
-          "min_yoy_pct": 1.49,
-          "max_yoy_pct": 24.03,
-          "mom_pct": -1.82,
-          "market": "TWSE",
-          "is_new": false
-        },
-        {
           "stock_id": "3588",
           "name": "通嘉",
           "industry": "半導體業",
@@ -36115,6 +36449,20 @@
           "min_yoy_pct": 0.15,
           "max_yoy_pct": 28.73,
           "mom_pct": 0.1,
+          "market": "TWSE",
+          "is_new": false
+        },
+        {
+          "stock_id": "3583",
+          "name": "辛耘",
+          "industry": "半導體業",
+          "revenue": 971001,
+          "yoy_pct": 1.49,
+          "streak": 7,
+          "avg_yoy_pct": 10.87,
+          "min_yoy_pct": 1.49,
+          "max_yoy_pct": 24.03,
+          "mom_pct": -1.82,
           "market": "TWSE",
           "is_new": false
         },
@@ -36175,20 +36523,6 @@
           "is_new": false
         },
         {
-          "stock_id": "4551",
-          "name": "智伸科",
-          "industry": "汽車工業",
-          "revenue": 760526,
-          "yoy_pct": 26.74,
-          "streak": 7,
-          "avg_yoy_pct": 15.19,
-          "min_yoy_pct": 2.08,
-          "max_yoy_pct": 26.74,
-          "mom_pct": -1.53,
-          "market": "TWSE",
-          "is_new": false
-        },
-        {
           "stock_id": "3416",
           "name": "融程電",
           "industry": "電腦及週邊設備業",
@@ -36199,6 +36533,20 @@
           "min_yoy_pct": 8.4,
           "max_yoy_pct": 56.33,
           "mom_pct": -5.04,
+          "market": "TWSE",
+          "is_new": false
+        },
+        {
+          "stock_id": "4551",
+          "name": "智伸科",
+          "industry": "汽車工業",
+          "revenue": 760526,
+          "yoy_pct": 26.74,
+          "streak": 7,
+          "avg_yoy_pct": 15.19,
+          "min_yoy_pct": 2.08,
+          "max_yoy_pct": 26.74,
+          "mom_pct": -1.53,
           "market": "TWSE",
           "is_new": false
         },
@@ -36231,16 +36579,30 @@
           "is_new": false
         },
         {
-          "stock_id": "6425",
-          "name": "易發",
-          "industry": "電機機械",
-          "revenue": 185601,
-          "yoy_pct": 44.84,
+          "stock_id": "3285",
+          "name": "微端",
+          "industry": "其他電子業",
+          "revenue": 141440,
+          "yoy_pct": 216.75,
           "streak": 6,
-          "avg_yoy_pct": 41.18,
-          "min_yoy_pct": 0.85,
-          "max_yoy_pct": 114.97,
-          "mom_pct": 59.99,
+          "avg_yoy_pct": 79.42,
+          "min_yoy_pct": 2.33,
+          "max_yoy_pct": 216.75,
+          "mom_pct": 93.54,
+          "market": "TPEx",
+          "is_new": true
+        },
+        {
+          "stock_id": "6680",
+          "name": "鑫創電子",
+          "industry": "電腦及週邊設備業",
+          "revenue": 46293,
+          "yoy_pct": 23.98,
+          "streak": 6,
+          "avg_yoy_pct": 23.31,
+          "min_yoy_pct": 10.47,
+          "max_yoy_pct": 36.42,
+          "mom_pct": -0.31,
           "market": "TPEx",
           "is_new": true
         },
@@ -36259,20 +36621,6 @@
           "is_new": true
         },
         {
-          "stock_id": "8415",
-          "name": "大國鋼",
-          "industry": "鋼鐵工業",
-          "revenue": 2331956,
-          "yoy_pct": 20.69,
-          "streak": 6,
-          "avg_yoy_pct": 13.7,
-          "min_yoy_pct": 5.43,
-          "max_yoy_pct": 20.69,
-          "mom_pct": -6.47,
-          "market": "TPEx",
-          "is_new": true
-        },
-        {
           "stock_id": "1216",
           "name": "統一",
           "industry": "食品工業",
@@ -36287,16 +36635,44 @@
           "is_new": true
         },
         {
-          "stock_id": "6680",
-          "name": "鑫創電子",
-          "industry": "電腦及週邊設備業",
-          "revenue": 46293,
-          "yoy_pct": 23.98,
+          "stock_id": "8415",
+          "name": "大國鋼",
+          "industry": "鋼鐵工業",
+          "revenue": 2331956,
+          "yoy_pct": 20.69,
           "streak": 6,
-          "avg_yoy_pct": 23.31,
-          "min_yoy_pct": 10.47,
-          "max_yoy_pct": 36.42,
-          "mom_pct": -0.31,
+          "avg_yoy_pct": 13.7,
+          "min_yoy_pct": 5.43,
+          "max_yoy_pct": 20.69,
+          "mom_pct": -6.47,
+          "market": "TPEx",
+          "is_new": true
+        },
+        {
+          "stock_id": "3088",
+          "name": "艾訊",
+          "industry": "電腦及週邊設備業",
+          "revenue": 859779,
+          "yoy_pct": 49.04,
+          "streak": 6,
+          "avg_yoy_pct": 38.19,
+          "min_yoy_pct": 14.59,
+          "max_yoy_pct": 65.88,
+          "mom_pct": 3.82,
+          "market": "TPEx",
+          "is_new": true
+        },
+        {
+          "stock_id": "3498",
+          "name": "陽程",
+          "industry": "其他電子業",
+          "revenue": 158419,
+          "yoy_pct": 67.09,
+          "streak": 6,
+          "avg_yoy_pct": 92.36,
+          "min_yoy_pct": 28.17,
+          "max_yoy_pct": 156.95,
+          "mom_pct": -53.67,
           "market": "TPEx",
           "is_new": true
         },
@@ -36329,48 +36705,6 @@
           "is_new": true
         },
         {
-          "stock_id": "3088",
-          "name": "艾訊",
-          "industry": "電腦及週邊設備業",
-          "revenue": 859779,
-          "yoy_pct": 49.04,
-          "streak": 6,
-          "avg_yoy_pct": 38.19,
-          "min_yoy_pct": 14.59,
-          "max_yoy_pct": 65.88,
-          "mom_pct": 3.82,
-          "market": "TPEx",
-          "is_new": true
-        },
-        {
-          "stock_id": "3285",
-          "name": "微端",
-          "industry": "其他電子業",
-          "revenue": 141440,
-          "yoy_pct": 216.75,
-          "streak": 6,
-          "avg_yoy_pct": 79.42,
-          "min_yoy_pct": 2.33,
-          "max_yoy_pct": 216.75,
-          "mom_pct": 93.54,
-          "market": "TPEx",
-          "is_new": true
-        },
-        {
-          "stock_id": "3498",
-          "name": "陽程",
-          "industry": "其他電子業",
-          "revenue": 158419,
-          "yoy_pct": 67.09,
-          "streak": 6,
-          "avg_yoy_pct": 92.36,
-          "min_yoy_pct": 28.17,
-          "max_yoy_pct": 156.95,
-          "mom_pct": -53.67,
-          "market": "TPEx",
-          "is_new": true
-        },
-        {
           "stock_id": "3706",
           "name": "神達",
           "industry": "電腦及週邊設備業",
@@ -36382,6 +36716,20 @@
           "max_yoy_pct": 49.3,
           "mom_pct": 17.23,
           "market": "TWSE",
+          "is_new": true
+        },
+        {
+          "stock_id": "6425",
+          "name": "易發",
+          "industry": "電機機械",
+          "revenue": 185601,
+          "yoy_pct": 44.84,
+          "streak": 6,
+          "avg_yoy_pct": 41.18,
+          "min_yoy_pct": 0.85,
+          "max_yoy_pct": 114.97,
+          "mom_pct": 59.99,
+          "market": "TPEx",
           "is_new": true
         },
         {
@@ -36413,20 +36761,6 @@
           "is_new": true
         },
         {
-          "stock_id": "3138",
-          "name": "耀登",
-          "industry": "通信網路業",
-          "revenue": 139198,
-          "yoy_pct": 6.89,
-          "streak": 6,
-          "avg_yoy_pct": 19.42,
-          "min_yoy_pct": 6.89,
-          "max_yoy_pct": 32.13,
-          "mom_pct": -18.01,
-          "market": "TWSE",
-          "is_new": true
-        },
-        {
           "stock_id": "6533",
           "name": "晶心科",
           "industry": "半導體業",
@@ -36437,6 +36771,20 @@
           "min_yoy_pct": 2.28,
           "max_yoy_pct": 39.51,
           "mom_pct": -18.36,
+          "market": "TWSE",
+          "is_new": true
+        },
+        {
+          "stock_id": "3138",
+          "name": "耀登",
+          "industry": "通信網路業",
+          "revenue": 139198,
+          "yoy_pct": 6.89,
+          "streak": 6,
+          "avg_yoy_pct": 19.42,
+          "min_yoy_pct": 6.89,
+          "max_yoy_pct": 32.13,
+          "mom_pct": -18.01,
           "market": "TWSE",
           "is_new": true
         },
@@ -36455,20 +36803,6 @@
           "is_new": true
         },
         {
-          "stock_id": "3605",
-          "name": "宏致",
-          "industry": "電子零組件業",
-          "revenue": 1108233,
-          "yoy_pct": 15.34,
-          "streak": 6,
-          "avg_yoy_pct": 10.04,
-          "min_yoy_pct": 0.04,
-          "max_yoy_pct": 17.82,
-          "mom_pct": -1.45,
-          "market": "TWSE",
-          "is_new": true
-        },
-        {
           "stock_id": "4949",
           "name": "有成精密",
           "industry": "光電業",
@@ -36479,6 +36813,20 @@
           "min_yoy_pct": 5.79,
           "max_yoy_pct": 43.92,
           "mom_pct": -2.98,
+          "market": "TWSE",
+          "is_new": true
+        },
+        {
+          "stock_id": "3605",
+          "name": "宏致",
+          "industry": "電子零組件業",
+          "revenue": 1108233,
+          "yoy_pct": 15.34,
+          "streak": 6,
+          "avg_yoy_pct": 10.04,
+          "min_yoy_pct": 0.04,
+          "max_yoy_pct": 17.82,
+          "mom_pct": -1.45,
           "market": "TWSE",
           "is_new": true
         },
@@ -36623,20 +36971,6 @@
           "is_new": true
         },
         {
-          "stock_id": "6177",
-          "name": "達麗",
-          "industry": "建材營造業",
-          "revenue": 432847,
-          "yoy_pct": 149.18,
-          "streak": 6,
-          "avg_yoy_pct": 695.88,
-          "min_yoy_pct": 149.18,
-          "max_yoy_pct": 1653.94,
-          "mom_pct": -18.25,
-          "market": "TWSE",
-          "is_new": true
-        },
-        {
           "stock_id": "6183",
           "name": "關貿",
           "industry": "資訊服務業",
@@ -36647,6 +36981,20 @@
           "min_yoy_pct": 0.56,
           "max_yoy_pct": 15.78,
           "mom_pct": 5.2,
+          "market": "TWSE",
+          "is_new": true
+        },
+        {
+          "stock_id": "6177",
+          "name": "達麗",
+          "industry": "建材營造業",
+          "revenue": 432847,
+          "yoy_pct": 149.18,
+          "streak": 6,
+          "avg_yoy_pct": 695.88,
+          "min_yoy_pct": 149.18,
+          "max_yoy_pct": 1653.94,
+          "mom_pct": -18.25,
           "market": "TWSE",
           "is_new": true
         },
@@ -39650,6 +39998,20 @@
           "is_new": false
         },
         {
+          "stock_id": "2734",
+          "name": "易飛網",
+          "industry": "觀光餐旅",
+          "revenue": 148975,
+          "yoy_pct": 6.65,
+          "peak_yoy_pct": 84.62,
+          "yoy_drop_pct": 77.97,
+          "growth_streak": 12,
+          "decel_months": 3,
+          "mom_pct": 0.06,
+          "market": "TPEx",
+          "is_new": true
+        },
+        {
           "stock_id": "5478",
           "name": "智冠",
           "industry": "文化創意業",
@@ -39664,16 +40026,16 @@
           "is_new": true
         },
         {
-          "stock_id": "2734",
-          "name": "易飛網",
-          "industry": "觀光餐旅",
-          "revenue": 148975,
-          "yoy_pct": 6.65,
-          "peak_yoy_pct": 84.62,
-          "yoy_drop_pct": 77.97,
-          "growth_streak": 12,
+          "stock_id": "6683",
+          "name": "雍智科技",
+          "industry": "半導體業",
+          "revenue": 202710,
+          "yoy_pct": 12.31,
+          "peak_yoy_pct": 59.45,
+          "yoy_drop_pct": 47.14,
+          "growth_streak": 29,
           "decel_months": 3,
-          "mom_pct": 0.06,
+          "mom_pct": -6.83,
           "market": "TPEx",
           "is_new": true
         },
@@ -39706,16 +40068,16 @@
           "is_new": true
         },
         {
-          "stock_id": "6683",
-          "name": "雍智科技",
-          "industry": "半導體業",
-          "revenue": 202710,
-          "yoy_pct": 12.31,
-          "peak_yoy_pct": 59.45,
-          "yoy_drop_pct": 47.14,
-          "growth_streak": 29,
+          "stock_id": "3293",
+          "name": "鈊象",
+          "industry": "文化創意業",
+          "revenue": 2123837,
+          "yoy_pct": 11.96,
+          "peak_yoy_pct": 36.48,
+          "yoy_drop_pct": 24.52,
+          "growth_streak": 47,
           "decel_months": 3,
-          "mom_pct": -6.83,
+          "mom_pct": 0.02,
           "market": "TPEx",
           "is_new": true
         },
@@ -39731,20 +40093,6 @@
           "decel_months": 3,
           "mom_pct": 2.51,
           "market": "TWSE",
-          "is_new": true
-        },
-        {
-          "stock_id": "3293",
-          "name": "鈊象",
-          "industry": "文化創意業",
-          "revenue": 2123837,
-          "yoy_pct": 11.96,
-          "peak_yoy_pct": 36.48,
-          "yoy_drop_pct": 24.52,
-          "growth_streak": 47,
-          "decel_months": 3,
-          "mom_pct": 0.02,
-          "market": "TPEx",
           "is_new": true
         },
         {
