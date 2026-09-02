@@ -480,7 +480,7 @@ MEMBERS = {
         ('華東', 'Core', '封裝', 'annual_report_table', '年報營業比重表：封裝 64.00%', 'Direct'),
         ('華泰', 'Core', '封裝及測試', 'annual_report_table', '年報營業比重表：封裝及測試 58.66%', 'Direct'),
         ('菱生', 'Core', '封裝測試服務', 'annual_report_table', '年報營業比重表：封裝測試服務 99.00%', 'Direct'),
-        ('訊芯-KY', 'Major', 'SiP&感測器', 'annual_report_table', '年報營業比重表：SiP&感測器 38.45%', 'Direct'),
+        ('訊芯-KY', 'Core', 'SiP&感測器', 'annual_report_table', '年報營業比重表：SiP&感測器 38.45%；其光收發模組 61.55% 是拿同一套 SiP 封裝能力做出的產出，非獨立生意，故 Core 留封裝（R024）', 'Direct'),
         ('超豐', 'Core', None, 'company_site', '年報無比重表；專業封裝測試廠', 'Direct'),
         ('頎邦', 'Core', '封裝及測試', 'annual_report_table', '年報營業比重表：封裝及測試 72.83%', 'Direct'),
     ],
@@ -658,7 +658,7 @@ MEMBERS = {
         ('昶昕', 'Core', '特用化學品', 'annual_report_table', '年報營業比重表：特用化學品 56.88%', 'Direct'),
     ],
     "D6-01": [
-        ('訊芯-KY', 'Core', '高速光纖收發模組', 'annual_report_table', '年報營業比重表：高速光纖收發模組 61.55%，大於其 SiP 封裝 38.45%（見 A5-05）', 'Direct'),
+        ('訊芯-KY', 'Major', '高速光纖收發模組', 'annual_report_table', '年報營業比重表：高速光纖收發模組 61.55%；為其 SiP 封裝能力的下游產出，Core 在 A5-05（R024）', 'Direct'),
         ('源傑科技', 'Core', '高速光連結模組及主動光纜', 'annual_report_table', '年報營業比重表：高速光連結模組及主動光纜 98.28%', 'Direct'),
     ],
     "C11-01": [
