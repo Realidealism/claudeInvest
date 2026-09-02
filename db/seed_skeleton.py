@@ -76,7 +76,10 @@ LOCAL_RULES = [
     ("R015", "A3 兩維度：製造模式 × 產品類型",
      "Foundry／IDM＝製造模式；Memory／Power／CIS／Compound＝產品類型。"
      "★兩者可同時存在、不互斥：一家 IDM 可同時掛 Power 與 Compound 產品節點；"
-     "Foundry 不是產品分類，不可被讀成 A3 的一個產品格。"),
+     "Foundry 不是產品分類，不可被讀成 A3 的一個產品格。"
+     "★同一公司可有多個**產品類型**曝險，但**製造模式本身不得作為 Industry Exposure**："
+     "旺宏的 Manufacturing Model 是 IDM、Industry Exposure 是 Memory（A3-03／A3-07），"
+     "不得寫成「Industry Exposure = IDM」。製造模式描述公司怎麼生產，不是它生產什麼。"),
 
     # Theme leaves the exposure type: it has its own table and its own contract.
     ("R018", "Exposure Type 只有 Direct / Indirect；Confidence 另計",
@@ -157,7 +160,10 @@ LOCAL_RULES = [
      "該 Indirect 列的 weight_pct 一律 NULL，比重僅保留於 evidence——年報確實揭露了這個數字，"
      "不寫明就會有人依 ① 把它填進去，重複計數就從這裡進來。"
      "例：茂達離散式功率元件 44.91% 來自合併的大中，大中已自列 A4-22。"
-     "④ weight_pct 為節點合計值；weight_item 可保留組成業務線，以 \" + \" 列出"
+     "④ weight_pct 為節點合計值，定義為「**可可靠拆分且屬於該 node 的 leaf revenue lines 總和**」"
+     "——只有 leaf 組成的 node total 才是正式 weight：若年報同時列出 A5 50%、A5-01 20%、"
+     "A5-02 30%，正式 weight 是 A5-01 的 20% 與 A5-02 的 30%，A5 那個 50% 是 subtotal，"
+     "不另建一列（與 R027 分母同一個原則）。weight_item 可保留組成業務線，以 \" + \" 列出"
      "（創意 A4-05＝委託設計 23.53%＋晶圓產品 75.38%＝98.91%）。"
      "若**該節點的**組成線中任一項無法可靠歸屬或計算，則該筆曝險 weight_pct=NULL，不得提供部分和"
      "（範圍是這一個節點，不是整家公司——同公司其他節點照常計算）；"
@@ -221,14 +227,25 @@ LOCAL_RULES = [
      "模組是該晶片的下游載體——若逕以最大營收線決定 Core，一家 IC 設計公司會被歸成週邊模組廠，"
      "產業本質就錯了。★三條規則分工：R019＝Core 怎麼算（同節點內聚合，不得跨節點）；"
      "R023＝算完之後看什麼（商業本質與價值鏈角色，不是名稱也不是單線大小）；"
-     "R024＝IC 設計與模組這個特定邊界怎麼判。"),
+     "R024＝IC 設計與模組這個特定邊界怎麼判。"
+     "★**裁定優先序（依序判定，前一項能定案就不往下走）**——"
+     "只寫判斷原則不寫順序，兩個研究員可以各自宣稱符合 R023 而得到不同的 Core："
+     "① **核心技術／產品能力**：公司最主要且具不可替代性的技術能力落在哪個節點；"
+     "② **價值創造位置**：主要毛利、技術、IP、品牌價值由哪個節點產生；"
+     "③ **商業本質**：下游產品是否為上游核心產品的載體、組裝或延伸（是 → Core 留上游，見 R024）；"
+     "④ **長期策略定位**：公司對外定位、研發資源、資本支出主要指向哪個節點；"
+     "⑤ **營收比重**：**只作支持證據，不得單獨作為決策依據**。"
+     "義隆走完就是：核心能力＝觸控/HMI 晶片設計（①）→ 輸入模組是該晶片的下游載體（③）"
+     "→ Core = A4-15；69.92% 的模組營收落在 ⑤，只是支持證據。"),
 
     ("R024", "IC 設計與模組/系統整合可並存，下游模組不得自動奪走 Core",
      "公司同時從事 IC 設計與模組/系統整合時，兩者可各自建立曝險；"
      "不得因下游模組營收較高而自動把 Core 改為模組產業。"
      "義隆＝Core A4-15 感測/HMI IC ＋ Major C11-01 筆電輸入裝置模組即為此形。"
      "★判準是兩條線的關係，不是公司屬於哪一種行業。"
-     "（一）下游是自家上游能力的載體或產出＝同一能力的上下游 → Core 留上游："
+     "（一）下游是**公司自身具實質技術／IP／製造能力**的上游業務之載體或產出"
+     "＝同一能力的上下游 → Core 留上游。★「自身具實質能力」是必要條件："
+     "若上游產品是外購、公司真正創造的價值在下游系統整合，本款不適用，回到 R023 的優先序。例："
      "義隆的輸入模組是它自家觸控 IC 的載體；訊芯-KY 的光收發模組 61.55% 是它拿 SiP 封裝能力"
      "做出來的產出（鴻海旗下 SiP 封裝廠），Core 留 A5-05 封裝而非 D6-01 光通訊元件。"
      "（二）兩條線均可獨立銷售且各具獨立經濟實質 → **R024 到此為止，不再提供額外判準**，"
@@ -257,8 +274,10 @@ LOCAL_RULES = [
     # to 19.26%, so the same share was labelled both ways.
     ("R026", "Major / Minor / Emerging 的判準：數值為預設，偏離須具名",
      "Core 依 R019／R023 判定（產業定位，不由數字決定）；**非 Core 的 role 走數值預設**："
-     "weight_pct >= 15% 為 Major、< 15% 為 Minor；**weight_pct 為 NULL 且非 Core 者預設 Major**，"
-     "若 evidence 足以確認該曝險僅屬附屬業務，得標 Minor——"
+     "weight_pct >= 15% 為 Major、< 15% 為 Minor。"
+     "★weight_pct 為 NULL 且非 Core 者，**依序判定**：先問「有沒有 evidence 證明它是附屬業務」"
+     "——有 → Minor；沒有 → Major。**Major 是 default 不是判定結果**，"
+     "寫成「預設 Major，再看看要不要改 Minor」會讓人以為 Major 是已經判過的結論。"
      "★「附屬業務」須有 evidence 支持，**不得僅因 weight 為 NULL 或營收未揭露而認定**，"
      "否則這個詞會變成下一個不可稽核的判斷。"
      "★這個預設不是「不知道就算重要」：能被建成一列代表該業務已被確認存在（evidence 必填），"
@@ -338,7 +357,14 @@ LOCAL_RULES = [
      "**不得由 evidence_kind、weight_pct 或 role 機械推導填入任一欄**——那會製造出"
      "看起來有判斷、實際只是既有欄位換句話說的資料。"
      "★現況（2026-09-02）：四欄**填充率皆為 0/523**。換代帶過已實跑驗證，"
-     "但驗到的是搬運 NULL；下次審查本條時，驗收條件是填充率 > 0。"),
+     "但驗到的是搬運 NULL——這四欄的資料品質尚未開始建立。"
+     "★**首批完成度門檻**（不是每欄都要 100%，是給這份 Master DB 一個「可以開始被引用」"
+     "的定義）：Core 100%（已達）／Industry Exposure 100%（已達，447 家皆有列）／"
+     "known_date >90%（現 521/523＝99.6%，但其中 34 列的日期取錯來源，見 R021）／"
+     "confidence >90%／supply_chain_position >50%／strategic_priority >30%／"
+     "ecosystem 對照 >50%（現 10 列全在 E01，其餘 5 個生態系 0 成員）。"
+     "門檻高低反映的是可得性不是重要性：confidence 每列都判得出來，"
+     "strategic_priority 需要法說會等外部出處，本來就不可能全覆蓋。"),
 
     # The draft licensed "two A3 exposures", which reads as licence to count one
     # revenue line twice.
@@ -354,8 +380,9 @@ LOCAL_RULES = [
     # A term being hot does not mean the tree has no home for it.
     ("R010", "熱門名詞不各自獨立成 Theme",
      "AI Agent / LLM / GenAI / ML 歸入 T35 AI Software，不各自開一個 Theme。"
-     "★但這只約束 Theme 側：若樹上已有適當節點（如 U6 AI Software），"
-     "依 R005 仍應建立 Industry Exposure，Industry 與 Theme 並存，不是二選一。"
+     "★T35 是**跨技術／產品概念的 Theme 集合，不取代 U6 的 Industry 歸屬**："
+     "若樹上已有適當節點（如 U6 AI Software），依 R005 仍應建立 Industry Exposure，"
+     "Industry 與 Theme 並存，不是二選一——不得把 AI Software 這門生意整個塞進 Theme 了事。"
      "★現況：T35 目前 0 個成員，U6 節點 0 筆曝險——這條規則描述的形態尚未在庫裡發生。"),
 
     # These three describe machinery that exists and is empty. Left unannotated
@@ -401,6 +428,19 @@ LOCAL_RULES = [
      "★E01 的 coverage 是硬體供應鏈（GPU、AI Server、PCB、載板、電源、散熱…），"
      "不是 CUDA 那種軟體平台生態系——先前以 CUDA 舉例與庫裡的 E01 不符，已移除。"),
 
+    # The 1-Core-per-company constraint lived only in a unique index. A rule
+    # nobody wrote down is a rule the next schema change can drop.
+    ("R029", "Core Cardinality：一家公司的 Core 最多 1 個",
+     "**Core = 0 → Core pending**（合法狀態，見 R019）；**Core = 1 → valid**；"
+     "**Core > 1 → validation error，載入器拒收**。"
+     "★這不只是慣例，DB 層已強制：部分唯一索引 cie_one_current_core "
+     "(stock_id) WHERE role='Core' AND effective_to IS NULL——索引不可延遲檢查，"
+     "故換代時必須先降級舊 Core 再升級新 Core（db.seed_industry 為此把降級排在升級之前）。"
+     "★**Core pending 的公司照樣可以建立 Industry Exposure、Theme、Supply Chain 與集團對照**"
+     "——沒有 Core 只是主從未定，不是這家公司不能進資料庫；"
+     "任何 `if no_core: reject_company()` 的實作都違反本條。"
+     "★現況（2026-09-02）：447 家皆為 Core=1，pending 0 家、>1 者 0 家。"),
+
     ("R022", "通路/代理商的產品線不得僅據產品名稱認定製造歸屬",
      "若公司**某一業務線**僅具通路/代理性質，其產品中即使出現設備、材料、載板、IC 等製造品項，"
      "也不得僅因產品名稱將該業務認定為製造業務；該產品如需保留產業關聯，"
@@ -416,9 +456,22 @@ LOCAL_RULES = [
 ]
 
 # 22 rules read as a list; grouped they read as a structure.
+# What a rule is about (category) and what a reader does with it (kind) are two
+# different questions. A hard constraint decides whether a row may exist, a
+# decision rule needs judgement against evidence, and a validation rule reports
+# and lets the load proceed — code that enforces the first and surfaces the third
+# needs to tell them apart.
+RULE_KINDS = {
+    "hard_constraint": ["R003", "R004", "R011", "R016", "R018", "R020", "R029"],
+    "decision": ["R001", "R002", "R005", "R010", "R012", "R015", "R017", "R019",
+                 "R022", "R023", "R024", "R025", "R026"],
+    "validation": ["R006", "R007", "R008", "R009", "R013", "R014", "R021",
+                   "R027", "R028"],
+}
+
 RULE_CATEGORIES = {
     "產業分類": ["R001", "R002", "R004", "R011", "R015", "R016", "R019",
-             "R022", "R023", "R024", "R025", "R026"],
+             "R022", "R023", "R024", "R025", "R026", "R029"],
     "題材": ["R003", "R005", "R010", "R012", "R017"],
     "權重與證據": ["R006", "R018", "R020", "R027", "R028"],
     "供應鏈": ["R007"],
@@ -518,6 +571,11 @@ def sync_reference_dicts(cur):
     for rule_id, category in rule_category.items():
         cur.execute("UPDATE tw.classification_rules SET category = %s WHERE rule_id = %s",
                     (category, rule_id))
+
+    rule_kind = {rid: k for k, ids in RULE_KINDS.items() for rid in ids}
+    for rule_id, kind in rule_kind.items():
+        cur.execute("UPDATE tw.classification_rules SET rule_kind = %s WHERE rule_id = %s",
+                    (kind, rule_id))
 
     # region_exposure_rules and manufacturing_mode_examples have no natural key,
     # so they are replaced wholesale rather than upserted.
