@@ -33,6 +33,46 @@ Sync with: python -m db.seed_industry --check   (report only)
 
 # node_code -> [(name, role, weight_item, evidence_kind, evidence, exposure_type)]
 MEMBERS = {
+    "X9": [
+        ('萬國通', 'Core', '行李箱', 'annual_report_table', '年報營業比重表：行李箱 94.00%', 'Direct'),
+    ],
+    "M7": [
+        ('恆大', 'Core', '紡結與複合不織布 + 加工品', 'annual_report_table', '年報營業比重表：紡結與複合不織布 87.82% 加加工品 9.51%', 'Direct'),
+    ],
+    "K6": [
+        ('南港', 'Core', '輪胎-汽車', 'annual_report_table', '年報營業比重表：汽車輪胎 98.99%', 'Direct'),
+        ('泰豐', 'Core', '輪胎', 'annual_report_table', '年報營業比重表：輪胎 91.00%', 'Direct'),
+        ('正新', 'Core', '自行車外胎 + 內胎 + 機車外胎 + 輻射層汽車外胎 + 其他輪胎', 'annual_report_table', '年報營業比重表：五條輪胎線合計 98.86%', 'Direct'),
+        ('華豐', 'Core', '機車胎 + 自行車胎 + 農工業用胎', 'annual_report_table', '年報營業比重表：機車胎 55% 加自行車胎 22% 加農工業用胎 21%', 'Direct'),
+        ('建大', 'Core', None, 'filing_too_coarse', '年報僅列「各種橡塑膠製品之製造加工及批發與零售 83%」，未拆產品線；建大為輪胎製造廠', 'Direct'),
+    ],
+    "K5": [
+        ('鑫永銓', 'Core', '橡膠產品', 'annual_report_table', '年報營業比重表：橡膠產品 98.00%，主力為輸送帶', 'Direct'),
+        ('厚生', 'Core', '橡膠膠皮 + 綠塑膠皮 + 塑膠膠皮', 'annual_report_table', '年報營業比重表：橡膠膠皮 37% 加綠塑膠皮 10% 加塑膠膠皮 10%；另有倉儲 23% 與營建 18%', 'Direct'),
+    ],
+    "K2": [
+        ('三芳', 'Core', '環保合成皮革 + PU合成皮革 + 薄膜', 'annual_report_table', '年報營業比重表：環保合成皮革 44.27% 加 PU 合成皮革 39.79% 加薄膜 9.30%', 'Direct'),
+        ('富林-KY', 'Core', '乳膠皮 + PU／TPU + 柔軟皮 + 膠布', 'annual_report_table', '年報營業比重表：四條合成皮與膠布線合計 99.39%', 'Direct'),
+        ('信立', 'Core', '乾式PU合成皮', 'annual_report_table', '年報營業比重表：乾式 PU 合成皮 52.00%', 'Direct'),
+        ('達新', 'Core', '塑膠製品製造加工', 'annual_report_table', '年報營業比重表：塑膠製品製造加工 67.06%', 'Direct'),
+        ('再生-KY', 'Core', '箱包片材 + 普通片材 + 高彈性發泡 + 地墊', 'annual_report_table', '年報營業比重表：四條塑膠片材線合計 84.76%', 'Direct'),
+        ('勝昱', 'Core', '鋁箔麥拉帶 + 塑膠膜 + 積層膜', 'annual_report_table', '年報營業比重表：鋁箔麥拉帶 59% 加塑膠膜 11% 加積層膜 9%', 'Direct'),
+        ('世坤', 'Core', '軟質 + 半硬質', 'annual_report_table', '年報營業比重表：軟質 72% 加半硬質 14%，產品為聚氨酯發泡材', 'Direct'),
+        ('炎洲', 'Core', '膠帶 + 包材', 'annual_report_table', '年報營業比重表：膠帶 64% 加包材 14%', 'Direct'),
+        ('永裕', 'Core', '製瓶廠製品 + 射出廠製品 + 軟管廠製品 + 其他製品', 'annual_report_table', '年報營業比重表：四條塑膠容器線合計 99.60%', 'Direct'),
+        ('大洋', 'Major', '塑膠布 + 塑膠建材 + 合成皮', 'annual_report_table', '年報營業比重表：塑膠布 23.76% 加塑膠建材 22.77% 加合成皮 4.95%', 'Direct'),
+    ],
+    "K1-01": [
+        ('大洋', 'Core', '塑膠原料', 'annual_report_table', '年報營業比重表：塑膠原料 48.51%，為加工用複合料而非上游塑化原料', 'Direct'),
+    ],
+    "J15": [
+        ('國際中橡', 'Core', '碳黑', 'annual_report_table', '年報營業比重表：碳黑 98.35%', 'Direct'),
+    ],
+    "J3": [
+        ('台橡', 'Core', '合成橡膠', 'annual_report_table', '年報營業比重表：合成橡膠 98.18%，產品為 SBR/BR 等合成橡膠原料', 'Direct'),
+        ('南帝', 'Core', 'SBR合成橡膠乳液(乳膠) + NBR合成橡膠(耐油膠)', 'annual_report_table', '年報營業比重表：SBR 乳膠 73% 加 NBR 耐油膠 22%', 'Direct'),
+        ('申豐', 'Core', '醫材及其他用途之合成乳膠原料', 'annual_report_table', '年報營業比重表：合成乳膠原料 51.00%', 'Direct'),
+    ],
     "J14": [
         ('花仙子', 'Core', '驅塵潔淨類 + 芳香消臭類 + 除濕類', 'annual_report_table', '年報營業比重表：驅塵潔淨 55% 加芳香消臭 28% 加除濕 17%', 'Direct'),
         ('毛寶', 'Core', '家 庭 清 潔 系 列 + 洗 衣 劑 系 列', 'annual_report_table', '年報營業比重表：家庭清潔 54% 加洗衣劑 42%', 'Direct'),
@@ -57,6 +97,7 @@ MEMBERS = {
         ('國化', 'Core', '氧化鋅 + 吊白塊 + 重亞硫酸鈉 + 保險粉', 'annual_report_table', '年報營業比重表：四項無機化學品合計 100%', 'Direct'),
     ],
     "J9": [
+        ('中石化', 'Core', '己內醯胺、尼龍粒', 'annual_report_table', '年報營業比重表：己內醯胺、尼龍粒 50.16%；其丙烯腈 49.45% 另計於 J1-01', 'Direct'),
         ('材料*-KY', 'Core', '二醋酸纖維絲束 + 二醋酸纖維素', 'annual_report_table', '年報營業比重表：二醋酸纖維絲束 86% 加二醋酸纖維素 14%', 'Direct'),
     ],
     "J7": [
@@ -85,6 +126,15 @@ MEMBERS = {
         ('和桐', 'Core', '化學品', 'annual_report_table', '年報營業比重表：化學品 94.00%，主力為直鏈烷基苯 LAB', 'Direct'),
     ],
     "J1-01": [
+        ('台塑', 'Core', '塑膠事業部 + 聚烯事業部 + 台麗朗事業部 + 聚丙烯事業部 + 化學品事業部', 'annual_report_table', '年報營業比重表：五個事業部合計 97.63%，產品為 PVC、PE、PP 等上游塑化原料', 'Direct'),
+        ('台聚', 'Core', '塑膠原料', 'annual_report_table', '年報營業比重表：塑膠原料 91.00%，主力為聚乙烯 PE', 'Direct'),
+        ('華夏', 'Core', 'PVC粉、塑膠粒及化學品 + 氯乙烯單體', 'annual_report_table', '年報營業比重表：PVC 粉塑膠粒及化學品 66% 加氯乙烯單體 11%', 'Direct'),
+        ('亞聚', 'Core', '乙烯醋酸乙烯酯樹脂', 'annual_report_table', '年報營業比重表：乙烯醋酸乙烯酯樹脂 EVA 63.00%', 'Direct'),
+        ('台達化', 'Core', '1.發泡級聚苯乙烯(EPS) + 3.通用級聚苯乙烯(GPS)', 'annual_report_table', '年報營業比重表：發泡級聚苯乙烯 44.97% 加通用級聚苯乙烯 22.94%', 'Direct'),
+        ('台苯', 'Core', '苯乙烯單體', 'annual_report_table', '年報營業比重表：苯乙烯單體 SM 93.30%', 'Direct'),
+        ('國喬', 'Core', '塑膠銷貨收入(ABS、HIPS、PP) + 石化銷貨收入(SM、Propylene)', 'annual_report_table', '年報營業比重表：塑膠 39.56% 加石化 39.51%，產品為 ABS/HIPS/PP 與 SM/丙烯', 'Direct'),
+        ('台化', 'Core', None, 'filing_too_coarse', '年報僅列「化工一部 39%／化工二部 22%／塑膠部 21%／化工三部 12%」，部門名稱不指明產品，無法拆到節點；台化為芳香烴、塑膠原料與化纖的上游石化廠', 'Direct'),
+        ('中石化', 'Major', '丙烯腈', 'annual_report_table', '年報營業比重表：丙烯腈 49.45%', 'Direct'),
         ('東聯', 'Core', '乙二醇事業', 'annual_report_table', '年報營業比重表：乙二醇事業 66.00%，為石化中間原料', 'Direct'),
         ('台蠟', 'Core', '精煉白蠟及微晶蠟', 'annual_report_table', '年報營業比重表：精煉白蠟及微晶蠟 65.00%，石油系蠟品；另有租賃 25% 與水產 11% 非化工業務', 'Direct'),
     ],
