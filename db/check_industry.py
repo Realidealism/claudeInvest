@@ -138,6 +138,11 @@ def check_coverage(cur, threshold):
     Companies with no assigned weight at all are the point of the LEFT JOIN: they
     are the worst cases and an inner join would drop every one of them.
 
+    The denominator wants mutually exclusive leaf lines. Totals and contra rows
+    are excluded by name, but the parser still emits the occasional fragment of
+    running text as a product line, so a handful of companies sum past 100 and
+    their coverage here is a lower bound rather than a measurement.
+
     Not a failure: a distributor legitimately books most of its revenue under one
     node, and a company whose filing gives one coarse line has nothing to assign.
     It is a work list, not an error list.
@@ -150,14 +155,17 @@ def check_coverage(cur, threshold):
             SELECT stock_id, sum(weight_pct) AS w
             FROM tw.company_industry_exposure
             WHERE effective_to IS NULL AND exposure_type = 'Direct'
-              AND weight_pct IS NOT NULL
+              AND weight_pct IS NOT NULL AND weight_type = 'Revenue'
             GROUP BY stock_id
         ), reported AS (
             SELECT stock_id, sum(pct_effective) AS t
             FROM tw.product_revenue_share
             WHERE fiscal_year = %s AND pct_effective IS NOT NULL
               AND item NOT IN ('其他', '其它', '合計', '其他營業收入',
-                               '租賃收入', '勞務收入', '銷貨收入')
+                               '租賃收入', '勞務收入', '銷貨收入',
+                               '銷貨淨額', '營業收入', '營業收入淨額',
+                               '銷貨收入淨額', '總計')
+              AND item NOT LIKE '減%%'
             GROUP BY stock_id
         )
         SELECT c.stock_id, s.name,
