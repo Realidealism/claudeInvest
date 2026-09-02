@@ -126,6 +126,17 @@ LOCAL_RULES = [
 
     ("R019", "Core Industry 由產業曝險資料推導，不以單一營收最大值機械決定",
      "三段式：**Exposure Table → 同一 node 聚合後形成 Core 候選集合 → 依 R023／R024 裁定 → Core**。"
+     "★**候選集合的定義（可直接照著實作）**：現行 Industry Exposure 中 "
+     "`exposure_type='Direct'` 且 `role <> 'Emerging'` 的**葉節點**（R016），"
+     "先依相同葉節點聚合可可靠權重，即為 Core Candidate Set。"
+     "★`exposure_type='Indirect'` **不得參與 Core 候選**——它依 R018 就不是該公司自身的直接業務，"
+     "若放進來競爭，蔚華科那種「V1 通路 Direct 93.77% ＋ A2-13 設備 Indirect」的公司"
+     "就可能被推出一個製造型 Core，與 R022 正面衝突。"
+     "★`role='Emerging'` 亦不得直接成為候選——它依 R026 尚無可辨識營收，不是現有核心業務；"
+     "若日後有了實際經濟活動，須重新建立 Direct Exposure 再依 R019～R024 裁定。"
+     "★**候選資格不以 `weight_pct IS NOT NULL` 為條件**：有可靠權重者以權重作支持證據，"
+     "weight 為 NULL 者照樣進入候選並依 R023／R024 裁定——超豐無比重仍為 Core 就是此形。"
+     "實作若寫成 `WHERE weight_pct IS NOT NULL` 會把整批只揭露粗線的公司排除在 Core 之外。"
      "候選以產業曝險資料為基礎產生，最終歸屬再依 R023／R024 所定義之主要經濟曝險、價值創造能力、"
      "價值鏈角色與公司產業定位判定。"
      "★**MUST NOT 以 `MAX(weight_pct)` 取代規則判斷**——義隆 C11-01 69.92% 大於 A4-15 27.72%，"
@@ -212,7 +223,12 @@ LOCAL_RULES = [
      "parent_code 指向它的節點）；非葉節點只供聚合與查詢，**不得直接建立 Exposure**。"
      "A4／F7 是分支代碼，要寫 A4-19／F7-01；db.check_industry 的 [depth] 檢查在守這條。"
      "★葉的定義是**結構性的不是層級性的**：樹目前是三層，但若日後出現 A4-15-01，"
-     "A4-15 就不再是葉，既有指向它的曝險必須一併下移——「L3 就是葉」不成立。"),
+     "A4-15 就不再是葉，既有指向它的曝險必須一併下移——「L3 就是葉」不成立。"
+     "★**節點在仍有現行 Exposure 指向時，不得直接被降為非葉**：新增 child 之前必須先完成"
+     "既有 Exposure 的下移。否則 FK 照樣解得開、什麼都不會報錯，那些列卻已經違反本條，"
+     "要等 [depth] 事後才抓到。★DB 層已強制：`tw.industry_tree` 的 BEFORE INSERT trigger "
+     "`industry_tree_leaf_guard` 會擋下「父節點尚有現行曝險」的新增（migration 096），"
+     "錯誤訊息直接指名還有幾列要搬。"),
 
     # The draft names "A3 Memory" etc., which R005 forbids and the tree does
     # not contain. Left as drafted it is a copy-paste source of bad codes.
@@ -248,7 +264,10 @@ LOCAL_RULES = [
      "產業本質就錯了。★三條規則分工：R019＝Core 怎麼算（同節點內聚合，不得跨節點）；"
      "R023＝算完之後看什麼（商業本質與價值鏈角色，不是名稱也不是單線大小）；"
      "R024＝IC 設計與模組這個特定邊界怎麼判。"
-     "★**裁定優先序（依序判定，前一項能定案就不往下走）**——"
+     "★**裁定優先序（依序判定，前一項能定案就不往下走）**。"
+     "**「能定案」＝證據足以排除其他候選節點之合理競爭解釋**——"
+     "若另一個候選仍有說得通的解釋沒被排除，這一階就不算定案，必須繼續往下走。"
+     "（否則 A 說「技術能力在 A4」就宣稱定案，B 說「A5 也合理」，優先序等於沒有作用。）"
      "只寫判斷原則不寫順序，兩個研究員可以各自宣稱符合 R023 而得到不同的 Core："
      "① **主要且持續創造經濟價值的核心技術／產品能力**落在哪個節點——"
      "「持續創造經濟價值」是限定語，**不是「技術含量高就勝出」**：一項技術再深，"
@@ -485,14 +504,22 @@ LOCAL_RULES = [
 
     # The three axes were defined but never constrained against each other.
     ("R030", "時間一致性：三軸之間必須互相說得通",
-     "① **known_date <= data as-of**——查詢或回測的資料截止日之後才知道的事，"
-     "在那個時點不存在；② **effective_from <= effective_to**；"
-     "③ **known_date <= effective_to**（若 To 存在）——否則回測會在這一列已經失效之後"
-     "才第一次看見它；④ **evidence_period_end <= known_date**——證據涵蓋的期間"
-     "結束在它被公告之前，反過來就是拿還沒發生的期間當證據。"
-     "★②③④ 自 migration 095 起是 DB CHECK 約束（cie_effective_range／"
-     "cie_known_within_range／cie_period_before_known），寫不進去；"
-     "① 做不成約束——「as-of」是查詢當下才知道的值，資料庫看不到，"
+     "**必須成立**：① `known_date <= data as-of`——資料截止日之後才知道的事，"
+     "在那個時點不存在；② `effective_from <= effective_to`；"
+     "③ `evidence_period_end <= known_date`（**僅當 evidence_period_end 有值時**"
+     "——公司網站產品頁這類證據本來就沒有明確報導期間，不得因此要求每列都有值）；"
+     "④ `evidence_period_end <= data as-of`。"
+     "★**`known_date <= effective_to` 不要求成立，且不得設成約束**："
+     "Effective 說的是「這個分類何時成立」，Known 說的是「我們何時才知道」，兩軸本來就可以錯開。"
+     "某業務 effective 2020-01-01～2020-12-31、known_date 2021-03-15（FY2020 年報申報日）"
+     "是完全合法的資料——2020 年這個業務確實存在，我們到 2021-03 才從年報知道。"
+     "**Known_Date 晚於 Effective_To 時，該分類保留作歷史事實，但在任何 as-of < Known_Date 的"
+     "回測中不得視為已知資料**——這正是 Known_Date 存在的目的。"
+     "（migration 095 曾把它設成 CHECK cie_known_within_range，那是把兩軸讀成同一件事，"
+     "已於 migration 096 移除；當時沒有觸發只是因為 effective_to 都是換代當日、"
+     "known_date 都是過去的申報日，真正載入歷史層時就會被誤擋。）"
+     "★②③ 自 migration 095 起是 DB CHECK（cie_effective_range／cie_period_before_known）；"
+     "①④ 做不成約束——「as-of」是查詢當下才知道的值，資料庫看不到，"
      "故由 db.check_industry 的 [temporal] 以 current_date 為界檢查。"
      "★[temporal] 同時覆蓋四條，這樣約束若被誰拿掉，會在檢查裡浮出來而不是無聲消失。"
      "★現況（2026-09-02）：541 列（含歷史層）全數通過。"),

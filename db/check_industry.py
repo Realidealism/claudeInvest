@@ -207,12 +207,15 @@ def check_coverage(cur, threshold):
 def check_temporal(cur):
     """Rows whose three time axes disagree with each other (R030).
 
-    Four of the five conditions are CHECK constraints as of migration 095, so
-    they cannot be violated by a write. The fifth cannot be: known_date must not
-    run past the data as of date, and "as of" is the moment the query runs, which
-    no constraint can see. This check covers all five so the rule has one place
-    to point at, and so a constraint being dropped shows up here rather than
-    silently.
+    Two of the four are CHECK constraints (migration 095); the two that compare
+    against the as-of date cannot be, because "as of" is the moment the query
+    runs and no constraint can see it. All four are checked here so the rule has
+    one place to point at, and so a dropped constraint shows up rather than
+    passing silently.
+
+    known_date after effective_to is NOT a violation and is not checked: a
+    business that ran through 2020 and was disclosed in the FY2020 report filed
+    in 2021 is exactly what known_date is for (R030).
     """
     return _rows(cur, """
         SELECT e.stock_id, s.name, e.node_code,
@@ -221,17 +224,17 @@ def check_temporal(cur):
                    WHEN e.known_date > current_date THEN 'known_date in the future'
                    WHEN e.effective_to IS NOT NULL AND e.effective_from > e.effective_to
                        THEN 'effective_from after effective_to'
-                   WHEN e.effective_to IS NOT NULL AND e.known_date > e.effective_to
-                       THEN 'known_date after effective_to'
                    WHEN e.evidence_period_end > e.known_date
                        THEN 'evidence_period_end after known_date'
+                   WHEN e.evidence_period_end > current_date
+                       THEN 'evidence_period_end in the future'
                END AS problem
         FROM tw.company_industry_exposure e
         JOIN tw.stocks s ON s.stock_id = e.stock_id
         WHERE e.known_date > current_date
            OR (e.effective_to IS NOT NULL AND e.effective_from > e.effective_to)
-           OR (e.effective_to IS NOT NULL AND e.known_date > e.effective_to)
            OR e.evidence_period_end > e.known_date
+           OR e.evidence_period_end > current_date
         ORDER BY e.stock_id
     """)
 
