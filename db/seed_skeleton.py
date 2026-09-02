@@ -50,7 +50,10 @@ LOCAL_RULES = [
      "產業曝險可使用 Revenue／Profit／Capacity／Strategic Priority 等不同權重維度；"
      "各維度須明確標示來源與計算方式，不得混用。"
      "目前唯一有資料來源的是 Revenue（年報營業比重表，分母為合併營收）；"
-     "Profit 因台灣年報普遍不揭露分部損益而無來源，欄位已移除而非留白待猜（見 R020）。"),
+     "Profit 因台灣年報普遍不揭露分部損益而無來源，欄位已移除而非留白待猜（見 R020）。"
+     "★現況限制：db.fill_weight 每次執行會清空全表的 weight_pct/weight_type/weight_basis 再回填 "
+     "Revenue 型，所以目前只有 Revenue 型權重能留在庫裡；要落地 Capacity/Strategic 型，"
+     "必須先讓該清空語句只作用於 weight_type='Revenue'。"),
 
     # R004 as drafted read as "one industry per company" to more than one
     # reader. The constraint is on the business line, not the company.
@@ -62,7 +65,9 @@ LOCAL_RULES = [
     # "新產品" was too wide: a product can be new and still have a home.
     ("R005", "尚未有適當 Industry 節點的新興技術/產品優先進入 Theme",
      "若已有適當 Industry 節點，Industry 與 Theme 可並存，不必二選一。"
-     "HBM 即為此例：Theme T07 與 A3 Memory／A5 HBM Packaging／A6 HBM Test 同時成立（見 R017）。"),
+     "HBM 即為此例：Theme T07 與 A3-03 DRAM 製造／A5-04 HBM Packaging／A6-07 HBM Test "
+     "同時成立（見 R017）。★節點一律引用 node_code，不引用「A3 Memory」這類非節點的口語名——"
+     "A3 底下沒有 Memory 格，只有 A3-03 DRAM 製造與 A3-07 NOR/NAND Flash 製造。"),
 
     ("R015", "A3 兩維度：製造模式 × 產品類型",
      "Foundry/IDM＝製造模式（商業模式）；Memory/Power/CIS/Compound＝產品類型。"
@@ -92,9 +97,13 @@ LOCAL_RULES = [
      "而非因兩者合計後的 99% 得出。"
      "例：精材測試服務 47.86% 大於晶圓級尺寸封裝 44.98%，但後者與後護層封裝 5.18% 同屬封裝業務群"
      "合計 50.16%，故 Core 為 A5-02 而非 A6-01。"
-     "★若無法唯一判定，Core 可為 NULL（待確認），載入器不因此拒收，由 db.check_industry 列出。"
-     "★Core ≠ Revenue Exposure Level：超豐無比重仍為 Core，精材 44.98% 的 revenue_exposure 是 Medium "
-     "但仍是 Core。前者是產業定位，後者是營收分箱。★業務群本身的排序見 R023。"),
+     "★若無法唯一判定，該公司**不建立 Core 列**（role 是列上的 enum，沒有 NULL 這個值），"
+     "載入器不因此拒收，由 db.check_industry 的 [core] 檢查列出待確認。"
+     "★此例的節點合計必須真的落地（R020④）：A5-02 的 weight_item 是"
+     "「晶圓級尺寸封裝 + 晶圓級後護層封裝」、weight_pct=50.16——若只存 44.98，"
+     "資料本身會顯示 Core 小於 Major，規則的論證在庫裡就是假的。"
+     "★Core ≠ Revenue Exposure Level：超豐無比重仍為 Core。前者是產業定位，後者是營收分箱。"
+     "★業務群本身的排序見 R023。"),
 
     ("R020", "Weight 可為 NULL，且必須標明類型與分母",
      "① weight_pct 表示該 Industry 節點可歸屬之營收曝險，須標示 weight_type／weight_basis，"
@@ -104,15 +113,18 @@ LOCAL_RULES = [
      "相關節點仍可建立 Direct Exposure，但各節點 weight_pct=NULL，並以 "
      "evidence_kind='filing_too_coarse' 說明；不得將該上層營收線比重套用至任一子節點。"
      "例：欣興「印刷電路板 99.07%」橫跨 B3-01 ABF 載板與 B2-01 硬板、"
-     "德律「自動檢測設備 97.21%」橫跨 A2-13 半導體測試與 B5-01 PCBA 檢測，"
+     "德律「自動檢測設備 97.21%」橫跨 A2-13 測試/檢測設備（半導體側）與 B5-01 製程設備（PCBA 側），"
      "兩對都是兩格 Direct、兩格 NULL——**包括原本掛著比重的那一格**；"
      "台化「化工一部 39%」同理，部門名稱不指明產品，不可當成任一細格的比重。"
      "③ 若母公司合併營收線之產業曝險主要來自已於同一 Industry 節點獨立建檔之合併子公司，"
      "母公司該曝險保留為 Indirect，不得再次納入市場層級產業權重，以避免母子公司重複計數。"
+     "該 Indirect 列的 weight_pct 一律 NULL，比重只寫進 evidence——年報確實揭露了這個數字，"
+     "不寫明就會有人依 ① 把它填進去，重複計數就從這裡進來。"
      "例：茂達離散式功率元件 44.91% 來自合併的大中，大中已自列 A4-22。"
      "④ weight_pct 為節點合計值；weight_item 可保留組成業務線，以 \" + \" 列出"
      "（創意 A4-05＝委託設計 23.53%＋晶圓產品 75.38%＝98.91%）。"
-     "若組成線中任一項無法可靠歸屬或計算，則整筆 weight_pct=NULL，不得提供部分和；"
+     "若**該節點的**組成線中任一項無法可靠歸屬或計算，則該筆曝險 weight_pct=NULL，不得提供部分和"
+     "（範圍是這一個節點，不是整家公司——同公司其他節點照常計算）；"
      "已知組成項仍可保留於 weight_item／evidence。"
      "★機制：db.fill_weight 對 evidence_kind='filing_too_coarse' 的列一律跳過——"
      "否則保留下來的 item 會被解析回填，等於從後門推導出節點合計。"
@@ -120,7 +132,8 @@ LOCAL_RULES = [
      "exposure_type='Indirect' 只給**經濟性質本身間接**者：代理/通路品項（見 R022），"
      "以及 ③ 的合併子公司情形。"
      "⑥ Revenue Exposure 等級不落地儲存，由 weight 經 view tw.v_company_industry_exposure "
-     "機械推導（<20% Low／20-50% Medium／>=50% High）；非 Revenue 型權重不產生等級。"),
+     "機械推導（>=50% High／>=20% 且 <50% Medium／<20% Low，端點以 view 實作為準）；"
+     "非 Revenue 型權重不產生等級。"),
 
     # "UPS -> C13 or I7" as drafted lets two readers file the same company in
     # different cells, which is the one thing a taxonomy cannot survive.
@@ -130,6 +143,15 @@ LOCAL_RULES = [
      "一般工業與商用電力電子 UPS→I7。原稿寫「C13 或 I7」，"
      "「或」讓兩個判讀者可以把同一家公司放進不同格，分類就不可重現。"),
 
+    # Micron is not in tw.stocks, and A4/F7 are branch codes the depth check
+    # rejects. The point survives with a listed company and leaf codes.
+    ("R016", "跨分類依產品/供應鏈角色，不依公司名稱",
+     "一家公司的曝險落在哪個分支，看的是產品與供應鏈角色，不是公司名稱或官方分類。"
+     "例：群聯＝Core F7-01 記憶體模組 72.41% ＋ Minor A4-19 記憶體控制 IC 19.26%——"
+     "它自研控制 IC，但主要生意是模組，兩個分支各建一列。"
+     "★節點一律寫到葉節點代碼：A4／F7 是分支代碼，db.check_industry 的 [depth] 檢查會擋，"
+     "要寫 A4-19／F7-01。"),
+
     ("R021", "時間三軸：Effective / Known / Evidence",
      "Effective_From/To＝這個分類何時成立；Known_Date＝我們最早何時可能知道（MOPS 申報日）；"
      "Evidence_Period_End＝證據本身對應哪個期間（FY2025 年報＝2025-12-31）。三者不可互相代替。"
@@ -138,7 +160,9 @@ LOCAL_RULES = [
 
     ("R023", "Core 依商業本質與價值鏈角色判定",
      "營收最大業務線不得單獨決定 Industry Core；應判斷公司主要創造價值的產品、技術能力與"
-     "價值鏈角色。最大營收品項另存於曝險列（largest_revenue_item），Core 另行判定。"
+     "價值鏈角色。最大營收品項不落地儲存，由 view tw.v_company_industry_exposure 的 "
+     "largest_revenue_item／largest_revenue_pct 依**公司層**推導（同一公司每列相同），"
+     "Core 另行判定。"
      "義隆的筆電輸入裝置模組 69.92% 大於其觸控 IC 27.72%，但它是觸控/HMI 晶片設計公司，"
      "模組是該晶片的下游載體——若逕以最大營收線決定 Core，一家 IC 設計公司會被歸成週邊模組廠，"
      "產業本質就錯了。★三條規則分工：R019＝Core 怎麼算（同節點內聚合，不得跨節點）；"
@@ -153,10 +177,14 @@ LOCAL_RULES = [
      "（一）下游是自家上游能力的載體或產出＝同一能力的上下游 → Core 留上游："
      "義隆的輸入模組是它自家觸控 IC 的載體；訊芯-KY 的光收發模組 61.55% 是它拿 SiP 封裝能力"
      "做出來的產出（鴻海旗下 SiP 封裝廠），Core 留 A5-05 封裝而非 D6-01 光通訊元件。"
-     "（二）兩條線均可獨立銷售且各具獨立經濟實質 → **回到 R019／R023 判定**，"
-     "依聚合後之經濟曝險與公司產業定位決定，不以「模組」或「IC」的名稱自動決定、"
-     "也不是逕取較大者：同欣電做陶瓷基板也做封裝，兩者分別接單；點晶 LED 驅動 93.1% "
-     "與馬達驅動 6.9% 亦然。★「可獨立銷售」只證明兩條線互相獨立，不證明較大的那條就是 Core。"
+     "（二）兩條線均可獨立銷售且各具獨立經濟實質 → **R024 到此為止，不再提供額外判準**，"
+     "回到 R019／R023，依聚合後之經濟曝險、價值創造能力與價值鏈角色判定，"
+     "不以「模組」或「IC」的名稱自動決定、也不是逕取較大者。"
+     "★「可獨立銷售」只證明兩條線互相獨立，不證明較大的那條就是 Core。"
+     "示範什麼叫各自獨立的生意：同欣電 A5-05 封裝測試代工 69.60% 與 A1-14 陶瓷基板 17.56% "
+     "分別接單；點晶 A4-18 LED 驅動 IC 93.1% 與 A4-17 馬達驅動 IC 6.9% 亦然——"
+     "★這兩例的 Core 確實落在較大那條，但那是判定的**結果**不是判準，"
+     "且兩例都不是「IC 設計 vs 模組」的邊界（點晶兩條線都是 IC 設計），只用來示範獨立性。"
      "★先前寫成「本業是製造/封裝的公司不適用」是錯的：訊芯與同欣電都是封裝廠，"
      "那個軸會把兩者判成同一類而得出相反於本意的結果。"),
 
@@ -165,7 +193,9 @@ LOCAL_RULES = [
      "不得僅為維持樹狀結構而強制歸入不相符的節點；應新增 Industry Node，並保留原有上層分類。"
      "節點代碼穩定即可安全新增：曝險以 node_code 為 FK，新增不影響既有成員。"
      "實例：碳黑（國際中橡，既非無機鹽也非橡膠製品）、不織布（恆大，非平織亦非針織）、"
-     "接著劑、農用化學品、煤化工、記憶體 IC 設計、功率分立元件設計、後段測試與檢測設備、陶瓷基板。"
+     "接著劑、農用化學品、煤化工、記憶體 IC 設計、功率分立元件設計、後段測試與檢測設備、陶瓷基板"
+     "——★這些**都已新增完成並在樹上**（J15 碳黑、M7 不織布、A1-14 陶瓷基板、A4-22 功率分立元件設計…），"
+     "是先例不是待辦，不要再新增一次。"
      "反面警訊＝發現自己在說「最接近的是某格」而該格的定義其實排除了這個產品。"
      "★新增節點僅解決 Industry 歸屬問題，不因此自動決定 Core；Core 仍依 R019、R023 判定。"),
 
@@ -174,7 +204,8 @@ LOCAL_RULES = [
      "將其掛到對應的製造節點；該產品如需保留產業關聯，應建立為 Indirect Industry Exposure，"
      "**不得因此建立製造型 Direct 或 Core**。"
      "★但通路性質不會傳染到公司的其他業務：若年報明確揭露自有製造、產能、製造設備或製造營收，"
-     "該製造業務照樣建立 Direct Exposure。例：利機 V1 半導體通路 Direct + BT 載板 Indirect；"
+     "該製造業務照樣建立 Direct Exposure。例：蔚華科 V1 半導體通路 Core 93.77% Direct ＋ "
+     "A2-13 測試/檢測設備 Indirect（代理的設備，比重已計在 V1）；"
      "港建 V1 Direct + 設備 Indirect。否則產業統計會把通路商錯算成製造商。"
      "判斷依據以年報為主：是否有佣金/代理性收入、產品線是否為具名製造品、正文有無自有產能描述。"
      "★官方分類僅作後驗參考不居優先（R002）——長華* 官方列電子通路業，但年報是 IC導線架 48.91% "
