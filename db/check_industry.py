@@ -38,7 +38,8 @@ import argparse
 
 from db.connection import get_cursor
 
-CHECKS = ("core", "listing", "stale", "below", "role", "coverage", "temporal",
+CHECKS = ("core", "core_overlap", "listing", "stale", "below", "role", "coverage",
+          "temporal",
           "double", "depth",
           "unknown", "known", "official")
 FISCAL_YEAR = 2025
@@ -58,6 +59,29 @@ def check_core(cur):
         GROUP BY e.stock_id, s.name
         HAVING count(*) FILTER (WHERE e.role = 'Core') = 0
         ORDER BY e.stock_id
+    """)
+
+
+def check_core_overlap(cur):
+    """Companies with two Core rows whose validity periods overlap (R029).
+
+    The unique index only covers the current layer, so nothing stops a history
+    row from being written across another one — and then "which node was the
+    Core in 2024" has two answers. Intervals are [effective_from, effective_to),
+    so touching endpoints are fine and only real overlap is reported.
+    """
+    return _rows(cur, """
+        SELECT a.stock_id, s.name,
+               a.node_code AS node_a, a.effective_from AS from_a, a.effective_to AS to_a,
+               b.node_code AS node_b, b.effective_from AS from_b, b.effective_to AS to_b
+        FROM tw.company_industry_exposure a
+        JOIN tw.company_industry_exposure b
+          ON b.stock_id = a.stock_id AND b.id > a.id
+        JOIN tw.stocks s ON s.stock_id = a.stock_id
+        WHERE a.role = 'Core' AND b.role = 'Core'
+          AND a.effective_from < coalesce(b.effective_to, 'infinity'::date)
+          AND b.effective_from < coalesce(a.effective_to, 'infinity'::date)
+        ORDER BY a.stock_id
     """)
 
 
@@ -150,13 +174,15 @@ def check_coverage(cur, threshold):
     different things depending on the cause and a caller cannot tell them apart
     from the number:
 
+        reliable            at or above the threshold
         parser_anomaly      the denominator itself is wrong (sums past 105)
         coarse_filing       every exposure is filing_too_coarse; nothing to
                             assign, and this is a closed case not a backlog
         incomplete_mapping  the filing splits further than the exposures do
 
-    Companies at or above the threshold do not appear at all, which is the
-    fourth state.
+    The threshold decides who is listed, not how they are labelled, so a
+    caller wanting the whole table with its statuses raises the threshold past
+    100 (--coverage-threshold 101).
 
     Not a failure: a distributor legitimately books most of its revenue under one
     node, and a company whose filing gives one coarse line has nothing to assign.
@@ -187,6 +213,7 @@ def check_coverage(cur, threshold):
                round(100 * coalesce(a.w, 0) / r.t, 1) AS coverage_pct,
                round(r.t - coalesce(a.w, 0), 1) AS unassigned_pp,
                CASE
+                   WHEN 100 * coalesce(a.w, 0) / r.t >= %s THEN 'reliable'
                    WHEN r.t > 105 THEN 'parser_anomaly'
                    WHEN NOT EXISTS (
                        SELECT 1 FROM tw.company_industry_exposure e
@@ -201,7 +228,7 @@ def check_coverage(cur, threshold):
         LEFT JOIN assigned a USING (stock_id)
         WHERE r.t > 0 AND 100 * coalesce(a.w, 0) / r.t < %s
         ORDER BY 100 * coalesce(a.w, 0) / r.t
-    """, (FISCAL_YEAR, threshold))
+    """, (FISCAL_YEAR, threshold, threshold))
 
 
 def check_temporal(cur):
