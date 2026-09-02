@@ -102,7 +102,9 @@ LOCAL_RULES = [
     ("R019", "Core Industry 由產業曝險資料推導，不手動維護",
      "Core **不由單一 weight_pct 最大值機械決定**，而是以產業曝險表為基礎，"
      "先將屬於同一 Industry node 的業務線聚合，再依聚合後之主要經濟曝險、價值創造能力、"
-     "價值鏈角色與公司產業定位判定。"
+     "價值鏈角色與公司產業定位判定。★**多個業務群之間如何取捨見 R023**——本條的兩個例子"
+     "（精材 50.16 > 47.86、中石化 J9 50.157 > J1-01 49.445）最後都落在較大的那一群，"
+     "那是判定的結果不是判準；義隆的 C11-01 69.92% 就沒有拿到 Core。"
      "★只有確實屬於同一 Industry node 的業務線才能聚合，**不得因上層產業、供應鏈或終端應用相近"
      "而跨節點合併**，亦不得跨節點為取得較大比重而合併："
      "A5 封裝 45% 與 A6 測試 48% 不可併成「半導體 93%」再據以定 Core，那等於把 taxonomy 拆掉；"
@@ -144,8 +146,8 @@ LOCAL_RULES = [
      "★機制：db.fill_weight 對 evidence_kind='filing_too_coarse' 的列一律跳過——"
      "否則保留下來的 item 會被解析回填，等於從後門推導出節點合計。"
      "⑤ NULL weight 不代表 Indirect；Direct／Indirect 判定與營收比重是否可量化為兩個獨立問題。"
-     "exposure_type='Indirect' 只給**經濟性質本身間接**者：代理/通路品項（見 R022），"
-     "以及 ③ 的合併子公司情形。"
+     "**Indirect 的完整定義只寫在 R018 一處**，本條與 ③ 不重複列舉——新增第三種間接情形時"
+     "只改 R018，避免三處各改一半而自相矛盾。"
      "⑥ Revenue Exposure 等級不落地儲存，由 weight 經 view tw.v_company_industry_exposure "
      "機械推導（>=50% High／>=20% 且 <50% Medium／<20% Low，端點以 view 實作為準）；"
      "非 Revenue 型權重不產生等級。"),
@@ -162,7 +164,7 @@ LOCAL_RULES = [
     # rejects. The point survives with a listed company and leaf codes.
     ("R016", "跨分類依產品/供應鏈角色，不依公司名稱",
      "一家公司的曝險落在哪個分支，看的是產品與供應鏈角色，不是公司名稱或官方分類。"
-     "例：群聯＝Core F7-01 記憶體模組 72.41% ＋ Minor A4-19 記憶體控制 IC 19.26%——"
+     "例：群聯＝Core F7-01 記憶體模組 72.41% ＋ Major A4-19 記憶體控制 IC 19.26%——"
      "它自研控制 IC，但主要生意是模組，兩個分支各建一列。"
      "★節點一律寫到葉節點代碼：A4／F7 是分支代碼，db.check_industry 的 [depth] 檢查會擋，"
      "要寫 A4-19／F7-01。"),
@@ -179,7 +181,10 @@ LOCAL_RULES = [
      "Effective_From/To＝這個分類何時成立；Known_Date＝我們最早何時可能知道（MOPS 申報日）；"
      "Evidence_Period_End＝證據本身對應哪個期間（FY2025 年報＝2025-12-31）。三者不可互相代替。"
      "回測一律以 Known_Date 過濾以避免 look-ahead；Effective_To 保持 NULL 表示仍為現行層，"
-     "不可拿會計年度結束日去填，否則現行層會整批失效。"),
+     "不可拿會計年度結束日去填，否則現行層會整批失效。"
+     "★known_date 為 NULL 的現行列，對任何依 known_date 過濾的回測**等同不存在**，"
+     "屬缺陷不是可接受狀態；db.check_industry 的 [known] 非零時必須有結案理由"
+     "（通常是該公司尚無 tw.product_revenue_status.filing_date，補到就會自動回填）。"),
 
     ("R023", "Core 依商業本質與價值鏈角色判定",
      "營收最大業務線不得單獨決定 Industry Core；應判斷公司主要創造價值的產品、技術能力與"
@@ -229,11 +234,19 @@ LOCAL_RULES = [
      "weight_pct >= 15% 為 Major、< 15% 為 Minor；weight_pct 為 NULL 時預設 Major"
      "（能被建成一列，通常就是年報具名的業務），若實為附屬/邊緣業務可標 Minor。"
      "Emerging＝已投入布局但**尚無營收**（weight 必為 NULL），不是「比重很小」的同義詞。"
+     "★數值預設**不適用**於兩種列，否則會互相吃掉：(一) role='Emerging'——它的 weight 本來"
+     "就必為 NULL，套用「NULL 預設 Major」會讓 Emerging 永遠不存在；"
+     "(二) exposure_type='Indirect'——依 R020③ 其 weight 一律 NULL，套用預設會把「代理的線」"
+     "或「子公司已計過的線」標成公司的重要業務。這兩種列的 role 依該曝險的經濟重要性判定："
+     "蔚華科 A2-13、茂達 A4-22、港建* B5-01 三列 Indirect 皆為 Major，因為那確實是各該公司"
+     "的主要生意，只是不由該節點計重。"
      "★偏離預設時，理由必須寫進該列 evidence——沒有理由的偏離就是不可重現。"
      "★為什麼要有這條：訂定前 Major 最小 6.90%（點晶馬達驅動 IC）而 Minor 最大 19.26%"
      "（群聯控制 IC），同一個區間兩種標法都出現過，這一欄等於無法稽核。"
      "★15% 而不是 20%：20% 會與 R020⑥ 的 Medium 分箱同點，role 就退化成 revenue_exposure "
-     "的複本；role 要回答的是「這門生意對公司重不重要」，不是「營收落在哪一箱」。"),
+     "的複本；role 要回答的是「這門生意對公司重不重要」，不是「營收落在哪一箱」。"
+     "★db.check_industry 的 [role] 檢查列出偏離預設的列（Major<15 或 Minor>=15）；"
+     "它不判對錯——有具名理由的偏離是合法的——但沒有它，這一欄會無聲漂回訂定前的狀態。"),
 
     # A node that was never built looks exactly like a business the company
     # does not have. This is the largest silent gap in the table.
@@ -241,26 +254,36 @@ LOCAL_RULES = [
      "曝險表不保證窮盡一家公司的營收。**未覆蓋的營收只代表尚未建檔，不得被讀成"
      "「該公司沒有其他產業曝險」**；任何以曝險表做產業統計、同業比較或曝險加總的下游，"
      "必須先看該公司的覆蓋率，否則會系統性低估多角化公司。"
-     "★覆蓋率＝該公司 Direct 曝險的 weight_pct 合計 ÷ 年報可辨識營收線合計"
-     "（分母排除「其他/其它/合計/租賃收入/勞務收入」等非產品列）。"
-     "★db.check_industry 的 [coverage] 檢查列出覆蓋率 <70% 的公司；"
-     "此為**提示不是阻擋**，載入器不因覆蓋率低而拒收——補不補是排程問題，"
-     "但看不見才是資料問題。"
-     "★現況（2026-09-02）：327 家有比重的公司中 81 家未覆蓋 >=30pp、141 家 >=15pp；"
-     "南茂 28.53%、文曄 27.80%、國精化 20.00% 是覆蓋率最低的一端。"),
+     "★覆蓋率＝該公司 Direct 曝險的 weight_pct 合計 ÷ 年報**可辨識**營收線合計。"
+     "分母排除七個不指名產品的列名：其他、其它、合計、其他營業收入、租賃收入、勞務收入、"
+     "銷貨收入——這些列即使去讀也無法歸到任何節點，留在分母只會讓覆蓋率看起來永遠不及格。"
+     "（「銷貨收入」出現在 51 家、平均 40.6%，是列名不指名產品而非該筆營收不是產品。）"
+     "★db.check_industry 的 [coverage] 檢查列出覆蓋率 <70% 的公司（門檻可用 "
+     "--coverage-threshold 調）；此為**提示不是阻擋**，載入器不因覆蓋率低而拒收——"
+     "補不補是排程問題，但看不見才是資料問題。"
+     "★**有比重表卻一格都沒指派**的公司也必須出現在這張表上（覆蓋率 0%），"
+     "所以該檢查以「已分類公司」為左表 LEFT JOIN 權重合計，不可用 INNER JOIN——"
+     "內接會把最糟的那 82 家整批濾掉，正好漏掉本條要防的東西。"
+     "這 82 家分兩種，規則對它們的處置不同：年報只給一條粗線的（臻鼎-KY「各式印刷電路板 "
+     "100%」）屬 R020② 的 filing_too_coarse，是**已結案**；年報有可拆的比重表卻尚未去讀的"
+     "屬**待補**，不得因為 weight 是 NULL 就當成「未揭露」。"
+     "★現況（2026-09-02 快照）：[coverage] 共 165 家；覆蓋率最低的一端為 "
+     "國精化 20.6%、永捷 25.5%、南茂 28.5%、文曄 28.6%，另有 82 家為 0%。"),
 
     # The judgement columns exist and are empty; without a filling rule they
     # will either stay empty forever or get filled by whatever seems handy.
     ("R028", "判斷型欄位為選填，填了就要能交代；空值代表尚未評估",
-     "confidence（刻度見 R018）、strategic_priority、supply_chain_position 三欄皆為**選填**，"
-     "NULL 一律解讀為「尚未評估」，不得解讀為最低級或「無」。"
+     "confidence（刻度見 R018）、strategic_priority、strategic_evidence、supply_chain_position "
+     "四欄皆為**選填**，NULL 一律解讀為「尚未評估」，不得解讀為最低級或「無」。"
      "★strategic_priority（High/Medium/Low/Unknown）量的是**公司自己**對該業務的資源投入"
      "與對外承諾，不是我們認為它重要——填 High/Medium/Low 時必須同時填 strategic_evidence"
      "（法說會、年報營運計畫、擴產公告等具名出處）；沒有出處就填 Unknown 或留 NULL。"
      "★supply_chain_position 取自 tw.supply_chain_position 字典，描述該**曝險**在鏈上的位置"
      "而非公司（同一家公司不同節點可以不同，見 R007）。"
-     "★這三欄不在鏡像檔 db/industry_data.py 裡，是直接寫在 DB 的判斷層；"
-     "db.seed_industry 換代時以 _carried() 原樣帶過（migration 091 記載的漏帶陷阱已修）。"
+     "★這四欄不在鏡像檔 db/industry_data.py 裡，是直接寫在 DB 的判斷層；"
+     "db.seed_industry 換代時以 _carried() 四欄一併原樣帶過（migration 091 記載的漏帶陷阱已修，"
+     "並以換代實跑驗證）。四欄皆已由 view tw.v_company_industry_exposure 暴露"
+     "（supply_chain_position 於 migration 093 補上），下游看得到才有人會去填。"
      "**不得由 evidence_kind、weight_pct 或 role 機械推導填入任一欄**——那會製造出"
      "看起來有判斷、實際只是既有欄位換句話說的資料。"),
 
@@ -268,13 +291,14 @@ LOCAL_RULES = [
      "若公司**某一業務線**僅具通路/代理性質，其產品中即使出現設備、材料、載板、IC 等製造品項，"
      "也不得僅因產品名稱將該業務認定為製造業務；該產品如需保留產業關聯，"
      "應建立為 Indirect Industry Exposure，**不得因此建立製造型 Direct 或 Core**。"
-     "★但通路性質不會傳染到公司的其他業務：若年報明確揭露自有製造、產能、製造設備或製造營收，"
-     "該製造業務照樣建立 Direct Exposure。例：蔚華科 V1 半導體通路 Core 93.77% Direct ＋ "
+     "★同一公司的其他業務線各自獨立判定，通路性質不外溢：若年報明確揭露自有製造、產能、"
+     "製造設備或製造營收，該業務線照樣建立 Direct Exposure，不因公司另有通路業務而降級。例：蔚華科 V1 半導體通路 Core 93.77% Direct ＋ "
      "A2-13 測試/檢測設備 Indirect（代理的設備，比重已計在 V1）；"
      "港建 V1 Direct + 設備 Indirect。否則產業統計會把通路商錯算成製造商。"
      "判斷依據以年報為主：是否有佣金/代理性收入、產品線是否為具名製造品、正文有無自有產能描述。"
-     "★官方分類僅作後驗參考不居優先（R002）——長華* 官方列電子通路業，但年報是 IC導線架 48.91% "
-     "加封膠樹酯 29.29% 且無佣金收入，實為製造商；若以官方分類為首要依據會把它誤判成通路。"),
+     "★官方分類僅作後驗參考不居優先（R002）——長華* 官方列電子通路業，但它的兩條線逐線看"
+     "都是製造：IC 導線架 48.91%（A1-13）與封膠樹酯 29.29%（A1-12）皆為具名製造品且無佣金收入，"
+     "故兩線皆 Direct；若以官方分類為首要依據會把整家公司誤判成通路。"),
 ]
 
 # 22 rules read as a list; grouped they read as a structure.

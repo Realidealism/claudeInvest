@@ -38,7 +38,7 @@ import argparse
 
 from db.connection import get_cursor
 
-CHECKS = ("core", "listing", "stale", "below", "coverage", "double", "depth",
+CHECKS = ("core", "listing", "stale", "below", "role", "coverage", "double", "depth",
           "unknown", "known", "official")
 FISCAL_YEAR = 2025
 
@@ -105,6 +105,28 @@ def check_below(cur, threshold):
     """, (threshold,))
 
 
+def check_role(cur):
+    """Non-Core rows whose role disagrees with R026's 15% default.
+
+    The default is only a default — a named reason in the evidence makes any
+    label legitimate — so this cannot decide who is wrong. It lists the rows a
+    reader has to look at, which is what stops the column drifting back to the
+    state R026 was written to end (Major at 6.90%, Minor at 19.26%).
+
+    Emerging and Indirect rows are outside the numeric default and excluded.
+    """
+    return _rows(cur, """
+        SELECT e.stock_id, s.name, e.node_code, e.role::text, e.weight_pct
+        FROM tw.company_industry_exposure e
+        JOIN tw.stocks s ON s.stock_id = e.stock_id
+        WHERE e.effective_to IS NULL AND e.role NOT IN ('Core', 'Emerging')
+          AND e.exposure_type = 'Direct' AND e.weight_pct IS NOT NULL
+          AND ((e.role = 'Major' AND e.weight_pct < 15)
+            OR (e.role = 'Minor' AND e.weight_pct >= 15))
+        ORDER BY e.weight_pct
+    """)
+
+
 def check_coverage(cur, threshold):
     """Companies whose exposures account for little of their reported revenue.
 
@@ -113,12 +135,18 @@ def check_coverage(cur, threshold):
     The denominator excludes the lines that name no product — 其他 and friends —
     because they could not be classified even in principle.
 
+    Companies with no assigned weight at all are the point of the LEFT JOIN: they
+    are the worst cases and an inner join would drop every one of them.
+
     Not a failure: a distributor legitimately books most of its revenue under one
-    node, and a company can be half-classified while the rest is still being read.
+    node, and a company whose filing gives one coarse line has nothing to assign.
     It is a work list, not an error list.
     """
     return _rows(cur, """
-        WITH assigned AS (
+        WITH classified AS (
+            SELECT DISTINCT stock_id FROM tw.company_industry_exposure
+            WHERE effective_to IS NULL
+        ), assigned AS (
             SELECT stock_id, sum(weight_pct) AS w
             FROM tw.company_industry_exposure
             WHERE effective_to IS NULL AND exposure_type = 'Direct'
@@ -132,14 +160,15 @@ def check_coverage(cur, threshold):
                                '租賃收入', '勞務收入', '銷貨收入')
             GROUP BY stock_id
         )
-        SELECT a.stock_id, s.name,
-               round(100 * a.w / r.t, 1) AS coverage_pct,
-               round(r.t - a.w, 1) AS unassigned_pp
-        FROM assigned a
+        SELECT c.stock_id, s.name,
+               round(100 * coalesce(a.w, 0) / r.t, 1) AS coverage_pct,
+               round(r.t - coalesce(a.w, 0), 1) AS unassigned_pp
+        FROM classified c
         JOIN reported r USING (stock_id)
         JOIN tw.stocks s USING (stock_id)
-        WHERE r.t > 0 AND 100 * a.w / r.t < %s
-        ORDER BY 100 * a.w / r.t
+        LEFT JOIN assigned a USING (stock_id)
+        WHERE r.t > 0 AND 100 * coalesce(a.w, 0) / r.t < %s
+        ORDER BY 100 * coalesce(a.w, 0) / r.t
     """, (FISCAL_YEAR, threshold))
 
 
@@ -206,7 +235,7 @@ def main():
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--check", choices=CHECKS, action="append",
                     help="run only these checks (repeatable)")
-    ap.add_argument("--below-threshold", type=float, default=20.0)
+    ap.add_argument("--below-threshold", type=float, default=15.0)
     ap.add_argument("--coverage-threshold", type=float, default=70.0)
     ap.add_argument("--limit", type=int, default=15, help="rows printed per check")
     args = ap.parse_args()
