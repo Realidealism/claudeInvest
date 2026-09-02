@@ -179,7 +179,18 @@ PROSE_NOISE = ("百分比", "合計", "市場", "根據", "成長率", "年化",
                "分析", "報告", "指出", "表示", "占比", "比重", "營收為", "較去年",
                # totals and P&L captions sit in the same table but are not products
                "總額", "總計", "營業收入", "營業成本", "營業毛利", "營業利益",
-               "營業費用", "銷貨收入淨額")
+               "營業費用", "銷貨收入淨額",
+               # A share of what, where or when is not a share of which product.
+               # These lifted 「北部地區 71%」, 「近視人口 60%」, 「國內約為 80%」
+               # and 「本公司商品 100%」 into product mixes.
+               "約佔", "約為", "佔全", "地區", "人口", "本公司", "營收", "目前", "年度")
+
+# A fragment cut out of a sentence usually starts with the conjunction that
+# joined it or ends on the preposition that continued it — 「其次為雜項紡織品(」,
+# 「但由於直接輸美紡織成衣僅」, 「牌在整體冷藏果蔬汁市」.
+PROSE_LEAD = re.compile(r"^(但|其次|以及|而|因|由於|雖|另|至於|\)|）|、|，|及)")
+PROSE_TAIL = re.compile(r"[市牌之於在含約僅]$")
+YEAR_LABEL = re.compile(r"^\d{2,4}年")
 
 
 def _is_prose_noise(item: str) -> bool:
@@ -187,6 +198,11 @@ def _is_prose_noise(item: str) -> bool:
     # which slips past a plain substring test for 合計.
     compact = re.sub(r"\s+", "", item)
     if any(w in compact for w in PROSE_NOISE) or compact in ("合計", "總計", "小計"):
+        return True
+    if PROSE_LEAD.match(compact) or PROSE_TAIL.search(compact) or YEAR_LABEL.match(compact):
+        return True
+    # Unbalanced brackets mean the phrase was cut mid-parenthetical.
+    if compact.count("(") + compact.count("（") != compact.count(")") + compact.count("）"):
         return True
     # A product name is a noun phrase; sentence punctuation means a fragment.
     return bool(re.search(r"[，。；！？,]", item)) or len(item) > 14
