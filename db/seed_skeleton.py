@@ -52,8 +52,10 @@ LOCAL_RULES = [
      "目前唯一有資料來源的是 Revenue（年報營業比重表，分母為合併營收）；"
      "Profit 因台灣年報普遍不揭露分部損益而無可靠來源：曝險列的 profit_exposure 欄位已移除"
      "（migration 091），不作為目前可落地的權重維度——留白待猜比沒有欄位更糟。"
-     "★但 enum tw.weight_type 仍保留 'Profit' 這個 label，載入器技術上寫得進去；"
-     "在有可靠來源之前**禁用**，要徹底封死需另加 CHECK 或移除該 label。"
+     "★enum tw.weight_type 仍保留 'Profit' 這個 label（移除 enum label 會動到既有型別），"
+     "但**已於 DB 層封死**：CHECK 約束 cie_no_profit_weight 讓 weight_type='Profit' 寫不進去"
+     "（migration 095）。文件說禁用而程式允許，是遲早會被人踩的 policy/implementation "
+     "mismatch——Core cardinality 已經是 DB 約束，這裡比照辦理。"
      "★現況限制：db.fill_weight 每次執行會清空全表的 weight_pct/weight_type/weight_basis 再回填 "
      "Revenue 型，所以目前只有 Revenue 型權重能留在庫裡；要落地 Capacity/Strategic 型，"
      "必須先讓該清空語句只作用於 weight_type='Revenue'。"),
@@ -67,7 +69,11 @@ LOCAL_RULES = [
 
     # "新產品" was too wide: a product can be new and still have a home.
     ("R005", "尚未有適當 Industry 節點的新興技術/產品優先進入 Theme",
-     "若已有適當 Industry 節點，Industry 與 Theme 可並存，不必二選一。"
+     "若技術／產品尚無合適 Industry Node，**於新增節點前**可暫以 Theme 表達其市場概念；"
+     "一旦建立對應節點，仍依 R025 建立 Industry Exposure。"
+     "★Theme 是**暫時性／跨產業的表達**，Industry 才是最終歸屬——"
+     "本條不是 R025 的替代路徑：「找不到節點就丟 Theme」是誤讀，R025 要的是去新增節點。"
+     "若已有適當節點，Industry 與 Theme 可並存，不必二選一。"
      "HBM 即為此例：Theme T07 與 A3-03 DRAM 製造／A5-04 HBM Packaging／A6-07 HBM Test "
      "同時成立（見 R017）。★現況（2026-09-02）：T07 有 13 家成員，但 A5-04／A6-07 皆 0 筆曝險，"
      "**並存形態在庫裡尚無實例**——這條規則說的是允許並存，不是已經並存。★節點一律引用 node_code，不引用「A3 Memory」這類非節點的口語名——"
@@ -153,10 +159,13 @@ LOCAL_RULES = [
      "德律「自動檢測設備 97.21%」橫跨 A2-13 測試/檢測設備（半導體側）與 B5-01 製程設備（PCBA 側），"
      "兩對都是兩格 Direct、兩格 NULL——**包括原本掛著比重的那一格**；"
      "台化「化工一部 39%」同理，部門名稱不指明產品，不可當成任一細格的比重。"
-     "③ 若母公司合併營收線之產業曝險包含已於同一 Industry node 獨立建檔之合併子公司，"
-     "且該營收已由該子公司在市場層級獨立計入，母公司對應曝險應**依是否產生重複計數判定為 "
-     "Indirect**；不得因母公司合併營收再次將同一經濟活動計入市場層級產業權重。"
-     "★判準是會不會重複計數，不是子公司佔多少——寫「主要來自」會把門檻變成爭論點。"
+     "③ **判準只有一個：母公司這一筆曝險，會不會與子公司的獨立資料構成同一經濟活動的"
+     "重複統計**——會，則母公司該列為 Indirect。子公司佔多少、是否已上市，都不是判準。"
+     "適用情形是母公司合併營收線包含已於同一 Industry node 獨立建檔之合併子公司，"
+     "且該營收已由該子公司在市場層級獨立計入。"
+     "★不可寫成「主要來自」——那會把門檻變成爭論點；也不可因為「子公司已上市」就整筆判 "
+     "Indirect：若該營收線同時含母公司自身的其他業務，重複的只是其中一部分，"
+     "此時整列 weight 本來就是 NULL（②），Indirect 與否仍回到上面那個判準。"
      "該 Indirect 列的 weight_pct 一律 NULL，比重僅保留於 evidence——年報確實揭露了這個數字，"
      "不寫明就會有人依 ① 把它填進去，重複計數就從這裡進來。"
      "例：茂達離散式功率元件 44.91% 來自合併的大中，大中已自列 A4-22。"
@@ -191,8 +200,11 @@ LOCAL_RULES = [
      "一家公司的曝險落在哪個分支，看的是產品與供應鏈角色，不是公司名稱或官方分類。"
      "例：群聯＝Core F7-01 記憶體模組 72.41% ＋ Major A4-19 記憶體控制 IC 19.26%——"
      "它自研控制 IC，但主要生意是模組，兩個分支各建一列。"
-     "★節點一律寫到葉節點代碼：A4／F7 是分支代碼，db.check_industry 的 [depth] 檢查會擋，"
-     "要寫 A4-19／F7-01。"),
+     "★**Exposure 的 node_code 必須指向葉節點**（在 tw.industry_tree 中沒有任何 "
+     "parent_code 指向它的節點）；非葉節點只供聚合與查詢，**不得直接建立 Exposure**。"
+     "A4／F7 是分支代碼，要寫 A4-19／F7-01；db.check_industry 的 [depth] 檢查在守這條。"
+     "★葉的定義是**結構性的不是層級性的**：樹目前是三層，但若日後出現 A4-15-01，"
+     "A4-15 就不再是葉，既有指向它的曝險必須一併下移——「L3 就是葉」不成立。"),
 
     # The draft names "A3 Memory" etc., which R005 forbids and the tree does
     # not contain. Left as drafted it is a copy-paste source of bad codes.
@@ -230,13 +242,19 @@ LOCAL_RULES = [
      "R024＝IC 設計與模組這個特定邊界怎麼判。"
      "★**裁定優先序（依序判定，前一項能定案就不往下走）**——"
      "只寫判斷原則不寫順序，兩個研究員可以各自宣稱符合 R023 而得到不同的 Core："
-     "① **核心技術／產品能力**：公司最主要且具不可替代性的技術能力落在哪個節點；"
+     "① **主要且持續創造經濟價值的核心技術／產品能力**落在哪個節點——"
+     "「持續創造經濟價值」是限定語，**不是「技術含量高就勝出」**：一項技術再深，"
+     "若已不再是公司經濟價值的主要來源，就不在這一階勝出；"
      "② **價值創造位置**：主要毛利、技術、IP、品牌價值由哪個節點產生；"
      "③ **商業本質**：下游產品是否為上游核心產品的載體、組裝或延伸（是 → Core 留上游，見 R024）；"
      "④ **長期策略定位**：公司對外定位、研發資源、資本支出主要指向哪個節點；"
      "⑤ **營收比重**：**只作支持證據，不得單獨作為決策依據**。"
      "義隆走完就是：核心能力＝觸控/HMI 晶片設計（①）→ 輸入模組是該晶片的下游載體（③）"
-     "→ Core = A4-15；69.92% 的模組營收落在 ⑤，只是支持證據。"),
+     "→ Core = A4-15；69.92% 的模組營收落在 ⑤，只是支持證據。"
+     "★**反否決條件**：若某候選節點的業務僅屬歷史遺留、已逐步退出、"
+     "或公司已明確將資源移轉至另一業務，**不得僅因既有技術能力保留而取得 Core**。"
+     "舊產品 40%／新產品 45% 而公司已全面轉型時，Core 不應永遠卡在技術壁壘較高的舊產品——"
+     "這條對時間序列尤其重要：Core 必須會隨轉型移動，否則歷史層記的是一個過期的公司。"),
 
     ("R024", "IC 設計與模組/系統整合可並存，下游模組不得自動奪走 Core",
      "公司同時從事 IC 設計與模組/系統整合時，兩者可各自建立曝險；"
@@ -282,7 +300,11 @@ LOCAL_RULES = [
      "否則這個詞會變成下一個不可稽核的判斷。"
      "★這個預設不是「不知道就算重要」：能被建成一列代表該業務已被確認存在（evidence 必填），"
      "預設 Major 的意思是「無法量化、已確認存在、且沒有足夠理由認定它是附屬」。"
-     "Emerging＝已投入布局但**尚無營收**（weight 必為 NULL），不是「比重很小」的同義詞。"
+     "Emerging 須**同時**滿足兩件事：(一) 該業務**尚無可辨識營收**（weight 必為 NULL）；"
+     "(二) 已有**明確布局 evidence**（擴產、合資、取得認證、法說會列為新事業等）。"
+     "★只要已有可辨識營收，即應依 Direct/Indirect 與 weight 規則判定，**不得標 Emerging**——"
+     "營收 1% 但大規模投入的公司是 Minor 不是 Emerging；Emerging 不是「比重很小」的同義詞，"
+     "也不是「很看好」的同義詞。"
      "★數值預設**不適用**於兩種列，否則會互相吃掉：(一) role='Emerging'——它的 weight 本來"
      "就必為 NULL，套用「NULL 預設 Major」會讓 Emerging 永遠不存在；"
      "(二) exposure_type='Indirect'——依 R020③ 其 weight 一律 NULL，套用預設會把「代理的線」"
@@ -336,6 +358,13 @@ LOCAL_RULES = [
      "這 82 家分兩種，規則對它們的處置不同：年報只給一條粗線的（臻鼎-KY「各式印刷電路板 "
      "100%」）屬 R020② 的 filing_too_coarse，是**已結案**；年報有可拆的比重表卻尚未去讀的"
      "屬**待補**，不得因為 weight 是 NULL 就當成「未揭露」。"
+     "★**低覆蓋率有四種成因，不可混為一談**——[coverage] 的 coverage_status 欄回答"
+     "「這個 58% 是什麼意思」：`parser_anomaly`（分母本身就錯，見上）／"
+     "`coarse_filing`（該公司每一列都是 filing_too_coarse，沒有東西可指派，**已結案不是待補**）／"
+     "`incomplete_mapping`（年報拆得比曝險細，**真的待補**）／未出現在表上（達標）。"
+     "下游若要拿覆蓋率做自動選股或統計，MUST 先看 status——把 coarse_filing 當成資料缺漏"
+     "會把一整批只能揭露一條粗線的公司誤判成建檔不全。"
+     "現況分布（2026-09-02）：incomplete_mapping 155／coarse_filing 8／parser_anomaly 1。"
      "★家數與名單**以 db.check_industry [coverage] 的當次輸出為準**，不寫進規則正文——"
      "曝險一改數字就變，寫死的統計會讓規則長期處於「已知錯誤」狀態"
      "（本條初稿寫 165 家，隔一次修正就變成 164，正是這個問題）。"),
@@ -364,7 +393,12 @@ LOCAL_RULES = [
      "confidence >90%／supply_chain_position >50%／strategic_priority >30%／"
      "ecosystem 對照 >50%（現 10 列全在 E01，其餘 5 個生態系 0 成員）。"
      "門檻高低反映的是可得性不是重要性：confidence 每列都判得出來，"
-     "strategic_priority 需要法說會等外部出處，本來就不可能全覆蓋。"),
+     "strategic_priority 需要法說會等外部出處，本來就不可能全覆蓋。"
+     "★**這些門檻是資料品質 KPI，不是分類規則的驗收硬門檻**——"
+     "confidence 量的是歸屬判斷的信心（R018），不是資料可得性；"
+     "若某批公司的年報品項就是不夠細、誠實的答案就是 C，"
+     "**MUST NOT 為了讓填充率或平均分數達標而把 C 升成 B**。"
+     "達不到門檻要寫進報告，不是改判資料。"),
 
     # The draft licensed "two A3 exposures", which reads as licence to count one
     # revenue line twice.
@@ -441,6 +475,20 @@ LOCAL_RULES = [
      "任何 `if no_core: reject_company()` 的實作都違反本條。"
      "★現況（2026-09-02）：447 家皆為 Core=1，pending 0 家、>1 者 0 家。"),
 
+    # The three axes were defined but never constrained against each other.
+    ("R030", "時間一致性：三軸之間必須互相說得通",
+     "① **known_date <= data as-of**——查詢或回測的資料截止日之後才知道的事，"
+     "在那個時點不存在；② **effective_from <= effective_to**；"
+     "③ **known_date <= effective_to**（若 To 存在）——否則回測會在這一列已經失效之後"
+     "才第一次看見它；④ **evidence_period_end <= known_date**——證據涵蓋的期間"
+     "結束在它被公告之前，反過來就是拿還沒發生的期間當證據。"
+     "★②③④ 自 migration 095 起是 DB CHECK 約束（cie_effective_range／"
+     "cie_known_within_range／cie_period_before_known），寫不進去；"
+     "① 做不成約束——「as-of」是查詢當下才知道的值，資料庫看不到，"
+     "故由 db.check_industry 的 [temporal] 以 current_date 為界檢查。"
+     "★[temporal] 同時覆蓋四條，這樣約束若被誰拿掉，會在檢查裡浮出來而不是無聲消失。"
+     "★現況（2026-09-02）：541 列（含歷史層）全數通過。"),
+
     ("R022", "通路/代理商的產品線不得僅據產品名稱認定製造歸屬",
      "若公司**某一業務線**僅具通路/代理性質，其產品中即使出現設備、材料、載板、IC 等製造品項，"
      "也不得僅因產品名稱將該業務認定為製造業務；該產品如需保留產業關聯，"
@@ -462,7 +510,7 @@ LOCAL_RULES = [
 # and lets the load proceed — code that enforces the first and surfaces the third
 # needs to tell them apart.
 RULE_KINDS = {
-    "hard_constraint": ["R003", "R004", "R011", "R016", "R018", "R020", "R029"],
+    "hard_constraint": ["R003", "R004", "R011", "R016", "R018", "R020", "R029", "R030"],
     "decision": ["R001", "R002", "R005", "R010", "R012", "R015", "R017", "R019",
                  "R022", "R023", "R024", "R025", "R026"],
     "validation": ["R006", "R007", "R008", "R009", "R013", "R014", "R021",
@@ -477,7 +525,7 @@ RULE_CATEGORIES = {
     "供應鏈": ["R007"],
     "集團與生態系": ["R013", "R014"],
     "公司屬性": ["R008", "R009"],
-    "時間": ["R021"],
+    "時間": ["R021", "R030"],
 }
 
 

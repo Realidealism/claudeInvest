@@ -38,7 +38,8 @@ import argparse
 
 from db.connection import get_cursor
 
-CHECKS = ("core", "listing", "stale", "below", "role", "coverage", "double", "depth",
+CHECKS = ("core", "listing", "stale", "below", "role", "coverage", "temporal",
+          "double", "depth",
           "unknown", "known", "official")
 FISCAL_YEAR = 2025
 
@@ -145,6 +146,18 @@ def check_coverage(cur, threshold):
     either: an inflated denominator understates, a missed line overstates, and
     nothing here says the error runs one way.
 
+    coverage_status says which of those a low number is, because 58% means very
+    different things depending on the cause and a caller cannot tell them apart
+    from the number:
+
+        parser_anomaly      the denominator itself is wrong (sums past 105)
+        coarse_filing       every exposure is filing_too_coarse; nothing to
+                            assign, and this is a closed case not a backlog
+        incomplete_mapping  the filing splits further than the exposures do
+
+    Companies at or above the threshold do not appear at all, which is the
+    fourth state.
+
     Not a failure: a distributor legitimately books most of its revenue under one
     node, and a company whose filing gives one coarse line has nothing to assign.
     It is a work list, not an error list.
@@ -172,7 +185,16 @@ def check_coverage(cur, threshold):
         )
         SELECT c.stock_id, s.name,
                round(100 * coalesce(a.w, 0) / r.t, 1) AS coverage_pct,
-               round(r.t - coalesce(a.w, 0), 1) AS unassigned_pp
+               round(r.t - coalesce(a.w, 0), 1) AS unassigned_pp,
+               CASE
+                   WHEN r.t > 105 THEN 'parser_anomaly'
+                   WHEN NOT EXISTS (
+                       SELECT 1 FROM tw.company_industry_exposure e
+                       WHERE e.stock_id = c.stock_id AND e.effective_to IS NULL
+                         AND e.evidence_kind <> 'filing_too_coarse')
+                       THEN 'coarse_filing'
+                   ELSE 'incomplete_mapping'
+               END AS coverage_status
         FROM classified c
         JOIN reported r USING (stock_id)
         JOIN tw.stocks s USING (stock_id)
@@ -180,6 +202,38 @@ def check_coverage(cur, threshold):
         WHERE r.t > 0 AND 100 * coalesce(a.w, 0) / r.t < %s
         ORDER BY 100 * coalesce(a.w, 0) / r.t
     """, (FISCAL_YEAR, threshold))
+
+
+def check_temporal(cur):
+    """Rows whose three time axes disagree with each other (R030).
+
+    Four of the five conditions are CHECK constraints as of migration 095, so
+    they cannot be violated by a write. The fifth cannot be: known_date must not
+    run past the data as of date, and "as of" is the moment the query runs, which
+    no constraint can see. This check covers all five so the rule has one place
+    to point at, and so a constraint being dropped shows up here rather than
+    silently.
+    """
+    return _rows(cur, """
+        SELECT e.stock_id, s.name, e.node_code,
+               e.effective_from, e.effective_to, e.known_date, e.evidence_period_end,
+               CASE
+                   WHEN e.known_date > current_date THEN 'known_date in the future'
+                   WHEN e.effective_to IS NOT NULL AND e.effective_from > e.effective_to
+                       THEN 'effective_from after effective_to'
+                   WHEN e.effective_to IS NOT NULL AND e.known_date > e.effective_to
+                       THEN 'known_date after effective_to'
+                   WHEN e.evidence_period_end > e.known_date
+                       THEN 'evidence_period_end after known_date'
+               END AS problem
+        FROM tw.company_industry_exposure e
+        JOIN tw.stocks s ON s.stock_id = e.stock_id
+        WHERE e.known_date > current_date
+           OR (e.effective_to IS NOT NULL AND e.effective_from > e.effective_to)
+           OR (e.effective_to IS NOT NULL AND e.known_date > e.effective_to)
+           OR e.evidence_period_end > e.known_date
+        ORDER BY e.stock_id
+    """)
 
 
 def check_double(cur):
