@@ -242,6 +242,12 @@ def main():
                     help="only stocks with theme memberships lacking evidence")
     ap.add_argument("--all", action="store_true")
     ap.add_argument("--retry-failed", action="store_true")
+    ap.add_argument("--pace", type=float, default=PACE,
+                    help="seconds per company. The default is fine for a short "
+                         "run; a long one needs more. 228 consecutive PDF pulls "
+                         "at 4s failed on 21% of them, against 5% on the runs of "
+                         "17 and 150 — the limit is on sustained rate, so going "
+                         "faster does not finish sooner")
     args = ap.parse_args()
     if not (args.stocks or args.gap or args.all):
         sys.exit("pick one of --stocks / --gap / --all")
@@ -251,7 +257,7 @@ def main():
     counts = {}
     for i, (stock_id, name) in enumerate(targets, 1):
         if i > 1:
-            time.sleep(PACE)
+            time.sleep(args.pace)
         status = scrape_one(stock_id, name, args.year)
         counts[status] = counts.get(status, 0) + 1
         print(f"[{i}/{len(targets)}] {stock_id} {name}: {status}", flush=True)

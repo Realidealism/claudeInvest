@@ -69,6 +69,7 @@ MEMBERS = {
         ('南寶', 'Minor', '塗料', 'annual_report_table', '年報營業比重表：塗料 8.00%；接著劑為其本業，見 J11', 'Direct'),
     ],
     "J5": [
+        ('日勝化', 'Core', 'PU合成樹脂 + PE多元醇樹脂', 'annual_report_table', '年報營業比重表：PU合成樹脂 77% 加 PE多元醇樹脂 3%（資料由年報業務範圍表格補得，營業比重章節解析不到）', 'Direct'),
         ('大立', 'Core', '合成樹脂', 'annual_report_table', '年報營業比重表：合成樹脂 95.00%', 'Direct'),
         ('永捷', 'Core', 'PU樹脂', 'annual_report_table', '年報營業比重表：PU樹脂 25.00%；其乾溼式PU合成皮 34% 與榔皮 28% 為同一 PU 材料的下游成品（R024）', 'Direct'),
     ],
@@ -207,6 +208,7 @@ MEMBERS = {
         ('迅得', 'Major', None, 'annual_report_table', '年報營業比重表：載板(印刷電路板)自動化設備-IBU 55.94%', 'Indirect'),
     ],
     "A2-10": [
+        ('慶康科技', 'Core', '半導體設備零組件', 'annual_report_table', '年報營業比重表：半導體設備零組件 100%（資料由年報業務範圍表格補得）', 'Direct'),
         ('京鼎', 'Core', '關鍵性零組件', 'annual_report_table', '年報營業比重表：關鍵性零組件 52.01%，另有半導體設備及系統組裝 45.52%，同屬本節點', 'Direct'),
         ('千附', 'Core', '精密零組件收入', 'annual_report_table', '年報營業比重表：精密零組件收入 54.21%，大於其工程收入 38.39%（見 A7-01）', 'Direct'),
         ('建暐', 'Major', '其他(精密零組件)', 'annual_report_table', '年報營業比重表：其他(精密零組件) 30.00%', 'Direct'),
