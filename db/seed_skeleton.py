@@ -129,6 +129,10 @@ LOCAL_RULES = [
      "★**候選集合的定義（可直接照著實作）**：`effective_to IS NULL` 的現行 Industry Exposure 中，"
      "`exposure_type='Direct'` 且 `role <> 'Emerging'` 的**葉節點**（R016），"
      "先依相同葉節點聚合可可靠權重，即為 Core Candidate Set。"
+     "★**同一公司、同一 Leaf Node 只能形成一個候選項——候選集合以 `(stock_id, node_code)` 去重**。"
+     "公司有 A5-02 30%、A5-02 20%、A6-01 40% 三列時，候選是 A5-02=50% 與 A6-01=40% 兩項，"
+     "不是三項；實作若 `GROUP BY stock_id, node_code, id` 會把同一節點當成多個候選互相競爭。"
+     "（該節點的合計怎麼算、何時整筆變 NULL，見 R020④。）"
      "★**「現行」必須寫成 `effective_to IS NULL`（或等價的 current-row 判定）**，"
      "不可只在心裡想著現行——歷史層的 Exposure 一旦被拿進候選，"
      "同一家公司會同時出現已失效與現行的節點在競爭 Core。"
@@ -318,7 +322,13 @@ LOCAL_RULES = [
      "——★這些**都已新增完成並在樹上**（J15 碳黑、M7 不織布、A1-14 陶瓷基板、A4-22 功率分立元件設計…），"
      "是先例不是待辦，不要再新增一次。"
      "反面警訊＝發現自己在說「最接近的是某格」而該格的定義其實排除了這個產品。"
-     "★新增節點僅解決 Industry 歸屬問題，不因此自動決定 Core；Core 仍依 R019、R023 判定。"),
+     "★新增節點僅解決 Industry 歸屬問題，不因此自動決定 Core；Core 仍依 R019、R023 判定。"
+     "★**只有現有 Node 的產品定義不足以容納該業務時才新增 Node**；"
+     "若僅為名稱或描述不精確，應優先**修正既有 Node 的名稱與定義**，不得無必要增加節點——"
+     "否則分類樹會過度碎片化，每家公司一格等於沒有分類。"
+     "例：A4-15 原名不夠精確，改名為「感測／HMI IC」即可容納義隆的觸控晶片，"
+     "不需要另開 A4-15-01；而碳黑無論怎麼改名都塞不進無機鹽或橡膠製品，那才是該新增的情形。"
+     "★判斷句：問「是這一格說不清楚，還是這一格根本不包含這個產品」——前者改名，後者新增。"),
 
     # role had no threshold at all: Major ran down to 6.90% while Minor ran up
     # to 19.26%, so the same share was labelled both ways.
@@ -506,7 +516,11 @@ LOCAL_RULES = [
      "(stock_id) WHERE role='Core' AND effective_to IS NULL——索引不可延遲檢查，"
      "故換代時必須先降級舊 Core 再升級新 Core（db.seed_industry 為此把降級排在升級之前）。"
      "★**時間軸上同樣成立：任一時間點最多只有一個有效 Core**。歷史層可以有多次換代，"
-     "但兩列 Core 的有效期間（`[effective_from, effective_to)`，端點相接不算重疊）不得交疊，"
+     "但兩列 Core 的有效期間（`[effective_from, effective_to)`，端點相接不算重疊）不得交疊。"
+     "★**`effective_to IS NULL` 表示「截至 Data_As_Of 仍為現行有效」**，"
+     "比較區間時視為開放至無限遠（檢查以 `coalesce(effective_to, 'infinity')` 實作）："
+     "故「2024-01-01～NULL」與「2025-01-01～2025-12-31」**是重疊**，必須被抓出來——"
+     "這種錯誤現行層的唯一索引看不到，因為那兩列只有一列是現行的。"
      "否則「2024 年到底哪個是 Core」會有兩個答案。"
      "★唯一索引**只管現行層**，歷史層的交疊寫得進去，故由 db.check_industry 的 "
      "[core_overlap] 檢查；現況零交疊，**以該檢查當次輸出為準**。"
