@@ -88,7 +88,16 @@ LOCAL_RULES = [
      "欣興「印刷電路板 99.07%」是品質極高的財報證據，卻無法支持任何單一節點的配置——"
      "證據品質高、節點歸屬信心不可得，兩件事同時成立。"
      "★定義：confidence＝對**該 Industry Exposure 歸屬判斷本身**的信心，"
-     "不是對來源文件可信度的評價（後者是 evidence_kind 的事）。"),
+     "不是對來源文件可信度的評價（後者是 evidence_kind 的事）。"
+     "★刻度（量的是歸屬判斷，不是文件品質）："
+     "A＝年報品項直接指名該節點的產品，換一個判讀者會得到同一格（台橡「合成橡膠 98.18%」→J3）；"
+     "B＝需要一層產業知識才對得上，但對上之後沒有第二種合理歸屬"
+     "（義隆「筆電輸入裝置模組」→C11-01）；"
+     "C＝證據支持「有這門生意」但不足以定到這一格，或存在第二種合理歸屬"
+     "（欣興「印刷電路板 99.07%」拆到 B3-01／B2-01 屬此級）；"
+     "D＝待確認，尚未有足以支撐的證據。"
+     "★同一份年報可以同時是 A 級證據與 C 級信心——欣興就是（見上）。"
+     "★選填欄位：沒把握就留 NULL，NULL 表示「尚未評估」而非 D。"),
 
     ("R019", "Core Industry 由產業曝險資料推導，不手動維護",
      "Core **不由單一 weight_pct 最大值機械決定**，而是以產業曝險表為基礎，"
@@ -213,6 +222,48 @@ LOCAL_RULES = [
      "反面警訊＝發現自己在說「最接近的是某格」而該格的定義其實排除了這個產品。"
      "★新增節點僅解決 Industry 歸屬問題，不因此自動決定 Core；Core 仍依 R019、R023 判定。"),
 
+    # role had no threshold at all: Major ran down to 6.90% while Minor ran up
+    # to 19.26%, so the same share was labelled both ways.
+    ("R026", "Major / Minor / Emerging 的判準：數值為預設，偏離須具名",
+     "Core 依 R019／R023 判定（產業定位，不由數字決定）；**非 Core 的 role 走數值預設**："
+     "weight_pct >= 15% 為 Major、< 15% 為 Minor；weight_pct 為 NULL 時預設 Major"
+     "（能被建成一列，通常就是年報具名的業務），若實為附屬/邊緣業務可標 Minor。"
+     "Emerging＝已投入布局但**尚無營收**（weight 必為 NULL），不是「比重很小」的同義詞。"
+     "★偏離預設時，理由必須寫進該列 evidence——沒有理由的偏離就是不可重現。"
+     "★為什麼要有這條：訂定前 Major 最小 6.90%（點晶馬達驅動 IC）而 Minor 最大 19.26%"
+     "（群聯控制 IC），同一個區間兩種標法都出現過，這一欄等於無法稽核。"
+     "★15% 而不是 20%：20% 會與 R020⑥ 的 Medium 分箱同點，role 就退化成 revenue_exposure "
+     "的複本；role 要回答的是「這門生意對公司重不重要」，不是「營收落在哪一箱」。"),
+
+    # A node that was never built looks exactly like a business the company
+    # does not have. This is the largest silent gap in the table.
+    ("R027", "未被曝險覆蓋的營收＝尚未建檔，不等於公司沒有該業務",
+     "曝險表不保證窮盡一家公司的營收。**未覆蓋的營收只代表尚未建檔，不得被讀成"
+     "「該公司沒有其他產業曝險」**；任何以曝險表做產業統計、同業比較或曝險加總的下游，"
+     "必須先看該公司的覆蓋率，否則會系統性低估多角化公司。"
+     "★覆蓋率＝該公司 Direct 曝險的 weight_pct 合計 ÷ 年報可辨識營收線合計"
+     "（分母排除「其他/其它/合計/租賃收入/勞務收入」等非產品列）。"
+     "★db.check_industry 的 [coverage] 檢查列出覆蓋率 <70% 的公司；"
+     "此為**提示不是阻擋**，載入器不因覆蓋率低而拒收——補不補是排程問題，"
+     "但看不見才是資料問題。"
+     "★現況（2026-09-02）：327 家有比重的公司中 81 家未覆蓋 >=30pp、141 家 >=15pp；"
+     "南茂 28.53%、文曄 27.80%、國精化 20.00% 是覆蓋率最低的一端。"),
+
+    # The judgement columns exist and are empty; without a filling rule they
+    # will either stay empty forever or get filled by whatever seems handy.
+    ("R028", "判斷型欄位為選填，填了就要能交代；空值代表尚未評估",
+     "confidence（刻度見 R018）、strategic_priority、supply_chain_position 三欄皆為**選填**，"
+     "NULL 一律解讀為「尚未評估」，不得解讀為最低級或「無」。"
+     "★strategic_priority（High/Medium/Low/Unknown）量的是**公司自己**對該業務的資源投入"
+     "與對外承諾，不是我們認為它重要——填 High/Medium/Low 時必須同時填 strategic_evidence"
+     "（法說會、年報營運計畫、擴產公告等具名出處）；沒有出處就填 Unknown 或留 NULL。"
+     "★supply_chain_position 取自 tw.supply_chain_position 字典，描述該**曝險**在鏈上的位置"
+     "而非公司（同一家公司不同節點可以不同，見 R007）。"
+     "★這三欄不在鏡像檔 db/industry_data.py 裡，是直接寫在 DB 的判斷層；"
+     "db.seed_industry 換代時以 _carried() 原樣帶過（migration 091 記載的漏帶陷阱已修）。"
+     "**不得由 evidence_kind、weight_pct 或 role 機械推導填入任一欄**——那會製造出"
+     "看起來有判斷、實際只是既有欄位換句話說的資料。"),
+
     ("R022", "通路/代理商的產品線不得僅據產品名稱認定製造歸屬",
      "若公司**某一業務線**僅具通路/代理性質，其產品中即使出現設備、材料、載板、IC 等製造品項，"
      "也不得僅因產品名稱將該業務認定為製造業務；該產品如需保留產業關聯，"
@@ -229,9 +280,9 @@ LOCAL_RULES = [
 # 22 rules read as a list; grouped they read as a structure.
 RULE_CATEGORIES = {
     "產業分類": ["R001", "R002", "R004", "R011", "R015", "R016", "R019",
-             "R022", "R023", "R024", "R025"],
+             "R022", "R023", "R024", "R025", "R026"],
     "題材": ["R003", "R005", "R010", "R012", "R017"],
-    "權重與證據": ["R006", "R018", "R020"],
+    "權重與證據": ["R006", "R018", "R020", "R027", "R028"],
     "供應鏈": ["R007"],
     "集團與生態系": ["R013", "R014"],
     "公司屬性": ["R008", "R009"],

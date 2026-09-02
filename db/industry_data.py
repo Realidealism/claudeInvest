@@ -160,7 +160,7 @@ MEMBERS = {
         ('敦吉', 'Core', None, 'annual_report_prose', '年報業務範圍載明「通路」：電波暗室設計及建造、化學檢測服務。(二)產業概況1.產業之現況與發展(1)通路行銷從總體格局來看,庫存水位方面從2023年高庫存壓力,到20', 'Direct'),
         ('文曄', 'Core', '特定應用積體電路', 'annual_report_table', '年報營業比重表：特定應用積體電路 27.80%', 'Direct'),
         ('方土昶', 'Core', '記憶體元件', 'annual_report_table', '年報營業比重表：記憶體元件 98.62%', 'Direct'),
-        ('日電貿', 'Major', '半導體', 'annual_report_table', '年報營業比重表：半導體 7.87%', 'Direct'),
+        ('日電貿', 'Minor', '半導體', 'annual_report_table', '年報營業比重表：半導體 7.87%', 'Direct'),
         ('昱捷', 'Core', '分散式元件', 'annual_report_table', '年報營業比重表：分散式元件 78.25%', 'Direct'),
         ('港建*', 'Core', '電子零件、設備及材料', 'annual_report_table', '年報營業比重表：電子零件、設備及材料 92.46% 加佣金收入 3.97%，為代理銷售', 'Direct'),
         ('益登', 'Core', '積體電路', 'annual_report_table', '年報營業比重表：積體電路 87.11%', 'Direct'),
@@ -482,7 +482,7 @@ MEMBERS = {
         ('偉詮電', 'Major', None, 'annual_report_prose', '年報業務範圍載明「馬達驅動」：pervisorIC)。(2)智慧應用IC:-氣冷散熱方案如高整合度智慧風扇馬達驅動與控制IC。-液冷散熱方案如水泵馬達控制IC、漏液偵測I', 'Direct'),
         ('普誠', 'Major', None, 'annual_report_prose', '年報業務範圍載明「馬達驅動」：%註:包含數位影像處理器、客戶委託設計IC、電源管理系列IC、馬達驅動系列IC、遙控IC及微處理器控制IC等項目。3.目前之商品項目項目主要', 'Direct'),
         ('茂達', 'Major', '放大及驅動IC', 'annual_report_table', '年報營業比重表：放大及驅動IC 29.05%，含筆電散熱風扇馬達驅動與控制IC', 'Direct'),
-        ('點晶', 'Major', '轉動移動偵測與馬達驅動晶片', 'annual_report_table', '年報營業比重表：轉動移動偵測與馬達驅動晶片 6.90%（原存 100% 為解析取錯欄，2026-09-02 更正）', 'Direct'),
+        ('點晶', 'Minor', '轉動移動偵測與馬達驅動晶片', 'annual_report_table', '年報營業比重表：轉動移動偵測與馬達驅動晶片 6.90%（原存 100% 為解析取錯欄，2026-09-02 更正）', 'Direct'),
     ],
     "A4-18": [
         ('聚積', 'Core', 'LED驅動積體電路', 'annual_report_table', '年報營業比重表：LED驅動積體電路 99.76%', 'Direct'),
@@ -490,7 +490,7 @@ MEMBERS = {
     ],
     "A4-19": [
         ('安國', 'Major', '資訊及消費性產品的週邊及控制IC', 'filing_too_coarse', '年報「資訊及消費性產品的週邊及控制IC 33.08%」一線橫跨控制 IC 與 I/O，無法拆到節點', 'Direct'),
-        ('群聯', 'Minor', '控制晶片', 'annual_report_table', '年報營業比重表：控制晶片 19.26%', 'Direct'),
+        ('群聯', 'Major', '控制晶片', 'annual_report_table', '年報營業比重表：控制晶片 19.26%', 'Direct'),
         ('點序', 'Core', 'Flash Controller + Packaged Controller', 'annual_report_table', '年報營業比重表：Flash Controller 96.65% 加 Packaged Controller 0.35%（原存「其它 100%」為解析取到最小線，2026-09-02 更正）', 'Direct'),
     ],
     "A4-21": [

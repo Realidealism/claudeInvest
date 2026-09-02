@@ -38,7 +38,7 @@ import argparse
 
 from db.connection import get_cursor
 
-CHECKS = ("core", "listing", "stale", "below", "double", "depth",
+CHECKS = ("core", "listing", "stale", "below", "coverage", "double", "depth",
           "unknown", "known", "official")
 FISCAL_YEAR = 2025
 
@@ -105,6 +105,44 @@ def check_below(cur, threshold):
     """, (threshold,))
 
 
+def check_coverage(cur, threshold):
+    """Companies whose exposures account for little of their reported revenue.
+
+    A node that was never built is indistinguishable from a business the company
+    does not have (R027), so this is the check that keeps the difference visible.
+    The denominator excludes the lines that name no product — 其他 and friends —
+    because they could not be classified even in principle.
+
+    Not a failure: a distributor legitimately books most of its revenue under one
+    node, and a company can be half-classified while the rest is still being read.
+    It is a work list, not an error list.
+    """
+    return _rows(cur, """
+        WITH assigned AS (
+            SELECT stock_id, sum(weight_pct) AS w
+            FROM tw.company_industry_exposure
+            WHERE effective_to IS NULL AND exposure_type = 'Direct'
+              AND weight_pct IS NOT NULL
+            GROUP BY stock_id
+        ), reported AS (
+            SELECT stock_id, sum(pct_effective) AS t
+            FROM tw.product_revenue_share
+            WHERE fiscal_year = %s AND pct_effective IS NOT NULL
+              AND item NOT IN ('其他', '其它', '合計', '其他營業收入',
+                               '租賃收入', '勞務收入', '銷貨收入')
+            GROUP BY stock_id
+        )
+        SELECT a.stock_id, s.name,
+               round(100 * a.w / r.t, 1) AS coverage_pct,
+               round(r.t - a.w, 1) AS unassigned_pp
+        FROM assigned a
+        JOIN reported r USING (stock_id)
+        JOIN tw.stocks s USING (stock_id)
+        WHERE r.t > 0 AND 100 * a.w / r.t < %s
+        ORDER BY 100 * a.w / r.t
+    """, (FISCAL_YEAR, threshold))
+
+
 def check_double(cur):
     return _rows(cur, """
         SELECT e.stock_id, s.name, e.weight_item,
@@ -169,6 +207,7 @@ def main():
     ap.add_argument("--check", choices=CHECKS, action="append",
                     help="run only these checks (repeatable)")
     ap.add_argument("--below-threshold", type=float, default=20.0)
+    ap.add_argument("--coverage-threshold", type=float, default=70.0)
     ap.add_argument("--limit", type=int, default=15, help="rows printed per check")
     args = ap.parse_args()
 
@@ -179,8 +218,12 @@ def main():
         print(f"{live} current exposures\n")
 
         for name in wanted:
-            findings = (check_below(cur, args.below_threshold) if name == "below"
-                        else globals()[f"check_{name}"](cur))
+            if name == "below":
+                findings = check_below(cur, args.below_threshold)
+            elif name == "coverage":
+                findings = check_coverage(cur, args.coverage_threshold)
+            else:
+                findings = globals()[f"check_{name}"](cur)
             print(f"[{name}] {len(findings)}")
             for f in findings[:args.limit]:
                 print("   ", {k: v for k, v in f.items() if v is not None})

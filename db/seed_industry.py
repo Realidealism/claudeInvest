@@ -102,7 +102,9 @@ def resolve(cur):
 def current_layer(cur):
     cur.execute("""
         SELECT id, effective_from, stock_id, node_code, role::text, weight_item, evidence_kind,
-               evidence, exposure_type::text
+               evidence, exposure_type::text,
+               confidence::text, strategic_priority::text, strategic_evidence,
+               supply_chain_position
         FROM tw.company_industry_exposure
         WHERE effective_to IS NULL
     """)
@@ -115,6 +117,21 @@ def _known_dates(cur):
         WHERE fiscal_year = %s AND filing_date IS NOT NULL
     """, (FISCAL_YEAR,))
     return {r["stock_id"]: r["filing_date"] for r in cur.fetchall()}
+
+
+# confidence, strategic_priority, strategic_evidence and supply_chain_position
+# are judgements, so they are not in the mirror file — nothing in industry_data
+# could restore them. A supersede rebuilds the row from the file, so without
+# this they would be silently emptied the first time an unrelated field moved.
+CARRIED = ("confidence", "strategic_priority", "strategic_evidence",
+           "supply_chain_position")
+
+
+def _carried(previous):
+    """The judgement columns of the row being superseded, or NULLs if new."""
+    if previous is None:
+        return (None,) * len(CARRIED)
+    return tuple(previous[f] for f in CARRIED)
 
 
 def sync(cur, resolved, effective_from):
@@ -171,12 +188,15 @@ def sync(cur, resolved, effective_from):
         cur.execute("""
             INSERT INTO tw.company_industry_exposure
                    (stock_id, node_code, role, weight_item, evidence, evidence_kind,
-                    exposure_type, effective_from, known_date, evidence_period_end)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                    exposure_type, effective_from, known_date, evidence_period_end,
+                    confidence, strategic_priority, strategic_evidence,
+                    supply_chain_position)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
         """, (stock_id, node_code, w["role"], w["weight_item"], w["evidence"],
               w["evidence_kind"], w["exposure_type"], effective_from,
               known.get(stock_id),
-              EVIDENCE_PERIOD_END if w["evidence_kind"] in DATED_EVIDENCE else None))
+              EVIDENCE_PERIOD_END if w["evidence_kind"] in DATED_EVIDENCE else None,
+              *_carried(live.get(key))))
 
     # known_date is derived from the filing date, which often arrives after the
     # membership does — a company classified from its company site before the
