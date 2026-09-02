@@ -366,6 +366,15 @@ def _rows_from_table(table, fiscal_year) -> list[dict]:
     return out
 
 
+# 業務範圍 lists the parent and then each subsidiary, every one of them with its
+# own 「目前所營事業比重」. 中纖's section reads 「※本公司 …人造纖維、玻璃紙…」
+# followed by 「2、台中銀行 …目前所營事業比重:銀行業100%」, and the reader took the
+# bank's. When more than one such ratio is present the passage covers more than
+# one company and none of them can be attributed to the filer.
+def _covers_many_companies(text: str) -> bool:
+    return len(re.findall(r"所營事業比重", text)) > 1
+
+
 def _rows_from_prose(text: str) -> list[dict]:
     """Fallback for companies writing the mix as a sentence (上銀: 線性滑軌佔營收62%)."""
     out = []
@@ -486,7 +495,7 @@ def parse_pdf(content: bytes, fiscal_year: int) -> tuple[list[dict], str]:
                 return rows, "lines"
         for _page, text in pages:
             head = text[text.find("營業比重"):] if "營業比重" in text else text
-            rows = _rows_from_prose(head[:800])
+            rows = [] if _covers_many_companies(head) else _rows_from_prose(head[:800])
             # Same completeness bar as the other readers: a lone "15%" sentence is
             # a fragment of narrative, not the company's revenue mix (3041 揚智).
             if rows and 50 <= sum(r["pct"] for r in rows) <= 150:
