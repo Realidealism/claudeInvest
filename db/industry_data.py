@@ -33,6 +33,60 @@ Sync with: python -m db.seed_industry --check   (report only)
 
 # node_code -> [(name, role, weight_item, evidence_kind, evidence, exposure_type)]
 MEMBERS = {
+    "J14": [
+        ('花仙子', 'Core', '驅塵潔淨類 + 芳香消臭類 + 除濕類', 'annual_report_table', '年報營業比重表：驅塵潔淨 55% 加芳香消臭 28% 加除濕 17%', 'Direct'),
+        ('毛寶', 'Core', '家 庭 清 潔 系 列 + 洗 衣 劑 系 列', 'annual_report_table', '年報營業比重表：家庭清潔 54% 加洗衣劑 42%', 'Direct'),
+        ('興農', 'Major', '家用品 .團膳', 'annual_report_table', '年報營業比重表：家用品/團膳 16.00%', 'Direct'),
+    ],
+    "J13": [
+        ('中碳', 'Core', '煤焦油及化學品系列產品 + 焦炭系列產品 + 精碳材料系列產品', 'annual_report_table', '年報營業比重表：煤焦油及化學品 60% 加焦炭 7% 加精碳材料 7%；另有輕油及油品 26%', 'Direct'),
+    ],
+    "J12": [
+        ('興農', 'Core', '植 物 保 護', 'annual_report_table', '年報營業比重表：植物保護 56.00%；另有超市百貨 23% 屬零售，未收錄', 'Direct'),
+        ('三晃', 'Major', '植物保護用藥', 'annual_report_table', '年報營業比重表：植物保護用藥 27.00%', 'Direct'),
+        ('康普', 'Minor', '肥料', 'annual_report_table', '年報營業比重表：肥料 7.00%', 'Direct'),
+        ('台肥', 'Core', None, 'company_site', '年報無營業比重表；台灣肥料公司為國內最大肥料製造商，主業為化學肥料與複合肥料', 'Direct'),
+    ],
+    "J11": [
+        ('德淵', 'Core', '熱熔膠 + 其他膠', 'annual_report_table', '年報營業比重表：熱熔膠 74% 加其他膠 16%', 'Direct'),
+        ('南寶', 'Core', '接著劑', 'annual_report_table', '年報營業比重表：接著劑 70.00%', 'Direct'),
+        ('誠泰科技', 'Core', '熱熔膠接著劑', 'annual_report_table', '年報營業比重表：熱熔膠接著劑 92.00%', 'Direct'),
+    ],
+    "J10": [
+        ('東鹼', 'Core', '製造－化工類產品', 'annual_report_table', '年報營業比重表：製造－化工類產品 72.00%，主力為純鹼；另有貿易 26% 為自有產品銷售', 'Direct'),
+        ('國化', 'Core', '氧化鋅 + 吊白塊 + 重亞硫酸鈉 + 保險粉', 'annual_report_table', '年報營業比重表：四項無機化學品合計 100%', 'Direct'),
+    ],
+    "J9": [
+        ('材料*-KY', 'Core', '二醋酸纖維絲束 + 二醋酸纖維素', 'annual_report_table', '年報營業比重表：二醋酸纖維絲束 86% 加二醋酸纖維素 14%', 'Direct'),
+    ],
+    "J7": [
+        ('大恭', 'Core', '調製應用顏料 + 合成有機顏料', 'annual_report_table', '年報營業比重表：調製應用顏料 67% 加合成有機顏料 30%', 'Direct'),
+    ],
+    "J6": [
+        ('永記', 'Core', '塗料類', 'annual_report_table', '年報營業比重表：塗料類 92.00%', 'Direct'),
+        ('國碳科', 'Core', '防火塗料', 'annual_report_table', '年報營業比重表：防火塗料 52.00%；另有防火材料 20% 與阻燃劑 13%', 'Direct'),
+        ('泓瀚', 'Core', '溶劑性墨水 + UV墨水', 'annual_report_table', '年報營業比重表：溶劑性墨水 65% 加 UV墨水 27%', 'Direct'),
+        ('南寶', 'Minor', '塗料', 'annual_report_table', '年報營業比重表：塗料 8.00%；接著劑為其本業，見 J11', 'Direct'),
+    ],
+    "J5": [
+        ('大立', 'Core', '合成樹脂', 'annual_report_table', '年報營業比重表：合成樹脂 95.00%', 'Direct'),
+        ('永捷', 'Core', 'PU樹脂', 'annual_report_table', '年報營業比重表：PU樹脂 25.00%；其乾溼式PU合成皮 34% 與榔皮 28% 為同一 PU 材料的下游成品（R024）', 'Direct'),
+    ],
+    "J4-01": [
+        ('三晃', 'Core', '特用化學品', 'annual_report_table', '年報營業比重表：特用化學品 57.00%', 'Direct'),
+        ('奇鈦科', 'Core', '紫外光吸收劑及光安定劑 + 抗氧化劑 + 光引發劑', 'annual_report_table', '年報營業比重表：紫外光吸收劑及光安定劑 61% 加抗氧化劑 23% 加光引發劑 15%，同屬高分子添加劑', 'Direct'),
+        ('美琪瑪', 'Core', None, 'annual_report_table', '年報列電池及先進材料原料 59% 與氧化觸媒 51%，兩者相加 110% 顯示比例欄有誤，金額欄則為 1,242,272 與 1,288,390（約 49%/51%）；比例不可信故不計比重', 'Direct'),
+        ('康普', 'Core', '動力電池材料 + 特用化學材料', 'annual_report_table', '年報營業比重表：動力電池材料 64% 加特用化學材料 14%', 'Direct'),
+        ('聚和', 'Core', '精密化學品 + 特用化學品', 'annual_report_table', '年報營業比重表：精密化學品 46% 加特用化學品 30%；另有辦公文具 22% 非化工業務', 'Direct'),
+    ],
+    "J2": [
+        ('和益', 'Core', '烷化部門(註1)', 'annual_report_table', '年報營業比重表：烷化部門 81.00%，產品為直鏈烷基苯 LAB', 'Direct'),
+        ('和桐', 'Core', '化學品', 'annual_report_table', '年報營業比重表：化學品 94.00%，主力為直鏈烷基苯 LAB', 'Direct'),
+    ],
+    "J1-01": [
+        ('東聯', 'Core', '乙二醇事業', 'annual_report_table', '年報營業比重表：乙二醇事業 66.00%，為石化中間原料', 'Direct'),
+        ('台蠟', 'Core', '精煉白蠟及微晶蠟', 'annual_report_table', '年報營業比重表：精煉白蠟及微晶蠟 65.00%，石油系蠟品；另有租賃 25% 與水產 11% 非化工業務', 'Direct'),
+    ],
     "V2": [
         ('日電貿', 'Core', '陶瓷電容 + 固態電容 + 電解電容', 'annual_report_table', '年報營業比重表：陶瓷電容 45.44% 加固態電容 26.32% 加電解電容 9.60%，被動元件代理合計 81.36%，大於其半導體代理 7.87%', 'Direct'),
     ],

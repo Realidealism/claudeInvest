@@ -178,6 +178,19 @@ def sync(cur, resolved, effective_from):
               known.get(stock_id),
               EVIDENCE_PERIOD_END if w["evidence_kind"] in DATED_EVIDENCE else None))
 
+    # known_date is derived from the filing date, which often arrives after the
+    # membership does — a company classified from its company site before the
+    # annual report is parsed opens with NULL. Fill it in as it becomes
+    # available rather than leaving the row invisible to a backtest forever.
+    cur.execute("""
+        UPDATE tw.company_industry_exposure e
+           SET known_date = st.filing_date
+          FROM tw.product_revenue_status st
+         WHERE st.stock_id = e.stock_id AND st.fiscal_year = %s
+           AND st.filing_date IS NOT NULL
+           AND e.effective_to IS NULL AND e.known_date IS NULL
+    """, (FISCAL_YEAR,))
+
     return len(added), len(superseded), len(corrected), len(closed), len(retracted)
 
 
