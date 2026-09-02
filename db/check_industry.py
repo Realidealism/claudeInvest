@@ -35,6 +35,7 @@ A finding is a question, not a verdict.
 """
 
 import argparse
+import datetime
 
 from db.connection import get_cursor
 
@@ -88,34 +89,20 @@ def check_core_overlap(cur):
 def check_core_reason(cur):
     """Cores that were adjudicated but did not say why (R019).
 
+    Delegates to db.core_candidates so the candidate set has one implementation.
     Where a company has one candidate the Core is an identity and needs no
-    argument. Where it has several, R023 was actually applied — someone weighed
-    capability against value creation against chain role — and that reasoning is
-    the only thing separating the result from a preference. It goes in the Core
-    row's evidence, marked "Core 理由：".
+    argument; where it has several, R023 was actually applied and that reasoning
+    is the only thing separating the result from a preference. It goes in the
+    Core row's evidence, marked "Core 理由：".
 
-    383 companies are the identity case and never appear here; the list is the
-    64 where a real decision was made.
+    The same pass also catches a Core that is not in its own candidate set —
+    Indirect, on a branch node, or absent — which no other check looks for.
     """
-    return _rows(cur, """
-        WITH candidates AS (
-            SELECT e.stock_id, count(*) AS n
-            FROM tw.company_industry_exposure e
-            JOIN tw.industry_tree t ON t.node_code = e.node_code
-            WHERE e.effective_to IS NULL AND e.exposure_type = 'Direct'
-              AND e.role IS DISTINCT FROM 'Emerging'
-              AND NOT EXISTS (SELECT 1 FROM tw.industry_tree c
-                              WHERE c.parent_code = t.node_code)
-            GROUP BY e.stock_id
-        )
-        SELECT e.stock_id, s.name, e.node_code, c.n AS candidates
-        FROM candidates c
-        JOIN tw.company_industry_exposure e
-          ON e.stock_id = c.stock_id AND e.effective_to IS NULL AND e.role = 'Core'
-        JOIN tw.stocks s ON s.stock_id = e.stock_id
-        WHERE c.n > 1 AND e.evidence NOT LIKE '%%Core 理由%%'
-        ORDER BY c.n DESC, e.stock_id
-    """)
+    from db.core_candidates import verify
+
+    _sets, _identity, _adjudicated, findings = verify(cur, datetime.date.today())
+    return [{"kind": kind, "stock_id": stock_id, "name": name, "why": why}
+            for kind, stock_id, name, why in findings]
 
 
 def check_listing(cur):
