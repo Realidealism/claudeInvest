@@ -50,8 +50,10 @@ LOCAL_RULES = [
      "產業曝險可使用 Revenue／Profit／Capacity／Strategic Priority 等不同權重維度；"
      "各維度須明確標示來源與計算方式，不得混用。"
      "目前唯一有資料來源的是 Revenue（年報營業比重表，分母為合併營收）；"
-     "Profit 因台灣年報普遍不揭露分部損益而無可靠來源，欄位已移除，"
-     "不作為目前可落地的權重維度——留白待猜比沒有欄位更糟。"
+     "Profit 因台灣年報普遍不揭露分部損益而無可靠來源：曝險列的 profit_exposure 欄位已移除"
+     "（migration 091），不作為目前可落地的權重維度——留白待猜比沒有欄位更糟。"
+     "★但 enum tw.weight_type 仍保留 'Profit' 這個 label，載入器技術上寫得進去；"
+     "在有可靠來源之前**禁用**，要徹底封死需另加 CHECK 或移除該 label。"
      "★現況限制：db.fill_weight 每次執行會清空全表的 weight_pct/weight_type/weight_basis 再回填 "
      "Revenue 型，所以目前只有 Revenue 型權重能留在庫裡；要落地 Capacity/Strategic 型，"
      "必須先讓該清空語句只作用於 weight_type='Revenue'。"),
@@ -67,7 +69,8 @@ LOCAL_RULES = [
     ("R005", "尚未有適當 Industry 節點的新興技術/產品優先進入 Theme",
      "若已有適當 Industry 節點，Industry 與 Theme 可並存，不必二選一。"
      "HBM 即為此例：Theme T07 與 A3-03 DRAM 製造／A5-04 HBM Packaging／A6-07 HBM Test "
-     "同時成立（見 R017）。★節點一律引用 node_code，不引用「A3 Memory」這類非節點的口語名——"
+     "同時成立（見 R017）。★現況（2026-09-02）：T07 有 13 家成員，但 A5-04／A6-07 皆 0 筆曝險，"
+     "**並存形態在庫裡尚無實例**——這條規則說的是允許並存，不是已經並存。★節點一律引用 node_code，不引用「A3 Memory」這類非節點的口語名——"
      "A3 底下沒有 Memory 格，只有 A3-03 DRAM 製造與 A3-07 NOR/NAND Flash 製造。"),
 
     ("R015", "A3 兩維度：製造模式 × 產品類型",
@@ -100,7 +103,9 @@ LOCAL_RULES = [
      "（欣興「印刷電路板 99.07%」拆到 B3-01／B2-01 屬此級）；"
      "D＝待確認，尚未有足以支撐的證據。"
      "★同一份年報可以同時是 A 級證據與 C 級信心——欣興就是（見上）。"
-     "★選填欄位：沒把握就留 NULL，NULL 表示「尚未評估」而非 D。"),
+     "★選填欄位：沒把握就留 NULL，NULL 表示「尚未評估」而非 D。"
+     "★現況（2026-09-02）：confidence **0/523 已填**，上面三個範例是刻度的示範而非庫裡的實例；"
+     "這段刻度目前是待建欄位的規格。"),
 
     ("R019", "Core Industry 由產業曝險資料推導，不以單一營收最大值機械決定",
      "三段式：**Exposure Table → 同一 node 聚合後形成 Core 候選集合 → 依 R023／R024 裁定 → Core**。"
@@ -129,7 +134,10 @@ LOCAL_RULES = [
      "★此例的節點合計必須真的落地（R020④）：A5-02 的 weight_item 是"
      "「晶圓級尺寸封裝 + 晶圓級後護層封裝」、weight_pct=50.16——若只存 44.98，"
      "資料本身會顯示 Core 小於 Major，規則的論證在庫裡就是假的。"
-     "★Core ≠ Revenue Exposure Level：超豐無比重仍為 Core。前者是產業定位，後者是營收分箱。"),
+     "★Core ≠ Revenue Exposure Level：超豐無比重仍為 Core。前者是產業定位，後者是營收分箱。"
+     "★現況（2026-09-02）：447 家各有恰好 1 個 Core，**Core pending 至今 0 例**；"
+     "且 381/447（85%）只有一筆曝險，三段式在那些公司上是恆等式，"
+     "真正有裁定作用的是其餘 66 家多曝險公司。"),
 
     ("R020", "Weight 可為 NULL，且必須標明類型與分母",
      "① weight_pct 表示該 Industry 節點可歸屬之營收曝險，須標示 weight_type／weight_basis，"
@@ -198,7 +206,11 @@ LOCAL_RULES = [
      "不可拿會計年度結束日去填，否則現行層會整批失效。"
      "★known_date 為 NULL 的現行列，對任何依 known_date 過濾的回測**等同不存在**，"
      "屬缺陷不是可接受狀態；db.check_industry 的 [known] 非零時必須有結案理由"
-     "（通常是該公司尚無 tw.product_revenue_status.filing_date，補到就會自動回填）。"),
+     "（通常是該公司尚無 tw.product_revenue_status.filing_date，補到就會自動回填）。"
+     "★**evidence_kind 非年報者（company_site／investor_conf），known_date 應取該證據自身的"
+     "公開日，不得沿用年報申報日**——證據不是年報，年報申報日既不是最早也不是正確。"
+     "現況（2026-09-02）：34 列屬此情形且都掛著年報申報日，是已知缺陷；"
+     "在補到各自的公開日之前，這些列的 known_date 只能當作保守上界看。"),
 
     ("R023", "Core 依商業本質與價值鏈角色判定",
      "營收最大業務線不得單獨決定 Industry Core；應判斷公司主要創造價值的產品、技術能力與"
@@ -268,7 +280,10 @@ LOCAL_RULES = [
      "★15% 而不是 20%：20% 會與 R020⑥ 的 Medium 分箱同點，role 就退化成 revenue_exposure "
      "的複本；role 要回答的是「這門生意對公司重不重要」，不是「營收落在哪一箱」。"
      "★db.check_industry 的 [role] 檢查列出偏離預設的列（Major<15 或 Minor>=15）；"
-     "它不判對錯——有具名理由的偏離是合法的——但沒有它，這一欄會無聲漂回訂定前的狀態。"),
+     "它不判對錯——有具名理由的偏離是合法的——但沒有它，這一欄會無聲漂回訂定前的狀態。"
+     "★現況（2026-09-02）：Core 447／Major 72（Direct 69＋Indirect 3）／Minor 4／**Emerging 0**；"
+     "4 筆 Minor 的 weight 全部有值（6.64–7.87%），即「weight NULL 且非 Core 標 Minor」**0 例**。"
+     "Emerging 的排除條款與「附屬業務須有 evidence」目前都還沒有被行使過。"),
 
     # A node that was never built looks exactly like a business the company
     # does not have. This is the largest silent gap in the table.
@@ -302,8 +317,9 @@ LOCAL_RULES = [
      "這 82 家分兩種，規則對它們的處置不同：年報只給一條粗線的（臻鼎-KY「各式印刷電路板 "
      "100%」）屬 R020② 的 filing_too_coarse，是**已結案**；年報有可拆的比重表卻尚未去讀的"
      "屬**待補**，不得因為 weight 是 NULL 就當成「未揭露」。"
-     "★現況（2026-09-02 快照）：[coverage] 共 165 家；覆蓋率最低的一端為 "
-     "國精化 20.6%、永捷 25.5%、南茂 28.5%、文曄 28.6%，另有 82 家為 0%。"),
+     "★家數與名單**以 db.check_industry [coverage] 的當次輸出為準**，不寫進規則正文——"
+     "曝險一改數字就變，寫死的統計會讓規則長期處於「已知錯誤」狀態"
+     "（本條初稿寫 165 家，隔一次修正就變成 164，正是這個問題）。"),
 
     # The judgement columns exist and are empty; without a filling rule they
     # will either stay empty forever or get filled by whatever seems handy.
@@ -320,7 +336,70 @@ LOCAL_RULES = [
      "並以換代實跑驗證）。四欄皆已由 view tw.v_company_industry_exposure 暴露"
      "（supply_chain_position 於 migration 093 補上），下游看得到才有人會去填。"
      "**不得由 evidence_kind、weight_pct 或 role 機械推導填入任一欄**——那會製造出"
-     "看起來有判斷、實際只是既有欄位換句話說的資料。"),
+     "看起來有判斷、實際只是既有欄位換句話說的資料。"
+     "★現況（2026-09-02）：四欄**填充率皆為 0/523**。換代帶過已實跑驗證，"
+     "但驗到的是搬運 NULL；下次審查本條時，驗收條件是填充率 > 0。"),
+
+    # The draft licensed "two A3 exposures", which reads as licence to count one
+    # revenue line twice.
+    ("R012", "Power × Compound 可交叉，但交叉的是節點不是比重",
+     "SiC/GaN 同屬 Power Semiconductor 與 Compound Semiconductor，一家公司可同時掛兩個 A3 "
+     "子產業曝險（與 R015 一致：製造模式與產品類型是兩個軸）。"
+     "★但**同一條營收線的比重只能計在一個節點**（R004、R020②）——「可同掛兩格」講的是曝險列，"
+     "不是比重可以複製兩份；另一格若無法獨立拆分，weight 必為 NULL。"
+     "★更常見的錯誤是把**下游應用**寫成第二個曝險：「本產品應用於 Power MOSFET/IGBT」是客戶用途，"
+     "不是該公司做了功率半導體製造，不得據以建立 A3-04。"
+     "★現況：T25 Theme 目前 0 個成員，此交叉形態在庫裡尚無實例。"),
+
+    # A term being hot does not mean the tree has no home for it.
+    ("R010", "熱門名詞不各自獨立成 Theme",
+     "AI Agent / LLM / GenAI / ML 歸入 T35 AI Software，不各自開一個 Theme。"
+     "★但這只約束 Theme 側：若樹上已有適當節點（如 U6 AI Software），"
+     "依 R005 仍應建立 Industry Exposure，Industry 與 Theme 並存，不是二選一。"
+     "★現況：T35 目前 0 個成員，U6 節點 0 筆曝險——這條規則描述的形態尚未在庫裡發生。"),
+
+    # These three describe machinery that exists and is empty. Left unannotated
+    # they read as descriptions of the data.
+    ("R007", "Supply Chain 獨立於 Industry",
+     "一家公司可有多個供應鏈位置；供應鏈位置與產業節點是兩個維度，不互相決定。"
+     "落地欄位是 tw.company_industry_exposure.supply_chain_position（FK 指 "
+     "tw.supply_chain_position 字典 16 項），描述該**曝險**的位置而非公司（見 R028）。"
+     "★現況（2026-09-02）：字典 16 項＋層級 3 項已建，但 523 列**填充率 0**，"
+     "「一家公司多個位置」至今 0 家驗證——本條目前是設計不是描述。"),
+
+    ("R008", "Cycle 可多選",
+     "Growth + Capex 等景氣屬性可並存，不是單選。"
+     "★現況（2026-09-02）：tw.cycle_attributes 是 8 項純字典；公司層唯一載體 "
+     "tw.company_profile.cycle_attributes 只有 7 家有值，且是逗號分隔的自由文字、無 FK，"
+     "值與字典對不上（1605 寫 'Policy'，字典是 'Policy Driven 政策'）。"
+     "447 家已分類公司中 440 家沒有任何 cycle 標註。多選機制尚未以關聯表落地。"),
+
+    ("R009", "地區曝險與產業獨立",
+     "Revenue 與 Production 的地區曝險分開標示，且與產業歸屬互不決定。"
+     "★現況（2026-09-02）：tw.region_exposure_rules 12 列全是字典條文而非資料；"
+     "公司層只有 tw.company_profile 的 7 家 × china_revenue／us_revenue 兩欄，"
+     "字典宣告的地區只實作 2 個；生產地是自由文字 main_production_site（如「台灣/中國/泰國」），"
+     "未分級。沒有 company_region_exposure 表——本條目前是設計不是描述。"),
+
+    ("R013", "Group ≠ Theme",
+     "Group 描述企業關係（母子/投資/關聯）；Theme 描述市場主題；分表存放。"
+     "★group_type 僅限正式控制關係，**不得出現「正式集團 / 生態系」這種複合值**——"
+     "生態系一律入 tw.ecosystem_master（R014）；GT04 台積電體系與 GT09 聯發科生態系"
+     "原本就是這樣寫的，已改回單一值。"
+     "★現況：business_group 20 列、company_group 81 列（成員由 tw.company_affiliations 推導，"
+     "derived_from 留有持股佐證），是本節唯一有實資料的部分；company_group 無 known_date 欄，"
+     "R021 的三軸不適用於集團層。"),
+
+    ("R014", "Group ≠ Ecosystem",
+     "Group＝正式集團/控制關係；Ecosystem＝公司與特定客戶、供應商、平台、聯盟或技術體系"
+     "形成的關聯網絡（不限客戶/供應商，聯盟型如 E06 MIH 亦屬之）。"
+     "★現況（2026-09-02）：ecosystem_master 6 列（E01 NVIDIA／E02 AMD／E03 Apple／"
+     "E04 Tesla・EV／E05 雲端自研 ASIC／E06 MIH），但 company_ecosystem_mapping 只有 10 列"
+     "且**全部指向 E01**，E02–E06 成員數皆 0；這 10 列的 confidence 全為 D、"
+     "evidence_kind 全為 pending、known_date 全為 NULL（依 R021 對回測等同不存在）。"
+     "本條目前是設計不是描述。"
+     "★E01 的 coverage 是硬體供應鏈（GPU、AI Server、PCB、載板、電源、散熱…），"
+     "不是 CUDA 那種軟體平台生態系——先前以 CUDA 舉例與庫裡的 E01 不符，已移除。"),
 
     ("R022", "通路/代理商的產品線不得僅據產品名稱認定製造歸屬",
      "若公司**某一業務線**僅具通路/代理性質，其產品中即使出現設備、材料、載板、IC 等製造品項，"

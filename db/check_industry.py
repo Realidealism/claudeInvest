@@ -141,7 +141,9 @@ def check_coverage(cur, threshold):
     The denominator wants mutually exclusive leaf lines. Totals and contra rows
     are excluded by name, but the parser still emits the occasional fragment of
     running text as a product line, so a handful of companies sum past 100 and
-    their coverage here is a lower bound rather than a measurement.
+    their coverage is unreliable rather than a measurement. Not a lower bound
+    either: an inflated denominator understates, a missed line overstates, and
+    nothing here says the error runs one way.
 
     Not a failure: a distributor legitimately books most of its revenue under one
     node, and a company whose filing gives one coarse line has nothing to assign.
