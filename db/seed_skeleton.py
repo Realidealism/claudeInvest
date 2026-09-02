@@ -76,7 +76,11 @@ LOCAL_RULES = [
 
     # Theme leaves the exposure type: it has its own table and its own contract.
     ("R018", "Exposure Type 只有 Direct / Indirect；Confidence 另計",
-     "Type：Direct（自有業務）／Indirect（該營收已被他處計入，見 R020、R022）。"
+     "Type：Direct＝該公司自行創造之產業業務；Indirect＝該產業曝險在經濟歸屬上不應視為"
+     "該節點之直接製造／業務曝險，包括代理／通路性質（見 R022），以及已由同一 Industry node "
+     "之合併子公司獨立計入而會造成市場層級重複計數者（見 R020③）。"
+     "★不可簡化成「該營收已被他處計入」——代理商的營收是它自己的帳，並沒有被別人計過，"
+     "間接的是它與該製造節點的關係。"
      "Theme 不是 exposure type——題材有獨立表與獨立契約（無營收判準、evidence 必填），"
      "若容許 exposure_type='Theme' 會與 R003「Theme 不可作為 Primary Industry」自相矛盾。"
      "★evidence_kind 記錄**證據類型**，confidence 記錄**對該 Exposure 判斷的可信程度**，"
@@ -86,9 +90,10 @@ LOCAL_RULES = [
      "★定義：confidence＝對**該 Industry Exposure 歸屬判斷本身**的信心，"
      "不是對來源文件可信度的評價（後者是 evidence_kind 的事）。"),
 
-    ("R019", "Core Industry 由曝險表推導，不手動維護",
-     "推導分兩步：**先把屬於同一 Industry 節點的業務線聚合**，再依聚合後之主要經濟曝險、"
-     "價值創造能力與價值鏈角色及公司產業定位判定，**不是**逕取單一營收品項最大值。"
+    ("R019", "Core Industry 由產業曝險資料推導，不手動維護",
+     "Core **不由單一 weight_pct 最大值機械決定**，而是以產業曝險表為基礎，"
+     "先將屬於同一 Industry node 的業務線聚合，再依聚合後之主要經濟曝險、價值創造能力、"
+     "價值鏈角色與公司產業定位判定。"
      "★只有確實屬於同一 Industry node 的業務線才能聚合，**不得因上層產業、供應鏈或終端應用相近"
      "而跨節點合併**，亦不得跨節點為取得較大比重而合併："
      "A5 封裝 45% 與 A6 測試 48% 不可併成「半導體 93%」再據以定 Core，那等於把 taxonomy 拆掉；"
@@ -102,8 +107,7 @@ LOCAL_RULES = [
      "★此例的節點合計必須真的落地（R020④）：A5-02 的 weight_item 是"
      "「晶圓級尺寸封裝 + 晶圓級後護層封裝」、weight_pct=50.16——若只存 44.98，"
      "資料本身會顯示 Core 小於 Major，規則的論證在庫裡就是假的。"
-     "★Core ≠ Revenue Exposure Level：超豐無比重仍為 Core。前者是產業定位，後者是營收分箱。"
-     "★業務群本身的排序見 R023。"),
+     "★Core ≠ Revenue Exposure Level：超豐無比重仍為 Core。前者是產業定位，後者是營收分箱。"),
 
     ("R020", "Weight 可為 NULL，且必須標明類型與分母",
      "① weight_pct 表示該 Industry 節點可歸屬之營收曝險，須標示 weight_type／weight_basis，"
@@ -116,9 +120,11 @@ LOCAL_RULES = [
      "德律「自動檢測設備 97.21%」橫跨 A2-13 測試/檢測設備（半導體側）與 B5-01 製程設備（PCBA 側），"
      "兩對都是兩格 Direct、兩格 NULL——**包括原本掛著比重的那一格**；"
      "台化「化工一部 39%」同理，部門名稱不指明產品，不可當成任一細格的比重。"
-     "③ 若母公司合併營收線之產業曝險主要來自已於同一 Industry 節點獨立建檔之合併子公司，"
-     "母公司該曝險保留為 Indirect，不得再次納入市場層級產業權重，以避免母子公司重複計數。"
-     "該 Indirect 列的 weight_pct 一律 NULL，比重只寫進 evidence——年報確實揭露了這個數字，"
+     "③ 若母公司合併營收線之產業曝險包含已於同一 Industry node 獨立建檔之合併子公司，"
+     "且該營收已由該子公司在市場層級獨立計入，母公司對應曝險應**依是否產生重複計數判定為 "
+     "Indirect**；不得因母公司合併營收再次將同一經濟活動計入市場層級產業權重。"
+     "★判準是會不會重複計數，不是子公司佔多少——寫「主要來自」會把門檻變成爭論點。"
+     "該 Indirect 列的 weight_pct 一律 NULL，比重僅保留於 evidence——年報確實揭露了這個數字，"
      "不寫明就會有人依 ① 把它填進去，重複計數就從這裡進來。"
      "例：茂達離散式功率元件 44.91% 來自合併的大中，大中已自列 A4-22。"
      "④ weight_pct 為節點合計值；weight_item 可保留組成業務線，以 \" + \" 列出"
@@ -151,6 +157,14 @@ LOCAL_RULES = [
      "它自研控制 IC，但主要生意是模組，兩個分支各建一列。"
      "★節點一律寫到葉節點代碼：A4／F7 是分支代碼，db.check_industry 的 [depth] 檢查會擋，"
      "要寫 A4-19／F7-01。"),
+
+    # The draft names "A3 Memory" etc., which R005 forbids and the tree does
+    # not contain. Left as drafted it is a copy-paste source of bad codes.
+    ("R017", "HBM＝Theme",
+     "HBM 為 Theme T07；若公司涉及 HBM，其 Industry Exposure 依實際價值鏈角色分別歸入"
+     "對應節點，例如 A3-03 DRAM 製造、A5-04 HBM Packaging、A6-07 HBM Test。"
+     "HBM Theme 與 Industry Exposure 可同時成立，兩者不互斥（見 R005）。"
+     "★原稿寫的「A3 Memory」不是節點，樹是 leaf-node 架構，一律引用 node_code。"),
 
     ("R021", "時間三軸：Effective / Known / Evidence",
      "Effective_From/To＝這個分類何時成立；Known_Date＝我們最早何時可能知道（MOPS 申報日）；"
@@ -200,9 +214,9 @@ LOCAL_RULES = [
      "★新增節點僅解決 Industry 歸屬問題，不因此自動決定 Core；Core 仍依 R019、R023 判定。"),
 
     ("R022", "通路/代理商的產品線不得僅據產品名稱認定製造歸屬",
-     "若公司**僅具**通路/代理性質，其產品線中出現設備、材料、載板、IC 等品項時，不得僅因產品名稱"
-     "將其掛到對應的製造節點；該產品如需保留產業關聯，應建立為 Indirect Industry Exposure，"
-     "**不得因此建立製造型 Direct 或 Core**。"
+     "若公司**某一業務線**僅具通路/代理性質，其產品中即使出現設備、材料、載板、IC 等製造品項，"
+     "也不得僅因產品名稱將該業務認定為製造業務；該產品如需保留產業關聯，"
+     "應建立為 Indirect Industry Exposure，**不得因此建立製造型 Direct 或 Core**。"
      "★但通路性質不會傳染到公司的其他業務：若年報明確揭露自有製造、產能、製造設備或製造營收，"
      "該製造業務照樣建立 Direct Exposure。例：蔚華科 V1 半導體通路 Core 93.77% Direct ＋ "
      "A2-13 測試/檢測設備 Indirect（代理的設備，比重已計在 V1）；"
