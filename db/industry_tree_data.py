@@ -63,6 +63,12 @@ NODES = [
     # and A2 already holds the back-end 封裝設備; A6 next door is testing as a
     # service, which is a different business from selling the machine.
     ('A2-13', 'A2', 3, '測試 / 檢測設備', 'Test Handler、ATE、AOI/AVI 檢測、雷射加工、老化設備'),
+    # Servicing the equipment is not making it. A2-01..A2-13 are all machines a
+    # company builds and sells; 漢測's 42.87% is engineers on a fab floor
+    # installing, moving and repairing someone else's. A7-01 next door is the
+    # building's systems, which is a different trade again.
+    ('A2-14', 'A2', 3, '半導體設備工程服務 (Equipment Field Service)',
+     '設備裝機、移機、改機、驗機、維修與保養等對設備本身的現場工程服務（不製造設備；廠務系統見 A7-01）'),
     ('A3', 'A', 2, '晶圓製造', None),
     ('A3-01', 'A3', 3, 'Foundry (純晶圓代工)', '台積電、聯電、世界、力積電'),
     ('A3-02', 'A3', 3, 'IDM', '整合元件製造（自有 fab）'),
@@ -81,7 +87,8 @@ NODES = [
     ('A4-05', 'A4', 3, 'ASIC 設計服務', '創意、世芯、智原'),
     ('A4-06', 'A4', 3, '矽智財 (Silicon IP)', 'CPU/Interface/Memory/Security IP、SerDes（力旺、晶心科、M31）'),
     ('A4-07', 'A4', 3, '電源管理 IC (PMIC)', '電源管理、DC/DC、LDO、Charger、Power IC'),
-    ('A4-08', 'A4', 3, '微控制器 IC (MCU)', None),
+    ('A4-08', 'A4', 3, '微控制器 IC (MCU)',
+     '泛用/嵌入式微控制器、8/16/32-bit MCU、車用與工控 MCU。伺服器基板管理控制器見 A4-26'),
     ('A4-09', 'A4', 3, '多媒體 SoC', '多媒體/影音 SoC、數位影像控制晶片、消費性 SoC'),
     ('A4-10', 'A4', 3, '網通 IC', 'Ethernet、Switch、Router、Wi-Fi、PHY、Network Processor'),
     ('A4-11', 'A4', 3, '輸出入介面 IC (I/O)', 'PCIe、USB、Thunderbolt、橋接 IC'),
@@ -101,12 +108,29 @@ NODES = [
     ('A4-22', 'A4', 3, '功率分立元件設計', 'MOSFET、IGBT、二極體、整流器設計（無自有 fab）'),
     ('A4-23', 'A4', 3, '光通訊 IC', '光收發控制、雷射驅動、TIA、CDR、光模組控制 IC'),
     ('A4-24', 'A4', 3, 'MPU / 嵌入式處理器', '通用微處理器、嵌入式應用處理器'),
+    # A4-24 is the embedded application processor; a phone platform SoC is that
+    # plus the baseband modem, and the modem is the part the whole business runs
+    # on. Filing it under 網通 IC put 聯發科 beside Ethernet PHY vendors.
+    ('A4-25', 'A4', 3, '行動通訊 SoC / 應用處理器 (Mobile SoC)',
+     '手機/平板平台 SoC、整合基頻數據機之應用處理器、5G Modem'),
+    # Technically a controller, commercially not an MCU: a BMC is sold to server
+    # ODMs as out-of-band management silicon, on the server cycle and against a
+    # different competitive set. Merging it into A4-08 would put 信驊 in the pool
+    # of general-purpose MCU vendors (R025).
+    ('A4-26', 'A4', 3, '伺服器管理控制晶片 (BMC)',
+     'BMC 基板管理控制器、KVM over IP、平台信任根 (PRoT)、伺服器頻外管理與平台安全晶片'),
     ('A5', 'A', 2, '封裝與先進封裝', None),
     ('A5-01', 'A5', 3, '傳統封裝', 'BGA、QFN、QFP、WLCSP'),
     ('A5-02', 'A5', 3, '先進封裝', 'CoWoS、SoIC、Fan-Out、Hybrid Bonding、2.5D/3D'),
     ('A5-03', 'A5', 3, 'RDL / TSV / Interposer', None),
     ('A5-04', 'A5', 3, 'HBM Packaging', '（HBM 本身為 Theme T07）'),
     ('A5-05', 'A5', 3, '封裝測試代工 (OSAT)', '日月光、矽品、力成、京元、南茂、超豐、頎邦'),
+    # Mid-end: the filing's own word. Thinning and backside metal happen on a
+    # customer's finished wafer, so this is neither A3 (which makes the device)
+    # nor A5-05 (which packages it) — but its demand comes from Fan-Out, bumping
+    # and 3D, which is why it hangs under packaging rather than under 晶圓製造.
+    ('A5-06', 'A5', 3, '晶圓中段製程代工 (Wafer Mid-end Process)',
+     '晶圓薄化、晶背研磨、晶圓正/背面金屬製程、載板貼合；受託加工客戶晶圓，不含封裝與測試'),
     ('A6', 'A', 2, '測試 / 可靠度 / FA', None),
     ('A6-01', 'A6', 3, 'IC 測試服務 (IC Test)', 'Wafer Sort、Final Test、系統級測試'),
     ('A6-02', 'A6', 3, '探針卡 (Probe Card)', 'Probe、Probe Card、Probe Interface（旺矽、雍智）'),
@@ -204,7 +228,8 @@ NODES = [
     ('E5', 'E', 2, 'LED', None),
     ('E5-01', 'E5', 3, '發光二極體', 'LED Chip、Package、Display、Backlight、Driver'),
     ('E6', 'E', 2, '光學元件', None),
-    ('E6-01', 'E6', 3, '光學', 'Lens、Prism、Optical Film、Filter'),
+    ('E6-01', 'E6', 3, '光學',
+     'Lens、Prism、Optical Film、Filter；微型光學元件（矽基微透鏡陣列、超穎表面 Metasurface、光波導、晶圓級光學）'),
     ('F', None, 1, '電子零組件', None),
     ('F1', 'F', 2, '被動元件', None),
     ('F1-01', 'F1', 3, '被動', '電阻、MLCC、電感、電容、磁性元件、EMI/EMC'),
@@ -222,14 +247,16 @@ NODES = [
     ('F7-01', 'F7', 3, '記憶體模組 (Module)', 'DRAM Module、SSD（威剛、宇瞻、十銓）；系統端見 C9 System/Enterprise Storage'),
     ('G', None, 1, '電機 / 自動化 / 機器人', None),
     ('G1', 'G', 2, '工業自動化', None),
-    ('G1-01', 'G1', 3, '自動化', 'PLC、IPC、Motion Control、Servo、Robot、Vision'),
+    ('G1-01', 'G1', 3, '自動化',
+     'PLC、IPC、Motion Control、Servo、Robot、Vision；運動控制零組件（步進馬達、伺服馬達、驅動器）— 車用動力馬達見 H5-01'),
     ('G2', 'G', 2, '工業電腦', None),
     ('G3', 'G', 2, '機器人', None),
     ('G3-01', 'G3', 3, 'Industrial / Collaborative Robot', '工業機器人、協作機器人 (Cobot)'),
     ('G3-02', 'G3', 3, 'Mobile Robot', 'AMR、AGV'),
     ('G3-03', 'G3', 3, 'Service / Humanoid Robot', 'Service Robot、Humanoid'),
     ('G4', 'G', 2, '精密機械', None),
-    ('G4-01', 'G4', 3, '精密', 'CNC、Tooling、Linear Guide、Ball Screw、Bearing、Gear'),
+    ('G4-01', 'G4', 3, '精密機械零組件與工具 (Precision Components & Tooling)',
+     'CNC、Tooling、Linear Guide、Ball Screw、Bearing、Gear；研磨與切削工具（砂輪、磨料、鑽石/cBN 工具、切削刀具）'),
     ('G5', 'G', 2, '工具機', None),
     ('G6', 'G', 2, '機械設備', None),
     ('G6-01', 'G6', 3, '專用機械', '食品機械、塑膠機械、紡織機械、包裝機械、其他專用機械（半導體設備→A2、PCB設備→B5）'),
@@ -291,6 +318,11 @@ NODES = [
     ('J13', 'J', 2, '煤化工 (Coal Chemical)', '煤焦油、焦炭、精碳材料'),
     ('J14', 'J', 2, '家用化學品 (Household)', '清潔劑、洗衣劑、芳香除濕、家用消耗品'),
     ('J15', 'J', 2, '碳黑 (Carbon Black)', '橡膠補強碳黑、色料碳黑、導電碳黑'),
+    # Toner is a dry imaging powder sold as a printer consumable: J6 is coatings
+    # and liquid inks, and J15 carbon black is the raw material that goes into
+    # toner rather than the toner itself.
+    ('J16', 'J', 2, '電子成像耗材 (Toner & Imaging Consumables)',
+     '碳粉、碳粉匣、列印耗材、電子成像用色料（碳黑原料見 J15）'),
     ('K', None, 1, '塑膠 / 橡膠', None),
     ('K1', 'K', 2, '塑膠原料', None),
     ('K1-01', 'K1', 3, '加工用原料', '複合料、色母、再生料（非上游塑化原料）'),
@@ -308,7 +340,8 @@ NODES = [
     ('L6', 'L', 2, '鎳', None),
     ('L7', 'L', 2, '鋅', None),
     ('L8', 'L', 2, '鎢', None),
-    ('L9', 'L', 2, '稀有金屬', None),
+    ('L9', 'L', 2, '稀有金屬',
+     '鈦、鉭、鈮、鉬、鋯、銦、鎵、鍺、稀土等工業稀有金屬之冶煉、鍛造與加工。不含金銀鉑族貴金屬——貴金屬價格隨金銀行情與回收循環，與稀有金屬的工業需求是兩個市場'),
     ('M', None, 1, '紡織 / 成衣', None),
     ('M1', 'M', 2, '上游/化纖', '聚酯、尼龍、Rayon、彈性纖維'),
     ('M2', 'M', 2, '紡紗', '棉紗、混紡'),
