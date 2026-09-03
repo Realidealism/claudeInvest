@@ -159,7 +159,11 @@ def check_role(cur):
     reader has to look at, which is what stops the column drifting back to the
     state R026 was written to end (Major at 6.90%, Minor at 19.26%).
 
-    Emerging and Indirect rows are outside the numeric default and excluded.
+    Emerging and Indirect rows are outside the numeric default and excluded, and
+    so is a row whose evidence carries "role 理由：". R026 says a deviation must
+    be named, not that it must not happen, so a named one is the rule working
+    rather than a finding — the same contract [core_reason] uses. Without that,
+    the check can never reach zero and stops meaning anything.
     """
     return _rows(cur, """
         SELECT e.stock_id, s.name, e.node_code, e.role::text, e.weight_pct
@@ -167,6 +171,7 @@ def check_role(cur):
         JOIN tw.stocks s ON s.stock_id = e.stock_id
         WHERE e.effective_to IS NULL AND e.role NOT IN ('Core', 'Emerging')
           AND e.exposure_type = 'Direct' AND e.weight_pct IS NOT NULL
+          AND e.evidence NOT LIKE '%%role 理由%%'
           AND ((e.role = 'Major' AND e.weight_pct < 15)
             OR (e.role = 'Minor' AND e.weight_pct >= 15))
         ORDER BY e.weight_pct
