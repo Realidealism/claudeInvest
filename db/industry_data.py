@@ -33,6 +33,24 @@ Sync with: python -m db.seed_industry --check   (report only)
 
 # node_code -> [(name, role, weight_item, evidence_kind, evidence, exposure_type)]
 MEMBERS = {
+    "A4-26": [
+        ('信驊', 'Core', '多媒體積體電路', 'annual_report_table', '年報營業比重表：多媒體積體電路 96.32%，內容為伺服器基板管理控制晶片(BMC)、遠端 KVM 控制器與平台信任根(PRoT)。原掛 A4-10 網通 IC 係關鍵字誤中機櫃設計敘述中的「網通」二字', 'Direct'),
+    ],
+    "A4-24": [
+        ('威盛', 'Core', None, 'filing_too_coarse', '年報自述「威盛長期深耕 x86 處理器與嵌入式運算平台技術」，該線約占 56%，橫跨處理器與車載／邊緣 AI 系統無法拆分故不計比重。Core 理由：核心技術與最大營收線在 x86 與嵌入式運算平台(R023①③)', 'Direct'),
+    ],
+    "E5-01": [
+        ('立碁', 'Core', 'LED模組產品', 'annual_report_table', '年報營業比重表：LED模組產品 55.55%，商品項目為室內外 LED 照明模組、傳統與超高亮發光二極體燈。原掛 A3-04 功率半導體製造係關鍵字誤中「傳統發光二極體燈」', 'Direct'),
+    ],
+    "E3": [
+        ('錼創科技-KY創', 'Core', None, 'filing_too_coarse', '年報商品項目：COC (chip on carrier)、6" Red MicroLED COC、PixeLED Display MicroLED 顯示器。原掛 A3-06 化合物半導體製造，該證據取自年報第三代半導體「產業概況」段落而非自身產品', 'Direct'),
+    ],
+    "C6-01": [
+        ('聚鼎', 'Major', '散熱基板', 'annual_report_table', '年報營業比重表：散熱基板 35.55%，另有散熱模組與散熱材料', 'Direct'),
+    ],
+    "F1-01": [
+        ('聚鼎', 'Core', '保護元件', 'annual_report_table', '年報營業比重表：保護元件 64.45%（PPTC/OVP/CLM），年報自述「PPTC 與 OVP 元件係分類於電子零組件業中之電阻器產業」。原掛 A1-14 陶瓷基板，係關鍵字誤中——年報該句講的是 CLM 模組的投入材料，不是聚鼎的產品', 'Direct'),
+    ],
     "X9": [
         ('萬國通', 'Core', '行李箱', 'annual_report_table', '年報營業比重表：行李箱 94.00%', 'Direct'),
     ],
@@ -235,12 +253,11 @@ MEMBERS = {
         ('九豪', 'Core', None, 'annual_report_prose', '年報業務範圍載明「陶瓷基板」：肆、營運概況一、業務內容(一)業務範圍1.所營業務之主要內容(1)氧化鋁陶瓷基板之製造、加工及買賣業務。(2)陶瓷構裝基板之製造、設計、加工', 'Direct'),
         ('同欣電', 'Major', '陶瓷電路板', 'annual_report_table', '年報營業比重表：陶瓷電路板 17.56%', 'Direct'),
         ('立誠', 'Core', None, 'annual_report_prose', '年報業務範圍載明「陶瓷基板」：製造及銷售,位於LED產業供應鏈中上游位置,其透過金屬表面處理製程技術應用於陶瓷基板,與上游基板廠及其他零組件公司密切合作,開發製造高品質產', 'Direct'),
-        ('聚鼎', 'Core', None, 'annual_report_prose', '年報業務範圍載明「陶瓷基板」：元件可以即時啟動,避免電子系統中的其他元件遭受損害。CLM模組其材料主要是由陶瓷基板、導電銀膏、保險絲與陶瓷加熱材料所組成,可應用在單節或多', 'Direct'),
     ],
     "A2-01": [
-        ('川寶', 'Core', '半導體部門', 'annual_report_table', '年報營業比重表：半導體部門 68.97%', 'Direct'),
     ],
     "A2-03": [
+        ('川寶', 'Core', None, 'filing_too_coarse', '年報「半導體部門 68.97%」自述為半導體沉積 PECVD 製程設備再生、PEALD 與 EFEM，橫跨 A2-03/A2-09/A2-10 無法拆分，故不計比重。原掛 A2-01 曝光/光刻設備，但該部門不含曝光設備；公司的曝光機(LDI)在 PCB 部門，見 B5-01', 'Direct'),
         ('天虹', 'Core', '半導體主設備 + 半導體技術服務', 'annual_report_table', '年報營業比重表：半導體主設備 31.16% 加半導體技術服務 32.03%，服務對象為自家設備', 'Direct'),
     ],
     "A2-05": [
@@ -282,6 +299,7 @@ MEMBERS = {
         ('德揚', 'Core', '零件清洗收入', 'annual_report_table', '年報營業比重表：零件清洗收入 54.69%', 'Direct'),
     ],
     "A2-12": [
+        ('博磊', 'Core', '設備產品', 'annual_report_table', '年報營業比重表：設備產品 65.07%，商品項目含晶圓/基板切割機、植球機及其治具零件。Core 理由：最大營收線且為自製半導體後段設備，價值創造在設備製造(R023①③)', 'Direct'),
         ('印能科技', 'Core', '氣動與熱能製程解決方案', 'company_site', '氣動與熱能製程解決方案 73.26；先進封裝翹曲控制製程設備', 'Direct'),
         ('單井', 'Core', '光電、半導體封裝模具類(SET) + 光電、半導體自動化設備類(SET)', 'annual_report_table', '年報營業比重表：封裝模具類 27% 加自動化設備類 8%（原存資料漏列這兩條最大線，2026-09-02 更正）', 'Direct'),
         ('均華', 'Core', '半導體製程設備及相關精密模具', 'company_site', '半導體製程設備及精密模具 93.90；黏晶與先進封裝製程設備', 'Direct'),
@@ -292,7 +310,7 @@ MEMBERS = {
         ('辛耘', 'Major', None, 'company_site', '年報項目為會計科目無產品線；濕製程設備與再生晶圓，先進封裝製程亦供應', 'Direct'),
     ],
     "A2-13": [
-        ('久元', 'Core', None, 'company_site', '年報無比重表；測試與檢測設備廠', 'Direct'),
+        ('久元', 'Major', None, 'filing_too_coarse', '年報業務範圍表：機器組裝等產品銷售及其他 39.26%，為自有設備銷售；比重表未進庫故不計比重', 'Direct'),
         ('倍利科', 'Core', None, 'annual_report_prose', '年報業務範圍載明「檢測設備」：學取像元件影像演算法影像處理元件AI模型半導體晶圓製造電控元件與系統機器視覺檢測設備整合半導體高階封裝精密自動機械元件與系統自動化設備產業醫', 'Direct'),
         ('光焱科技', 'Core', '半導體光電轉換測試', 'annual_report_table', '年報營業比重表：半導體光電轉換測試 51.26%', 'Direct'),
         ('公準', 'Core', '半導體類', 'annual_report_table', '年報營業比重表：半導體類 62.27%', 'Direct'),
@@ -328,7 +346,6 @@ MEMBERS = {
         ('德微', 'Core', '二極體及電晶體', 'annual_report_table', '年報營業比重表：二極體及電晶體 64.12%', 'Direct'),
         ('朋程', 'Core', '汽車用整流二極體', 'annual_report_table', '年報營業比重表：汽車用整流二極體 75.86%', 'Direct'),
         ('漢磊', 'Major', None, 'annual_report_prose', '年報業務範圍載明「二極體」：taxialWafer),應用於高功率場效電晶體(PowerMOSFET)、二極體(Diodes)、絕緣柵雙極晶體管(IGBT)、電源管理I', 'Direct'),
-        ('立碁', 'Core', None, 'annual_report_prose', '年報業務範圍載明「二極體」：合計851,588100-60-(2)公司目前之商品(服務)項目傳統發光二極體燈(ConventionalLED)超高亮發光二極體燈(Sup', 'Direct'),
         ('統懋', 'Core', None, 'company_site', '年報無營運概況標準章節；二極體與功率電晶體 IDM，有自有晶圓廠', 'Direct'),
         ('茂矽', 'Core', None, 'annual_report_prose', '年報業務範圍載明「二極體」：目(1)功率場效應電晶體(PowerMOSFET)(2)金屬氧化物半導體控制二極體(MCDMOSControlDiode)(3)瞬間電壓抑制', 'Direct'),
         ('虹揚-KY', 'Core', '橋式整流器', 'annual_report_table', '年報營業比重表：橋式整流器 56.02%', 'Direct'),
@@ -345,7 +362,6 @@ MEMBERS = {
         ('環宇-KY', 'Core', None, 'annual_report_prose', '年報業務範圍載明「砷化鎵」：營運概況一、業務內容(一)業務範圍1.所營業務之主要內容..本公司主要係從事砷化鎵/磷化銦/氮化鎵高階射頻(5G及6G)及光電元件化合物半導', 'Direct'),
         ('穩懋', 'Core', None, 'annual_report_prose', '年報業務範圍載明「砷化鎵」：司目前之商品(服務)項目在無線寬頻通訊的微波高科技領域中,穩懋主要提供兩大類砷化鎵電晶體製程技術:異質接面雙極性電晶體(HBT)和應變式異質', 'Direct'),
         ('聯亞', 'Core', None, 'annual_report_prose', '年報業務範圍載明「砷化鎵」：用於CO2等長波長(>2000nm)氣體PD偵測器的應用也逐漸多起來。(3)砷化鎵(GaAs)雷射(LD)磊晶片:波長含括635nm~110', 'Direct'),
-        ('錼創科技-KY創', 'Core', None, 'annual_report_prose', '年報業務範圍載明「化合物半導體」：概況分析如下:A.第三代半導體產業概況隨著SiC、GaN、GaAs、InP等化合物半導體材料需求受到電氣化、AI基礎設施與下一代通訊推動,基', 'Direct'),
     ],
     "A3-07": [
         ('旺宏', 'Core', 'Flash', 'annual_report_table', '年報營業比重表：Flash 77.55%', 'Direct'),
@@ -359,7 +375,6 @@ MEMBERS = {
         ('意騰-KY', 'Core', 'ASIC產品', 'annual_report_table', '年報營業比重表：ASIC產品 58.65%', 'Direct'),
         ('智原', 'Core', 'ASIC及晶圓產品', 'annual_report_table', '年報營業比重表：ASIC及晶圓產品 78.85%', 'Direct'),
         ('益芯科', 'Core', 'ASIC及晶圓收入 + 委託設計', 'annual_report_table', '年報營業比重表：ASIC及晶圓收入 73.24% 加委託設計 24.41%，同為 ASIC 設計服務業務，合計 97.65%', 'Direct'),
-        ('矽統', 'Core', None, 'annual_report_prose', '年報業務範圍載明「ASIC」：晶片技術又往前推進了一大步。(6)聲學感測與邊緣運算的交匯——MEMS麥克風ASIC的高傳真與智慧化趨勢隨著人工智慧語音互動、主動降噪(AN', 'Direct'),
     ],
     "A4-06": [
         ('M31', 'Core', '技術服務收入', 'annual_report_table', '年報營業比重表：技術服務收入 86.26%', 'Direct'),
@@ -384,6 +399,8 @@ MEMBERS = {
         ('類比科', 'Core', '電源管理IC', 'annual_report_table', '年報營業比重表：電源管理IC 72.26%', 'Direct'),
     ],
     "A4-08": [
+        ('迅杰', 'Core', None, 'filing_too_coarse', '年報自述「公司的核心本業兩大產品主軸為內嵌式控制器(EC)產品線」，商品項目首列筆電內嵌式控制器 IC。年報比重僅「電腦及週邊消費電子相關應用IC 99.85%」一條粗線故不計比重。原掛 A4-11，該證據出自「為因應USB Type-C/PD趨勢,持續投入研發」屬延伸產品線', 'Direct'),
+        ('普誠', 'Minor', None, 'filing_too_coarse', '年報商品項目列有車用 Body LED 與馬達 MCU，但非主要營業項目。role 理由：年報自述主要營業項目為 TFT／馬達／LED 三種驅動 IC，MCU 僅商品表一列', 'Direct'),
         ('九齊', 'Core', '微控制器IC', 'annual_report_table', '年報營業比重表：微控制器IC 86.41%', 'Direct'),
         ('佑華', 'Core', None, 'annual_report_prose', '年報業務範圍載明「微控制器」：IC153,782100%3.公司目前之商品(服務)項目可分為語音控制IC、微控制器IC及32位元高階應用IC三大類。(1)語音控制IC為單', 'Direct'),
         ('偉詮電', 'Major', None, 'annual_report_prose', '年報業務範圍載明「微控制器」：機(POS)之磁條解碼IC與晶片卡介面IC。-一系列之通用型8位元與32位元微控制器。(3)客戶專用客製化IC(ASIC)依客戶需求而訂製的', 'Direct'),
@@ -391,7 +408,6 @@ MEMBERS = {
         ('凌陽創新', 'Major', None, 'annual_report_prose', '年報業務範圍載明「微控制器」：司屬於IC產業鏈上游的IC設計公司,主要業務為自行研發、設計與銷售影像處理及微控制器IC晶片,營運流程為由本公司先依據市場及品牌廠需求設計開', 'Direct'),
         ('應廣', 'Core', '微控制器', 'annual_report_table', '年報營業比重表：微控制器 99.66%', 'Direct'),
         ('新唐', 'Core', None, 'annual_report_prose', '年報業務範圍載明「微控制器」：造廠,具備多樣性製程技術能力,提供專業化晶圓代工服務。公司目前之商品項目1)微控制器(MCU)/微處理器(MPU)2)音訊系統晶片3)音效增', 'Direct'),
-        ('普誠', 'Core', None, 'annual_report_prose', '年報業務範圍載明「微控制器」：C)4.電源供應器、AC/DC轉換器4計劃開發之新商品⚫整合驅動晶片開發車載微控制器驅動(MCU)產品⚫新開發車用電源管理晶片產品線與矩陣型', 'Direct'),
         ('松翰', 'Core', None, 'annual_report_prose', '年報業務範圍載明「微控制器」：要之商品(服務)項目本公司目前主要產品依其主要用途,大致可區分為消費性IC、微控制器IC、多媒體影像控制IC、光學辨識晶片組(Optical', 'Direct'),
         ('盛群', 'Core', '微控制器IC', 'annual_report_table', '年報營業比重表：微控制器IC 76.00%', 'Direct'),
         ('研通', 'Major', '微處理器IC應用產品', 'annual_report_table', '年報營業比重表：微處理器IC應用產品 31.07%', 'Direct'),
@@ -402,6 +418,7 @@ MEMBERS = {
         ('雅特力-KY', 'Core', '微控制器', 'annual_report_table', '年報營業比重表：微控制器 99.94%', 'Direct'),
     ],
     "A4-09": [
+        ('天擎', 'Core', None, 'filing_too_coarse', '年報營業比重表三條主線皆為影像監控錄影 SoC（無線車用監控 SoC 64.49% 等）。原掛 A4-10 網通 IC，但年報「整合各型WiFi模組進行特規通訊協議開發」是採購模組整合，非設計網通晶片', 'Direct'),
         ('凌通', 'Major', None, 'annual_report_prose', '年報業務範圍載明「多媒體」：合成控制晶片C.液晶顯示控制晶片D.高品質影像擷取、降噪、壓縮、播放及儲存之多媒體SoC晶片E.具深度學習的影像辨識、影像處理、移動追蹤等功', 'Direct'),
         ('凌陽', 'Core', None, 'annual_report_prose', '年報業務範圍載明「多媒體」：LCD升壓及控制電路(b)支持寬電壓操作OTP記憶體,可快速更新程式碼(2)多媒體產品線A.新一代22奈米多媒體應用SoC(a)內建凌通自行', 'Direct'),
         ('太欣', 'Core', None, 'annual_report_prose', '年報業務範圍載明「多媒體」：體憑藉多年來在數位影像控制晶片設計及系統整合的經驗,期望能提供完整的數位影音多媒體系統單晶片解決方案給客戶。WPC無線充電聯盟推出的新一代無', 'Direct'),
@@ -410,8 +427,6 @@ MEMBERS = {
     "A4-10": [
         ('九暘', 'Core', '乙太網路IC', 'annual_report_table', '年報營業比重表：乙太網路IC 92.20%', 'Direct'),
         ('亞信', 'Core', '高速網路/輸出入控制晶片', 'annual_report_table', '年報營業比重表：高速網路/輸出入控制晶片 99.85%', 'Direct'),
-        ('信驊', 'Core', None, 'annual_report_prose', '年報業務範圍載明「網通」：on):2025年是機櫃級設計(如GB200NVL72)的大爆發年。將計算、網通、供電模組化並集中管理,使得單一機櫃內的BMC使用量較過往傳', 'Direct'),
-        ('天擎', 'Core', None, 'annual_report_prose', '年報業務範圍載明「WiFi」：可以支持到720p的AHD/TVI/CVI類比高清攝影機無線傳輸。•整合各型WiFi模組進行特規通訊協議開發,達成高throughput、抗', 'Direct'),
         ('宏觀', 'Major', None, 'annual_report_prose', '年報業務範圍載明「網通」：(BLE5.4)無線收發晶片。(20)2.4GHz私有協議無線收發晶片。物聯網通訊部分(21)2.4GHzZigBee/BLE/Thread', 'Direct'),
         ('瑞昱', 'Core', None, 'annual_report_prose', '年報業務範圍載明「網通」：年,憑藉卓越的產品性能與高性價比,我們成功打入全球主要電信營運商及知名網通品牌的供應鏈,不僅鞏固了合作關係,更實現了相關業績高成長的亮眼成績', 'Direct'),
         ('立積', 'Major', 'Wi-Fi 產品', 'filing_too_coarse', '同一線「Wi-Fi 產品 83.59%」的網通應用部分；與 A4-13 為同一營收線，兩格均不計比重', 'Direct'),
@@ -420,10 +435,11 @@ MEMBERS = {
         ('達發', 'Core', '無線及寬頻通訊晶片等', 'annual_report_table', '年報營業比重表：無線及寬頻通訊晶片等 99.95%', 'Direct'),
     ],
     "A4-11": [
+        ('君曜', 'Core', None, 'filing_too_coarse', '年報商品項目：(1)高速傳輸介面影像橋接IC (Display Bridge IC)。單一營收線「積體電路設計 100%」橫跨橋接與觸控兩節點故不計比重。原掛 A4-12 顯示器驅動 IC，其證據「從基本驅動IC初始化」講的是橋接晶片去初始化面板端 DDI，不是自家產品', 'Direct'),
+        ('威盛', 'Major', None, 'filing_too_coarse', '年報自述「威鋒電子 USB 相關高速傳輸控制晶片業務,約占 16%」，為子公司威鋒(6756)之產品線', 'Direct'),
         ('凌陽', 'Major', None, 'annual_report_prose', '年報業務範圍載明「USB」：owsHelloHumanPresence筆電嵌入式AI攝像頭控制晶片。B.USB外接式網路攝影機ISP晶片(a)USB3.0高品質4K2K', 'Direct'),
         ('創惟', 'Core', None, 'annual_report_prose', '年報業務範圍載明「USB」：千元。(2)最近年度開發成功之技術或產品:開發期間開發成功之技術或產品USB3.2Gen1/PD整合型集線器控制晶片USB4®實體層技術11', 'Direct'),
         ('嘉雨思-創', 'Core', '高速通訊 IC', 'annual_report_table', '年報營業比重表：高速通訊 IC 100.00%', 'Direct'),
-        ('威盛', 'Core', None, 'annual_report_prose', '年報業務範圍載明「USB」：升級所帶來之長期市場機會。集團旗下主要子公司包括:•威鋒電子:全球高速傳輸與USBType-C解決方案供應商,專注USB4、USBPD、Di', 'Direct'),
         ('威鋒電子', 'Core', 'USB相關控制晶片', 'annual_report_table', '年報營業比重表：USB相關控制晶片 99.99%', 'Direct'),
         ('安國', 'Major', '資訊及消費性產品的週邊及控制IC', 'filing_too_coarse', '同一線 33.08% 的週邊(I/O)部分；與 A4-19 為同一營收線，兩格均不計比重', 'Direct'),
         ('安格', 'Core', None, 'annual_report_prose', '年報業務範圍載明「USB」：矽智財量產驗證後可重複授權給不同客戶,重複授權的營運成本低。在首件授權合約(USB3.0PHY)簽訂後,除了部分支援客戶量產的人力外,研發人', 'Direct'),
@@ -433,16 +449,14 @@ MEMBERS = {
         ('精拓科', 'Core', '混合式IC', 'annual_report_table', '年報營業比重表：混合式IC 65.15%', 'Direct'),
         ('聯陽', 'Core', None, 'annual_report_prose', '年報業務範圍載明「介面IC」：提供及時到位的技術服務,終能贏得客戶的信任,維持市場領先地位。(2)高速影音介面IC隨著Gaming遊戲與串流影音市場的蓬勃發展,消費者對於', 'Direct'),
         ('譜瑞-KY', 'Core', '高速傳輸介面晶片', 'annual_report_table', '年報營業比重表：高速傳輸介面晶片 85.62%', 'Direct'),
-        ('迅杰', 'Core', None, 'annual_report_prose', '年報業務範圍載明「USB」：的研發則是著重於提供符合客戶需求的應用平台,並持續豐富產品組合。而公司為因應USBType-C/PD趨勢,持續投入研發並發展PD相關整合型產', 'Direct'),
     ],
     "A4-12": [
+        ('普誠', 'Core', None, 'filing_too_coarse', '年報自述「本公司目前主要營業項目為TFT驅動IC、馬達驅動IC、LED照明驅動IC」，顯示器驅動為其首位。年報比重僅「積體電路(IC)產品 99.48%」一條粗線故不計比重。Core 理由：三條驅動 IC 線中 TFT 驅動列名第一且為研發主軸(R023①③)', 'Direct'),
         ('凌通', 'Major', None, 'annual_report_prose', '年報業務範圍載明「驅動器」：t之微處理器,並整合ROM、RAM、I/O、計時器、數位/類比轉換器、LCD驅動器等單元之單晶片,主要用途為電子計算機、掌上型電子遊戲機、電', 'Direct'),
         ('力領科技', 'Core', '顯示器驅動晶片', 'annual_report_table', '年報營業比重表：顯示器驅動晶片 100.00%', 'Direct'),
-        ('君曜', 'Core', None, 'annual_report_prose', '年報業務範圍載明「驅動IC」：板的應用需求,亦提供各種影像轉換和電路控制功能,確保顯示效果穩定可靠,從基本驅動IC初始化到支持多種輸出和控制功能,提供全面的橋接轉換解決方', 'Direct'),
         ('天鈺', 'Core', '顯示器驅動IC', 'annual_report_table', '年報營業比重表：顯示器驅動IC 58.26%', 'Direct'),
         ('奕力-KY', 'Core', '顯示器驅動IC', 'annual_report_table', '年報營業比重表：顯示器驅動IC 100.00%', 'Direct'),
         ('敦泰', 'Core', '人機介面應用晶片', 'annual_report_table', '年報營業比重表：人機介面應用晶片 100.00%', 'Direct'),
-        ('普誠', 'Major', None, 'annual_report_prose', '年報業務範圍載明「驅動IC」：ARMCortexM微電腦控制車用BodyLED,馬達MCU其他1.印表機頭驅動IC系列1.工業用噴墨印表機頭2.多媒體音響控制積體電路系列', 'Direct'),
         ('晶宏', 'Core', '顯示器驅動IC', 'annual_report_table', '年報營業比重表：顯示器驅動IC 91.46%', 'Direct'),
         ('瑞鼎', 'Core', '顯示器驅動IC', 'annual_report_table', '年報營業比重表：顯示器驅動IC 96.37%', 'Direct'),
         ('矽創', 'Core', None, 'annual_report_prose', '年報業務範圍載明「顯示驅動」：技術及產品年度技術內容AMOLEDCOG極致邊框顯示器驅動晶片。防水型觸控暨顯示驅動整合晶片。長波長(發光元件光波長為1300nm)三合一O', 'Direct'),
@@ -462,6 +476,8 @@ MEMBERS = {
         ('驊訊', 'Core', None, 'annual_report_prose', '年報業務範圍載明「音訊」：。驊訊電子USBAudio晶片產品線涵蓋:\uf0b7入門級USBCodec–針對標準音訊應用,提供高性價比方案。-70-\uf0b7中高階USBCodec–具', 'Direct'),
     ],
     "A4-15": [
+        ('君曜', 'Major', None, 'filing_too_coarse', '年報商品項目：(2)觸控IC(Touch Panel/Pad IC)。與橋接 IC 共用單一 100% 營收線，無法拆分故不計比重', 'Direct'),
+        ('矽統', 'Core', None, 'filing_too_coarse', '年報自述「自2011年開始發展投射式電容觸控晶片、及人機介面相關技術內嵌式(In cell)等觸控」，屬觸控與人機介面 IC。年報比重僅「積體電路約100%」一條粗線故不計比重。原掛 A4-05 ASIC 設計服務係關鍵字誤中「MEMS麥克風ASIC」', 'Direct'),
         ('久昌', 'Core', 'HALLIC', 'annual_report_table', '年報營業比重表：HALLIC 96.68%', 'Direct'),
         ('昇佳電子', 'Core', '感測晶片', 'annual_report_table', '年報營業比重表：感測晶片 99.87%', 'Direct'),
         ('矽創', 'Major', None, 'annual_report_prose', '年報業務範圍載明「感測晶片」：低功耗效能,應用覆蓋本公司物聯網、工控設備、與穿戴等顯示器驅動晶片產品線。在感測晶片市場上,面對供應鏈的結構性改變、設計朝向微型輕薄化、製造', 'Direct'),
@@ -537,6 +553,7 @@ MEMBERS = {
         ('頎邦', 'Core', '封裝及測試', 'annual_report_table', '年報營業比重表：封裝及測試 72.83%', 'Direct'),
     ],
     "A6-01": [
+        ('久元', 'Core', None, 'filing_too_coarse', '年報業務範圍表：測試代工收入 51.03%，另切割挑檢代工 10.52%；年報自述「專業半導體及 LED 產品代工」。比重表在業務範圍章內、未進 tw.product_revenue，故不計比重（見 check_industry [mix]）', 'Direct'),
         ('京元電子', 'Core', '積體電路測試服務 + 晶圓測試服務', 'annual_report_table', '年報營業比重表：積體電路測試服務 66.43% 加晶圓測試服務 30.56%，同屬 IC 測試服務（本節點定義即含 Wafer Sort），合計 96.99%。原存 58.78/35.80 取自非年報的另一張表（合計 103 億 vs 年報 349 億），2026-09-03 以年報表更正', 'Direct'),
         ('微矽電子-創', 'Core', '積體電路測試', 'annual_report_table', '年報營業比重表：積體電路測試 72.36%', 'Direct'),
         ('精材', 'Major', '測試服務', 'annual_report_table', '年報營業比重表：測試服務 47.86%；晶圓級封裝為其 Core，見 A5-02', 'Direct'),
@@ -547,13 +564,13 @@ MEMBERS = {
     "A6-02": [
         ('中探針', 'Core', None, 'annual_report_prose', '年報業務範圍載明「測試介面」：/6G、AI、雲端運算與大數據的蓬勃發展,全面推升了對高頻、高速連接器與高階測試介面的依賴。根據TrendForce等研究報告指出,2025', 'Direct'),
         ('勵威', 'Core', '探針卡', 'annual_report_table', '年報營業比重表：探針卡 44.03%', 'Direct'),
-        ('博磊', 'Core', None, 'annual_report_prose', '年報業務範圍載明「探針卡」：試產品、切割機及IC封裝植球機為主,測試產品方面以爭取為邏輯IC廠商需求設計探針卡(ProbeCardPCB)及載板(LoadBoard)等', 'Direct'),
         ('旺矽', 'Core', '晶圓探針卡', 'annual_report_table', '年報營業比重表：晶圓探針卡 72.22%', 'Direct'),
         ('精測', 'Core', '晶圓測試卡', 'annual_report_table', '年報營業比重表：晶圓測試卡 64.76%，大於其 IC測試板 25.12%（見 A6-03）', 'Direct'),
         ('穎崴', 'Major', '探針卡ProbeCard', 'annual_report_table', '年報營業比重表：探針卡ProbeCard 30.00%；測試座為其 Core，見 A6-03', 'Direct'),
         ('漢測', 'Core', None, 'annual_report_prose', '年報業務範圍載明「探針卡」：移機、改機、測試、維修及保養等各種專業技術服務。主要產品與服務項目包括:A.探針卡(ProbeCard)設計、製造與清潔材料B.晶圓針測機之', 'Direct'),
     ],
     "A6-03": [
+        ('博磊', 'Minor', None, 'filing_too_coarse', '年報營業比重表：測試產品 22.23%，商品項目為積體電路預燒用測試連接座、測試治具與測試介面板。原掛 A6-02 探針卡，但年報載明探針卡係「爭取為邏輯IC廠商需求設計」之開發中商品，非現有營收', 'Direct'),
         ('穎崴', 'Core', '測試治具TestSockets', 'annual_report_table', '年報營業比重表：測試治具TestSockets 56.00%', 'Direct'),
         ('精測', 'Major', 'IC測試板', 'annual_report_table', '年報營業比重表：IC測試板 25.12%', 'Direct'),
         ('雍智科技', 'Core', '半導體晶圓測試-後段測試載板 + 半導體晶圓測試-前段測試載板', 'annual_report_table', '年報業務範圍載明「探針卡」：品及服務主要為製造及銷售半導體晶圓測試之各種測試載板,包含前段測試載板(晶圓探針卡測試載板)、後段測試載板(IC測試載板及IC老化測試載板)', 'Direct'),
@@ -674,11 +691,11 @@ MEMBERS = {
         ('易華電', 'Core', None, 'annual_report_prose', '年報業務範圍載明「COF」：,22298(ReeltoReelchiponFilm;簡稱Tape-COF)其他30,270234,7652合計1,959,5331001', 'Direct'),
     ],
     "B5-01": [
+        ('川寶', 'Major', 'PCB部門', 'annual_report_table', '年報營業比重表：PCB部門 31.03%，自述為設計研發生產曝光機及 DI 直接成像設備', 'Direct'),
         ('亞泰金屬', 'Core', '印刷電路板基材製程設備', 'annual_report_table', '年報營業比重表：印刷電路板基材製程設備 92.78%', 'Direct'),
         ('友威科', 'Core', '設備', 'annual_report_table', '年報營業比重表：設備 74.67%', 'Direct'),
         ('大量', 'Core', '設備', 'annual_report_table', '年報營業比重表：設備 96.01%', 'Direct'),
         ('天正國際', 'Core', '自動化設備', 'annual_report_table', '年報營業比重表：自動化設備 59.15%', 'Direct'),
-        ('川寶', 'Major', None, 'annual_report_prose', '年報業務範圍載明「印刷電路板」：游光源模組、DMD控制套件、精密載台、機密機械元件中游LDI曝光設備製造下游印刷電路板、載板本公司所屬行業上游係為元件之製造,供應到中游為曝', 'Direct'),
         ('德律', 'Major', '自動檢測設備', 'filing_too_coarse', '同一線「自動檢測設備 97.21%」的 PCBA 檢測部分；與 A2-13 為同一營收線，兩格均不計比重', 'Direct'),
         ('志聖', 'Core', '印刷電路板製程設備', 'annual_report_table', '年報營業比重表：印刷電路板製程設備 50.00%', 'Direct'),
         ('恩德', 'Core', '機械', 'annual_report_table', '年報營業比重表：機械 73.15%', 'Direct'),
@@ -726,7 +743,6 @@ MEMBERS = {
         ('威剛', 'Core', 'DRAM產品', 'annual_report_table', '年報營業比重表：DRAM產品 60.73%', 'Direct'),
         ('宇瞻', 'Core', '記憶體模組', 'annual_report_table', '年報營業比重表：記憶體模組 50.48%', 'Direct'),
         ('廣穎', 'Core', 'NANDFLASH快閃記憶體產品', 'annual_report_table', '年報營業比重表：NANDFLASH快閃記憶體產品 68.17%', 'Direct'),
-        ('福懋科', 'Major', '(2)模組', 'annual_report_table', '年報營業比重表：(2)模組 26.00%', 'Direct'),
         ('群聯', 'Core', '快閃記憶體模組產品', 'annual_report_table', '年報營業比重表：快閃記憶體模組產品 72.41%', 'Direct'),
         ('鈺寶-創', 'Core', '模組', 'annual_report_prose', '年報業務範圍載明「模組」：%3.公司目前之商品項目晶片產品(1)24位元高效能長距無線音訊傳輸晶片/模組(2)低耗能長距無線音訊傳輸晶片/模組(3)低耗能智能遙控器與', 'Direct'),
     ],
@@ -735,6 +751,7 @@ MEMBERS = {
         ('陞泰', 'Core', None, 'filing_too_coarse', '年報「電子材料 81.00%」證明其為電子材料相關通路（官方分類電子通路業），但無法證明 81% 屬電子零件代理此一細分類，故不計比重', 'Direct'),
     ],
     "V7-01": [
+        ('福懋科', 'Major', '(2)模組', 'annual_report_table', '年報營業比重表：(2)模組 26.00%，商品項目為模組代工及測試業務(DIMM)、家電控制器模組測試組裝、網路設備/光通訊模組代工服務。原掛 F7-01 記憶體模組，但該格是模組品牌廠（威剛、宇瞻、十銓），代工廠與品牌廠不同池', 'Direct'),
         ('佳總', 'Major', None, 'annual_report_prose', '年報業務範圍載明「組裝」：線路留存在印刷電路板上,成為連接所有電子元件的基板。電路板的客戶印刷電路板是組裝電子零組件之前的基板,功能在於電子連接及承載元件,是提供電子', 'Direct'),
         ('凱崴', 'Major', None, 'annual_report_prose', '年報業務範圍載明「組裝」：\uf06cBT載板:隨AI手機與穿戴裝置需求回溫而穩定成長。(3)下游:PCB製造與組裝最終產品的呈現,直接對接終端市場。\uf06c高階硬板(HLC/MLB', 'Direct'),
         ('台郡', 'Major', None, 'annual_report_prose', '年報業務範圍載明「組裝」：exiblePrintCircuit;FPC)之設計、開發、製造及銷售,以及組裝打件模組等業務。2.目前之產品及其營業比重:年度114年度1', 'Direct'),
