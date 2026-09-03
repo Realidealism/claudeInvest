@@ -119,6 +119,14 @@ NODES = [
     # of general-purpose MCU vendors (R025).
     ('A4-26', 'A4', 3, '伺服器管理控制晶片 (BMC)',
      'BMC 基板管理控制器、KVM over IP、平台信任根 (PRoT)、伺服器頻外管理與平台安全晶片'),
+    # A driver IC, but not for a display: a printhead driver switches piezo or
+    # thermal actuators that eject ink, sold to printer OEMs as a consumable-tied
+    # custom part. A4-12 covers panels, A4-17 motors, A4-07 rails — none of their
+    # definitions reaches it, which is the R025 hard condition rather than a
+    # preference. Added for 普誠, whose display-driver team moved onto it whole.
+    ('A4-27', 'A4', 3, '印表機頭驅動 IC (Printhead Driver)',
+     '噴墨/熱感/雷射印表機頭驅動晶片、壓電與熱氣泡噴頭驅動 IC。'
+     '以列印頭致動器之驅動為產品本質；面板顯示驅動見 A4-12'),
     ('A5', 'A', 2, '封裝與先進封裝', None),
     ('A5-01', 'A5', 3, '傳統封裝', 'BGA、QFN、QFP、WLCSP'),
     ('A5-02', 'A5', 3, '先進封裝', 'CoWoS、SoIC、Fan-Out、Hybrid Bonding、2.5D/3D'),
@@ -272,6 +280,15 @@ NODES = [
     ('H3-05', 'H3', 3, 'Cockpit', '數位座艙'),
     ('H3-06', 'H3', 3, '車用網路', '車載乙太、CAN、LIN、FlexRay'),
     ('H4', 'H', 2, '車用半導體', None),
+    # Mapping gate, 2026-09-03: H4-01 has a definition but is NOT open for
+    # exposures yet, and neither is the rest of H. The whole branch carries zero
+    # members and half of it carries no definition, so nothing has been lost by
+    # leaving it shut — what is undecided is architectural, not per-company:
+    # H4-01 names an end market, A4-* name products, and a chip designer with an
+    # automotive line would qualify for both, which R004 forbids for one revenue
+    # line. R031 states the entry condition; the axis question (does Industry
+    # stay product/value-chain only, with 車用 becoming a separate application
+    # exposure?) is open and decides whether H4-01 ever opens at all.
     ('H4-01', 'H4', 3, '車用IC', 'Power、MCU、Sensor、CIS、SiC、GaN'),
     ('H5', 'H', 2, 'EV Powertrain', None),
     ('H5-01', 'H5', 3, 'Motor', None),

@@ -643,16 +643,39 @@ LOCAL_RULES = [
      "★官方分類僅作後驗參考不居優先（R002）——長華* 官方列電子通路業，但它的兩條線逐線看"
      "都是製造：IC 導線架 48.91%（A1-13）與封膠樹酯 29.29%（A1-12）皆為具名製造品且無佣金收入，"
      "故兩線皆 Direct；若以官方分類為首要依據會把整家公司誤判成通路。"),
+
+    # An end-market node and a product node can both look right for the same
+    # revenue line, and R004 only allows one of them.
+    ("R031", "應用型 Industry Node 不得僅因下游應用存在而自動建立 Exposure",
+     "應用型 Industry Node（例如 H4-01 車用IC）**只有在公司自身提供具有明確車用產品、車規能力、"
+     "專用設計或車用業務實質的產品/服務時**，才可建立 Industry Exposure。"
+     "僅因一般 IC、電子零組件或模組「被使用於汽車」，不得轉列為車用 Industry。"
+     "同一業務曝險仍受 R004 約束，**不得因應用領域不同而對同一營收線重複歸屬**——"
+     "「A4-10 網通 IC 100% ＋ H4-01 車用IC 100%」是同一個經濟活動被算兩次。"
+     "★**H4-01 現況＝Definition Approved / Mapping Gate Pending，未啟用**（2026-09-03 裁定）："
+     "有 node_code、有產品定義，但不得建立成員。整個 H 分支目前 24 個節點全數零成員、"
+     "其中 12 個連定義都沒有，所以關著沒有損失什麼。"
+     "★★**未決的是架構不是個案**：Industry tree 究竟只走「產品／價值鏈」單軸，"
+     "還是允許「產品 × 終端應用」雙軸同時作 Industry leaf？"
+     "若為前者，車用應另建 Application / End-Market Exposure 而不是 Industry leaf；"
+     "若為後者，R004 的「同一業務只能一個 Industry」必須先重新定義得極精確。"
+     "**在這題裁定之前，任何人都不得把公司掛上 H 分支**，也不得為了收某一家公司而回頭補寫"
+     "G2 工業電腦、H3-03 Telematics 等空定義節點的定義——"
+     "那會讓 taxonomy 被個案反向塑形（2388 威盛的 Mobile360／Firewatch／4D+ 系統業務即卡在此處）。"
+     "★啟用時的義務：H4-01 一旦開放，**MUST 對全表重新掃描**（MCU/PMIC/Driver IC/Sensor IC/"
+     "Connectivity IC 各廠皆受影響），不得只把觸發這次討論的那一家掛上去；"
+     "掃描時逐家問 R025 的「無歧義涵蓋」，而不是看到「車用」兩個字就掛。"),
 ]
 
-# 22 rules read as a list; grouped they read as a structure.
+# The rules read as a list; grouped they read as a structure.
 # What a rule is about (category) and what a reader does with it (kind) are two
 # different questions. A hard constraint decides whether a row may exist, a
 # decision rule needs judgement against evidence, and a validation rule reports
 # and lets the load proceed — code that enforces the first and surfaces the third
 # needs to tell them apart.
 RULE_KINDS = {
-    "hard_constraint": ["R003", "R004", "R011", "R016", "R018", "R020", "R029", "R030"],
+    "hard_constraint": ["R003", "R004", "R011", "R016", "R018", "R020", "R029",
+                        "R030", "R031"],
     "decision": ["R001", "R002", "R005", "R010", "R012", "R015", "R017", "R019",
                  "R022", "R023", "R024", "R025", "R026"],
     "validation": ["R006", "R007", "R008", "R009", "R013", "R014", "R021",
@@ -661,7 +684,7 @@ RULE_KINDS = {
 
 RULE_CATEGORIES = {
     "產業分類": ["R001", "R002", "R004", "R011", "R015", "R016", "R019",
-             "R022", "R023", "R024", "R025", "R026", "R029"],
+             "R022", "R023", "R024", "R025", "R026", "R029", "R031"],
     "題材": ["R003", "R005", "R010", "R012", "R017"],
     "權重與證據": ["R006", "R018", "R020", "R027", "R028"],
     "供應鏈": ["R007"],
