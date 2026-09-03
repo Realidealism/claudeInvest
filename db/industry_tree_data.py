@@ -342,6 +342,13 @@ NODES = [
     ('L8', 'L', 2, '鎢', None),
     ('L9', 'L', 2, '稀有金屬',
      '鈦、鉭、鈮、鉬、鋯、銦、鎵、鍺、稀土等工業稀有金屬之冶煉、鍛造與加工。不含金銀鉑族貴金屬——貴金屬價格隨金銀行情與回收循環，與稀有金屬的工業需求是兩個市場'),
+    # L9 was defined this round to exclude precious metals, so there is no
+    # widening of it that covers them — which is what makes this a new node
+    # under R025 rather than a definition fix. Bullion processing tracks the
+    # gold and silver price and the recycling loop; rare metals track
+    # industrial and strategic demand.
+    ('L10', 'L', 2, '貴金屬材料 (Precious Metals)',
+     '金、銀、鉑族金屬之熔煉、加工、回收與銷售。以貴金屬本身之材料加工、回收及銷售為業務核心；不因其最終應用於電子、半導體或其他產業而改歸該下游產業（半導體用金靶材屬 A1-09）'),
     ('M', None, 1, '紡織 / 成衣', None),
     ('M1', 'M', 2, '上游/化纖', '聚酯、尼龍、Rayon、彈性纖維'),
     ('M2', 'M', 2, '紡紗', '棉紗、混紡'),
