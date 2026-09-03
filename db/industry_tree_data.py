@@ -18,7 +18,12 @@ in the name — 'Test Socket / Load Board / Test Interface' — which reads as a
 definition and overflows any table it lands in.
 
 Transcribed once from 台股產業分類_Master_V3_7, whose export directory is not in
-version control; this file is the tree now, and is hand-maintained. Sync with: python -m db.seed_industry_tree
+version control; this file is the tree now, and is hand-maintained.
+
+Sync with `python -m db.seed_skeleton`, or with `python -m db.seed_industry
+--with-tree` when the same round also moves exposures — splitting a leaf that
+has members needs both edits in one transaction, because the leaf guard refuses
+children while the parent still carries them.
 """
 
 # (node_code, parent_code, level, name, main_products)

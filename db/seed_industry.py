@@ -8,7 +8,14 @@ silently change their answers if history were rewritten under them.
 
     python -m db.seed_industry --check          # report, write nothing
     python -m db.seed_industry                  # sync into the FY2025 layer
+    python -m db.seed_industry --with-tree      # sync the tree in the same transaction
     python -m db.seed_industry --effective-from 2026-12-31   # open the FY2026 layer
+
+--with-tree is what makes splitting a leaf that has members possible. The
+exposures may only move onto the new children, and the leaf guard refuses
+children while the parent still has members, so the two edits have to commit
+together or neither is reachable. Use it whenever db/industry_tree_data.py and
+db/industry_data.py change in the same breath.
 
 Editing what we believe about a period is a correction and replaces the row.
 History opens only when the period does: a superseded row should describe a
@@ -224,6 +231,9 @@ def sync(cur, resolved, effective_from):
 def main():
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--check", action="store_true", help="report and write nothing")
+    ap.add_argument("--with-tree", action="store_true",
+                    help="sync tw.industry_tree from db/industry_tree_data.py in "
+                         "the same transaction; required when a node is split")
     ap.add_argument("--effective-from", default=EVIDENCE_PERIOD_END,
                     help="the evidence period this layer belongs to; pass a later "
                          "date only when the facts themselves changed, which is "
@@ -232,6 +242,19 @@ def main():
     args = ap.parse_args()
 
     with get_cursor() as cur:
+        # Before resolve(), which validates node codes against the table: a node
+        # added to the file this round has to exist by the time it is checked.
+        if args.with_tree and not args.check:
+            from db.seed_skeleton import sync_tree, validate
+            bad = validate()
+            if bad:
+                print(f"REFUSING TO WRITE — {len(bad)} problem(s) in the tree:")
+                for b in bad[:20]:
+                    print("  -", b)
+                raise SystemExit(1)
+            n_nodes, n_stale = sync_tree(cur)
+            print(f"tree: {n_nodes} nodes upserted, {n_stale} removed")
+
         resolved, problems = resolve(cur)
         if problems:
             print(f"REFUSING TO WRITE — {len(problems)} problem(s):")
