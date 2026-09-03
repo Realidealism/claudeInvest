@@ -56,10 +56,23 @@ leaves no stale number behind.
 """
 
 import argparse
+import sys
 
 from db.connection import get_cursor
 
 FISCAL_YEAR = 2025
+
+
+def say(line):
+    """print, on a console that cannot encode every product name.
+
+    The Windows console is cp950 and 丙烯腈 is not in it. A bare print raised
+    UnicodeEncodeError from inside the transaction, after the shares had been
+    read and before a single one was written — a run that reported nothing,
+    wrote nothing, and looked like a crash in the lookup.
+    """
+    enc = sys.stdout.encoding or "utf-8"
+    print(line.encode(enc, "replace").decode(enc, "replace"))
 
 
 def main():
@@ -142,21 +155,21 @@ def main():
 
         merged = sum(1 for r in hit if r.get("parts", 1) > 1)
         from_deck = sum(1 for r in hit if r["from_deck"])
-        print(f"exposures {len(rows)}  naming an item {len(claimed)}  "
+        say(f"exposures {len(rows)}  naming an item {len(claimed)}  "
               f"resolved {len(hit)} (of which {merged} sum several lines)  "
               f"unresolved {len(miss)}  "
               f"held NULL as filing_too_coarse {len(coarse)}")
         # Kept out of the line above so a change in one source cannot be read as
         # a change in the other.
-        print(f"  by source: annual report {len(hit) - from_deck}  "
+        say(f"  by source: annual report {len(hit) - from_deck}  "
               f"investor conference {from_deck}")
         if miss:
-            print("unresolved (weight_pct stays NULL):")
+            say("unresolved (weight_pct stays NULL):")
             for r in miss[:20]:
-                print(f"  {r['stock_id']} {r['name']} / {r['node_code']} — "
+                say(f"  {r['stock_id']} {r['name']} / {r['node_code']} — "
                       f"unresolved: {r['missing']}")
             if len(miss) > 20:
-                print(f"  ... and {len(miss) - 20} more")
+                say(f"  ... and {len(miss) - 20} more")
 
         if args.dry_run:
             print("--dry-run: nothing written")

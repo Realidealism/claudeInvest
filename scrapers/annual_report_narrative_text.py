@@ -14,14 +14,22 @@ being written. Refusing is a fine outcome: the company stays flagged.
     python -m scrapers.annual_report_narrative_text --dry-run
     python -m scrapers.annual_report_narrative_text --apply
 
-Targets are whatever db.check_industry's [mix] check currently flags, so a run
-repairs what is known to be broken and leaves the rest alone.
+Targets are whatever db.check_industry's [mix] and [scale] checks flag, so a run
+repairs what is known to be broken and leaves the rest alone. [scale] earns its
+place here: 1314 中石化's stored table was never a mix at all but a table of
+TONNES, which [mix] cannot see — it prints no 合計 line to compare against and
+its amounts are amounts, so every test there passes. The filing's real 營業比重
+table sits in the prose this module reads.
+
+Refusing stays the safe default for both sources. A [scale] company whose ratio
+is off because the filing reports the parent and the statements consolidate has
+a perfectly good table, and the sums-to-100 test leaves it alone.
 """
 import argparse
 import io
 import re
 
-from db.check_industry import MIX_HEADING, check_mix
+from db.check_industry import MIX_HEADING, check_mix, check_scale
 from db.connection import get_cursor
 from scrapers.annual_report_revenue import _is_region
 
@@ -92,6 +100,11 @@ def _nums(line):
 # 積體電路晶 — and a weight_item that names a line nobody reported is worse than
 # a name with a unit stuck on it.
 UNIT = re.compile(r"(公噸|公斤|千碼|千張|千米|千平方英呎|平方英呎|仟元|千元|公升|公尺)$")
+# Wingdings and friends land in the Unicode private use area, where a codepoint
+# means whatever the embedded font says and nothing at all once extracted. 三芳
+# bullets its products with them, so 環保合成皮革 came out as "環保合成皮革"
+# and stopped matching the weight_item that names it. Never part of a name.
+PUA = re.compile(r"[-]")
 # Header fragments and other tables' rows read as products otherwise. 晶焱's
 # "比重年度年度年第季" scored 1.00 and the total still landed inside tolerance.
 NOT_A_PRODUCT = re.compile(r"年度|比重|第\s*季|合\s*計|單位|金\s*額|數\s*量|"
@@ -248,7 +261,7 @@ def _parse_one(lines):
             continue
         ln = ORDINAL.sub("", ln)
         ns = _nums(DASH_CELL.sub(" 0 ", ln))
-        name = NUM.sub("", DASH_CELL.sub(" ", ln)).strip(" 　:：%％$＄()（）")
+        name = PUA.sub("", NUM.sub("", DASH_CELL.sub(" ", ln))).strip(" 　:：%％$＄()（）")
         name = re.sub(r"\s+", "", name)
         if not ns:
             if name and len(name) >= 2 and not NOT_A_PRODUCT.search(name):
@@ -330,10 +343,28 @@ def main():
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--dry-run", action="store_true")
     ap.add_argument("--apply", action="store_true")
+    # A parser fix does not re-flag the companies it would now read correctly:
+    # once 三芳's shares were stored, neither [mix] nor [scale] had anything left
+    # to complain about, and its labels still carried the private-use bullets
+    # that stopped weight_item from matching. Naming them is the way back in.
+    ap.add_argument("--stocks", nargs="+", metavar="ID",
+                    help="re-read these companies instead of the flagged ones")
     args = ap.parse_args()
 
     with get_cursor(commit=False) as cur:
-        flagged = {r["stock_id"]: r for r in check_mix(cur)}
+        if args.stocks:
+            cur.execute("SELECT stock_id, name FROM tw.stocks WHERE stock_id = ANY(%s)",
+                        (args.stocks,))
+            flagged = {r["stock_id"]: {"stock_id": r["stock_id"], "name": r["name"],
+                                       "kind": "named", "status": "-"}
+                       for r in cur.fetchall()}
+        else:
+            flagged = {r["stock_id"]: r for r in check_mix(cur)}
+        # [mix] first: where both checks name a company, its finding is the more
+        # specific of the two and is what the report should say.
+        if not args.stocks:
+            for r in check_scale(cur):
+                flagged.setdefault(r["stock_id"], dict(r, kind="scale"))
         cur.execute("""SELECT stock_id, body FROM tw.product_narrative
                        WHERE fiscal_year = %s AND stock_id = ANY(%s)""",
                     (FISCAL_YEAR, list(flagged)))
