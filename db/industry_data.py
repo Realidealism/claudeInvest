@@ -184,7 +184,7 @@ MEMBERS = {
         ('昇陽半導體', 'Core', None, 'annual_report_prose', '年報業務範圍載明「矽晶圓」：高階技術開發(清洗製程)。(3)12吋,高平坦度測試晶圓開發。(4)12吋,矽晶圓/碳化矽晶圓載板的開發。(5)6/8吋,高功率寬能隙元件晶', 'Direct'),
     ],
     "A1-04": [
-        ('IET-KY', 'Core', '磷化銦(InP)磊晶片', 'annual_report_table', '年報營業比重表：磷化銦(InP)磊晶片 49.56%', 'Direct'),
+        ('IET-KY', 'Core', '磷化銦(InP)磊晶片 + 砷化鎵(GaAs)磊晶片 + 銻化鎵(GaSb)磊晶片', 'annual_report_table', '年報營業比重表：磷化銦(InP) 49.56% 加砷化鎵(GaAs) 26.55% 加銻化鎵(GaSb) 6.09%，三者同為 III-V 化合物磊晶片、同屬本節點，合計 82.20%', 'Direct'),
         ('光環', 'Major', None, 'annual_report_prose', '年報業務範圍載明「磊晶」：術的演進與市場蓬勃發展。~61~光環秉持自主研發與自有的製造技術,建立從上游磊晶設計製造、中游晶粒設計生產、至下游的主動元件的封裝製造,來強', 'Direct'),
         ('全新', 'Core', None, 'annual_report_prose', '年報業務範圍載明「磊晶」：%3.公司目前之商品及服務項目A.異質接面雙載子電晶體(HBT)磊晶片B.假晶高電子遷移率電晶體(PHEMT)磊晶片C.磷化銦異質接面雙載子', 'Direct'),
         ('嘉晶', 'Core', '磊晶晶片', 'annual_report_table', '年報營業比重表：磊晶晶片 100.00%', 'Direct'),
@@ -271,7 +271,7 @@ MEMBERS = {
         ('意德士', 'Core', '半導體零組件', 'annual_report_table', '年報營業比重表：半導體零組件 88.13%', 'Direct'),
         ('日揚', 'Core', None, 'company_site', '年報僅分商品與勞務；真空設備與零組件', 'Direct'),
         ('旭暉應材', 'Core', 'AI液冷零組件暨真空微波管與半導體設備零組件', 'annual_report_table', '年報營業比重表：AI液冷零組件暨真空微波管與半導體設備零組件 73.55%', 'Direct'),
-        ('明遠精密', 'Core', '半導體設備技術服務', 'annual_report_table', '年報營業比重表：半導體設備技術服務 55.94%', 'Direct'),
+        ('明遠精密', 'Core', '半導體設備技術服務 + 半導體設備子系統銷售', 'annual_report_table', '年報營業比重表：半導體設備技術服務 55.94% 加半導體設備子系統銷售 44.06%；年報自述業務為「製程設備電子副系統技術服務及銷售」，兩線是同一門生意的兩種收入認列，合計 100.00%', 'Direct'),
         ('晟田', 'Core', '航太零組件(客供料)', 'annual_report_table', '年報營業比重表：航太零組件(客供料) 48.60%', 'Direct'),
         ('有成精密', 'Core', None, 'annual_report_prose', '年報業務範圍載明「零組件」：化方案的產業化進程,確保在長期成本結構中具備轉型彈性。(2).半導體製程設備零組件供應商A.晶圓代工廠產能持續拓展為因應物聯網、消費性電子、', 'Direct'),
         ('瑞耘', 'Core', '半導體零組件', 'annual_report_table', '年報營業比重表：半導體零組件 100.00%', 'Direct'),
@@ -358,7 +358,7 @@ MEMBERS = {
         ('巨有科技', 'Core', '設計服務收入', 'annual_report_table', '年報營業比重表：設計服務收入 60.23%', 'Direct'),
         ('意騰-KY', 'Core', 'ASIC產品', 'annual_report_table', '年報營業比重表：ASIC產品 58.65%', 'Direct'),
         ('智原', 'Core', 'ASIC及晶圓產品', 'annual_report_table', '年報營業比重表：ASIC及晶圓產品 78.85%', 'Direct'),
-        ('益芯科', 'Core', 'ASIC及晶圓收入', 'annual_report_table', '年報營業比重表：ASIC及晶圓收入 73.24%', 'Direct'),
+        ('益芯科', 'Core', 'ASIC及晶圓收入 + 委託設計', 'annual_report_table', '年報營業比重表：ASIC及晶圓收入 73.24% 加委託設計 24.41%，同為 ASIC 設計服務業務，合計 97.65%', 'Direct'),
         ('矽統', 'Core', None, 'annual_report_prose', '年報業務範圍載明「ASIC」：晶片技術又往前推進了一大步。(6)聲學感測與邊緣運算的交匯——MEMS麥克風ASIC的高傳真與智慧化趨勢隨著人工智慧語音互動、主動降噪(AN', 'Direct'),
     ],
     "A4-06": [
@@ -499,7 +499,7 @@ MEMBERS = {
         ('鈺創', 'Core', None, 'annual_report_prose', '年報業務範圍載明「DRAM」：Chip)產品之設計開發、銷售與技術服務;記憶體產品包括動態隨機存取記憶體(DRAM)、串列式快閃記憶體(SPINANDFlash)與嵌入式', 'Direct'),
     ],
     "A4-22": [
-        ('全宇昕', 'Core', 'MOSFET', 'annual_report_table', '年報營業比重表：MOSFET 84.87%', 'Direct'),
+        ('全宇昕', 'Core', 'MOSFET + 電晶體 + 二極體', 'annual_report_table', '年報營業比重表：MOSFET 84.87% 加電晶體 8.37% 加二極體 6.07%，三者同為功率分立元件、本節點定義即含二極體與整流器，合計 99.31%', 'Direct'),
         ('力智', 'Major', '功率元件(MOSFET)', 'annual_report_table', '年報營業比重表：功率元件(MOSFET) 23.87%', 'Direct'),
         ('博盛半導體', 'Core', 'MOSFET', 'annual_report_table', '年報營業比重表：MOSFET 100.00%', 'Direct'),
         ('大中', 'Core', '功率半導體產品', 'annual_report_table', '年報營業比重表：功率半導體產品 100.00%', 'Direct'),
