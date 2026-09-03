@@ -40,7 +40,8 @@ import re
 
 from db.connection import get_cursor
 
-CHECKS = ("core", "core_overlap", "core_reason", "listing", "stale", "below", "role", "coverage",
+CHECKS = ("core", "core_overlap", "core_reason", "core_pending", "listing", "stale",
+          "below", "role", "coverage",
           "temporal", "mix",
           "double", "depth",
           "unknown", "known", "official")
@@ -439,6 +440,35 @@ def check_known(cur):
         WHERE e.effective_to IS NULL AND e.known_date IS NULL
         GROUP BY e.stock_id, s.name
         ORDER BY e.stock_id
+    """)
+
+
+def check_core_pending(cur):
+    """Cores owed a fresh R023 adjudication and not yet given one.
+
+    R023 obliges a re-run whenever a taxonomy action changes a company's
+    candidate set — a node added, or an existing definition widened so that a
+    business which had nowhere to go becomes legal. Before migration 098 the
+    only trace of that obligation was a sentence someone wrote into the
+    evidence, which records that it happened but cannot say that it is owed.
+
+    A row with stock_id NULL is the taxonomy action itself: the whole table
+    still owes a scan against that node, and sync_tree raises it automatically
+    the moment the tree changes. A row with a stock_id is a company already
+    known to be affected, written by whoever does the mapping.
+
+    Zero here is the claim that no Core is waiting on a taxonomy change. It is
+    not the same claim as [core_reason] = 0, which is about whether the reason
+    was written down, not about whether it is still the right reason.
+    """
+    return _rows(cur, """
+        SELECT q.trigger_node, t.name AS node_name, q.trigger_kind,
+               q.stock_id, s.name AS stock_name, q.raised_on, q.note
+        FROM tw.core_reassessment q
+        JOIN tw.industry_tree t ON t.node_code = q.trigger_node
+        LEFT JOIN tw.stocks s ON s.stock_id = q.stock_id
+        WHERE q.resolved_on IS NULL
+        ORDER BY q.raised_on, q.trigger_node, q.stock_id NULLS FIRST
     """)
 
 

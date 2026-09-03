@@ -714,6 +714,13 @@ def validate():
 
 
 def sync_tree(cur):
+    # What the tree looks like before this run, so that a node appearing and a
+    # definition changing can be told apart from an unchanged upsert. R023 owes a
+    # fresh Core adjudication for either (migration 098), and "someone will
+    # remember" is what that queue exists to replace.
+    cur.execute("SELECT node_code, main_products FROM tw.industry_tree")
+    was = {r["node_code"]: r["main_products"] for r in cur.fetchall()}
+
     # Parents before children, so the self-referencing key is satisfied as we go.
     for node in sorted(NODES, key=lambda n: n[2]):
         cur.execute("""
@@ -728,12 +735,34 @@ def sync_tree(cur):
                 updated_at = NOW()
         """, node)
 
+    # A node-level row means the whole table still owes a scan against that node;
+    # who is affected is not knowable here, only that someone has to look.
+    for code, _parent, _level, _name, products in NODES:
+        if code not in was:
+            _raise_reassessment(cur, code, "node_created",
+                                "節點新增，全表尚未依 R025 檢查有無其他公司應掛此格")
+        elif (was[code] or "") != (products or ""):
+            _raise_reassessment(cur, code, "definition_changed",
+                                "Product Definition 變更，全表尚未重新檢查候選集合")
+
     cur.execute("SELECT node_code FROM tw.industry_tree")
     stale = [r["node_code"] for r in cur.fetchall() if r["node_code"] not in {n[0] for n in NODES}]
     if stale:
         # Deepest first: an L2 cannot go before its children.
         cur.execute("DELETE FROM tw.industry_tree WHERE node_code = ANY(%s)", (stale,))
     return len(NODES), len(stale)
+
+
+def _raise_reassessment(cur, node_code, kind, note):
+    """Open a queue item unless the same one is already open (migration 098)."""
+    cur.execute("""
+        INSERT INTO tw.core_reassessment (stock_id, trigger_kind, trigger_node, note)
+        SELECT NULL, %s, %s, %s
+        WHERE NOT EXISTS (
+            SELECT 1 FROM tw.core_reassessment
+            WHERE stock_id IS NULL AND trigger_node = %s
+              AND trigger_kind = %s AND resolved_on IS NULL)
+    """, (kind, node_code, note, node_code, kind))
 
 
 def sync_themes(cur):
