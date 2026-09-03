@@ -42,7 +42,7 @@ from db.connection import get_cursor
 
 CHECKS = ("core", "core_overlap", "core_reason", "core_pending", "listing", "stale",
           "below", "role", "coverage",
-          "temporal", "mix",
+          "temporal", "mix", "scale",
           "double", "depth",
           "unknown", "known", "official")
 FISCAL_YEAR = 2025
@@ -121,20 +121,34 @@ def check_listing(cur):
 
 
 def check_stale(cur):
+    """weight_item naming a line no source has.
+
+    Both sources count, because db.fill_weight tries both: the annual report
+    first, then a conference deck. 辛耘's 代理 is a business its report never
+    separates — that is the whole reason the exposure reads off a deck — and
+    testing only the report would flag the one row that is right. Testing only
+    the deck for anything marked investor_conf is the mirror mistake: 台光電,
+    台燿 and 聯茂 carry deck evidence and annual-report weight lines.
+    """
     return _rows(cur, """
         WITH part AS (
-            SELECT e.stock_id, e.node_code, s.name,
+            SELECT e.stock_id, e.node_code, s.name, e.evidence_kind,
                    btrim(unnest(string_to_array(e.weight_item, ' + '))) AS item
             FROM tw.company_industry_exposure e
             JOIN tw.stocks s ON s.stock_id = e.stock_id
             WHERE e.effective_to IS NULL AND e.weight_item IS NOT NULL
         )
-        SELECT p.stock_id, p.name, p.node_code, p.item AS missing_item
+        SELECT p.stock_id, p.name, p.node_code, p.item AS missing_item,
+               p.evidence_kind
         FROM part p
         WHERE NOT EXISTS (
-            SELECT 1 FROM tw.product_revenue_share r
-            WHERE r.stock_id = p.stock_id AND r.fiscal_year = %s
-              AND r.item = p.item)
+                  SELECT 1 FROM tw.product_revenue_share r
+                  WHERE r.stock_id = p.stock_id AND r.fiscal_year = %s
+                    AND r.item = p.item)
+          AND NOT EXISTS (
+                  SELECT 1 FROM tw.conference_product_mix c
+                  WHERE c.stock_id = p.stock_id AND c.item = p.item
+                    AND c.axis IN ('product', 'business_unit'))
         ORDER BY p.stock_id
     """, (FISCAL_YEAR,))
 
@@ -205,6 +219,15 @@ def check_coverage(cur, threshold):
         parser_anomaly      the denominator itself is wrong (sums past 105)
         coarse_filing       every exposure is filing_too_coarse; nothing to
                             assign, and this is a closed case not a backlog
+        off_period          the weights describe a period the denominator does
+                            not. A deck-sourced weight is whatever quarter the
+                            deck gave, and dividing a 2026/Q2 share by the FY2025
+                            report is not a coverage figure — it is two numbers
+                            about different years. Counted as unassigned, and
+                            said out loud rather than passed off as a gap in the
+                            mapping. An undated weight is not counted as
+                            off-period — NULL says nothing about the period, and
+                            8 rows predate the column being filled in
         incomplete_mapping  the filing splits further than the exposures do
 
     The threshold decides who is listed, not how they are labelled, so a
@@ -224,7 +247,14 @@ def check_coverage(cur, threshold):
             FROM tw.company_industry_exposure
             WHERE effective_to IS NULL AND exposure_type = 'Direct'
               AND weight_pct IS NOT NULL AND weight_type = 'Revenue'
+              AND (evidence_period_end IS NULL
+                   OR evidence_period_end = make_date(%s, 12, 31))
             GROUP BY stock_id
+        ), off_period AS (
+            SELECT DISTINCT stock_id FROM tw.company_industry_exposure
+            WHERE effective_to IS NULL AND weight_pct IS NOT NULL
+              AND evidence_period_end IS NOT NULL
+              AND evidence_period_end <> make_date(%s, 12, 31)
         ), reported AS (
             SELECT stock_id, sum(pct_effective) AS t
             FROM tw.product_revenue_share
@@ -247,6 +277,9 @@ def check_coverage(cur, threshold):
                        WHERE e.stock_id = c.stock_id AND e.effective_to IS NULL
                          AND e.evidence_kind <> 'filing_too_coarse')
                        THEN 'coarse_filing'
+                   WHEN EXISTS (SELECT 1 FROM off_period o
+                                WHERE o.stock_id = c.stock_id)
+                       THEN 'off_period'
                    ELSE 'incomplete_mapping'
                END AS coverage_status
         FROM classified c
@@ -255,7 +288,7 @@ def check_coverage(cur, threshold):
         LEFT JOIN assigned a USING (stock_id)
         WHERE r.t > 0 AND 100 * coalesce(a.w, 0) / r.t < %s
         ORDER BY 100 * coalesce(a.w, 0) / r.t
-    """, (FISCAL_YEAR, threshold, threshold))
+    """, (FISCAL_YEAR, FISCAL_YEAR, FISCAL_YEAR, threshold, threshold))
 
 
 def check_temporal(cur):
@@ -362,7 +395,11 @@ def check_mix(cur):
                (SELECT array_agg(p.item) FROM tw.product_revenue p
                  WHERE p.stock_id = n.stock_id AND p.fiscal_year = %s) AS items,
                (SELECT sum(p.revenue) FROM tw.product_revenue p
-                 WHERE p.stock_id = n.stock_id AND p.fiscal_year = %s) AS stored_sum
+                 WHERE p.stock_id = n.stock_id AND p.fiscal_year = %s) AS stored_sum,
+               (SELECT sum(p.pct) FROM tw.product_revenue p
+                 WHERE p.stock_id = n.stock_id AND p.fiscal_year = %s) AS stored_pct,
+               (SELECT count(p.revenue) FROM tw.product_revenue p
+                 WHERE p.stock_id = n.stock_id AND p.fiscal_year = %s) AS stored_amounts
         FROM tw.product_narrative n
         JOIN tw.stocks s ON s.stock_id = n.stock_id
         LEFT JOIN tw.product_revenue_status st
@@ -370,7 +407,7 @@ def check_mix(cur):
         WHERE n.fiscal_year = %s
           AND EXISTS (SELECT 1 FROM tw.company_industry_exposure e
                       WHERE e.stock_id = n.stock_id AND e.effective_to IS NULL)
-    """, (FISCAL_YEAR, FISCAL_YEAR, FISCAL_YEAR, FISCAL_YEAR))
+    """, (FISCAL_YEAR,) * 6)
 
     out = []
     for r in rows:
@@ -398,6 +435,19 @@ def check_mix(cur):
                             "name": r["name"], "status": r["status"],
                             "why": "庫內合計 %d，年報各期合計皆不符（最近者 %d，差 %.0f%%）"
                                    % (r["stored_sum"], nearest, gap * 100)})
+            continue
+        # Roughly a quarter of filings print a ratio and no amount, and the test
+        # above cannot see any of them: stored_sum is NULL, so `and r["stored_sum"]`
+        # is false and the row leaves without being checked. 華夏 sat at 85% —
+        # PVC 建材 7% and 塑膠布 8% both missing — and passed every check there was.
+        # The mix table sums to 100 by construction, so that is the total to
+        # compare against, and no 合計 line is needed to find it.
+        if r["stored_amounts"] == 0 and r["stored_pct"] is not None:
+            pct = float(r["stored_pct"])
+            if abs(pct - 100) > 2:
+                out.append({"kind": "partial_pct", "stock_id": r["stock_id"],
+                            "name": r["name"], "status": r["status"],
+                            "why": "庫內比重合計 %.2f%%，不是 100%%（缺列或多列）" % pct})
     return out
 
 
@@ -437,6 +487,64 @@ def _filing_totals(body):
             if v >= 1000:
                 out.add(v)
     return out
+
+
+def check_scale(cur):
+    """Stored amounts that are not the company's revenue at all.
+
+    [mix] compares the stored lines against the filing's own text, which catches
+    a dropped row but not a whole table read off the wrong place. This compares
+    them against a number from somewhere else entirely — tw.income_statements —
+    and that is what makes it a different check rather than a stricter one.
+
+    1314 中石化 is the case it was written for. Its three stored lines are
+    196,161 / 198,983 / 1,580, which come to 2.1% of the 19,217,032 it earned.
+    They are TONNES: the filing's own prose puts AN capacity at 230,000 tonnes a
+    year and CPL at 200,000, and the stored figures sit just under both. Every
+    weight derived from them renormalised against a base of 396,724, so J9 came
+    out at 50.157% and J1-01 at 49.445% when the filing's 營業比重 table says
+    46.81% and 40.14%. Nothing looked wrong: the shares summed to 100 and the
+    ranking between them even survived.
+
+    Three shapes come out of this, and the ratio tells them apart:
+
+        ~0%     percentages written into the amount column — the stored total is
+                exactly 100, which is not a coincidence
+        1-5%    tonnes, litres or units in the amount column
+        10-50%  a real amount table with rows missing, or the parent company's
+                figures against consolidated revenue
+
+    Only companies that stored amounts are checked. A filing that prints ratios
+    and no amounts has nothing to compare, and [mix]'s partial_pct covers those.
+    """
+    return _rows(cur, """
+        WITH stored AS (
+            SELECT stock_id, sum(revenue) AS amount, count(*) AS lines
+            FROM tw.product_revenue
+            WHERE fiscal_year = %s AND revenue IS NOT NULL
+            GROUP BY stock_id
+        ), reported AS (
+            SELECT stock_id, sum(revenue) AS r, count(*) AS q
+            FROM tw.income_statements
+            WHERE year = %s AND period_type = 'Q'
+            GROUP BY stock_id
+        )
+        SELECT st.stock_id, s.name, st.lines, st.amount AS stored_amount,
+               rp.r AS reported_revenue,
+               round(st.amount::numeric / rp.r * 100, 2) AS ratio_pct,
+               CASE WHEN st.amount BETWEEN 99 AND 101 THEN 'pct in the amount column'
+                    WHEN st.amount::numeric / rp.r < 0.05 THEN 'units, not money'
+                    ELSE 'rows missing, or parent vs consolidated'
+               END AS looks_like
+        FROM stored st
+        JOIN reported rp USING (stock_id)
+        JOIN tw.stocks s USING (stock_id)
+        WHERE rp.q = 4 AND rp.r > 0
+          AND EXISTS (SELECT 1 FROM tw.company_industry_exposure e
+                      WHERE e.stock_id = st.stock_id AND e.effective_to IS NULL)
+          AND (st.amount::numeric / rp.r < 0.5 OR st.amount::numeric / rp.r > 2)
+        ORDER BY st.amount::numeric / rp.r
+    """, (FISCAL_YEAR, FISCAL_YEAR))
 
 
 def check_double(cur):

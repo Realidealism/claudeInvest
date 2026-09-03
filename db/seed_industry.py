@@ -31,6 +31,12 @@ annual report behind the evidence was filed with MOPS. It stays NULL when the
 company filed no report; that is honest, and a backtest filtering on
 known_date will simply not see the row.
 
+An 'investor_conf' row is dated by its deck instead, because that is what it is
+evidence of: evidence_period_end is the newest period the deck reports and
+known_date is the conference date. Taking the annual report's dates for it would
+say a 2026/Q2 figure was known in May and describes FY2025, and both halves of
+that are false.
+
 weight_pct is not set here. db.fill_weight reads weight_item against
 tw.product_revenue and fills it, so re-run that after any sync that opened rows.
 """
@@ -131,6 +137,39 @@ def _known_dates(cur):
     return {r["stock_id"]: r["filing_date"] for r in cur.fetchall()}
 
 
+def _deck_dates(cur):
+    """(evidence_period_end, known_date) per company, from its newest deck period.
+
+    Matches db.fill_weight, which takes the most recent period a deck gives; the
+    date has to describe the same figure the weight came from, or the row says
+    one period and means another. The usability test has to match fill_weight's
+    too — it is stated twice and the two have already disagreed once, when this
+    one still required a printed pct after the data file moved to amounts.
+
+    Only reached for rows whose evidence_kind is 'investor_conf' AND whose
+    company has deck lines at all. 台光電, 台燿 and 聯茂 carry deck evidence but
+    read their weights off annual-report lines, and have no rows here, so they
+    keep the report's dates — which is what their weights describe.
+    """
+    cur.execute("""
+        SELECT DISTINCT ON (stock_id) stock_id, period_end, conf_date
+        FROM tw.conference_product_mix
+        WHERE axis IN ('product', 'business_unit')
+          AND (pct IS NOT NULL OR revenue IS NOT NULL)
+        ORDER BY stock_id, period_end DESC
+    """)
+    return {r["stock_id"]: (r["period_end"], r["conf_date"]) for r in cur.fetchall()}
+
+
+def _dates_for(w, stock_id, known, decks):
+    """(known_date, evidence_period_end) for one row, by what evidences it."""
+    if w["evidence_kind"] == "investor_conf" and stock_id in decks:
+        period_end, conf_date = decks[stock_id]
+        return conf_date, period_end
+    return (known.get(stock_id),
+            EVIDENCE_PERIOD_END if w["evidence_kind"] in DATED_EVIDENCE else None)
+
+
 # confidence, strategic_priority, strategic_evidence and supply_chain_position
 # are judgements, so they are not in the mirror file — nothing in industry_data
 # could restore them. A supersede rebuilds the row from the file, so without
@@ -149,6 +188,7 @@ def _carried(previous):
 def sync(cur, resolved, effective_from):
     live = current_layer(cur)
     known = _known_dates(cur)
+    decks = _deck_dates(cur)
 
     added, changed, closed = [], [], []
     for key, want in resolved.items():
@@ -186,15 +226,21 @@ def sync(cur, resolved, effective_from):
     # one node to another has to give it up before claiming it.
     corrected.sort(key=lambda k: resolved[k]["role"] == "Core")
 
+    # The dates move with the correction. A row re-read from a deck rather than
+    # the annual report changes what period it evidences and when that became
+    # knowable, and leaving those at the old values is how a row comes to claim
+    # a date its evidence never had.
     for key in corrected:
         w = resolved[key]
+        known_date, period_end = _dates_for(w, key[0], known, decks)
         cur.execute("""
             UPDATE tw.company_industry_exposure
                SET role = %s, weight_item = %s, evidence_kind = %s,
-                   evidence = %s, exposure_type = %s
+                   evidence = %s, exposure_type = %s,
+                   known_date = %s, evidence_period_end = %s
              WHERE id = %s
         """, (w["role"], w["weight_item"], w["evidence_kind"], w["evidence"],
-              w["exposure_type"], live[key]["id"]))
+              w["exposure_type"], known_date, period_end, live[key]["id"]))
 
     for key in added + superseded:
         stock_id, node_code = key
@@ -208,9 +254,27 @@ def sync(cur, resolved, effective_from):
             VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
         """, (stock_id, node_code, w["role"], w["weight_item"], w["evidence"],
               w["evidence_kind"], w["exposure_type"], effective_from,
-              known.get(stock_id),
-              EVIDENCE_PERIOD_END if w["evidence_kind"] in DATED_EVIDENCE else None,
+              *_dates_for(w, stock_id, known, decks),
               *_carried(live.get(key))))
+
+    # Deck-dated rows are reconciled every run, not only when one of the mirrored
+    # fields moved. The dates are derived from tw.conference_product_mix rather
+    # than written in db/industry_data.py, so a newer deck period changes them
+    # while the membership file stays byte-identical — and the correction branch,
+    # which only fires when a mirrored field differs, would never see it.
+    cur.execute("""
+        UPDATE tw.company_industry_exposure e
+           SET known_date = d.conf_date, evidence_period_end = d.period_end
+          FROM (SELECT DISTINCT ON (stock_id) stock_id, period_end, conf_date
+                  FROM tw.conference_product_mix
+                 WHERE axis IN ('product', 'business_unit')
+                   AND (pct IS NOT NULL OR revenue IS NOT NULL)
+                 ORDER BY stock_id, period_end DESC) d
+         WHERE d.stock_id = e.stock_id AND e.effective_to IS NULL
+           AND e.evidence_kind = 'investor_conf'
+           AND (e.known_date IS DISTINCT FROM d.conf_date
+             OR e.evidence_period_end IS DISTINCT FROM d.period_end)
+    """)
 
     # known_date is derived from the filing date, which often arrives after the
     # membership does — a company classified from its company site before the

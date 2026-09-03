@@ -47,7 +47,13 @@ SKIP = re.compile(r"^\s*(合\s*計|總\s*計|小\s*計|TOTAL|Total|產品名稱|
 # 區域別 is a second table under the same heading and sums to 100 exactly like
 # the product one: 信立 prints 內銷/外銷/亞洲 straight after its products, and
 # the geography guard then rejected the pair.
-STOP = re.compile(r"^[\s•●■◆]*([34][\.、．]|\((3|4)\)\s*(公司)?(目前|計[畫劃]|產業)|"
+# The heading words matter more than the enumerator. "(3) 公司目前" was already
+# recognised; 台達化 writes the same heading as "2.公司計畫開發之新商品" and, once
+# the mix table's own numbered rows stopped closing the table, nothing stopped
+# the slice until it was deep into the industry overview. Any enumerator, then a
+# heading word.
+STOP = re.compile(r"^[\s•●■◆]*([34][\.、．]|"
+                  r"[(（]?\d[)）\.、．]\s*(公司)?(目前|計[畫劃]|產業)|"
                   r"二、|三、|２\.|計畫開發|目前(之)?(主要)?商品|產業概況|公司目前|"
                   r"[(（]?\d?[)）]?\s*各種?區域|區域別|地區別)")
 
@@ -56,6 +62,14 @@ STOP = re.compile(r"^[\s•●■◆]*([34][\.、．]|\((3|4)\)\s*(公司)?(目�
 # 天擎's 工控SoC reads "- - 2,253 0.80" for a line it did not sell last year.
 # Only a dash standing alone is a cell; the one in -KY is part of a name.
 DASH_CELL = re.compile(r"(?<![\w\d])[-–—](?![\w\d])")
+
+
+# A numbered list is not a data column. 台達化 writes "1. 發泡級聚苯乙烯(EPS)
+# 44.97%", and reading the ordinal as a figure both adds a phantom column and
+# leaves the label as ".發泡級聚苯乙烯(EPS" — the strip set never included the
+# dot. Only an ordinal followed by something that is not another digit, so a
+# genuine leading amount is left alone.
+ORDINAL = re.compile(r"^\s*(?:\(\s*\d{1,2}\s*\)|\d{1,2}\s*[.、．)）])\s*(?=\D)")
 
 
 def _nums(line):
@@ -108,11 +122,21 @@ def _regions(body):
     return [r for r in out if r]
 
 
+# A line that carries a share is a row of the table, whatever it starts with.
+# STOP treats a leading "3." or "4." as the next section heading, which is what
+# they nearly always are — 3.計畫開發之新產品, 4.主要原料供應狀況 — but 台達化
+# numbers the rows of the mix table itself, so "4. 玻璃棉產品(Glasswool) 3.85%"
+# closed the table and took the row with it. The table came out at 96.11 and the
+# Glasswool line, which P4 is read off, was never stored at all. Headings do not
+# carry percentages.
+HAS_SHARE = re.compile(r"\d+(?:\.\d+)?\s*[%％]")
+
+
 def _slice(body, i):
     lines = body[i:i + 3000].splitlines()
     kept = []
     for ln in lines[1:]:
-        if STOP.match(ln) and len(kept) > 2:
+        if STOP.match(ln) and not HAS_SHARE.search(ln) and len(kept) > 2:
             break
         kept.append(ln)
     return kept
@@ -206,6 +230,15 @@ def _parse_one(lines):
     # nearest preceding text-only line as the pending name.
     rows, pending = [], None
     for ln in lines:
+        # A sentence is not a table row. This matters more once the ordinal is
+        # stripped: 福懋科 prints a 33-item catalogue of package types, and
+        # "(13)通用串列匯流排 USB3.0 封裝體(UFD)。" used to be rejected only
+        # because "(13)" and "3.0" made it two columns wide where the real rows
+        # were one. Take the ordinal away and it fits the table exactly. No mix
+        # table's product name ends in a full stop; a catalogue entry always does.
+        if ln.rstrip().endswith(("。", "．")):
+            pending = None
+            continue
         if SKIP.match(ln):
             # 合計 closes a table. 通泰 prints two of them one after the other,
             # by form and then by series, and both sum to 100 — read as one
@@ -213,6 +246,7 @@ def _parse_one(lines):
             if rows and re.match(r"^\s*(合\s*計|總\s*計|主要產品)", ln):
                 rows.append(None)
             continue
+        ln = ORDINAL.sub("", ln)
         ns = _nums(DASH_CELL.sub(" 0 ", ln))
         name = NUM.sub("", DASH_CELL.sub(" ", ln)).strip(" 　:：%％$＄()（）")
         name = re.sub(r"\s+", "", name)
