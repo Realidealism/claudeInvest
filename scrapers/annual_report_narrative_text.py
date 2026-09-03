@@ -35,8 +35,16 @@ SKIP = re.compile(r"^\s*(合\s*計|總\s*計|小\s*計|TOTAL|Total|產品名稱|
 # 3、 is as common as 3. for a numbered heading, and a table that does not stop
 # drags the next section's stray digits in as one-number rows, which makes every
 # column the wrong width. 昶昕 failed on exactly that.
-STOP = re.compile(r"^[\s•●■◆]*([34][\.、．]|\(3\)|\(4\)|二、|三、|２\.|計畫開發|"
-                  r"目前(之)?(主要)?商品|產業概況|公司目前)")
+# (3) and (4) are section numbers only when a section title follows them. Bare,
+# they are the third item of any enumeration -- 擎亞 lists its registered
+# businesses "(3)國際貿易業。" and 神盾 its product families "(3) 無線音頻控制
+# IC" -- and cutting there ended the slice before the table it was looking for.
+# 區域別 is a second table under the same heading and sums to 100 exactly like
+# the product one: 信立 prints 內銷/外銷/亞洲 straight after its products, and
+# the geography guard then rejected the pair.
+STOP = re.compile(r"^[\s•●■◆]*([34][\.、．]|\((3|4)\)\s*(公司)?(目前|計[畫劃]|產業)|"
+                  r"二、|三、|２\.|計畫開發|目前(之)?(主要)?商品|產業概況|公司目前|"
+                  r"[(（]?\d?[)）]?\s*各種?區域|區域別|地區別)")
 
 # A cell left blank as a dash carries no number, so the row comes out narrower
 # than its neighbours and the whole column is rejected for inconsistent width —
@@ -82,7 +90,10 @@ def _regions(body):
     out = []
     start = 0
     while True:
-        i = body.find("營業比重", start)
+        # 通泰 heads it 主要產品佔營業收入淨額比重, which contains neither
+        # 營業比重 nor 營業收入比重 as a substring.
+        i = min([p for p in (body.find("營業比重", start),
+                             body.find("收入淨額比重", start)) if p >= 0], default=-1)
         if i < 0:
             break
         out.append(_slice(body, i))
@@ -189,6 +200,11 @@ def _parse_one(lines):
     rows, pending = [], None
     for ln in lines:
         if SKIP.match(ln):
+            # 合計 closes a table. 通泰 prints two of them one after the other,
+            # by form and then by series, and both sum to 100 — read as one
+            # block they sum to 200 and neither is found.
+            if rows and re.match(r"^\s*(合\s*計|總\s*計|主要產品)", ln):
+                rows.append(None)
             continue
         ns = _nums(DASH_CELL.sub(" 0 ", ln))
         name = NUM.sub("", DASH_CELL.sub(" ", ln)).strip(" 　:：%％$＄()（）")
@@ -219,9 +235,25 @@ def _parse_one(lines):
     else:
         picks = [(-1, None), (-2, None), (-3, None)]
 
+    # Rows of a different width are not part of the same table: 神盾 and 擎亞 both
+    # print a numbered list of registered businesses above theirs, and each entry
+    # carries exactly one number — its own bullet. Split into runs of equal width
+    # and judge each run, rather than letting one stray row void the column.
+    runs, cur_run = [], []
+    for r in rows + [None]:
+        if r is None or (cur_run and len(r[1]) != len(cur_run[0][1])):
+            if len(cur_run) >= 2:
+                runs.append(cur_run)
+            cur_run = []
+        if r is not None:
+            cur_run.append(r)
+    if not runs:
+        return None, "no numeric rows"
+
     for pos, width in picks:
+      for run in runs:
         vals = []
-        for label, ns in rows:
+        for label, ns in run:
             if width is not None and len(ns) != width:
                 vals = None
                 break
@@ -245,9 +277,7 @@ def _parse_one(lines):
         # name no product and cannot be mapped to a node.
         if all(re.search(r"收入$|收益$", lbl) for lbl, _ in vals):
             return None, "revenue categories, not products"
-        if 95 <= total <= 105:
-            if len(vals) < 2:
-                continue  # a single row summing to 100 proves nothing
+        if 95 <= total <= 105 and len(vals) >= 2:
             return vals, "%s col %d, sums %.2f" % (
                 "header" if ycol else "rightmost", pos, total)
     return None, "no column sums to 100"
