@@ -162,13 +162,33 @@ NODES = [
     ('B1-06', 'B1', 3, '高速高頻 CCL', 'Low Dk、Low Df、Ultra Low Loss、AI/HPC 用板材'),
     # PI resin is the raw material; B1-04 PI is the film made from it.
     ('B1-07', 'B1', 3, '聚亞醯胺樹脂', 'PI Resin、PI Varnish'),
+    # Prepreg is neither of its neighbours: B1-02 is the woven cloth, B1-03 the
+    # resin, B1-01 the laminate after copper is bonded on. A B-stage sheet is a
+    # product sold in its own right, and widening B1-01 to reach it would file
+    # high-frequency prepreg under 一般 CCL (R025).
+    ('B1-08', 'B1', 3, '膠片 (Prepreg)',
+     '半固化片、黏合片、Low CTE Non-flow PP；浸樹脂而未貼銅箔之 B-stage 材料'
+     '（貼銅後見 B1-01／B1-06，玻纖布本體見 B1-02）'),
     ('B2', 'B', 2, 'PCB製造', None),
     ('B2-01', 'B2', 3, '硬板 / 多層板 / HDI', '一般硬板、多層板、HDI、高層數板、Server/AI Server PCB、車用PCB'),
     ('B2-02', 'B2', 3, '軟板 (FPC)', 'FPC、RFPCB、Camera/Display/Battery FPC'),
     ('B2-03', 'B2', 3, '軟硬結合', None),
     ('B2-04', 'B2', 3, '高速高頻 PCB', 'AI / HPC 用高頻高速板'),
     ('B2-05', 'B2', 3, 'HDI / SLP', None),
+    # Selling a step of board making is not selling the board: 聯致 does lamination
+    # and 凱崴 drilling and electrical test, for board houses, and both sat on
+    # consumables and EMS nodes whose definitions exclude a process service.
+    ('B2-07', 'B2', 3, 'PCB 製程代工 (Toll Processing)',
+     '壓合、鑽孔、雷射鑽孔、成型、電性測試等對他人板材之受託加工；'
+     '自製整板見 B2-01～B2-06，設備見 B5-01，耗材與藥水見 B6'),
     ('B2-06', 'B2', 3, 'AI Server / Accelerator PCB', '高層數 Server PCB'),
+    # Branch-level definition adjudication pending (2026-09-03). B3-01 'ABF 載板 /
+    # AI/HPC 高階載板' and B3-05 'HPC / AI Substrate / 高階ABF、大尺寸載板' are near
+    # duplicates; B3-03 and B3-04 carry no definition at all and 0/1 members. A
+    # sixth node for 恆勁's material-unspecified substrate was proposed and
+    # refused: adding to a branch with two undefined nodes and one duplicate is
+    # the fragmentation R025 warns about. Settle B3-01..B3-05 first.
+    # Waiting: 6920 恆勁 82% (filing never says ABF, yet sits on B3-01).
     ('B3', 'B', 2, 'IC載板', None),
     ('B3-01', 'B3', 3, 'ABF 載板', 'AI/HPC 高階載板（週期異於 BT）'),
     ('B3-02', 'B3', 3, 'BT 載板', '記憶體 / 手機載板'),
@@ -252,6 +272,13 @@ NODES = [
     ('F6', 'F', 2, '電池相關零件', None),
     ('F6-01', 'F6', 3, '電池', 'BMS、Battery connector、Protection IC、Battery pack'),
     ('F7', 'F', 2, '記憶體模組 / SSD', None),
+    # A wireless module is not a memory module and not Wi-Fi equipment: 鈺寶 sells
+    # its own 2.4/5GHz audio protocol as a module to brand customers, and the only
+    # neighbours were F7-01 (DRAM/SSD), D2-01 (Wi-Fi kit) and C11-01 (finished
+    # peripherals). Kept as an L2 leaf rather than an L2+L3 pair.
+    ('F8', 'F', 2, '無線模組',
+     '無線音訊傳輸模組、RF／私有協定收發模組、藍牙與 2.4G 模組；'
+     '以模組為出貨形式而晶片為自有設計者，晶片端另計 A4（見 R024 一）'),
     ('F7-01', 'F7', 3, '記憶體模組 (Module)', 'DRAM Module、SSD（威剛、宇瞻、十銓）；系統端見 C9 System/Enterprise Storage'),
     ('G', None, 1, '電機 / 自動化 / 機器人', None),
     ('G1', 'G', 2, '工業自動化', None),
@@ -265,6 +292,12 @@ NODES = [
     ('G4', 'G', 2, '精密機械', None),
     ('G4-01', 'G4', 3, '精密機械零組件與工具 (Precision Components & Tooling)',
      'CNC、Tooling、Linear Guide、Ball Screw、Bearing、Gear；研磨與切削工具（砂輪、磨料、鑽石/cBN 工具、切削刀具）'),
+    # A2-10's 閥件 are vacuum parts for semiconductor tools; G4-01 is transmission
+    # and tooling; G6-01 is whole machines. An industrial valve for a refinery is
+    # none of those, and 捷流's 62.36% sat on the fab utilities node.
+    ('G4-02', 'G4', 3, '工業閥門與流體控制元件',
+     '蝶閥、球閥、閘閥、控制閥、致動器與流體控制元件（石化、鋼鐵、造船、水處理、電廠）；'
+     '半導體設備用真空閥件見 A2-10'),
     ('G5', 'G', 2, '工具機', None),
     ('G6', 'G', 2, '機械設備', None),
     ('G6-01', 'G6', 3, '專用機械', '食品機械、塑膠機械、紡織機械、包裝機械、其他專用機械（半導體設備→A2、PCB設備→B5）'),
@@ -323,8 +356,13 @@ NODES = [
     ('J2', 'J', 2, '芳香烴', 'PTA、PET、苯、甲苯'),
     ('J3', 'J', 2, '合成橡膠原料', 'SBR、BR、SBS'),
     ('J4', 'J', 2, '特用化學', None),
-    ('J4-01', 'J4', 3, '特化', '半導體化學、光電材料、電池材料'),
-    ('J5', 'J', 2, '樹脂', 'Epoxy、PU、Acrylic、Silicone'),
+    ('J4-01', 'J4', 3, '特化',
+     '半導體化學、光電材料、電池材料、環氧乙烷衍生物（乙醇胺、乙二醇醚、聚乙二醇）、'
+     '界面活性劑（脂肪醇聚氧乙烯醚 AEO／其硫酸鹽 AES）、造紙化學品（乾強劑、上膠劑、顯色劑）。'
+     '以特用化學品之製造為業務核心；清潔劑等家用成品見 J14'),
+    ('J5', 'J', 2, '樹脂',
+     'Epoxy、PU、Acrylic、Silicone、石油樹脂（C5/C9、氫化石油樹脂）。'
+     '以樹脂本體之製造為業務核心；配方成品見 J6 塗料與油墨、J11 接著劑'),
     ('J6', 'J', 2, '塗料與油墨 (Coating & Ink)', '建築/工業/防火塗料、溶劑性與 UV 油墨'),
     ('J7', 'J', 2, '染料', None),
     ('J8', 'J', 2, '電子化學', '電子級化學品'),
@@ -386,6 +424,12 @@ NODES = [
     ('O', None, 1, '食品 / 農業', None),
     ('O1', 'O', 2, '食品製造', '食用油、麵粉、肉品、冷凍食品、乳品'),
     ('O2', 'O', 2, '飲料', None),
+    # Definition Pending (2026-09-03): named correctly but carries no Product
+    # Definition, and companies are waiting on it. Do NOT write one to fit the
+    # company in front of you -- that is how a taxonomy ends up shaped by the
+    # cases it happened to meet. Definition first, then map the whole table,
+    # then re-run every Core whose candidate set the definition changed.
+    # Waiting: 8068 全達 4.92% 酒品買賣.
     ('O3', 'O', 2, '食品通路', None),
     ('O4', 'O', 2, '農業', '種子/種苗、肥料、農藥、農機、農業科技'),
     ('O5', 'O', 2, '水產', None),
@@ -427,11 +471,31 @@ NODES = [
     ('U6', 'U', 2, 'AI Software', 'LLM、AI Agent、Computer Vision、AI SaaS、AI Infrastructure'),
     ('U7', 'U', 2, 'Digital Platform', None),
     ('V', None, 1, '電子通路 / EMS', None),
+    # Definition INVALID -- must rebuild (2026-09-03). 文曄/大聯大/至上 are three
+    # company names, not a product definition: a mapping result was written into
+    # the definition field. This is worse than empty, because it reads as a
+    # definition and 32 members were judged against it. A 2026-09-03 review of all
+    # 32 found R025's hard condition met by none of them, so the node is not to be
+    # split -- it is to be defined, and then five members that are not
+    # semiconductor distributors at all (聯強, 敦吉, 博士旺, 青雲, 尚立, each put
+    # here by a 通路/代理 keyword match) moved out.
     ('V1', 'V', 2, '半導體通路', '文曄、大聯大、至上'),
     ('V2', 'V', 2, '被動元件通路', None),
+    # Definition Pending (2026-09-03): named correctly but carries no Product
+    # Definition, and companies are waiting on it. Do NOT write one to fit the
+    # company in front of you -- that is how a taxonomy ends up shaped by the
+    # cases it happened to meet. Definition first, then map the whole table,
+    # then re-run every Core whose candidate set the definition changed.
+    # Waiting: 2347 聯強 62.8% 3C, 5386 青雲 12.68% 板卡與伺服器.
     ('V3', 'V', 2, '電腦通路', None),
     ('V4', 'V', 2, '工控通路', None),
     ('V5', 'V', 2, '網通通路', None),
+    # Definition Pending (2026-09-03): named correctly but carries no Product
+    # Definition, and companies are waiting on it. Do NOT write one to fit the
+    # company in front of you -- that is how a taxonomy ends up shaped by the
+    # cases it happened to meet. Definition first, then map the whole table,
+    # then re-run every Core whose candidate set the definition changed.
+    # Waiting: 2459 敦吉, 3444 利機 31%, 8096 擎亞 15.54%, 6924 榮惠 87.89%.
     ('V6', 'V', 2, '電子零件代理', None),
     ('V7', 'V', 2, '電子製造服務 (EMS)', None),
     ('V7-01', 'V7', 3, '電子製造服務 (EMS)', 'EMS、ODM、OEM、Module、System Integration、Box Build'),
@@ -452,6 +516,12 @@ NODES = [
     ('X1', 'X', 2, '百貨', None),
     ('X2', 'X', 2, '超商', None),
     ('X3', 'X', 2, '電商', None),
+    # Definition Pending (2026-09-03): named correctly but carries no Product
+    # Definition, and companies are waiting on it. Do NOT write one to fit the
+    # company in front of you -- that is how a taxonomy ends up shaped by the
+    # cases it happened to meet. Definition first, then map the whole table,
+    # then re-run every Core whose candidate set the definition changed.
+    # Waiting: 3555 博士旺 56.91% 電玩通路, 1712 興農 23% 農友超市.
     ('X4', 'X', 2, '賣場 / 通路', None),
     ('X5', 'X', 2, '家電', None),
     ('X6', 'X', 2, '家具', None),
@@ -464,6 +534,14 @@ NODES = [
     ('Y2', 'Y', 2, '旅行社', None),
     ('Y3', 'Y', 2, '遊樂園', None),
     ('Y4', 'Y', 2, '餐飲', None),
+    # Definition Pending (2026-09-03): named correctly but carries no Product
+    # Definition, and companies are waiting on it. Do NOT write one to fit the
+    # company in front of you -- that is how a taxonomy ends up shaped by the
+    # cases it happened to meet. Definition first, then map the whole table,
+    # then re-run every Core whose candidate set the definition changed.
+    # Waiting: 1312 國喬 6.64% 電視頻道與影視內容(緯來). A new sibling was
+    # proposed instead; refused, because an undefined empty node next door is a
+    # definition question, not a missing node.
     ('Y5', 'Y', 2, '娛樂 / 休閒', None),
     ('Z', None, 1, '公用事業 / 環保', None),
     ('Z1', 'Z', 2, '電力公用事業', '台電概念、發電/輸電/配電公用事業'),
