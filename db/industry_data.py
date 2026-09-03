@@ -416,7 +416,7 @@ MEMBERS = {
     "A3-03": [
         ('力積電', 'Major', '記憶體產品', 'annual_report_table', '年報營業比重表：記憶體產品 38.89%', 'Direct'),
         ('南亞科', 'Core', None, 'annual_report_prose', '年報業務範圍載明「DRAM」：客戶間之良好夥伴關係。創造優質服務為本公司的核心價值之一。本公司之目標乃維持DRAM產業之服務領導地位,並相信若維持上述之服務目標與態度,有', 'Direct'),
-        ('華邦電', 'Major', None, 'annual_report_prose', '年報業務範圍載明「DRAM」：格包含了32Mb~512MbHyperRAM、128Mb~8GbmobileDRAM及良品裸晶(KnownGoodDie;KGD)。(3)邏', 'Direct'),
+        ('華邦電', 'Major', '客製化記憶體產品收入', 'annual_report_table', '年報營業比重表：客製化記憶體產品收入 29%（26,243,596 仟元）；年報載明該線含「客製化高頻寬記憶體及元件(CUBE)」、「利基型動態隨機存取記憶體(Specialty Memory)…規格包含 64Mb~8Gb SDR & DDR/2/3/4」與「行動記憶體(Mobile Memory)…128Mb~8Gb mobile DRAM」', 'Direct'),
     ],
     "A3-04": [
         ('台半', 'Core', None, 'filing_too_coarse', '年報營運部門銷售表：整流器 35.79%，該部門商品含整流器、功率電晶體(MOSFET)、電源管理 IC 與小訊號產品，橫跨本節點與 A4-07 故兩格均不計比重(R020②)。Core 理由：條碼印表機 64.21% 係已獨立上市之子公司鼎翰科技(3611)所營(年報明載其已自行編製年報)，屬 Indirect 不得為 Core；本公司自身之製造與研發全在功率半導體，計畫開發新商品為超接面 MOSFET、SGT MOSFET、SiC 蕭特基等晶圓產品(R020③、R023②④)', 'Direct'),
@@ -444,7 +444,7 @@ MEMBERS = {
     ],
     "A3-07": [
         ('旺宏', 'Core', 'Flash', 'annual_report_table', '年報營業比重表：Flash 77.55%', 'Direct'),
-        ('華邦電', 'Core', None, 'annual_report_prose', '年報無比重表；NOR Flash 與利基 DRAM 雙產品線', 'Direct'),
+        ('華邦電', 'Core', '快閃記憶體產品收入', 'annual_report_table', '年報營業比重表：快閃記憶體產品收入 35%（89,406,171 仟元中的 31,074,913）；年報自述「華邦為 IDM 記憶體公司,擁有自有晶圓製造廠、自有製程技術、與產品開發團隊」，產品含 NOR、NAND、MCP、SpiStack® 堆疊組合及 TrustME® 安全快閃記憶體。Core 理由：三條線中邏輯產品 34% 為已獨立上市之子公司新唐(4919)所營、依 R020③ 為 Indirect 不得為 Core；本公司自營的兩條線中快閃記憶體 35% 大於客製化記憶體 29%，且年報主要產品列其為首(R023①⑤)。★比重於 2026-09-03 隨 [mix] 修復補上：該表原本讀不到，因為標題是「營收比重」而解析器只找「營業比重」', 'Direct'),
     ],
     "A4-05": [
         ('世芯-KY', 'Core', 'ASIC及晶圓產品', 'annual_report_table', '年報營業比重表：ASIC及晶圓產品 98.45%', 'Direct'),

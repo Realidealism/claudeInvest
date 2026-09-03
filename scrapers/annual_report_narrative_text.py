@@ -21,12 +21,17 @@ import argparse
 import io
 import re
 
-from db.check_industry import check_mix
+from db.check_industry import MIX_HEADING, check_mix
 from db.connection import get_cursor
 from scrapers.annual_report_revenue import _is_region
 
 FISCAL_YEAR = 2025
 ROC = FISCAL_YEAR - 1911  # 114
+HEADINGS = MIX_HEADING + ("收入淨額比重",)
+# The closed set of IFRS revenue-recognition captions. A table whose every row
+# is one of these describes how revenue was recognised, not what was sold.
+RECOGNITION = re.compile(r"^(銷貨|銷售|勞務|權利金|授權金?|租賃|租金|利息|股利|"
+                         r"佣金|技術服務|服務|工程|商品|其他)(收入|收益)$")
 NUM = re.compile(r"-?[\d,]+(?:\.\d+)?")
 # Rows that are not products. 合計 closes the table and its share is the 100.
 SKIP = re.compile(r"^\s*(合\s*計|總\s*計|小\s*計|TOTAL|Total|產品名稱|項\s*目|主要產品|"
@@ -90,10 +95,12 @@ def _regions(body):
     out = []
     start = 0
     while True:
-        # 通泰 heads it 主要產品佔營業收入淨額比重, which contains neither
-        # 營業比重 nor 營業收入比重 as a substring.
-        i = min([p for p in (body.find("營業比重", start),
-                             body.find("收入淨額比重", start)) if p >= 0], default=-1)
+        # The headings this reader looks for are the ones the check looks for,
+        # imported rather than copied: they drifted apart once already and 華邦電
+        # sat in [mix] for it, its table legible in the prose the whole time
+        # under a 營收比重 heading the reader did not know.
+        i = min([p for p in (body.find(h, start) for h in HEADINGS) if p >= 0],
+                default=-1)
         if i < 0:
             break
         out.append(_slice(body, i))
@@ -274,8 +281,10 @@ def _parse_one(lines):
         if sum(_is_region(lbl) for lbl, _ in vals) >= max(1, len(vals) // 2):
             return None, "geography table, not a product mix"
         # 驊訊 reports 銷貨/勞務/權利金收入: revenue recognition categories, which
-        # name no product and cannot be mapped to a node.
-        if all(re.search(r"收入$|收益$", lbl) for lbl, _ in vals):
+        # name no product and cannot be mapped to a node. "Ends in 收入" was too
+        # wide a test — 華邦電 names its products and then appends it
+        # (客製化記憶體產品收入), so the vocabulary is spelled out instead.
+        if all(RECOGNITION.match(lbl) for lbl, _ in vals):
             return None, "revenue categories, not products"
         if 95 <= total <= 105 and len(vals) >= 2:
             return vals, "%s col %d, sums %.2f" % (
