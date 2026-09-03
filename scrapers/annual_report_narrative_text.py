@@ -29,10 +29,20 @@ FISCAL_YEAR = 2025
 ROC = FISCAL_YEAR - 1911  # 114
 NUM = re.compile(r"-?[\d,]+(?:\.\d+)?")
 # Rows that are not products. 合計 closes the table and its share is the 100.
-SKIP = re.compile(r"^\s*(合\s*計|總\s*計|小\s*計|產品名稱|項\s*目|主要產品|"
-                  r"所營業務之主要內容|產品項目|單位|金\s*額|年度)")
-STOP = re.compile(r"^\s*(3\.|4\.|\(3\)|\(4\)|二、|２\.|計畫開發|目前之(主要)?商品|"
-                  r"目前之商品|產業概況|公司目前)")
+SKIP = re.compile(r"^\s*(合\s*計|總\s*計|小\s*計|TOTAL|Total|產品名稱|項\s*目|主要產品|"
+                  r"所營業務之主要內容|產品項目|單位|金\s*額|年度|營業淨額|營業收入淨額|"
+                  r"減\s*[:：]|銷貨退回)")
+# 3、 is as common as 3. for a numbered heading, and a table that does not stop
+# drags the next section's stray digits in as one-number rows, which makes every
+# column the wrong width. 昶昕 failed on exactly that.
+STOP = re.compile(r"^[\s•●■◆]*([34][\.、．]|\(3\)|\(4\)|二、|三、|２\.|計畫開發|"
+                  r"目前(之)?(主要)?商品|產業概況|公司目前)")
+
+# A cell left blank as a dash carries no number, so the row comes out narrower
+# than its neighbours and the whole column is rejected for inconsistent width —
+# 天擎's 工控SoC reads "- - 2,253 0.80" for a line it did not sell last year.
+# Only a dash standing alone is a cell; the one in -KY is part of a name.
+DASH_CELL = re.compile(r"(?<![\w\d])[-–—](?![\w\d])")
 
 
 def _nums(line):
@@ -116,6 +126,41 @@ def _year_columns(lines):
     return None
 
 
+# Some filings print the table the other way round: the products run across one
+# line and the metrics down the side. 瑞昱 heads it "114年度 積體電路產品 其他
+# 合計" with 營業比重(%) underneath, 凱鈺 the same with 百分比. The row-wise
+# reader cannot see it at all — every row it finds is a metric, not a product.
+TRANSPOSED_HEAD = re.compile(r"合\s*計\s*$")
+SHARE_ROW = re.compile(r"^\s*(營業比重|營收比重|百分比|比\s*重)")
+
+
+def _parse_transposed(lines):
+    for k, ln in enumerate(lines):
+        if not TRANSPOSED_HEAD.search(ln):
+            continue
+        names = [w for w in re.split(r"\s+", NUM.sub(" ", ln)).__iter__() if w.strip()]
+        names = [re.sub(r"[()（）%]", "", w) for w in names]
+        names = [w for w in names if w and not NOT_A_PRODUCT.search(w)]
+        if names and re.match(r"^合\s*計$", names[-1]):
+            names = names[:-1]
+        if len(names) < 2:
+            continue
+        for nxt in lines[k + 1:k + 7]:
+            if not SHARE_ROW.match(nxt):
+                continue
+            ns = _nums(nxt)
+            # one figure per product plus the 100 that closes the row
+            if len(ns) != len(names) + 1:
+                continue
+            vals = list(zip(names, ns[:len(names)]))
+            if sum(_is_region(l) for l, _ in vals) >= max(1, len(vals) // 2):
+                return None, "geography table, not a product mix"
+            total = sum(v for _, v in vals)
+            if 95 <= total <= 105:
+                return vals, "transposed, sums %.2f" % total
+    return None, None
+
+
 def parse(body):
     regions = _regions(body)
     if not regions:
@@ -126,6 +171,12 @@ def parse(body):
         if vals:
             return vals, why
         last = why
+    for lines in regions:
+        vals, why = _parse_transposed(lines)
+        if vals:
+            return vals, why
+        if why:
+            last = why
     return None, last
 
 
@@ -139,15 +190,18 @@ def _parse_one(lines):
     for ln in lines:
         if SKIP.match(ln):
             continue
-        ns = _nums(ln)
-        name = NUM.sub("", ln).strip(" 　:：%()（）")
+        ns = _nums(DASH_CELL.sub(" 0 ", ln))
+        name = NUM.sub("", DASH_CELL.sub(" ", ln)).strip(" 　:：%％$＄()（）")
         name = re.sub(r"\s+", "", name)
         if not ns:
             if name and len(name) >= 2 and not NOT_A_PRODUCT.search(name):
                 pending = name[:60]
             continue
         label = name if len(name) >= 2 else pending
-        if not label or NOT_A_PRODUCT.search(label):
+        # 其他營業收入 is a real line of the table, not a header, and dropping it
+        # left 南電 with one row where the check needs two to believe a column.
+        residual = label and re.match(r"^(其他|其它|Other)", label)
+        if not label or (NOT_A_PRODUCT.search(label) and not residual):
             pending = None
             continue
         label = UNIT.sub("", label) or label

@@ -307,15 +307,35 @@ REGION_WORDS = ("美國", "日本", "中國", "大陸", "台灣", "臺灣", "歐
 MIX_HEADING = ("營業比重", "營收比重", "營業收入比重")
 
 
+# 營業比重 appears in prose as often as it heads a table — 威健 says "營業比重約
+# 100%是代理電子零組件暨周邊設備之銷售" and stores nothing, correctly, because
+# there is nothing to store. A table is rows of figures, so that is what is
+# looked for: two or more lines carrying at least two numbers each, somewhere in
+# the 25 lines after the heading.
+_ROWISH = re.compile(r"\d[\d,]*(?:\.\d+)?")
+
+
+def _looks_tabular(body):
+    for m in re.finditer(r"比\s*重", body):
+        window = body[m.end():m.end() + 1800].splitlines()[:25]
+        rows = [ln for ln in window if len(_ROWISH.findall(ln)) >= 2]
+        if len(rows) >= 3:
+            return True
+    return False
+
+
 def check_mix(cur):
     """Stored product mixes that the filing itself contradicts (R020).
 
     weight_pct is read off tw.product_revenue, and three ways of getting that
     wrong all survive every existing check because none of them raises anything:
 
-        no_stored_table   the filing prints a mix table and we stored nothing.
+        no_stored_table   the filing discloses a mix and we stored nothing.
                           status says 'no_section', which reads as "the company
-                          did not disclose" and is a different claim entirely
+                          did not disclose" and is a different claim entirely.
+                          Disclosure in prose counts: 揚智 writes "占整體營收約
+                          85%…網路相關設備約占15%" and prints no table, which is
+                          a figure the database should hold and does not
         region_as_product the rows are a geography breakdown, not products. The
                           shares are real percentages of real revenue, so they
                           look perfectly well-formed
@@ -325,10 +345,10 @@ def check_mix(cur):
                           not there. 京元電子 is the same failure at scale: 103
                           億 stored against the filing's 349 億
 
-    partial_parse compares against the largest 合計 in the chapter, and a
-    two-year table prints one per year, so a company whose revenue fell has its
-    gap measured against the prior year and reads a few points worse than it is.
-    Small gaps are that; the ones worth reading start around 10%.
+    partial_parse asks whether the stored sum is any of the totals printed on
+    the table's 合計 line. A mix table prints one per period and the flattened
+    text cannot say which column is FY2025, so matching any of them is the most
+    that can be claimed — and a parse that dropped a row matches none.
 
     Only companies whose business-scope prose is on hand can be checked; the
     prose is the filing quoting itself, and it is the only second opinion
@@ -358,10 +378,10 @@ def check_mix(cur):
         has_table = any(h in body for h in MIX_HEADING)
         items = [_SPACE.sub("", i) for i in (r["items"] or [])]
 
-        if has_table and r["stored"] == 0:
+        if has_table and r["stored"] == 0 and _looks_tabular(r["body"] or ""):
             out.append({"kind": "no_stored_table", "stock_id": r["stock_id"],
                         "name": r["name"], "status": r["status"],
-                        "why": "業務範圍章有比重表，庫內 0 列"})
+                        "why": "年報揭露了營業比重，庫內 0 列"})
             continue
         hits = [i for i in items if any(w in i for w in REGION_WORDS)]
         if hits and len(hits) >= max(1, len(items) // 2):
@@ -369,32 +389,54 @@ def check_mix(cur):
                         "name": r["name"], "status": r["status"],
                         "why": "存進來的是地區別：" + "、".join(hits[:4])})
             continue
-        total = _filing_total(r["body"] or "")
-        if total and r["stored_sum"] and total > 0:
-            gap = abs(float(r["stored_sum"]) - total) / total
+        totals = _filing_totals(r["body"] or "")
+        if totals and r["stored_sum"]:
+            stored = float(r["stored_sum"])
+            gap, nearest = min((abs(stored - t) / t, t) for t in totals)
             if gap > 0.02:
                 out.append({"kind": "partial_parse", "stock_id": r["stock_id"],
                             "name": r["name"], "status": r["status"],
-                            "why": "庫內合計 %d vs 年報合計 %d（差 %.0f%%）"
-                                   % (r["stored_sum"], total, gap * 100)})
+                            "why": "庫內合計 %d，年報各期合計皆不符（最近者 %d，差 %.0f%%）"
+                                   % (r["stored_sum"], nearest, gap * 100)})
     return out
 
 
-# 合計 and the amount beside it, the number every mix table ends on. Read off
-# the RAW prose, spaces and all: strip the whitespace first and "合 計
-# 259,911,744 100.00" closes up into 259911744100.00, so the total swallows the
-# percentage and every company looks like a partial parse.
-_TOTAL = re.compile(r"合\s*計\s*([\d,]{4,})")
+# The whole run of figures after 合計, not just the first one. Read off the RAW
+# prose, spaces and all: strip the whitespace first and "合 計 259,911,744
+# 100.00" closes up into 259911744100.00, so the total swallows the percentage
+# and every company looks like a partial parse.
+#
+# A mix table almost always prints more than one total on that line, because it
+# shows more than one period: 鴻勁 ends on "合計 13,992,344 100.00 30,270,625
+# 100.00" and 宏碩系統 on three columns (115Q1 / 114 / 113). Which of them is
+# FY2025 cannot be told from text this flat — the column headers are several
+# lines away and the rows have already been reflowed. Taking the first made
+# every company whose revenue grew look like a partial parse, and taking the
+# max made the ones that shrank look like one instead.
+#
+# So the question asked is not "does the stored sum equal THE total" but "is it
+# any of the totals the table prints". A parse that dropped a row matches none
+# of them, which is the failure this check exists to find. The cost is a miss
+# when a parser stores the wrong year in full — that lands on the prior year's
+# total and passes. [stale] catches the renamed-line version of that, and
+# nothing catches the rest; it is a real hole, and a much smaller one than
+# burying 40 real findings under 35 false ones.
+_TOTAL_LINE = re.compile(r"合\s*計((?:\s*[\d,]+(?:\.\d+)?%?)+)")
+_AMOUNT = re.compile(r"[\d,]{4,}")
 
 
-def _filing_total(body):
-    vals = []
-    for m in _TOTAL.findall(body):
-        try:
-            vals.append(int(m.replace(",", "")))
-        except ValueError:
-            pass
-    return max(vals) if vals else None
+def _filing_totals(body):
+    """Every figure printed on a 合計 line, as a set of integers."""
+    out = set()
+    for run in _TOTAL_LINE.findall(body):
+        for m in _AMOUNT.findall(run):
+            try:
+                v = int(m.replace(",", ""))
+            except ValueError:
+                continue
+            if v >= 1000:
+                out.add(v)
+    return out
 
 
 def check_double(cur):
