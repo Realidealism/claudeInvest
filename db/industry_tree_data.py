@@ -73,7 +73,7 @@ NODES = [
     ('A3-01', 'A3', 3, 'Foundry (純晶圓代工)', '台積電、聯電、世界、力積電'),
     ('A3-02', 'A3', 3, 'IDM', '整合元件製造（自有 fab）'),
     ('A3-03', 'A3', 3, 'DRAM 製造', 'DRAM（南亞科、華邦電、力積電）'),
-    ('A3-04', 'A3', 3, '功率半導體製造 (Power)', 'MOSFET、IGBT、SiC、GaN'),
+    ('A3-04', 'A3', 3, '功率半導體製造 (Power)', 'MOSFET、IGBT、整流器、二極體、TVS、齊納二極體、SiC、GaN（自有 fab；無自有 fab 的設計公司見 A4-22）'),
     ('A3-05', 'A3', 3, '影像感測製程 (CIS)', 'CMOS Image Sensor、BSI、CIS製程'),
     ('A3-06', 'A3', 3, '化合物半導體製造 (GaN/SiC)', 'GaAs、GaN、SiC、InP、RF（漢磊、嘉晶、全新）'),
     # DRAM and NAND run on separate cycles, so they are separate nodes; a maker
