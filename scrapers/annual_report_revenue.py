@@ -231,6 +231,20 @@ REGION_WORDS = ("美國", "日本", "中國", "大陸", "台灣", "臺灣", "歐
                 "韓國", "新加坡", "外銷", "內銷", "營運地點", "其他地區")
 
 
+def _is_region(text: str) -> bool:
+    """Whether a row label names a place rather than a product.
+
+    The test has to normalise first. pdfplumber returns a cell as it is laid
+    out, and a two-character Chinese name in a wide column comes back spaced
+    out — "美 國", not "美國" — so a plain substring test against REGION_WORDS
+    silently passes it through. 嘉聯益's entire geography table was stored as
+    its product mix that way, 中國大陸 43.01% dropped along with it, and the
+    three surviving rows looked like a well-formed mix summing to 57%.
+    """
+    flat = re.sub(r"\s+", "", text or "")
+    return any(w in flat for w in REGION_WORDS)
+
+
 def _header_columns(table, fiscal_year):
     """Locate (amount_col, pct_col) for the wanted year in a two-year mix table.
 
@@ -328,7 +342,7 @@ def _rows_from_table(table, fiscal_year) -> list[dict]:
     # A geography table (營業單位之營運地點 / 銷售地區) has the same year headers as
     # the product table, so reject it by looking at what the rows are named.
     labels = [_clean(row[0]) for row in table if row and _clean(row[0])]
-    if labels and sum(any(w in x for w in REGION_WORDS) for x in labels) >= max(2, len(labels) // 3):
+    if labels and sum(_is_region(x) for x in labels) >= max(2, len(labels) // 3):
         return []
     out = []
     # 廣宇 numbers its rows, so column 0 holds "1"/"2" and the product name sits
@@ -348,7 +362,7 @@ def _rows_from_table(table, fiscal_year) -> list[dict]:
         if not _is_label(item):
             continue
         if (len(item) > 30 or any(h in item for h in ("合計", "總計", "小計", "年度", "項目", "比重"))
-                or any(w in item for w in REGION_WORDS)):
+                or _is_region(item)):
             continue
         pct = _to_num(cells[pct_col]) if pct_col is not None and pct_col < len(cells) else None
         amount = _to_num(cells[amount_col]) if amount_col is not None and amount_col < len(cells) else None
@@ -381,20 +395,20 @@ def _rows_from_prose(text: str) -> list[dict]:
     for match in re.finditer(r"([一-鿿A-Za-z0-9（）()／/\-]{2,20}?)\s*(?:占|佔|約占|約佔)\s*(?:營收|營業額|營業收入)?[^\d%]{0,4}(\d{1,3}(?:\.\d+)?)\s*%", text):
         item = re.sub(r"^(其中|另|及|與|和|，|、|：|:)+", "", match.group(1))
         item = re.sub(r"^\d{4}年(?:度)?", "", item)
-        if item and not any(w in item for w in REGION_WORDS) and not _is_prose_noise(item):
+        if item and not _is_region(item) and not _is_prose_noise(item):
             out.append({"item": item[:60], "revenue": None, "pct": float(match.group(2))})
     if not out:
         # 「營業比重（民國114年度）：人機介面應用晶片100%。」 — the colon comes before
         # the product and the percentage is glued to it, with no 占/佔 to anchor on.
         for match in re.finditer(r"[：:]\s*([一-鿿A-Za-z][^\d%：:，,。]{1,20}?)(\d{1,3}(?:\.\d+)?)\s*%", text):
             item = match.group(1).strip("（(）) 、")
-            if item and not any(w in item for w in REGION_WORDS) and not _is_prose_noise(item):
+            if item and not _is_region(item) and not _is_prose_noise(item):
                 out.append({"item": item[:60], "revenue": None, "pct": float(match.group(2))})
     if not out:
         # 「營業比重：工業用紙：100%」 — a colon list rather than a sentence (1906 寶隆).
         for match in re.finditer(r"([一-鿿A-Za-z0-9（）()／/\-]{2,20}?)\s*[：:]\s*(\d{1,3}(?:\.\d+)?)\s*%", text):
             item = re.sub(r"^(營業比重|項目|產品|主要商品)+", "", match.group(1))
-            if item and not any(w in item for w in REGION_WORDS) and not _is_prose_noise(item):
+            if item and not _is_region(item) and not _is_prose_noise(item):
                 out.append({"item": item[:60], "revenue": None, "pct": float(match.group(2))})
     return out
 
@@ -433,7 +447,7 @@ def _rows_from_lines(text, fiscal_year):
     slot = _year_slot(raw, fiscal_year)
     out = []
     for line in raw[1:]:
-        if any(w in line for w in REGION_WORDS) or line.strip().startswith(("合計", "總計", "小計")):
+        if _is_region(line) or line.strip().startswith(("合計", "總計", "小計")):
             continue
         label = re.match(r"^\s*([^\d%]{2,30}?)\s+(?=[\d(])", line)
         if not label:

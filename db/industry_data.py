@@ -93,7 +93,7 @@ MEMBERS = {
         ('誠泰科技', 'Core', '熱熔膠接著劑', 'annual_report_table', '年報營業比重表：熱熔膠接著劑 92.00%', 'Direct'),
     ],
     "J10": [
-        ('東鹼', 'Core', '製造－化工類產品', 'annual_report_table', '年報營業比重表：製造－化工類產品 72.00%，主力為純鹼；另有貿易 26% 為自有產品銷售', 'Direct'),
+        ('東鹼', 'Core', '製造-化工類產品', 'annual_report_table', '年報營業比重表：製造-化工類產品 63.76%，主力為純鹼；另有貿易-化工類產品 7.69% 為自有產品銷售、船舶運輸 28.19%。原存 72.00% 取自不完整的解析，2026-09-03 以年報表更正', 'Direct'),
         ('國化', 'Core', '氧化鋅 + 吊白塊 + 重亞硫酸鈉 + 保險粉', 'annual_report_table', '年報營業比重表：四項無機化學品合計 100%', 'Direct'),
     ],
     "J9": [
@@ -449,7 +449,7 @@ MEMBERS = {
         ('聯詠', 'Core', '平面顯示器驅動晶片', 'annual_report_table', '年報營業比重表：平面顯示器驅動晶片 62.87%', 'Direct'),
     ],
     "A4-13": [
-        ('宏觀', 'Core', '射頻積體電路(RFIC)', 'annual_report_table', '年報營業比重表：射頻積體電路(RFIC) 97.08%', 'Direct'),
+        ('宏觀', 'Core', '射頻積體電路(RF IC)', 'annual_report_table', '年報營業比重表：射頻積體電路(RF IC) 97.08%', 'Direct'),
         ('立積', 'Core', 'Wi-Fi 產品', 'filing_too_coarse', '年報僅列「Wi-Fi 產品 83.59%」一線，射頻前端元件與網通應用合列，無法拆到節點', 'Direct'),
         ('笙科', 'Core', 'RFIC(無線射頻積體電路)', 'annual_report_table', '年報營業比重表：RFIC(無線射頻積體電路) 100.00%', 'Direct'),
     ],
@@ -537,7 +537,7 @@ MEMBERS = {
         ('頎邦', 'Core', '封裝及測試', 'annual_report_table', '年報營業比重表：封裝及測試 72.83%', 'Direct'),
     ],
     "A6-01": [
-        ('京元電子', 'Core', '積體電路測試', 'annual_report_table', '年報營業比重表：積體電路測試 58.78%', 'Direct'),
+        ('京元電子', 'Core', '積體電路測試服務 + 晶圓測試服務', 'annual_report_table', '年報營業比重表：積體電路測試服務 66.43% 加晶圓測試服務 30.56%，同屬 IC 測試服務（本節點定義即含 Wafer Sort），合計 96.99%。原存 58.78/35.80 取自非年報的另一張表（合計 103 億 vs 年報 349 億），2026-09-03 以年報表更正', 'Direct'),
         ('微矽電子-創', 'Core', '積體電路測試', 'annual_report_table', '年報營業比重表：積體電路測試 72.36%', 'Direct'),
         ('精材', 'Major', '測試服務', 'annual_report_table', '年報營業比重表：測試服務 47.86%；晶圓級封裝為其 Core，見 A5-02', 'Direct'),
         ('欣銓', 'Core', '晶圓測試', 'annual_report_table', '年報營業比重表：晶圓測試 71.21%', 'Direct'),
