@@ -36,11 +36,12 @@ A finding is a question, not a verdict.
 
 import argparse
 import datetime
+import re
 
 from db.connection import get_cursor
 
 CHECKS = ("core", "core_overlap", "core_reason", "listing", "stale", "below", "role", "coverage",
-          "temporal",
+          "temporal", "mix",
           "double", "depth",
           "unknown", "known", "official")
 FISCAL_YEAR = 2025
@@ -284,6 +285,110 @@ def check_temporal(cur):
            OR e.evidence_period_end > current_date
         ORDER BY e.stock_id
     """)
+
+
+
+# The parse guards are string comparisons against a PDF's text, and the text
+# arrives with spaces wedged between Han characters — 嘉聯益's region table said
+# "美 國", which is not the "美國" the scraper's REGION_WORDS looks for. Anything
+# comparing names here strips whitespace first, or it repeats the bug it is
+# trying to find.
+_SPACE = re.compile(r"\s+")
+REGION_WORDS = ("美國", "日本", "中國", "大陸", "台灣", "臺灣", "歐洲", "亞洲", "德國",
+                "韓國", "新加坡", "外銷", "內銷", "營運地點", "其他地區", "地區別")
+# The heading a filing puts above its product mix. Its presence in the prose
+# means a table exists, whatever the revenue scraper concluded.
+MIX_HEADING = ("營業比重", "營收比重", "營業收入比重")
+
+
+def check_mix(cur):
+    """Stored product mixes that the filing itself contradicts (R020).
+
+    weight_pct is read off tw.product_revenue, and three ways of getting that
+    wrong all survive every existing check because none of them raises anything:
+
+        no_stored_table   the filing prints a mix table and we stored nothing.
+                          status says 'no_section', which reads as "the company
+                          did not disclose" and is a different claim entirely
+        region_as_product the rows are a geography breakdown, not products. The
+                          shares are real percentages of real revenue, so they
+                          look perfectly well-formed
+        partial_parse     rows went missing and the share was derived from the
+                          survivors, so the remainder silently inflates — 擎邦's
+                          55.50% is stored as 96.55% because the 42.51% line is
+                          not there. 京元電子 is the same failure at scale: 103
+                          億 stored against the filing's 349 億
+
+    partial_parse compares against the largest 合計 in the chapter, and a
+    two-year table prints one per year, so a company whose revenue fell has its
+    gap measured against the prior year and reads a few points worse than it is.
+    Small gaps are that; the ones worth reading start around 10%.
+
+    Only companies whose business-scope prose is on hand can be checked; the
+    prose is the filing quoting itself, and it is the only second opinion
+    available without re-reading the PDF.
+    """
+    rows = _rows(cur, """
+        SELECT n.stock_id, s.name, n.body,
+               coalesce(st.status, '(none)') AS status,
+               (SELECT count(*) FROM tw.product_revenue p
+                 WHERE p.stock_id = n.stock_id AND p.fiscal_year = %s) AS stored,
+               (SELECT array_agg(p.item) FROM tw.product_revenue p
+                 WHERE p.stock_id = n.stock_id AND p.fiscal_year = %s) AS items,
+               (SELECT sum(p.revenue) FROM tw.product_revenue p
+                 WHERE p.stock_id = n.stock_id AND p.fiscal_year = %s) AS stored_sum
+        FROM tw.product_narrative n
+        JOIN tw.stocks s ON s.stock_id = n.stock_id
+        LEFT JOIN tw.product_revenue_status st
+               ON st.stock_id = n.stock_id AND st.fiscal_year = n.fiscal_year
+        WHERE n.fiscal_year = %s
+          AND EXISTS (SELECT 1 FROM tw.company_industry_exposure e
+                      WHERE e.stock_id = n.stock_id AND e.effective_to IS NULL)
+    """, (FISCAL_YEAR, FISCAL_YEAR, FISCAL_YEAR, FISCAL_YEAR))
+
+    out = []
+    for r in rows:
+        body = _SPACE.sub("", r["body"] or "")
+        has_table = any(h in body for h in MIX_HEADING)
+        items = [_SPACE.sub("", i) for i in (r["items"] or [])]
+
+        if has_table and r["stored"] == 0:
+            out.append({"kind": "no_stored_table", "stock_id": r["stock_id"],
+                        "name": r["name"], "status": r["status"],
+                        "why": "業務範圍章有比重表，庫內 0 列"})
+            continue
+        hits = [i for i in items if any(w in i for w in REGION_WORDS)]
+        if hits and len(hits) >= max(1, len(items) // 2):
+            out.append({"kind": "region_as_product", "stock_id": r["stock_id"],
+                        "name": r["name"], "status": r["status"],
+                        "why": "存進來的是地區別：" + "、".join(hits[:4])})
+            continue
+        total = _filing_total(r["body"] or "")
+        if total and r["stored_sum"] and total > 0:
+            gap = abs(float(r["stored_sum"]) - total) / total
+            if gap > 0.02:
+                out.append({"kind": "partial_parse", "stock_id": r["stock_id"],
+                            "name": r["name"], "status": r["status"],
+                            "why": "庫內合計 %d vs 年報合計 %d（差 %.0f%%）"
+                                   % (r["stored_sum"], total, gap * 100)})
+    return out
+
+
+# 合計 and the amount beside it, the number every mix table ends on. Read off
+# the RAW prose, spaces and all: strip the whitespace first and "合 計
+# 259,911,744 100.00" closes up into 259911744100.00, so the total swallows the
+# percentage and every company looks like a partial parse.
+_TOTAL = re.compile(r"合\s*計\s*([\d,]{4,})")
+
+
+def _filing_total(body):
+    vals = []
+    for m in _TOTAL.findall(body):
+        try:
+            vals.append(int(m.replace(",", "")))
+        except ValueError:
+            pass
+    return max(vals) if vals else None
 
 
 def check_double(cur):
