@@ -470,33 +470,72 @@ NODES = [
     ('U5', 'U', 2, 'Cybersecurity', 'Network Security、Endpoint、Identity、SOC'),
     ('U6', 'U', 2, 'AI Software', 'LLM、AI Agent、Computer Vision、AI SaaS、AI Infrastructure'),
     ('U7', 'U', 2, 'Digital Platform', None),
-    ('V', None, 1, '電子通路 / EMS', None),
-    # Definition INVALID -- must rebuild (2026-09-03). 文曄/大聯大/至上 are three
-    # company names, not a product definition: a mapping result was written into
-    # the definition field. This is worse than empty, because it reads as a
-    # definition and 32 members were judged against it. A 2026-09-03 review of all
-    # 32 found R025's hard condition met by none of them, so the node is not to be
-    # split -- it is to be defined, and then five members that are not
-    # semiconductor distributors at all (聯強, 敦吉, 博士旺, 青雲, 尚立, each put
-    # here by a 通路/代理 keyword match) moved out.
-    ('V1', 'V', 2, '半導體通路', '文曄、大聯大、至上'),
-    ('V2', 'V', 2, '被動元件通路', None),
-    # Definition Pending (2026-09-03): named correctly but carries no Product
-    # Definition, and companies are waiting on it. Do NOT write one to fit the
-    # company in front of you -- that is how a taxonomy ends up shaped by the
-    # cases it happened to meet. Definition first, then map the whole table,
-    # then re-run every Core whose candidate set the definition changed.
-    # Waiting: 2347 聯強 62.8% 3C, 5386 青雲 12.68% 板卡與伺服器.
-    ('V3', 'V', 2, '電腦通路', None),
-    ('V4', 'V', 2, '工控通路', None),
-    ('V5', 'V', 2, '網通通路', None),
-    # Definition Pending (2026-09-03): named correctly but carries no Product
-    # Definition, and companies are waiting on it. Do NOT write one to fit the
-    # company in front of you -- that is how a taxonomy ends up shaped by the
-    # cases it happened to meet. Definition first, then map the whole table,
-    # then re-run every Core whose candidate set the definition changed.
-    # Waiting: 2459 敦吉, 3444 利機 31%, 8096 擎亞 15.54%, 6924 榮惠 87.89%.
-    ('V6', 'V', 2, '電子零件代理', None),
+    # V1-V6 are cut on ONE axis: the product category of what is distributed.
+    # 3090 日電貿 is the proof and it was sitting in the data the whole time --
+    # one company, two lines, two nodes: its 被動元件 81.35% is V2's Core and its
+    # 半導體 7.87% is a V1 Major. A second axis (broad-line vs specialist) would
+    # break exactly that: 日電貿 is a specialist, so it would go to V6, while its
+    # passives line already belongs to V2, and the 81.35% would have two homes.
+    # V7 EMS is a business-model axis, not a product one, so it is outside the
+    # V1-V6 mutual-exclusivity test rather than a peer of them (R031).
+    ('V', None, 1, '電子通路 / EMS',
+     '通路／代理／EMS 類業務。V1–V6 依**所經銷產品的類別**建立互斥的同層節點（產品類別軸）；'
+     'V7 EMS 是製造服務的商業模式，屬不同維度，不納入 V1–V6 的產品類別互斥判斷。'),
+    # Rebuilt 2026-09-03. The field used to read 文曄、大聯大、至上 -- three company
+    # names, a mapping result written into the definition column, which is worse
+    # than empty because it reads as a definition and 32 members were judged
+    # against it. The node is NOT split: a review of all 32 found R025's hard
+    # condition met by none, and 港建*/華立/崇越/利機 each report ONE line spanning
+    # components and equipment, so splitting would put the classification at a
+    # finer grain than the evidence (R004).
+    #
+    # Named 半導體通路（含設備與材料）rather than 半導體／電子零組件通路: the
+    # broadening that needed to show in the name is the equipment and materials,
+    # and 電子零組件 is the superset V6 is the residual of -- claiming it here
+    # would put the same words on two sibling nodes.
+    ('V1', 'V', 2, '半導體通路（含設備與材料）',
+     '半導體之代理／通路銷售業務線：IC（類比、邏輯、特定應用、微控制器）、記憶體、'
+     '分立元件與功率元件，以及半導體製程設備與材料之代理銷售。'
+     '該業務線收入來自佣金或轉售價差，本身不含自有製造。'
+     '★不含被動元件（V2）。依 R022，本節點只收公司的代理／通路業務線；'
+     '同一公司若另有自有製造線，各自獨立判定，不因此降級。'
+     '★不含：資訊產品／系統通路（V3）、工控（V4）、網通（V5）、檢測與工程服務、'
+     '非電子產品之貿易。'
+     '★設備與材料收在本節點而非另立，理由是證據粒度：港建*「電子零件、設備及材料 92.46%」、'
+     '華立「半導體產業 31.27%」、崇越「半導體相關產品 84.60%」、利機「半導體產品 67.00%」'
+     '都是公司對外揭露的不可再拆營收線，拆開會使分類粒度高於證據粒度（R004）。'),
+    ('V2', 'V', 2, '被動元件通路',
+     '被動元件之代理／通路銷售：電容（陶瓷、固態、電解、鉭質）、電阻、電感、變壓器、'
+     '濾波器、石英與振盪元件、保護元件。'
+     '★不含二極體、電晶體、MOSFET 等分立元件——那些是主動元件，屬 V1。'),
+    # Definition written 2026-09-03; mapping still owed. Waiting on a re-judge:
+    # 2347 聯強 62.8% 3C, 5386 青雲 12.68% 板卡與伺服器.
+    ('V3', 'V', 2, '電腦通路',
+     '資訊系統與消費電子**成品**之代理／通路銷售：個人電腦、伺服器、儲存設備、'
+     '周邊裝置、板卡、手機與消費性電子產品。'
+     '★與 V1／V2 的分界是成品 vs 零組件：本節點賣的是可獨立使用的整機或成品，'
+     '不是裝進別人產品裡的元件。'),
+    ('V4', 'V', 2, '工控通路',
+     '工業自動化與控制產品之代理／通路銷售：PLC、變頻器、伺服驅動與工業馬達、'
+     '工業感測器與量測儀器、人機介面、工業電腦、氣動與液壓元件。'
+     '★與 V1 的分界同 V3：本節點賣的是可獨立部署的控制裝置與模組，不是構成它們的半導體。'),
+    ('V5', 'V', 2, '網通通路',
+     '網路與通訊設備之代理／通路銷售：交換器、路由器、無線基地台、'
+     '光纖與傳輸設備、網通模組與終端裝置。'
+     '★與 V1 的分界同 V3／V4：裝置與設備，不是構成它們的半導體。'),
+    # Renamed from 電子零件代理 2026-09-03. 電子零件 is the SUPERSET of V1's
+    # discretes and V2's passives, so a node by that name cannot be a peer of
+    # them -- it was a residual bucket wearing a category's name. Definition
+    # written 2026-09-03; mapping still owed. Waiting on a re-judge:
+    # 2459 敦吉, 3444 利機 31%, 8096 擎亞 15.54%, 6924 榮惠 87.89%.
+    ('V6', 'V', 2, '其他電子零組件通路',
+     '僅收納**產品類別無法歸入 V1～V5 任一者**之電子零組件代理／通路業務線。'
+     '★Residual node，依 R031 有兩條前提：(一) 其成立以 V1～V5 已具明確、互斥且足以覆蓋'
+     '其預定範圍的 Definition 為前提；(二) **不得吸收已有 sibling node 可明確歸屬的產品**'
+     '——某產品若理論上可歸入 V1～V5 而現行 Definition 不足以判定，應先修訂該 Definition，'
+     '不得直接放進本節點。'
+     '★可能落入的產品類別（例示非窮舉，且每一筆仍須先逐一問過 V1～V5）：'
+     '連接器與線材、機構與被覆件、電池與電源模組、光電元件與顯示模組、印刷電路板。'),
     ('V7', 'V', 2, '電子製造服務 (EMS)', None),
     ('V7-01', 'V7', 3, '電子製造服務 (EMS)', 'EMS、ODM、OEM、Module、System Integration、Box Build'),
     ('W', None, 1, '金融 / 保險 / 證券', None),

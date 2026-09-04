@@ -42,7 +42,7 @@ from db.connection import get_cursor
 
 CHECKS = ("core", "core_overlap", "core_reason", "core_pending", "listing", "stale",
           "below", "role", "coverage",
-          "temporal", "mix", "scale",
+          "temporal", "mix", "scale", "definition",
           "double", "depth",
           "unknown", "known", "official")
 FISCAL_YEAR = 2025
@@ -545,6 +545,40 @@ def check_scale(cur):
           AND (st.amount::numeric / rp.r < 0.5 OR st.amount::numeric / rp.r > 2)
         ORDER BY st.amount::numeric / rp.r
     """, (FISCAL_YEAR, FISCAL_YEAR))
+
+
+def check_definition(cur):
+    """Leaf nodes carrying members but no product definition.
+
+    R025 and R031 say the definition comes first and the mapping second: a
+    company may only be hung on a node whose product boundary is already
+    written, and sibling definitions must be mutually exclusive before either
+    accepts anybody. Most of that needs a person — whether two prose
+    definitions overlap is a judgement, and no query decides it.
+
+    This is the half a query can decide. A node with members and an empty
+    main_products has had the sequence run backwards, and it is not a
+    hypothetical: V1 held 32 companies against a definition field reading
+    文曄、大聯大、至上 — three company names, a mapping result written where the
+    definition belongs. That one read as a definition, which is worse than
+    empty, and only a person could see it. An empty one, a query can.
+
+    Not every undefined leaf is a finding. 70 of them have no members, and an
+    empty node is a gap in the taxonomy rather than a rule being broken; it
+    becomes a finding the moment someone maps a company onto it.
+    """
+    return _rows(cur, """
+        SELECT t.node_code, t.name AS node_name, t.parent_code,
+               (SELECT count(*) FROM tw.company_industry_exposure e
+                WHERE e.node_code = t.node_code AND e.effective_to IS NULL) AS members
+        FROM tw.industry_tree t
+        WHERE t.main_products IS NULL
+          AND NOT EXISTS (SELECT 1 FROM tw.industry_tree c
+                          WHERE c.parent_code = t.node_code)
+          AND EXISTS (SELECT 1 FROM tw.company_industry_exposure e
+                      WHERE e.node_code = t.node_code AND e.effective_to IS NULL)
+        ORDER BY members DESC, t.node_code
+    """)
 
 
 def check_double(cur):

@@ -393,7 +393,18 @@ LOCAL_RULES = [
      "**不得**併入 A4-08 微控制器 IC (MCU)——兩者技術上都是控制器，但 BMC 是伺服器主機板的"
      "頻外管理與平台信任根，客戶、通路、景氣循環與競爭者都與泛用 MCU 不同。"
      "**技術上同屬一類 ≠ 產業分類上同一節點**；擴充定義若會讓兩門不同的生意落進同一個比較池，"
-     "那就不是無歧義涵蓋，該新增節點。"),
+     "那就不是無歧義涵蓋，該新增節點。"
+     "★★★**Node Definition 的建立與修訂必須以 taxonomy-level 的產品／服務邊界為依據，"
+     "不得以單一公司或單一個案作為 Definition 的必要條件。Definition 完成後，"
+     "始得進行 company-level exposure mapping；若既有多個 Node Definition 產生重疊，"
+     "應先解決 Node 間邊界，再進行公司 mapping。**"
+     "這比「不要為了收某家公司回頭補定義」更完整，因為個案污染只是其中一種失效："
+     "另一種是**改完 A 才發現 A 與 B 重疊**，公司到底掛哪裡變成沒有答案。"
+     "實例：2026-09-03 重寫 V1 定義時草案寫入「被動元件」，"
+     "而 V2 被動元件通路是一個已有成員的既有節點——3090 日電貿的 Core 正是"
+     "因為被動元件 81.35% 大於半導體 7.87% 才判在 V2；"
+     "若 V1 也宣稱被動元件，那家公司的 Core 立刻無解。"
+     "邊界要先解，順序不能倒過來。"),
 
     # role had no threshold at all: Major ran down to 6.90% while Minor ran up
     # to 19.26%, so the same share was labelled both ways.
@@ -669,7 +680,24 @@ LOCAL_RULES = [
      "那會讓 taxonomy 被個案反向塑形（2388 威盛的 Mobile360／Firewatch／4D+ 系統業務即卡在此處）。"
      "★啟用時的義務：H4-01 一旦開放，**MUST 對全表重新掃描**（MCU/PMIC/Driver IC/Sensor IC/"
      "Connectivity IC 各廠皆受影響），不得只把觸發這次討論的那一家掛上去；"
-     "掃描時逐家問 R025 的「無歧義涵蓋」，而不是看到「車用」兩個字就掛。"),
+     "掃描時逐家問 R025 的「無歧義涵蓋」，而不是看到「車用」兩個字就掛。"
+     "★本條的 Mapping Gate 只是**一般規則的一個特例**：任何 Node 的 Definition "
+     "未定案、或與其他 Node 的 Definition 重疊未解時，都不得進行 company-level "
+     "exposure mapping——通則寫在 R025 末段。"
+     "★★**同一 parent 下的 sibling nodes，其產品／服務定義必須互斥**；若產生重疊，"
+     "先修正 Node Definition，未解決前不得據此新增或更新 company-level Exposure。"
+     "可以：V1 半導體通路／V2 被動元件通路。不可以：V1 半導體及被動元件通路／V2 被動元件通路"
+     "——後者會讓 3090 日電貿那條 81.35% 的被動元件營收線同時是兩個節點的候選，Core 無解。"
+     "★★**一組 sibling 必須沿同一個軸切**。不同維度的節點不納入該組的互斥判斷："
+     "V1–V6 是**產品類別軸**（所經銷產品是什麼），V7 EMS 是**商業模式軸**（製造服務），"
+     "兩者本來就不比較；為了讓「所有 V 都同層級」而去動 V7 是把軸混在一起。"
+     "★★**Residual node（殘差節點）的兩條前提**："
+     "(一) 其成立前提是**同層級的非 residual nodes 已具有明確、互斥、且足以覆蓋其預定範圍"
+     "的 Definition**——V1–V5 沒定義完，「不落在任一者」這句話沒有意義；"
+     "(二) **不得吸收已有其他 sibling node 可明確歸屬的產品**；若某產品理論上可歸入某個"
+     "sibling，但目前該 sibling 的 Definition 不足以判定，應**先修訂該 Definition**，"
+     "而不是直接放進 residual。少了 (二)，residual 會退化成「不知道就丟這裡」，"
+     "最後必然爆量，而爆量的那一格等於沒有分類。"),
 ]
 
 # The rules read as a list; grouped they read as a structure.
