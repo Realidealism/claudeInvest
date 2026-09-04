@@ -1,19 +1,19 @@
 {
-  "as_of": "2026-09-03",
-  "score": 56.8,
+  "as_of": "2026-09-04",
+  "score": 58.6,
   "bucket": "無頂部訊號",
   "bucket_color": "#8a8a9a",
   "danger": false,
   "stance": "防守",
   "stance_color": "#ef4444",
-  "stance_reason": "防守中（排列：偏多）：高點防守（高信念頂部）／向下趨勢／波段停滯（過熱背景下跌破 5 日高）；漲回頂位之上／站回 5 日高／指數站回 13 日高／排列回多方／外資翻多且空頭力竭／恐慌急殺 V 任一則轉攻",
+  "stance_reason": "防守中（排列：偏空）：高點防守（高信念頂部）／向下趨勢／波段停滯（過熱背景下跌破 5 日高）；漲回頂位之上／站回 5 日高／指數站回 13 日高／排列回多方／外資翻多且空頭力竭／恐慌急殺 V 任一則轉攻",
   "stance3": "防守",
   "stance3_color": "#ef4444",
-  "stance3_reason": "防守中（排列：偏多）：高點防守（高信念頂部）／向下趨勢／波段停滯（過熱背景下跌破 5 日高）；漲回頂位之上／站回 5 日高／指數站回 13 日高／排列回多方／外資翻多且空頭力竭／恐慌急殺 V 任一則轉攻",
+  "stance3_reason": "防守中（排列：偏空）：高點防守（高信念頂部）／向下趨勢／波段停滯（過熱背景下跌破 5 日高）；漲回頂位之上／站回 5 日高／指數站回 13 日高／排列回多方／外資翻多且空頭力竭／恐慌急殺 V 任一則轉攻",
   "exposure": "空手",
   "swing": true,
   "near_high": false,
-  "pct_from_high": -3.9,
+  "pct_from_high": -2.5,
   "hi_window": 55,
   "alert": false,
   "alert_conditions": [
@@ -25,26 +25,26 @@
   "margin_alert": true,
   "margin_alert_conditions": [
     {
-      "name": "融資/成交金額 布林 z ≥ +1.5σ（現 +2.1σ）",
+      "name": "融資/成交金額 布林 z ≥ +1.5σ（現 +2.2σ）",
       "met": true
     }
   ],
   "limitup_alert": false,
   "limitup_alert_conditions": [
     {
-      "name": "漲停佔比 90 日乖離 z ≥ +1.0σ（現 -1.2σ、漲停 0.5%）",
+      "name": "漲停佔比 90 日乖離 z ≥ +1.0σ（現 -0.7σ、漲停 1.4%）",
       "met": false
     }
   ],
   "limitup_bear_alert": false,
   "limitup_bear_conditions": [
     {
-      "name": "漲停過熱（漲停佔比 90 日乖離 z ≥ +1.0σ，現 -1.2σ）",
+      "name": "漲停過熱（漲停佔比 90 日乖離 z ≥ +1.0σ，現 -0.7σ）",
       "met": false
     },
     {
-      "name": "排列翻空（short 排列：偏多）",
-      "met": false
+      "name": "排列翻空（short 排列：偏空）",
+      "met": true
     }
   ],
   "top_vote": false,
@@ -56,11 +56,11 @@
       "met": false
     },
     {
-      "name": "外資選擇權避險偏空（買賣權淨OI 252 日百分位 ≤ 33%，現 39%）",
+      "name": "外資選擇權避險偏空（買賣權淨OI 252 日百分位 ≤ 33%，現 43%）",
       "met": false
     },
     {
-      "name": "漲停過熱（90 日乖離 z ≥ +1.5σ，投票用門檻比漲停燈的 +1.0σ 嚴；現 -1.2σ）",
+      "name": "漲停過熱（90 日乖離 z ≥ +1.5σ，投票用門檻比漲停燈的 +1.0σ 嚴；現 -0.7σ）",
       "met": false
     },
     {
@@ -68,18 +68,18 @@
       "met": true
     }
   ],
-  "warn": true,
+  "warn": false,
   "warn_conditions": [
     {
       "name": "頂部過熱燈亮（近 3 日）",
       "met": true
     },
     {
-      "name": "排列尚未翻空（short 排列：偏多）",
-      "met": true
+      "name": "排列尚未翻空（short 排列：偏空）",
+      "met": false
     },
     {
-      "name": "short 空頭排列 3 日急升 ≥ +6pp（現 +14.3pp）",
+      "name": "short 空頭排列 3 日急升 ≥ +6pp（現 +15.8pp）",
       "met": true
     }
   ],
@@ -102,39 +102,17 @@
     {
       "key": "futures",
       "name": "外資期貨定位",
-      "hot": 59.0,
-      "detail": "外資臺股期貨淨未平倉 -81,575 口（78日百分位越低越淨空＝越熱）"
+      "hot": 60.3,
+      "detail": "外資臺股期貨淨未平倉 -82,389 口（78日百分位越低越淨空＝越熱）"
     },
     {
       "key": "margin",
       "name": "融資水位",
-      "hot": 54.7,
-      "detail": "融資餘額金額 5,787億（距 55 日均 +0.19σ；+2σ=過熱）"
+      "hot": 57.0,
+      "detail": "融資餘額金額 5,819億（距 55 日均 +0.28σ；+2σ=過熱）"
     }
   ],
   "history": [
-    {
-      "date": "2025-08-25",
-      "score": 50.0,
-      "tx": 24277,
-      "label": "無頂部訊號",
-      "color": "#8a8a9a",
-      "stance": "攻擊",
-      "s3": "攻擊",
-      "x": true,
-      "panic": false,
-      "m_alert": false,
-      "l_alert": true,
-      "lb_alert": false,
-      "tv_alert": false,
-      "tv_n": 1,
-      "warn": false,
-      "swing": false,
-      "c": {
-        "futures": 0.0,
-        "margin": 100.0
-      }
-    },
     {
       "date": "2025-08-26",
       "score": 51.3,
@@ -5611,6 +5589,28 @@
       "c": {
         "futures": 59.0,
         "margin": 54.7
+      }
+    },
+    {
+      "date": "2026-09-04",
+      "score": 58.6,
+      "tx": 46551,
+      "label": "無頂部訊號",
+      "color": "#8a8a9a",
+      "stance": "防守",
+      "s3": "防守",
+      "x": false,
+      "panic": false,
+      "m_alert": true,
+      "l_alert": false,
+      "lb_alert": false,
+      "tv_alert": false,
+      "tv_n": 1,
+      "warn": false,
+      "swing": true,
+      "c": {
+        "futures": 60.3,
+        "margin": 57.0
       }
     }
   ]
