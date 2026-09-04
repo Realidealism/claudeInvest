@@ -103,7 +103,14 @@ NODES = [
     # DRAM and NAND run on separate cycles, so they are separate nodes; a maker
     # of both (華邦電) carries an exposure to each rather than one blended row.
     ('A3-07', 'A3', 3, 'NOR / NAND Flash 製造', 'NOR Flash、NAND Flash（旺宏、華邦電）'),
-    ('A4', 'A', 2, 'IC Design', None),
+    # A4 是依**產品功能類別**互斥切分的。兩個節點不在這個軸上，因此不參與互斥判斷
+    # (R031)：A4-05 ASIC 設計服務與 A4-06 矽智財，賣的是設計服務與 IP 授權而不是
+    # 某一類晶片——一顆為客戶做的 ASIC 可以是任何功能。
+    ('A4', 'A', 2, 'IC Design',
+     'IC 設計（不自有晶圓廠，或以委外製造為主）。子節點依**產品的功能類別**互斥切分：'
+     '功能相近時以「驅動什麼負載／處理什麼訊號」為界，不以終端應用為界(R031)。'
+     '★A4-05 ASIC 設計服務與 A4-06 矽智財 (Silicon IP) 的軸不同——賣的是設計服務與 IP 授權，'
+     '不是某一類晶片，故不納入功能類別的互斥判斷。'),
     ('A4-01', 'A4', 3, 'CPU', '通用處理器'),
     ('A4-02', 'A4', 3, 'GPU', '繪圖 / 運算 GPU'),
     ('A4-03', 'A4', 3, 'NPU / AI Accelerator', 'AI 加速器'),
@@ -116,13 +123,37 @@ NODES = [
     ('A4-09', 'A4', 3, '多媒體 SoC', '多媒體/影音 SoC、數位影像控制晶片、消費性 SoC'),
     ('A4-10', 'A4', 3, '網通 IC', 'Ethernet、Switch、Router、Wi-Fi、PHY、Network Processor'),
     ('A4-11', 'A4', 3, '輸出入介面 IC (I/O)', 'PCIe、USB、Thunderbolt、橋接 IC'),
-    ('A4-12', 'A4', 3, '顯示器驅動 IC (DDI)', None),
+    ('A4-12', 'A4', 3, '顯示器驅動 IC (DDI)',
+     '驅動顯示面板像素的積體電路：源極／閘極驅動 IC (Source／Gate Driver)、'
+     'TFT-LCD 與 AMOLED 顯示驅動、觸控與顯示整合驅動 (TDDI)、時序控制器 (TCON)。'
+     '★與 A4-18 的分界是**負載**：驅動面板像素者屬本節點，驅動 LED 光源'
+     '（背光、照明、LED 顯示屏）者屬 A4-18。'
+     '★列印頭致動器之驅動屬 A4-27；面板用電源管理 IC 屬 A4-07。'),
     ('A4-13', 'A4', 3, '射頻 IC (RF)', 'RFIC、PA、LNA、Switch、Filter、Tuner'),
-    ('A4-14', 'A4', 3, '音訊 IC (Audio)', None),
+    ('A4-14', 'A4', 3, '音訊 IC (Audio)',
+     '專責音訊訊號鏈的積體電路：音訊編解碼器 (Audio Codec)、音訊 DAC／ADC、'
+     'D 類功率放大器 (Class-D Amplifier)、耳機驅動、麥克風前端與 MEMS 麥克風晶片、'
+     '語音／音訊 DSP、藍牙音訊 SoC。'
+     '★與 A4-09 的分界是**處理的訊號**：只處理音訊者屬本節點，'
+     '同時處理視訊的多媒體 SoC 屬 A4-09。'),
     ('A4-15', 'A4', 3, '感測 / HMI IC (Sensor)', 'Touch、Fingerprint、MEMS、Pressure、Temperature、人機介面控制 IC'),
-    ('A4-16', 'A4', 3, '影像 IC (CIS/ISP)', None),
-    ('A4-17', 'A4', 3, '馬達驅動 IC (Motor Driver)', None),
-    ('A4-18', 'A4', 3, 'LED 驅動 IC', None),
+    ('A4-16', 'A4', 3, '影像 IC (CIS/ISP)',
+     '影像擷取與處理的積體電路：CMOS 影像感測器 (CIS)、影像訊號處理器 (ISP)、'
+     '影像前端與感測器介面、影像編碼與視訊處理晶片。'
+     '★與 A4-15 的分界是**是否成像**：以取得影像為目的之感測屬本節點；'
+     '觸控、指紋、慣性、壓力、溫濕度等非成像感測屬 A4-15。'
+     '★整合影音編解碼與應用處理的 SoC 屬 A4-09。'),
+    ('A4-17', 'A4', 3, '馬達驅動 IC (Motor Driver)',
+     '驅動與控制電動機的積體電路：H 橋驅動、無刷／步進／有刷馬達驅動與控制、'
+     '馬達用閘極驅動器、風扇驅動 IC、馬達控制專用之驅動級。'
+     '★與 A4-07 的分界是**負載**：本節點的輸出端是馬達繞組，'
+     'A4-07 電源管理 IC 的輸出端是為系統供電的電壓軌。'),
+    ('A4-18', 'A4', 3, 'LED 驅動 IC',
+     '驅動發光二極體之定電流／定電壓控制積體電路：背光驅動、照明驅動、'
+     'LED 顯示屏驅動、Mini／Micro LED 驅動、LED 矩陣掃描驅動。'
+     '★與 A4-12 的分界是**負載**：驅動 LED 光源者屬本節點，'
+     '驅動顯示面板像素者屬 A4-12。'
+     '★與 A4-07 的分界是**目的**：本節點以定電流驅動發光元件為目的，非為系統供電。'),
     ('A4-19', 'A4', 3, '記憶體控制 IC (Ctrl)', 'DRAM/NAND Controller、SSD Controller（群聯、慧榮）'),
     ('A4-20', 'A4', 3, 'Security IC / Secure Element', 'Secure Element、eSE、TPM、加密IC、安全MCU'),
     # A4-19 is the controller, not the memory die: 晶豪科/鈺創/愛普 design the

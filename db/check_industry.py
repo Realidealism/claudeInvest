@@ -566,18 +566,47 @@ def check_definition(cur):
     Not every undefined leaf is a finding. 70 of them have no members, and an
     empty node is a gap in the taxonomy rather than a rule being broken; it
     becomes a finding the moment someone maps a company onto it.
+
+    An empty definition is not the only way to have none. A field holding
+    company names is a mapping result written where the boundary belongs, and it
+    is worse than empty because it reads as a definition: V1 said
+    文曄、大聯大、至上 and 32 members were judged against it. That kind cannot be
+    found by testing for NULL, so it is tested by asking whether the field is
+    mostly names of listed companies -- A5-05 OSAT reads 日月光、矽品、力成、京元、
+    南茂、超豐、頎邦 and A3-01 Foundry 台積電、聯電、世界、力積電.
     """
     return _rows(cur, """
-        SELECT t.node_code, t.name AS node_name, t.parent_code,
-               (SELECT count(*) FROM tw.company_industry_exposure e
-                WHERE e.node_code = t.node_code AND e.effective_to IS NULL) AS members
-        FROM tw.industry_tree t
-        WHERE t.main_products IS NULL
-          AND NOT EXISTS (SELECT 1 FROM tw.industry_tree c
-                          WHERE c.parent_code = t.node_code)
-          AND EXISTS (SELECT 1 FROM tw.company_industry_exposure e
-                      WHERE e.node_code = t.node_code AND e.effective_to IS NULL)
-        ORDER BY members DESC, t.node_code
+        WITH leaf AS (
+            SELECT t.node_code, t.name AS node_name, t.parent_code, t.main_products,
+                   (SELECT count(*) FROM tw.company_industry_exposure e
+                    WHERE e.node_code = t.node_code AND e.effective_to IS NULL) AS members
+            FROM tw.industry_tree t
+            WHERE NOT EXISTS (SELECT 1 FROM tw.industry_tree c
+                              WHERE c.parent_code = t.node_code)
+        ), tok AS (
+            SELECT l.node_code,
+                   btrim(x) AS token
+            FROM leaf l,
+                 regexp_split_to_table(coalesce(l.main_products, ''), '[、,，/／(（]') AS x
+            WHERE btrim(x) <> ''
+        ), namey AS (
+            SELECT t.node_code,
+                   count(*) AS tokens,
+                   count(*) FILTER (WHERE EXISTS (
+                       SELECT 1 FROM tw.stocks s
+                       WHERE s.is_active AND s.security_type = 'STOCK'
+                         AND s.name = t.token AND length(s.name) >= 2)) AS names
+            FROM tok t GROUP BY t.node_code
+        )
+        SELECT l.node_code, l.node_name, l.parent_code, l.members,
+               CASE WHEN l.main_products IS NULL THEN 'no definition'
+                    ELSE 'definition is company names' END AS kind
+        FROM leaf l
+        LEFT JOIN namey n USING (node_code)
+        WHERE l.members > 0
+          AND (l.main_products IS NULL
+               OR (n.names > 0 AND n.names * 2 >= n.tokens))
+        ORDER BY l.members DESC, l.node_code
     """)
 
 

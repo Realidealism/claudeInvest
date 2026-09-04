@@ -456,6 +456,7 @@ MEMBERS = {
         ('益芯科', 'Core', 'ASIC及晶圓收入 + 委託設計', 'annual_report_table', '年報營業比重表：ASIC及晶圓收入 73.24% 加委託設計 24.41%，同為 ASIC 設計服務業務，合計 97.65%', 'Direct'),
         ('聯發科', 'Major', None, 'filing_too_coarse', '年報商品項目 I.消費性及企業級客製化晶片(ASIC)；產業概況另闢「C.客製化晶片(ASIC)產業」一節說明布局', 'Direct'),
         ('威盛', 'Major', None, 'filing_too_coarse', '年報自述「威宏科技 IC 設計與生產服務業務,約占 28%」，並載明威宏「提供高階 IC 後端設計、系統級晶片整合與先進封裝技術服務」', 'Direct'),
+        ('神盾', 'Major', 'NRE設計服務、ASIC及晶', 'annual_report_table', '年報營業比重表：NRE設計服務、ASIC及晶(圓) 28.83%，為受託設計服務與客戶專用晶片', 'Direct'),
     ],
     "A4-06": [
         ('M31', 'Core', '技術服務收入', 'annual_report_table', '年報營業比重表：技術服務收入 86.26%', 'Direct'),
@@ -465,6 +466,7 @@ MEMBERS = {
         ('晶心科', 'Core', '矽智財授權收入', 'annual_report_table', '年報營業比重表：矽智財授權收入 80.73%', 'Direct'),
         ('芯測', 'Core', '矽智財授權收入', 'annual_report_table', '年報營業比重表：矽智財授權收入 86.06%', 'Direct'),
         ('安格', 'Minor', '矽智財', 'annual_report_table', '年報營業比重表：矽智財 1.35%，年報自述成立初期以銷售矽智財為發展方向、專注於高速傳輸介面矽智財研發', 'Direct'),
+        ('神盾', 'Minor', 'IP授權', 'annual_report_table', '年報營業比重表：IP授權 9.44%', 'Direct'),
     ],
     "A4-07": [
         ('來頡', 'Core', None, 'company_site', '年報按應用別揭露；產品線為電源管理與馬達驅動IC', 'Direct'),
@@ -542,6 +544,7 @@ MEMBERS = {
         ('譜瑞-KY', 'Core', '高速傳輸介面晶片', 'annual_report_table', '年報營業比重表：高速傳輸介面晶片 85.62%', 'Direct'),
         ('瑞昱', 'Major', None, 'filing_too_coarse', '年報商品項目列 USB 存儲橋接晶片、USB 3.2 Gen1/Gen2 集線器、USB4 集線器控制晶片、USB Type-C 與電源傳輸(PD)控制晶片、eUSB2 Repeater、I3C 集線器控制器等系列', 'Direct'),
         ('鈺創', 'Minor', None, 'filing_too_coarse', '年報「目前之商品(服務)項目」載明集團晶片產品含 USB Type-C Switch 與電力傳輸(Power Delivery)晶片，計畫開發新商品亦列 Type-C Switch 與 USB Power Delivery。role 理由：系統晶片為記憶體以外之次要產品線，年報僅一條 99.89% 粗線無法量化', 'Direct'),
+        ('神盾', 'Major', '資訊及消費性產品的週邊', 'annual_report_table', '年報營業比重表：資訊及消費性產品的週邊(及控制 IC) 18.99%；商品說明「透過 USB 介面裝置之需求與相關控制 IC…包括儲存裝置控制 IC、記憶卡讀卡機控制 IC、智慧卡讀卡機控制 IC、集線器控制 IC、輸出輸入裝置控制 IC」，屬本節點定義的 USB／橋接介面 IC', 'Direct'),
     ],
     "A4-12": [
         ('普誠', 'Major', None, 'filing_too_coarse', '年報商品項目「顯示器驅動積體電路系列」列 TFT LCD Driver IC、LCD Driver IC、VFD Driver IC、OLED Driver IC。年報比重僅「積體電路(IC)產品 99.48%」一條粗線故不計比重(R020②)。本格原為 Core，2026-09-03 依 R023 反否決條件改判降為 Major：年報載明既有 VFD/STN/TFT 顯示驅動產品「以最有效率的資源維持穩定的產品現金流收益」，且「顯示器驅動研發團隊的研發重心已成功轉型,全面聚焦於…印表機噴墨頭驅動晶片(PHD)」（該業務見 A4-27）、「未來,PHD 將取代傳統顯示驅動」——研發資源已移出本節點，構成歷史遺留業務，不得為 Core', 'Direct'),
@@ -571,6 +574,7 @@ MEMBERS = {
         ('新唐', 'Major', None, 'filing_too_coarse', '年報商品項目 2)音訊系統晶片 3)音效增強晶片 4)音頻轉換/放大晶片；年報自述「佈建完整的音訊晶片平台」，涵蓋 Audio CODEC、Audio MCU、D 類與智慧音訊功率放大器及 DSP 音訊方案', 'Direct'),
         ('凌通', 'Major', None, 'filing_too_coarse', '年報商品項目 A.數位音訊解碼播放控制晶片 B.語音辨識與合成控制晶片，為年報所營業務所列之第一項產品', 'Direct'),
         ('太欣', 'Minor', '數位電腦耳機IC', 'annual_report_table', '年報營業比重表：數位電腦耳機IC 11.5%', 'Direct'),
+        ('神盾', 'Minor', '無線音頻控制IC', 'annual_report_table', '年報營業比重表：無線音頻控制IC 5.67%；商品說明「無線音頻控制 IC 及模組、智慧遙控器、控制訊號傳輸晶片及模組」，應用於無線耳機、無線麥克風、可攜式音響', 'Direct'),
     ],
     "A4-15": [
         ('君曜', 'Major', None, 'filing_too_coarse', '年報商品項目：(2)觸控IC(Touch Panel/Pad IC)。與橋接 IC 共用單一 100% 營收線，無法拆分故不計比重', 'Direct'),
@@ -582,6 +586,7 @@ MEMBERS = {
         ('禾瑞亞', 'Core', '觸控面板控制器/控制晶片', 'annual_report_table', '年報營業比重表：觸控面板控制器/控制晶片 96.00%', 'Direct'),
         ('通泰', 'Major', None, 'annual_report_table', '年報主要產品系列表：觸摸系列 55.40%，為五個產品系列中最大者；「長、短期業務發展計畫」之產品系列表列該系列應用範圍為 Light Control Series 與 Touch pad Series (1~16 Keys)。該比重表未進入 tw.product_revenue(屬 check_industry [mix] 待修清單)故本輪不計比重', 'Direct'),
         ('敦泰', 'Major', None, 'filing_too_coarse', '年報商品項目 (3)電容式觸控晶片 (4)指紋辨識晶片及模組 (7)NB 觸控板(Touchpad)；年報自述為「全球觸控與顯示驅動技術的領導品牌」', 'Direct'),
+        ('神盾', 'Core', '生物辨識感測IC及其應用', 'annual_report_table', '年報營業比重表：生物辨識感測IC及其應用 36.25%；商品說明「(1)生物辨識感測 IC：針對客戶提供多種規格的 IC 與模組…另外還提供**指紋辨識**之應用軟體」，本節點定義具名含 Fingerprint。★2026-09-04 由 A4-16 影像 IC 移入：A4-16 於當日定義為「以取得影像為目的之感測」，指紋等非成像感測明文歸本節點，前版歸屬在該定義寫出來前無從判別。Core 理由：⑤本格 36.25% 為最大營收線；①公司自述的商品順序亦以生物辨識感測 IC 列首', 'Direct'),
     ],
     "A4-16": [
         ('傑霖科技', 'Core', '影像處理系統單晶片', 'annual_report_table', '年報營業比重表：影像處理系統單晶片 86.07%', 'Direct'),
@@ -589,7 +594,6 @@ MEMBERS = {
         ('凌陽創新', 'Core', None, 'annual_report_prose', '年報業務範圍載明「影像處理」：目前主要產品線分為兩大類:(1)筆電嵌入式ISP晶片及USB外接式網路攝影機影像處理控制晶片。(2)個人電腦週邊裝置微控制晶片及低功耗IOT', 'Direct'),
         ('原相', 'Core', 'CMOS影像感測元配件', 'annual_report_table', '年報營業比重表：CMOS影像感測元配件 98.17%', 'Direct'),
         ('晶相光', 'Core', 'CMOS影像感測元件', 'annual_report_table', '年報營業比重表：CMOS影像感測元件 97.99%', 'Direct'),
-        ('神盾', 'Core', '生物辨識感測IC及其應用', 'annual_report_table', '年報營業比重表：生物辨識感測IC及其應用 36.25%', 'Direct'),
         ('研通', 'Core', '影像視訊控制IC應用產品', 'annual_report_table', '年報營業比重表：影像視訊控制IC應用產品 56.16%，大於其微處理器IC 31.07%（見 A4-08）', 'Direct'),
         ('芯鼎', 'Core', '智慧影像處理系統晶片', 'annual_report_table', '年報營業比重表：智慧影像處理系統晶片 92.00%', 'Direct'),
         ('鈺創', 'Minor', None, 'filing_too_coarse', '年報載明集團晶片產品含 3D 雙目深度圖視覺處理晶片、3D 雙目影像擷取控制晶片與影像及人工智慧次系統解決方案。role 理由：系統晶片為記憶體以外之次要產品線，年報僅一條 99.89% 粗線無法量化', 'Direct'),
