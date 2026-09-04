@@ -46,23 +46,47 @@ NODES = [
     # Ceramic substrate sits beside 石英/陶瓷 rather than under B: its makers are
     # ceramic component houses, and B is organised around laminate boards.
     ('A1-14', 'A1', 3, '陶瓷基板', '氧化鋁/氮化鋁陶瓷基板、DBC、AMB、陶瓷電路板'),
-    ('A2', 'A', 2, '半導體設備', None),
-    ('A2-01', 'A2', 3, '曝光 / 光刻設備', 'Coater、Developer、Track、Mask 相關設備、PCB/載板 LDI 直接成像曝光機'),
-    ('A2-02', 'A2', 3, '蝕刻設備', 'Dry Etch、Plasma Etch、Wet Etch'),
-    ('A2-03', 'A2', 3, '薄膜沉積', 'CVD、PVD、ALD、Epitaxy、PECVD'),
-    ('A2-04', 'A2', 3, 'CMP 設備', None),
-    ('A2-05', 'A2', 3, '清洗設備', 'Wet Cleaning、Single Wafer Cleaning、Batch Cleaning、Wet Process'),
-    ('A2-06', 'A2', 3, '熱處理', 'Furnace、RTP、Annealing'),
-    ('A2-07', 'A2', 3, '離子佈植', None),
-    ('A2-08', 'A2', 3, '晶圓檢測 / 量測', 'AOI、Wafer Inspection、Defect Inspection、Metrology、CD-SEM、Overlay、Film Thickness'),
-    ('A2-09', 'A2', 3, '晶圓搬運 / 自動化', 'EFEM、Robot、FOUP、Stocker、AMHS'),
+    # A2 is cut on the process stage the equipment SERVES, and only then, inside
+    # a stage, on function. That was already the tree's own rule and nobody had
+    # written it down: A2-08 晶圓檢測/量測 and A2-13 測試/檢測設備 are the same
+    # machine function split by stage, and no one argues they should be one node.
+    # A2-05 清洗設備 was left unscoped, so it read as a machine type beside
+    # A2-12's process stage -- and a wet cleaner serving packaging satisfied both.
+    # 弘塑 69.86%, 博磊 65.07% and 辛耘 41.90% each lost their largest equipment
+    # line to that overlap, because R020② can only report "cannot be assigned
+    # uniquely"; it cannot say whether the filing was coarse or the tree asked a
+    # question the filing never answers (R031).
+    ('A2', 'A', 2, '半導體設備',
+     '半導體設備。**跨階段的界線是設備服務哪一段製程**，階段之內再依功能／製程單元細分：'
+     'A2-01～A2-09 只涵蓋**前段晶圓製造**設備，A2-12／A2-13 涵蓋**後段封裝／測試**設備。'
+     '★設備的技術型態本身不得跨越這條界線——服務封裝製程的清洗機屬 A2-12 而非 A2-05，'
+     '一如晶圓檢測(A2-08)與後段測試(A2-13)本來就是同一種機台功能被階段切開。'
+     '★A2-10 設備零組件、A2-11／A2-14 設備服務屬不同維度（賣的是零件與服務不是設備），'
+     '不納入上述設備類節點的互斥判斷(R031)。'),
+    ('A2-01', 'A2', 3, '曝光 / 光刻設備', '【前段晶圓製造】Coater、Developer、Track、Mask 相關設備、PCB/載板 LDI 直接成像曝光機'),
+    ('A2-02', 'A2', 3, '蝕刻設備', '【前段晶圓製造】Dry Etch、Plasma Etch、Wet Etch'),
+    ('A2-03', 'A2', 3, '薄膜沉積', '【前段晶圓製造】CVD、PVD、ALD、Epitaxy、PECVD'),
+    ('A2-04', 'A2', 3, 'CMP 設備', '【前段晶圓製造】化學機械研磨／平坦化設備 (Chemical Mechanical Polishing)、研磨頭、修整器與其整合機台'),
+    ('A2-05', 'A2', 3, '清洗設備', '【前段晶圓製造】Wet Cleaning、Single Wafer Cleaning、Batch Cleaning、Wet Process'),
+    ('A2-06', 'A2', 3, '熱處理', '【前段晶圓製造】Furnace、RTP、Annealing'),
+    ('A2-07', 'A2', 3, '離子佈植', '【前段晶圓製造】離子佈植機 (Ion Implanter)、高／中／低電流佈植機、佈植後快速熱退火整合機台'),
+    ('A2-08', 'A2', 3, '晶圓檢測 / 量測', '【前段晶圓製造】AOI、Wafer Inspection、Defect Inspection、Metrology、CD-SEM、Overlay、Film Thickness'),
+    ('A2-09', 'A2', 3, '晶圓搬運 / 自動化', '【前段晶圓製造】EFEM、Robot、FOUP、Stocker、AMHS'),
     ('A2-10', 'A2', 3, '真空 / 精密零組件', '真空幫浦、閥件、腔體、Showerhead、Heater、ESC、Focus Ring'),
     ('A2-11', 'A2', 3, '零件清洗 / 再生', None),
-    ('A2-12', 'A2', 3, '封裝設備', 'Die Bonder、Wire Bonder、Molding、Singulation、Pick & Place、TCB/Hybrid Bonder'),
+    ('A2-12', 'A2', 3, '封裝設備',
+     '【後段封裝】**凡主要服務於半導體後段封裝製程之設備**，包括但不限於：'
+     '固晶 (Die Bonder)、打線 (Wire Bonder)、模封 (Molding)、切割 (Singulation／Dicing)、'
+     '取放 (Pick & Place)、熱壓鍵合 (TCB／Hybrid Bonder)、植球 (Ball Placement)、'
+     '點膠 (Dispensing)、翹曲控制、暫時貼合／剝離 (TBDB)、雷射開槽，'
+     '以及**封裝／基板用的濕製程與電漿清洗設備**。'
+     '★2026-09-04 由六項機台列舉改成階段／功能邊界(R025：定義不完整→修定義，不新增節點)。'
+     '舊定義窄於節點名稱本身，使點膠、翹曲控制、封裝用濕製程等後段設備沒有具名的落點，'
+     '只能靠「供先進封裝使用」這種下游應用語掛進來，而那是 R031 禁止的。'),
     # Back-end test and inspection equipment belongs with the other equipment,
     # and A2 already holds the back-end 封裝設備; A6 next door is testing as a
     # service, which is a different business from selling the machine.
-    ('A2-13', 'A2', 3, '測試 / 檢測設備', 'Test Handler、ATE、AOI/AVI 檢測、雷射加工、老化設備'),
+    ('A2-13', 'A2', 3, '測試 / 檢測設備', '【後段測試】Test Handler、ATE、AOI/AVI 檢測、雷射加工、老化設備'),
     # Servicing the equipment is not making it. A2-01..A2-13 are all machines a
     # company builds and sells; 漢測's 42.87% is engineers on a fab floor
     # installing, moving and repairing someone else's. A7-01 next door is the
