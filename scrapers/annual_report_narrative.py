@@ -82,11 +82,20 @@ def extract_sections(content: bytes) -> tuple[list[dict], str]:
     # words ("董事於任期內就執行業務範圍", 薪資報酬委員會 tables), and six
     # companies were captured from there on the first pass. The chapter title
     # 營運概況 next to it is what pins the right section.
+    # Same page is not close enough. 6474 華豫寧's governance chapter mentions
+    # both words pages apart and matched first, so the stored "business scope"
+    # was its 誠信經營守則 table -- and the 類比元件 17.53% line that belongs in
+    # its mix was never seen. A real chapter opening reads 肆、營運概況 /
+    # 一、業務內容 / (一)業務範圍 within a line or two, so require adjacency.
     start = None
     for i, text in enumerate(pages):
         if _is_toc(text):
             continue
-        if "營運概況" in text and ("業務內容" in text or "業務範圍" in text):
+        at = text.find("營運概況")
+        if at < 0:
+            continue
+        near = text[at:at + 200]
+        if "業務內容" in near or "業務範圍" in near:
             start = i
             break
     if start is None:
