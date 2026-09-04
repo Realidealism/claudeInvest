@@ -561,6 +561,25 @@ NODES = [
      '★可能落入的產品類別（例示非窮舉，且每一筆仍須先逐一問過 V1～V5）：'
      '連接器與線材、機構與被覆件、電池與電源模組、光電元件與顯示模組、印刷電路板。'),
     ('V7', 'V', 2, '電子製造服務 (EMS)', None),
+    # Numbered V8 rather than slotting in beside V6: V7 is already EMS and
+    # V7-01 carries seven members, and a node_code that has been used is not
+    # renumbered for the sake of reading order.
+    #
+    # Created 2026-09-04 after the V1-V8 boundary matrix, not for the companies
+    # that revealed the gap (R025/R031). Two rules make it exclusive of its
+    # siblings: component is not material -- a panel MODULE is V6 and panel
+    # MATERIAL is here -- and a material belongs to the process it serves, not
+    # to the technology of the end device, so O-LED emitting material for
+    # display manufacture is V8 even though an LED is a semiconductor. That is
+    # the same test A2 uses to separate front-end from back-end equipment.
+    ('V8', 'V', 2, '非半導體電子材料通路',
+     '以代理、經銷、通路或供應鏈服務方式提供**非半導體產業**之電子材料、製程材料、耗材'
+     '及相關材料產品：顯示器、光電、PCB／載板、電子製造等領域之材料與耗材。'
+     '★不含**半導體製程材料**（屬 V1，與本節點同為材料通路，差別在服務的產業）。'
+     '★不含以**電子零組件本體**為代理標的者（屬 V6）——Component ≠ Material，'
+     '面板**模組**是 V6，面板**材料**才是本節點。'
+     '★材料的歸屬看它服務的製程，不看終端元件的技術：LED 是半導體元件，'
+     '但供顯示模組製造的 O-LED 發光材料仍屬本節點；供 IC／LED **封裝製程**的材料與工具屬 V1。'),
     ('V7-01', 'V7', 3, '電子製造服務 (EMS)', 'EMS、ODM、OEM、Module、System Integration、Box Build'),
     ('W', None, 1, '金融 / 保險 / 證券', None),
     ('W1', 'W', 2, '銀行', '商業銀行、國內/外商銀行、數位銀行'),
