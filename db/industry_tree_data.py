@@ -73,7 +73,12 @@ NODES = [
     ('A2-08', 'A2', 3, '晶圓檢測 / 量測', '【前段晶圓製造】AOI、Wafer Inspection、Defect Inspection、Metrology、CD-SEM、Overlay、Film Thickness'),
     ('A2-09', 'A2', 3, '晶圓搬運 / 自動化', '【前段晶圓製造】EFEM、Robot、FOUP、Stocker、AMHS'),
     ('A2-10', 'A2', 3, '真空 / 精密零組件', '真空幫浦、閥件、腔體、Showerhead、Heater、ESC、Focus Ring'),
-    ('A2-11', 'A2', 3, '零件清洗 / 再生', None),
+    ('A2-11', 'A2', 3, '零件清洗 / 再生',
+     '半導體設備零組件之清洗、再生與表面處理**服務**：腔體與零件之濕式／電漿清洗、'
+     '塗層剝除與再噴塗 (Al2O3／Y2O3／YF3)、精密件研磨拋光與尺寸再生。'
+     '★與 A2-10 的分界是**製造 vs 服務**：A2-10 製造零組件本身，本節點對既有零件提供延壽服務。'
+     '★與 A2-14 的分界是**對象**：A2-14 服務的是機台（裝機、移機、維修），'
+     '本節點服務的是拆下來的零件。'),
     ('A2-12', 'A2', 3, '封裝設備',
      '【後段封裝】**凡主要服務於半導體後段封裝製程之設備**，包括但不限於：'
      '固晶 (Die Bonder)、打線 (Wire Bonder)、模封 (Molding)、切割 (Singulation／Dicing)、'
@@ -94,9 +99,19 @@ NODES = [
     ('A2-14', 'A2', 3, '半導體設備工程服務 (Equipment Field Service)',
      '設備裝機、移機、改機、驗機、維修與保養等對設備本身的現場工程服務（不製造設備；廠務系統見 A7-01）'),
     ('A3', 'A', 2, '晶圓製造', None),
-    ('A3-01', 'A3', 3, 'Foundry (純晶圓代工)', '台積電、聯電、世界、力積電'),
+    ('A3-01', 'A3', 3, 'Foundry (純晶圓代工)',
+     '受託製造客戶設計之積體電路，不自有產品線：邏輯製程、特殊製程 '
+     '(BCD／高壓／嵌入式記憶體／MEMS)、成熟與先進節點之晶圓代工。'
+     '★與 A3-02 IDM 的分界是**產品歸誰**：本節點造的是客戶的晶片，'
+     'IDM 造的是自己的；同時有兩者時依 R023 判主從。'
+     '★特定產品專屬的自有 fab 製造（DRAM、Flash、功率、CIS、化合物）另有節點，'
+     '不因它們也是晶圓製造而併入本節點。'),
     ('A3-02', 'A3', 3, 'IDM', '整合元件製造（自有 fab）'),
-    ('A3-03', 'A3', 3, 'DRAM 製造', 'DRAM（南亞科、華邦電、力積電）'),
+    ('A3-03', 'A3', 3, 'DRAM 製造',
+     '以自有晶圓廠製造動態隨機存取記憶體：標準型 DRAM (DDR3／4／5)、'
+     '低功耗 LPDDR、利基型與客製化 DRAM、繪圖與伺服器用 DRAM、DRAM 晶圓代工。'
+     '★不含：NOR／NAND Flash 製造（A3-07）、記憶體 IC 設計而無自有 fab 者（A4-21）、'
+     '記憶體模組封裝與模組銷售（見 A5／V 分支）。'),
     ('A3-04', 'A3', 3, '功率半導體製造 (Power)', 'MOSFET、IGBT、整流器、二極體、TVS、齊納二極體、SiC、GaN（自有 fab；無自有 fab 的設計公司見 A4-22）'),
     ('A3-05', 'A3', 3, '影像感測製程 (CIS)', 'CMOS Image Sensor、BSI、CIS製程'),
     ('A3-06', 'A3', 3, '化合物半導體製造 (GaN/SiC)', 'GaAs、GaN、SiC、InP、RF（漢磊、嘉晶、全新）'),
@@ -115,7 +130,14 @@ NODES = [
     ('A4-02', 'A4', 3, 'GPU', '繪圖 / 運算 GPU'),
     ('A4-03', 'A4', 3, 'NPU / AI Accelerator', 'AI 加速器'),
     ('A4-04', 'A4', 3, 'AI ASIC', 'AI 專用晶片'),
-    ('A4-05', 'A4', 3, 'ASIC 設計服務', '創意、世芯、智原'),
+    ('A4-05', 'A4', 3, 'ASIC 設計服務',
+     '受客戶委託設計特定應用積體電路並提供量產交付：委託設計 (NRE)、'
+     '前端 RTL 至後端實體設計、IP 整合與驗證、光罩與量產晶圓之 turnkey 交付。'
+     '★本節點是**商業模式**不是晶片功能類別：交付的 ASIC 可以是任何功能，'
+     '故不參與 A4 功能類別的互斥判斷(R031)。'
+     '★與 A4-06 矽智財的分界是**交付物**：本節點交付晶片（含 turnkey 晶圓），'
+     'A4-06 交付可再授權的設計 IP。'
+     '★以自有規格設計並自售之 AI 專用晶片屬 A4-04，不屬本節點。'),
     ('A4-06', 'A4', 3, '矽智財 (Silicon IP)', 'CPU/Interface/Memory/Security IP、SerDes（力旺、晶心科、M31）'),
     ('A4-07', 'A4', 3, '電源管理 IC (PMIC)', '電源管理、DC/DC、LDO、Charger、Power IC'),
     ('A4-08', 'A4', 3, '微控制器 IC (MCU)',
@@ -182,12 +204,25 @@ NODES = [
     ('A4-27', 'A4', 3, '印表機頭驅動 IC (Printhead Driver)',
      '噴墨/熱感/雷射印表機頭驅動晶片、壓電與熱氣泡噴頭驅動 IC。'
      '以列印頭致動器之驅動為產品本質；面板顯示驅動見 A4-12'),
-    ('A5', 'A', 2, '封裝與先進封裝', None),
+    ('A5', 'A', 2, '封裝與先進封裝',
+     '半導體封裝。A5-01～A5-04 依**封裝技術類別**互斥切分。'
+     '★A5-05 封裝測試代工 (OSAT) 與 A5-06 晶圓中段製程代工的軸不同——它們是'
+     '**受託代工的商業模式**，一家 OSAT 同時提供傳統封裝與先進封裝，'
+     '故不納入技術類別的互斥判斷(R031)，一如 V7 EMS 之於 V1～V6、A2-10／A2-14 之於 A2 設備類。'),
     ('A5-01', 'A5', 3, '傳統封裝', 'BGA、QFN、QFP、WLCSP'),
     ('A5-02', 'A5', 3, '先進封裝', 'CoWoS、SoIC、Fan-Out、Hybrid Bonding、2.5D/3D'),
     ('A5-03', 'A5', 3, 'RDL / TSV / Interposer', None),
     ('A5-04', 'A5', 3, 'HBM Packaging', '（HBM 本身為 Theme T07）'),
-    ('A5-05', 'A5', 3, '封裝測試代工 (OSAT)', '日月光、矽品、力成、京元、南茂、超豐、頎邦'),
+    # The field used to read 日月光、矽品、力成、京元、南茂、超豐、頎邦 -- seven
+    # company names where a boundary belongs, and 16 members were judged against
+    # the list of companies already in it. Same defect V1 carried; [definition]
+    # now finds this kind rather than only the empty ones.
+    ('A5-05', 'A5', 3, '封裝測試代工 (OSAT)',
+     '受託提供半導體封裝與／或測試服務者 (Outsourced Semiconductor Assembly and Test)：'
+     '不自有 IC 設計、亦不以自有晶圓製造為主，收入來自客戶委託的封裝、測試或兩者之代工。'
+     '★本節點是**商業模式**不是封裝技術：同一家 OSAT 可同時做 A5-01 傳統封裝與 '
+     'A5-02 先進封裝，彼此不互斥(R031)。'
+     '★只做測試不做封裝者見 A6 測試分支；只做晶圓薄化／背面金屬等中段製程者見 A5-06。'),
     # Mid-end: the filing's own word. Thinning and backside metal happen on a
     # customer's finished wafer, so this is neither A3 (which makes the device)
     # nor A5-05 (which packages it) — but its demand comes from Fan-Out, bumping
@@ -200,7 +235,12 @@ NODES = [
     ('A6-03', 'A6', 3, '測試座 (Test Socket)', 'Test Socket、Load Board、Test Interface'),
     ('A6-04', 'A6', 3, 'Burn-in', None),
     ('A6-05', 'A6', 3, 'Reliability', None),
-    ('A6-06', 'A6', 3, '失效分析 (FA)', '宜特、閎康、汎銓'),
+    ('A6-06', 'A6', 3, '失效分析 (FA)',
+     '半導體與電子元件之失效分析與材料分析實驗室服務：故障點定位 (EMMI／OBIRCH)、'
+     '樣品製備 (FIB／切片)、電子顯微 (SEM／TEM)、成分與材料分析、'
+     '訊號完整性與電性驗證分析。'
+     '★與 A6-01 的分界是**目的**：A6-01 是量產測試判定良否，本節點是找出失效的原因；'
+     '與 A6-05 Reliability 的分界是**時點**：可靠度是壽命與環境應力驗證，失效分析是事後追因。'),
     ('A6-07', 'A6', 3, 'HBM Test', 'HBM 測試（見 Theme T07）'),
     ('A7', 'A', 2, '半導體廠務', None),
     ('A7-01', 'A7', 3, '廠務系統', '無塵室、HVAC、Gas、Chemical、Water、Wastewater、Power、Pollution Control、Facility Automation'),
@@ -227,7 +267,11 @@ NODES = [
     ('B2', 'B', 2, 'PCB製造', None),
     ('B2-01', 'B2', 3, '硬板 / 多層板 / HDI', '一般硬板、多層板、HDI、高層數板、Server/AI Server PCB、車用PCB'),
     ('B2-02', 'B2', 3, '軟板 (FPC)', 'FPC、RFPCB、Camera/Display/Battery FPC'),
-    ('B2-03', 'B2', 3, '軟硬結合', None),
+    ('B2-03', 'B2', 3, '軟硬結合',
+     '軟硬結合板 (Rigid-Flex PCB)：硬質基材與軟性基材壓合為一體之電路板，'
+     '含多層軟硬結合板與動態彎折應用。'
+     '★與 B2-01／B2-02 的分界是**結構**：整片皆硬屬 B2-01、整片皆軟屬 B2-02，'
+     '同一片同時含硬區與軟區者屬本節點。'),
     ('B2-04', 'B2', 3, '高速高頻 PCB', 'AI / HPC 用高頻高速板'),
     ('B2-05', 'B2', 3, 'HDI / SLP', None),
     # Selling a step of board making is not selling the board: 聯致 does lamination
@@ -248,6 +292,11 @@ NODES = [
     ('B3-01', 'B3', 3, 'ABF 載板', 'AI/HPC 高階載板（週期異於 BT）'),
     ('B3-02', 'B3', 3, 'BT 載板', '記憶體 / 手機載板'),
     ('B3-03', 'B3', 3, 'FC-BGA Substrate', None),
+    # Definition deferred (2026-09-04). B3-01 ABF 載板 and B3-05 HPC/AI Substrate
+    # are near-duplicates and B3-03 is undefined, so this node's exclusivity
+    # cannot be verified against its siblings. R031 says settle the branch
+    # boundary before writing a sibling definition -- writing this one alone
+    # would be the mapping-before-definition order in a different disguise.
     ('B3-04', 'B3', 3, 'FC-CSP Substrate', None),
     ('B3-05', 'B3', 3, 'HPC / AI Substrate', '高階 ABF、大尺寸載板'),
     ('B4', 'B', 2, 'COF', None),
@@ -306,6 +355,9 @@ NODES = [
     ('E1-01', 'E1', 3, '液晶面板', '面板、Cell、Module'),
     ('E2', 'E', 2, 'OLED', None),
     ('E2-01', 'E2', 3, 'OLED', 'OLED Panel、AMOLED、LTPO、OLED材料'),
+    # Definition deferred (2026-09-04): every sibling in E (E1 LCD, E2 OLED,
+    # E4 Mini LED, E5 LED, E6 光學元件) is undefined too, so there is nothing to
+    # be exclusive against. The E branch needs one pass, not one node.
     ('E3', 'E', 2, 'Micro LED', None),
     ('E4', 'E', 2, 'Mini LED', None),
     ('E5', 'E', 2, 'LED', None),
@@ -353,6 +405,9 @@ NODES = [
     ('G4-02', 'G4', 3, '工業閥門與流體控制元件',
      '蝶閥、球閥、閘閥、控制閥、致動器與流體控制元件（石化、鋼鐵、造船、水處理、電廠）；'
      '半導體設備用真空閥件見 A2-10'),
+    # Definition deferred (2026-09-04): G4 精密機械, G5 工具機 and G6 機械設備 all
+    # plausibly hold a machine tool and none of the three is defined. Same reason
+    # as E3 -- the branch boundary comes first (R031).
     ('G5', 'G', 2, '工具機', None),
     ('G6', 'G', 2, '機械設備', None),
     ('G6-01', 'G6', 3, '專用機械', '食品機械、塑膠機械、紡織機械、包裝機械、其他專用機械（半導體設備→A2、PCB設備→B5）'),
@@ -419,7 +474,14 @@ NODES = [
      'Epoxy、PU、Acrylic、Silicone、石油樹脂（C5/C9、氫化石油樹脂）。'
      '以樹脂本體之製造為業務核心；配方成品見 J6 塗料與油墨、J11 接著劑'),
     ('J6', 'J', 2, '塗料與油墨 (Coating & Ink)', '建築/工業/防火塗料、溶劑性與 UV 油墨'),
-    ('J7', 'J', 2, '染料', None),
+    # Renamed from 染料: both members sell pigments (永光 色料化學品, 大恭
+    # 調製應用顏料+合成有機顏料) and 染料 alone is narrower than what the node
+    # holds. R025 says an imprecise name is fixed by renaming, not by a new node.
+    ('J7', 'J', 2, '染料與顏料',
+     '著色劑之製造：有機顏料、無機顏料、分散染料、活性染料、色料與色漿之調製。'
+     '★與 J6 的分界是**交付層次**：本節點做的是著色劑本身，'
+     'J6 做的是已配製成的塗料與油墨。'
+     '★碳黑見 J15；電子成像用色料（碳粉）見 J16。'),
     ('J8', 'J', 2, '電子化學', '電子級化學品'),
     ('J9', 'J', 2, '化纖原料', '聚酯粒、尼龍粒'),
     ('J10', 'J', 2, '無機化學品 (Inorganic)', '純鹼、氧化鋅、亞硫酸鹽、無機鹽類'),
@@ -433,10 +495,24 @@ NODES = [
     # toner rather than the toner itself.
     ('J16', 'J', 2, '電子成像耗材 (Toner & Imaging Consumables)',
      '碳粉、碳粉匣、列印耗材、電子成像用色料（碳黑原料見 J15）'),
-    ('K', None, 1, '塑膠 / 橡膠', None),
+    # K 的子節點分屬三層而不是同一層，同層才互斥。兩個歷史節點跨了層：K3 工程塑膠
+    # 是原料的一個等級（與 K1 同軸）、K4 塑膠射出是一種成形方式（與 K2 同軸）。
+    # 兩者目前都 0 成員，但 K2 已有成員用到射出（1323 永裕的「射出廠製品」），
+    # 所以重疊在資料裡是活的，依 R031 要先解邊界再 mapping。
+    ('K', None, 1, '塑膠 / 橡膠',
+     '塑膠與橡膠。子節點分三層，**同層才互斥**：原料層（K1 塑膠原料，其下 K1-01 加工用原料）、'
+     '加工與製品層（K2 塑膠加工、K5 橡膠製品、K6 輪胎）。'
+     '★K3 工程塑膠與 K4 塑膠射出與上述軸重疊且尚未裁定：'
+     'K3 是原料的一個**等級**（與 K1 同軸）、K4 是加工的一種**成形方式**（與 K2 同軸）。'
+     '兩者目前 0 成員，邊界未解前不得掛任何公司(R031 mapping gate)。'),
     ('K1', 'K', 2, '塑膠原料', None),
     ('K1-01', 'K1', 3, '加工用原料', '複合料、色母、再生料（非上游塑化原料）'),
-    ('K2', 'K', 2, '塑膠加工', None),
+    ('K2', 'K', 2, '塑膠加工',
+     '以塑膠原料二次加工成形之製品：薄膜與片材、塑膠布與合成皮、管材與板材、'
+     '型材與塑膠建材、容器與瓶罐、軟管、膠帶與包材、發泡製品。'
+     '★**涵蓋所有成形方式**（壓延、押出、吹膜、射出、貼合、發泡）——'
+     '成形方式不是產品類別，故不因射出成形而改掛 K4（該節點與本節點同軸重疊，見 K 母節點）。'
+     '★不含：塑膠原料之調配與粒料（K1）、橡膠製品（K5）、輪胎（K6）。'),
     ('K3', 'K', 2, '工程塑膠', None),
     ('K4', 'K', 2, '塑膠射出', None),
     ('K5', 'K', 2, '橡膠製品', '天然橡膠、合成橡膠、工業橡膠'),
@@ -447,7 +523,10 @@ NODES = [
     ('L3', 'L', 2, '金屬加工', 'CNC、沖壓、壓鑄'),
     ('L4', 'L', 2, '銅（非鐵）', '銅箔、銅材、電解銅、銅加工'),
     ('L5', 'L', 2, '鋁（非鐵）', '鋁錠、鋁擠型、鋁板、鋁合金'),
-    ('L6', 'L', 2, '鎳', None),
+    ('L6', 'L', 2, '鎳',
+     '鎳及鎳合金之冶煉、加工與銷售：電解鎳、鎳錠與鎳粉、鎳合金與鎳基超合金、'
+     '鎳帶與鎳片、電鍍與電池用鎳材。'
+     '★與 L9 稀有金屬、L10 貴金屬同軸（依金屬別切分），彼此以金屬種類互斥。'),
     ('L7', 'L', 2, '鋅', None),
     ('L8', 'L', 2, '鎢', None),
     ('L9', 'L', 2, '稀有金屬',
@@ -646,7 +725,9 @@ NODES = [
     ('Y1', 'Y', 2, '飯店', None),
     ('Y2', 'Y', 2, '旅行社', None),
     ('Y3', 'Y', 2, '遊樂園', None),
-    ('Y4', 'Y', 2, '餐飲', None),
+    ('Y4', 'Y', 2, '餐飲',
+     '餐飲服務：餐廳與連鎖餐飲之經營、外帶與外送、團膳與餐飲供應、餐飲品牌與加盟。'
+     '★飯店附設之餐飲併入 Y1 飯店，不在本節點分列。'),
     # Definition Pending (2026-09-03): named correctly but carries no Product
     # Definition, and companies are waiting on it. Do NOT write one to fit the
     # company in front of you -- that is how a taxonomy ends up shaped by the
