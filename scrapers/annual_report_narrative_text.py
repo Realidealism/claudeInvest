@@ -160,24 +160,62 @@ def _slice(body, i):
 YEAR_TOKEN = re.compile(r"(\d{2,4})\s*年")
 
 
+# The other thing a header names its columns by. 中碳 heads them 個體 | 合併,
+# 國精化 單一百分比% | 合併百分比%, and both print the same year twice — so no
+# amount of year-reading separates those columns, and the parent one is not what
+# weight_basis claims to hold. 南港 labels four columns 營收金額-個體 /
+# 營收比重-個體 / 營收金額-合併 / 營業比重-合併, so consecutive repeats collapse.
+BASIS_TOKEN = re.compile(r"(個體|單一|合併)")
+
+
+def _basis_labels(head):
+    out = []
+    for tok in BASIS_TOKEN.findall(head):
+        if not out or out[-1] != tok:
+            out.append(tok)
+    return out
+
+
 def _year_columns(lines):
-    """Which column of the header is the fiscal year, and how many there are.
+    """Which column of the header is the one we want, and how many there are.
 
     Reading the header is the whole point. Taking the last column instead looks
     right until a filing appends a stub period: IET-KY prints 2024年度, 2025年度
     and 2026年截至3月31日, and that first-quarter column sums to 100 exactly like
-    a full year does, so no arithmetic check can catch it. Returns (index,
-    count), or None when the header does not name the fiscal year.
+    a full year does, so no arithmetic check can catch it. Position decides
+    nothing on its own either — a 2026-09-04 sweep of 427 filings found the
+    newest year printed FIRST as often as last (博磊 "114 年度 113 年度", 訊芯
+    "2025年度 2024年度") and 意騰 running oldest-first with a quarter on the end.
+
+    Two things go wrong when the header is read one line at a time. 誠泰科技
+    breaks it as "114 / 年度 113年度 / 年度", so no single line carries two
+    years and the reader falls back to the rightmost column — which is FY2024,
+    and 92.33% was stored where 94.68% belonged. And a table split by 個體/合併
+    rather than by year names no year at all. So the first lines are read as one
+    string, and basis labels are tried when years do not resolve.
+
+    Returns (index, count) or None.
     """
-    for ln in lines[:10]:
+    head = lines[:10]
+    # One line at a time first. The sentence above the table names years too and
+    # in its own order — 新復興 opens "113及114年度之營業比重如下" above columns
+    # headed 113年度 114年度, and reading them together put FY2025 first when it
+    # is second. Only when no single line carries the columns are adjacent pairs
+    # tried, which is what 誠泰科技 needs: it breaks the header as "114" /
+    # "年度 113年度", so neither line names two years and the pair names both.
+    for cand in list(head) + [a + " " + b for a, b in zip(head, head[1:])]:
         years = []
-        for tok in YEAR_TOKEN.findall(ln):
+        for tok in YEAR_TOKEN.findall(cand):
             v = int(tok)
             v = v if v > 1911 else v + 1911
             if 2000 <= v <= FISCAL_YEAR + 2 and v not in years:
                 years.append(v)
         if len(years) >= 2 and FISCAL_YEAR in years:
             return years.index(FISCAL_YEAR), len(years)
+    for cand in head:
+        bases = _basis_labels(cand)
+        if len(bases) >= 2 and "合併" in bases:
+            return bases.index("合併"), len(bases)
     return None
 
 
@@ -264,7 +302,9 @@ def _parse_one(lines):
         name = PUA.sub("", NUM.sub("", DASH_CELL.sub(" ", ln))).strip(" 　:：%％$＄()（）")
         name = re.sub(r"\s+", "", name)
         if not ns:
-            if name and len(name) >= 2 and not NOT_A_PRODUCT.search(name):
+            head_residual = re.match(r"^(其他|其它|Other)", name or "")
+            if name and len(name) >= 2 and (head_residual
+                                            or not NOT_A_PRODUCT.search(name)):
                 pending = name[:60]
             continue
         label = name if len(name) >= 2 else pending
