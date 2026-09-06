@@ -233,14 +233,22 @@ def sync(cur, resolved, effective_from):
     for key in corrected:
         w = resolved[key]
         known_date, period_end = _dates_for(w, key[0], known, decks)
+        # weight_pct belongs to db.fill_weight, with one exception: a row being
+        # corrected to filing_too_coarse may not keep the share it used to
+        # claim. The constraint from migration 100 rejects the pair outright, so
+        # leaving it made "this line turned out to span two nodes" -- 6877
+        # 鏵友益 42.78% on 2026-09-07 -- an edit the seeder could not express.
         cur.execute("""
             UPDATE tw.company_industry_exposure
                SET role = %s, weight_item = %s, evidence_kind = %s,
                    evidence = %s, exposure_type = %s,
-                   known_date = %s, evidence_period_end = %s
+                   known_date = %s, evidence_period_end = %s,
+                   weight_pct = CASE WHEN %s = 'filing_too_coarse'
+                                     THEN NULL ELSE weight_pct END
              WHERE id = %s
         """, (w["role"], w["weight_item"], w["evidence_kind"], w["evidence"],
-              w["exposure_type"], known_date, period_end, live[key]["id"]))
+              w["exposure_type"], known_date, period_end, w["evidence_kind"],
+              live[key]["id"]))
 
     for key in added + superseded:
         stock_id, node_code = key
