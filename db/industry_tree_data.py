@@ -101,6 +101,19 @@ NODES = [
     # building's systems, which is a different trade again.
     ('A2-14', 'A2', 3, '半導體設備工程服務 (Equipment Field Service)',
      '設備裝機、移機、改機、驗機、維修與保養等對設備本身的現場工程服務（不製造設備；廠務系統見 A7-01）'),
+    # Refurbishing a whole machine is neither making one nor servicing one in
+    # place. A2-11 works on parts that came off a tool and charges for the
+    # processing; A2-14 sends engineers to a fab and charges for their time;
+    # here the company buys a used tool, restores it and sells the tool. Three
+    # different value propositions, so the third gets its own node rather than
+    # being pressed into either neighbour (R025). Population is one company
+    # today; the definition is written for the activity, not for that company.
+    ('A2-15', 'A2', 3, '半導體設備再生 / 翻修 (Refurbished Equipment)',
+     '對既有半導體製程設備進行取得、整修、翻新、升級或性能恢復後，'
+     '再以翻修設備形式交付或銷售之設備再生業務。'
+     '★不包含單純零件清洗再生（見 A2-11，服務對象是拆下來的零件）、'
+     '亦不包含設備現場維修、裝機、移機等工程服務（見 A2-14，賣的是工時不是設備）。'
+     '★與 A2-01～A2-13 的分界是**設備從何而來**：該群製造新機並銷售，本節點取得既有機台翻修後再售。'),
     ('A3', 'A', 2, '晶圓製造', None),
     ('A3-01', 'A3', 3, 'Foundry (純晶圓代工)',
      '受託製造客戶設計之積體電路，不自有產品線：邏輯製程、特殊製程 '
@@ -961,7 +974,15 @@ NODES = [
     ('N', None, 1, '生技 / 醫療', None),
     ('N1', 'N', 2, '製藥', '原料藥、學名藥、特殊學名藥、新藥'),
     ('N2', 'N', 2, '生技', '抗體、蛋白質、細胞治療、基因治療'),
-    ('N3', 'N', 2, '醫療器材', '手術器械、植入物、影像設備、牙科'),
+    ('N3', 'N', 2, '醫療器材',
+     '醫療器材之製造與銷售：手術器械、植入物、體外醫療與影像設備、牙科器材，'
+     '以及視力矯正與眼科用醫材（隱形眼鏡、人工水晶體）。'
+     '★2026-09-08 依 R025 放寬：原定義列舉四類而未含視力矯正器材，'
+     '但拋棄式隱形眼鏡製造以醫療器材製造業登記、產品受醫材法規管理，'
+     '是成熟且可獨立辨識的產業產品；放寬既有定義優先於新增節點。'
+     '★與 AA1 成像光學元件的分界是**鏡片在誰的光路上**：矯正人眼視力者屬本節點，'
+     '成像光路上的鏡頭與鏡片屬 AA1。兩者都叫「鏡片」，這正是 R016 所說'
+     '產品名稱不得單獨決定歸屬的情形。'),
     ('N4', 'N', 2, '診斷', 'IVD、PCR、快篩、檢測'),
     ('N5', 'N', 2, 'CDMO', None),
     ('N6', 'N', 2, 'CRO', None),
@@ -1212,4 +1233,39 @@ NODES = [
     ('Z4', 'Z', 2, '水務', '污水、工業用水、純水'),
     ('Z5', 'Z', 2, '廢棄物', '廢棄物處理、回收、資源循環'),
     ('Z6', 'Z', 2, '環保工程', '空污、廢氣、脫硫、脫硝、環境工程'),
+    # AA, because A-Z are all taken. Opened 2026-09-08 from the G3 gap after a
+    # sweep read all twenty-two candidate filings: nine turned out to be one
+    # coherent activity with no home anywhere in the tree, and the other
+    # thirteen resolved to D, A3, N, F, H or to roles of their own. That is the
+    # shape R025 asks for -- a population that survived a full search for an
+    # existing home -- and not the shape it forbids, which is one company
+    # needing somewhere to go.
+    ('AA', None, 1, '成像與精密光學',
+     '以光學成像、取像、投影或精密光學元件與系統之設計、製造與整合為主要經濟活動者：'
+     '光學鏡頭與鏡片、成像光路元件、光學模組與光機系統，及其專用光學材料。'
+     '★本支的 L2 分類軸是**價值鏈角色**（材料／元件／模組／系統），與 A、E 同型。'
+     '★parent scope 刻意窄於「光學」二字，因為泛稱會與四個既有歸屬直接衝突，'
+     '逐項排除如下：光通訊用薄膜濾光片與主被動元件見 D6-01、設備見 D5-01；'
+     '半導體晶圓級光學製程與鍍膜（晶圓級濾波片、微透鏡、超穎表面、光波導）見 A3-05；'
+     '顯示器專用光學（背光模組、導光板、擴散板、增光片、偏光板）見 E2-02；'
+     '視力矯正用隱形眼鏡見 N3 醫療器材。'
+     '★判準是**光路的用途歸誰**，不是產品名稱含不含「光學」：'
+     '同樣是薄膜濾光片，服務光通訊模組者屬 D，服務晶圓級封裝者屬 A3-05，'
+     '服務成像鏡頭者屬本支——這一條是 R016 的直接應用。'
+     '★2026-09-08 建立時只批准一個 leaf。材料、模組、系統三個角色'
+     '已各自看到公司，但每個都只有一例，依 R025 列為 candidate 而非節點，'
+     '記於 db/TAXONOMY_GAPS.md。**parent 成立不使其 child 自動成立。**'),
+    ('AA1', 'AA', 2, '成像光學元件',
+     '成像與取像用光學元件之設計與製造：光學鏡頭、光學鏡片（塑膠、玻璃、模造玻璃、'
+     '非球面）、鏡頭組、稜鏡與成像用濾光片，以及其專用光學模具。'
+     '應用涵蓋手機、筆電與平板視訊、車載與監控、投影、工業與醫療檢測、'
+     '生物辨識、AR／VR 與空拍機取像。'
+     '★與 D6-01 的分界是**光路服務誰**：本節點的元件在成像光路上，'
+     '光通訊薄膜濾光片（E-PON／G-PON／CWDM／DWDM）在傳輸光路上，屬 D6-01。'
+     '★與 A3-05 的分界是**製程**：以半導體晶圓製程產出的光學結構屬 A3-05，'
+     '本節點是光學冷加工、模造、研磨、鍍膜與組裝。'
+     '★與 E2-02 的分界是**服務對象**：為顯示器光學路徑與背光子系統而製者屬 E2-02。'
+     '★**不含**：光學玻璃毛胚等光學材料、相機模組組裝、光學引擎與光機系統——'
+     '三者各為不同 value-chain role，2026-09-08 皆列 candidate 未建節點；'
+     '在其節點成立前，此類公司留在未分類而非掛入本節點(R031)。'),
 ]

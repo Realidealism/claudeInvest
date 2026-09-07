@@ -59,17 +59,50 @@ each row is, because they need different work and some need none:
 | population status | recorded in E1-01's definition |
 | next audit | needs the coarse-filing bucket, not keyword search: 佳世達「電子產品 93%」and 中光電「影像產品 24.48%」are exactly the shape that would populate this and cannot be seen |
 
-## G3 · 成像光學（相機鏡頭、光學鏡片）
+## G3 · 成像光學 — **CLOSED 2026-09-08**, into AA 成像與精密光學
 
 | | |
 |---|---|
-| **gap_type** | `taxonomy_node_candidate` — **highest priority** |
-| observed candidates | 14 unclassified: 3008 大立光 99.48%, 3406 玉晶光 75%, 3630 新鉅科 100%, 4976 佳凌 98.30%, 6517 保勝, 6668 中揚光, 3019 亞光, 3362 先進光, 3504 揚明光, 6426 統新, 6498 久禾光, 6588 東典光電, 6722 輝創, 6742 澤米 |
-| evidence coverage | revenue items only |
-| current candidate nodes | none since E6 dissolved. E6-01 had claimed Lens/Prism/Filter while holding no lens maker at all |
-| reason no node | ruled 2026-09-07: being the only cell that could hold something is not a reason to hold it. Imaging optics is not display-dedicated, and E is the display industry |
-| population status | large and pure — several members are single-product companies above 98% |
-| next audit | the strongest candidate for a node in this inventory. Needs a parent decision first: whether it sits under a components branch or opens one, and where semiconductor optical coating (6742) and contact lenses (1565 精華, medical) fall relative to it |
+| **gap_type** | `resolved` — a new L1 branch and one approved leaf |
+| what happened | all 22 candidates' filings were read. Nine were one coherent activity with no home anywhere: they became **AA1 成像光學元件** under the new **AA 成像與精密光學** branch. The other thirteen resolved elsewhere, which is what made the nine a population rather than a residue |
+| where the rest went | 光通訊薄膜濾光片 2 家 → **D6-01**（統新 99.98、東典 75.29，兩家的商品項目都明寫「光通訊」）· 半導體晶圓級光學鍍膜 → **A3-05**（澤米 54.05）· 隱形眼鏡 2 家 → **N3**，定義依 R025 放寬（精華 99.87、望隼 99.65）· 車用感測與車用光學射出件 → H · 金屬沖壓 → F4-01 · 儲存媒體 → 見 G8 |
+| what the branch does not contain | 「光學」二字不是入場券。AA 的 scope 逐項排除光通訊 (D)、半導體晶圓級光學 (A3-05)、顯示專用光學 (E2-02)、視力矯正鏡片 (N3)。判準是**光路服務誰** |
+
+## G3a · 光學材料（光學玻璃毛胚）
+
+| | |
+|---|---|
+| **gap_type** | `taxonomy_node_candidate` — one company, deliberately not a node |
+| observed candidates | 1: 3441 聯一光 光學玻璃毛胚 92.22% |
+| evidence coverage | narrative read |
+| current candidate nodes | AA exists as parent; no materials leaf under it |
+| reason no node | R025: one company is not a boundary. Its own filing gives the strongest argument for the role — 「依 PIDA 分類，本公司所生產之玻璃毛胚係屬光電產業之**光學材料業**」— and also the reason the population is small: 「我國光學玻璃材料廠商目前僅有台資的聯一及日資的台灣小原二家公司」 |
+| population status | unclassified, held here on purpose |
+| next audit | look for optical materials beyond glass blanks before deciding — plastic optical resin, mould-glass preform, coating材料 |
+
+## G3b · 相機模組（camera module assembly）
+
+| | |
+|---|---|
+| **gap_type** | `taxonomy_node_candidate` — one company |
+| observed candidates | 1: 3659 百辰 電腦相機模組 91.59% + 手持裝置相機模組 7.97% |
+| evidence coverage | narrative read |
+| current candidate nodes | none. AA1 is the lens body, not the module |
+| reason no node | the role is real and is the same value-chain distinction E1/E2 draws for panels, but one company cannot establish it |
+| population status | unclassified |
+| next audit | camera-module assemblers are a known Taiwanese industry; the coarse-filing bucket is the likely place they are hiding |
+
+## G3c · 光學引擎／光機系統
+
+| | |
+|---|---|
+| **gap_type** | `taxonomy_node_candidate` — one company |
+| observed candidates | 1: 3504 揚明光 (取像光學 36.00, 光學元件 23.00, 車用 16, 3D打印機 12, 微投光機 10) |
+| evidence coverage | narrative read |
+| current candidate nodes | none |
+| reason no node | its products are 光學引擎 (DLP／LCOS)、色輪、積分柱、投影鏡頭、稜鏡 — a system one layer above a lens. One company |
+| population status | unclassified. Note its 光學元件 23.00% line alone would qualify for AA1, but its Core is the system business, so it is not split today |
+| next audit | projector and optical-engine makers; overlaps with 微投影 and AR light engines |
 
 ## G4 · 通用 LED／光電發射元件
 
@@ -131,3 +164,30 @@ Recorded so they are not re-opened as gaps by someone reading a node's absence:
 - **通用觸控輸入件**（薄膜觸控開關、鍵盤開關）— F5-01 板上零件
 - **顯示器金屬結構件** — F4-01 機構; see
   `tests/fixtures/cases/3543_zhouqiao_application_vs_product.md`
+
+## G8 · 記錄型光碟片（optical recording media）
+
+| | |
+|---|---|
+| **gap_type** | `taxonomy_node_candidate` — one company, and it says so itself |
+| observed candidates | 1: 2349 錸德, 光學產品 86.77% |
+| evidence coverage | narrative read |
+| current candidate nodes | F7-01 記憶體模組 covers the memory-card, flash-drive and SSD half of that line; nothing covers recordable optical discs |
+| reason no node | the line is undivided (R020②) and the disc half has exactly one maker: 「錸德亦為當前日商以外，唯一具備從 CD、DVD、BD 與 AD 各式記錄型光碟量產能力之企業」. A node for a single producer is a company, not a category |
+| population status | unclassified; not placed on F7-01 because the line cannot be split |
+| next audit | none scheduled. If the disc business shrinks out of the filing the whole line becomes F7-01 and this row closes |
+
+## Also unplaced after the G3 sweep
+
+Not gaps of their own yet, recorded so they are not lost:
+
+- **6979 勝釩 光學薄膜 93.63%** — a protective film applied to touch panels, cover
+  glass and light guides during manufacture and shipping, and to semiconductor
+  processes. A process consumable, not part of any optical path
+- **3019 亞光 數位相機產品 19.67%** — finished cameras, from a company whose Core
+  is on AA1. Same finished-goods shape as G2
+- **6742 澤米 精密光學元件製造 43.73%** — OLPF for interchangeable-lens cameras,
+  LOE elements and optical glass substrate processing in one undivided line, so
+  it spans imaging optics, AR waveguides and material processing. Its Core sits
+  on A3-05; this line is not assigned rather than assigned to the largest-looking
+  candidate
