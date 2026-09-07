@@ -41,7 +41,7 @@ import re
 from db.connection import get_cursor
 
 CHECKS = ("core", "core_overlap", "core_reason", "core_pending", "listing", "stale",
-          "below", "role", "coverage",
+          "below", "role_numeric_consistency", "role_evidence_missing", "coverage",
           "temporal", "mix", "scale", "definition",
           "double", "depth",
           "unknown", "known", "official")
@@ -166,7 +166,7 @@ def check_below(cur, threshold):
     """, (threshold,))
 
 
-def check_role(cur):
+def check_role_numeric_consistency(cur):
     """Non-Core rows whose role disagrees with R026's 15% default.
 
     The default is only a default — a named reason in the evidence makes any
@@ -174,11 +174,19 @@ def check_role(cur):
     reader has to look at, which is what stops the column drifting back to the
     state R026 was written to end (Major at 6.90%, Minor at 19.26%).
 
-    Emerging and Indirect rows are outside the numeric default and excluded, and
-    so is a row whose evidence carries "role 理由：". R026 says a deviation must
-    be named, not that it must not happen, so a named one is the rule working
-    rather than a finding — the same contract [core_reason] uses. Without that,
-    the check can never reach zero and stops meaning anything.
+    Scope, and why the name says "numeric": this can only speak about rows the
+    15% default actually governs — Direct, with a weight. R026 has a second half
+    for the rows it does not govern (Indirect, and Emerging), where role comes
+    from evidence instead and the reasoning must be written down; that half is
+    [role_evidence_missing]. Splitting them is 2026-09-07: this check reported 0
+    while 9 of the 12 Indirect rows carried a Major/Minor nobody had justified,
+    and "[role] 0" was read as "the column is auditable" when it only ever meant
+    "no Direct row with a number contradicts the threshold".
+
+    A row whose evidence carries "role 理由：" is excluded. R026 says a deviation
+    must be named, not that it must not happen, so a named one is the rule
+    working rather than a finding — the same contract [core_reason] uses.
+    Without that, the check can never reach zero and stops meaning anything.
     """
     return _rows(cur, """
         SELECT e.stock_id, s.name, e.node_code, e.role::text, e.weight_pct
@@ -190,6 +198,49 @@ def check_role(cur):
           AND ((e.role = 'Major' AND e.weight_pct < 15)
             OR (e.role = 'Minor' AND e.weight_pct >= 15))
         ORDER BY e.weight_pct
+    """)
+
+
+def check_role_evidence_missing(cur):
+    """Indirect / Emerging rows ranked Major or Minor with no stated reason.
+
+    R026 takes the numeric default away from these rows on purpose — an agency
+    line or a subsidiary's line has weight NULL by R020③, and defaulting it to
+    Major would call somebody else's business the company's important one — and
+    puts something else in its place: role is judged from the evidence of actual
+    economic or strategic importance, "並於該列 evidence 記載判定理由".
+
+    Nothing checked the replacement. 2493 揚博 is what that looks like: three
+    Indirect rows off one agency-supply table in one filing, no weight on any of
+    them, labelled Major / Major / Minor, and not a word anywhere about what
+    separates the third from the other two. 2481 強茂 is worse than undocumented
+    — its Indirect row is Minor and the only number in sight is the subsidiary's
+    8.05%, which is exactly the yardstick R026 forbids here.
+
+    Level 1 only: this asks whether a reason exists, not whether it is any good.
+    "role 理由：因為很重要" passes the lint and fails a reading, so the string is
+    a floor and the substance stays an evidence review — the same division
+    [core_reason] lives with.
+
+    of_rows carries the population so the report reads "9 of 12" rather than a
+    bare 9: a count of failures alone cannot say whether the rule is nearly kept
+    or barely known.
+    """
+    return _rows(cur, """
+        SELECT e.stock_id, s.name, e.node_code, t.name AS node_name,
+               e.role::text, e.exposure_type, e.weight_item,
+               (SELECT count(*) FROM tw.company_industry_exposure x
+                 WHERE x.effective_to IS NULL
+                   AND (x.exposure_type = 'Indirect' OR x.role = 'Emerging')
+                   AND x.role IN ('Major', 'Minor')) AS of_rows
+        FROM tw.company_industry_exposure e
+        JOIN tw.stocks s ON s.stock_id = e.stock_id
+        JOIN tw.industry_tree t ON t.node_code = e.node_code
+        WHERE e.effective_to IS NULL
+          AND (e.exposure_type = 'Indirect' OR e.role = 'Emerging')
+          AND e.role IN ('Major', 'Minor')
+          AND e.evidence NOT LIKE '%%role 理由%%'
+        ORDER BY e.stock_id, e.node_code
     """)
 
 
