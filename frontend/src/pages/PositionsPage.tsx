@@ -16,6 +16,9 @@ interface Position {
   defense_reason: string | null;
   defense_date: string | null;
   exit_reason?: string | null;
+  // 洪量七級 (analysis/volume.py). Null on rows written before the column
+  // existed, or when the snapshot could not classify the stock.
+  volume_status?: string | null;
   disposal_status?: string | null;
 }
 
@@ -63,6 +66,17 @@ function turnoverClass(t: number): string {
   if (t < 1e8) return "text-yellow-400";
   if (t < 5e8) return "text-orange-400";
   return "text-orange-300 font-bold";
+}
+
+// 洪/大量/量多 are the states the signal factory treats as strong volume
+// (vol_strong = volume_status <= 2); 量少/量縮/窒息 are the dry end.
+function volumeClass(v: string | null | undefined): string {
+  if (v === "洪") return "text-orange-300 font-bold";
+  if (v === "大量") return "text-orange-400";
+  if (v === "量多") return "text-yellow-400";
+  if (v === "量縮" || v === "窒息") return "text-sky-400";
+  if (v === "量少") return "text-sky-500";
+  return "text-text-secondary";
 }
 
 function pnlClass(p: number): string {
@@ -316,6 +330,7 @@ export default function PositionsPage() {
                   </>
                 )}
                 <th className="px-2 py-2 text-right">成交金額</th>
+                <th className="px-2 py-2 text-center">量能</th>
                 <th className="px-2 py-2 hidden lg:table-cell">處置/警示</th>
               </tr>
             </thead>
@@ -408,6 +423,9 @@ export default function PositionsPage() {
                   )}
                   <td className={`px-2 py-1.5 text-right font-mono ${turnoverClass(p.turnover)}`}>
                     {fmtTurnover(p.turnover)}
+                  </td>
+                  <td className={`px-2 py-1.5 text-center ${volumeClass(p.volume_status)}`}>
+                    {p.volume_status ?? "—"}
                   </td>
                   <td
                     className={`px-2 py-1.5 hidden lg:table-cell whitespace-pre-wrap break-words ${disposalClass(p.disposal_status)}`}
