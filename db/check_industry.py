@@ -955,18 +955,20 @@ def check_definition_boundary_overlap(cur):
           -- a longer one: 不織布 contains 織布 and 貴金屬 contains 金屬, and neither
           -- is a claim on anybody
           AND EXISTS (SELECT 1 FROM regexp_split_to_table(a.main_products,
-                                       '[、,，/／()（）:：;；。★「」
-]') AS w
+                                       '[、,，/／()（）:：;；。★「」\n]') AS w
                        WHERE length(btrim(w)) >= 2
                          AND (btrim(w) = b.core_name
-                           OR b.core_name LIKE '%%' || btrim(w)))
-          -- and it has to be distinctive within the set: a word that names more
-          -- than one sibling is the domain, not a claim (PCB under B, 半導體
-          -- under A, 金屬 under L)
-          AND (SELECT count(*) FROM n c
-                WHERE c.parent_code = a.parent_code
-                  AND c.node_code <> b.node_code
-                  AND c.name LIKE '%%' || b.core_name || '%%') < 2
+                           OR b.core_name LIKE '%%' || btrim(w))
+                         -- and the matched word has to be distinctive: one that
+                         -- turns up in more than one sibling's name is the
+                         -- branch's head noun, not a claim on anybody. 晶圓 sits
+                         -- in both 矽晶圓 and 再生晶圓, so A1-04 saying 化合物晶圓
+                         -- takes nothing from either; 射出 sits only in 塑膠射出,
+                         -- so K2 saying 射出 does.
+                         AND (SELECT count(*) FROM n c
+                               WHERE c.parent_code = a.parent_code
+                                 AND c.node_code <> a.node_code
+                                 AND c.name LIKE '%%' || btrim(w) || '%%') < 2)
         ORDER BY a.node_code, b.node_code
     """)
 
