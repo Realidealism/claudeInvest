@@ -15,6 +15,7 @@ from datetime import date, datetime
 from decimal import Decimal
 from pathlib import Path
 
+from analysis.volume import VOLUME_STATUS_LABEL
 from db.connection import get_cursor, init_db
 from utils.tz import now as tpe_now
 
@@ -1105,7 +1106,7 @@ def export_positions_intraday(cur, out: Path):
                        p.entry_date, p.entry_price, p.entry_tier,
                        p.current_close, p.pnl_pct, p.bars_held, p.turnover,
                        p.defense_price, p.defense_reason, p.defense_date,
-                       p.exit_reason
+                       p.exit_reason, p.volume_status
                 FROM tw.open_positions_intraday p
                 JOIN tw.stocks st ON st.stock_id = p.stock_id
                 WHERE p.snapshot_date = %s AND p.snapshot_time = %s
@@ -1128,6 +1129,7 @@ def export_positions_intraday(cur, out: Path):
                     "defense_reason": r["defense_reason"],
                     "defense_date": r["defense_date"],
                     "exit_reason": r["exit_reason"],
+                    "volume_status": VOLUME_STATUS_LABEL.get(r["volume_status"]),
                     "disposal_status": _disposal_status_for(r["stock_id"], freshness),
                 })
 
@@ -1212,7 +1214,7 @@ def export_positions(cur, out: Path):
                        p.entry_date, p.entry_price, p.entry_tier,
                        p.current_close, p.pnl_pct, p.bars_held, p.turnover,
                        p.defense_price, p.defense_reason, p.defense_date,
-                       p.exit_reason
+                       p.exit_reason, p.volume_status
                 FROM tw.open_positions p
                 JOIN tw.stocks st ON st.stock_id = p.stock_id
                 WHERE p.snapshot_date = %s AND p.side = %s AND p.is_exited = %s
@@ -1234,6 +1236,7 @@ def export_positions(cur, out: Path):
                     "defense_reason": r["defense_reason"],
                     "defense_date": r["defense_date"],
                     "exit_reason": r["exit_reason"],
+                    "volume_status": VOLUME_STATUS_LABEL.get(r["volume_status"]),
                     "disposal_status": _disposal_status_for(r["stock_id"], freshness),
                 })
 

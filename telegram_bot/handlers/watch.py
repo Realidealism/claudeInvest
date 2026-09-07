@@ -15,6 +15,7 @@ Subcommands:
 
 from __future__ import annotations
 
+import asyncio
 import re
 import time
 
@@ -194,7 +195,8 @@ async def _dispatch_watch(
         from telegram_bot.handlers.score import build_watchlist_summary
         items = _list_watchlist()
         tickers = [sym for sym, _, _ in items]
-        await update.message.reply_text(build_watchlist_summary(tickers))
+        await update.message.reply_text(
+            await asyncio.to_thread(build_watchlist_summary, tickers))
         return
 
     if sub in ("add", "remove", "rm", "del"):
@@ -301,7 +303,8 @@ async def cmd_watch_score(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
     from telegram_bot.handlers.score import build_watchlist_summary
     items = _list_watchlist()
     tickers = [sym for sym, _, _ in items]
-    await update.message.reply_text(build_watchlist_summary(tickers))
+    await update.message.reply_text(
+        await asyncio.to_thread(build_watchlist_summary, tickers))
 
 
 def register(application) -> None:

@@ -225,6 +225,9 @@ def _eval_stock(args: tuple[str, date, date]) -> dict | None:
         "lp_d3": lp_d3, "sp_d3": sp_d3,
         "fires": fires,
         "open_positions": open_positions,
+        # Classified here rather than at export time: the pipeline already
+        # ran, and re-deriving it downstream would cost a second pass.
+        "vol_status": int(data.volume_result.volume_status[idx]),
     }
 
 
@@ -426,14 +429,16 @@ def _save_open_positions(snapshot_date: date, results: list[dict]) -> dict[str, 
                 p["defense_date"],
                 p["is_exited"],
                 p["exit_reason"],
+                r.get("vol_status"),
             ))
 
     sql = """
         INSERT INTO tw.open_positions
         (snapshot_date, stock_id, side, entry_date, entry_price, entry_tier,
          current_close, pnl_pct, bars_held, turnover,
-         defense_price, defense_reason, defense_date, is_exited, exit_reason)
-        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+         defense_price, defense_reason, defense_date, is_exited, exit_reason,
+         volume_status)
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
     """
     conn = get_connection()
     try:

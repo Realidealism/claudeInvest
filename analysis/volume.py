@@ -44,6 +44,15 @@ BoolArray = NDArray[np.bool_]
 U8Array = NDArray[np.uint8]
 
 
+# ── Status labels ───────────────────────────────────────────────────────────
+
+# Single source of truth for _calc_volume_status codes. Consumed by the
+# Telegram watchlist line and the positions export; keep them from drifting.
+VOLUME_STATUS_LABEL = {
+    0: "洪", 1: "大量", 2: "量多", 3: "正常", 4: "量少", 5: "量縮", 6: "窒息",
+}
+
+
 # ── Dataclasses ─────────────────────────────────────────────────────────────
 
 

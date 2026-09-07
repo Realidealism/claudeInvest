@@ -1193,6 +1193,51 @@ def _limit_prices(ref: float) -> tuple[float, float]:
             math.ceil(round(dn_raw / t_dn, 6)) * t_dn)
 
 
+# ── Volume status (洪量七級) ───────────────────────────────────────────────
+
+# Mirrors intraday_volume_alert.H_MIN: below this h(t) the projection is too
+# noisy to classify on, so the previous settled bar is reported instead.
+_VOL_H_MIN = 0.10
+
+
+def _load_volume_status(tickers: list[str]) -> dict[str, str]:
+    """Per-ticker 洪量七級 volume status, keyed by ticker.
+
+    Runs the same path the intraday snapshot daemon uses (analysis
+    .intraday_snapshot._eval_stock -> load_stock_data_intraday), so a
+    watchlist line and a signal card never disagree on whether volume is
+    strong: today's forming bar is projected to a full day with 1/h(t).
+    Costs ~0.25s per ticker, so callers must keep this off the event loop.
+    """
+    from analysis.volume import VOLUME_STATUS_LABEL
+    from analysis.realtime_data import load_stock_data_intraday
+    from intraday.estimate import _get_h, get_h_curve
+
+    now_tpe = datetime.now(timezone(timedelta(hours=8)))
+    try:
+        h = _get_h(now_tpe, get_h_curve())
+    except Exception:
+        logger.debug("h(t) curve unavailable for volume status", exc_info=True)
+        h = None
+    projecting = h is not None and h >= _VOL_H_MIN
+    scale = 1.0 / h if projecting else 1.0
+
+    out: dict[str, str] = {}
+    for t in tickers:
+        try:
+            data = load_stock_data_intraday(t, scale)
+            idx = -1
+            if (not projecting and data.n >= 2
+                    and data.dates[-1] == now_tpe.date()):
+                # Today's bar cannot be projected yet — report yesterday's.
+                idx = -2
+            code = int(data.volume_result.volume_status[idx])
+            out[t] = VOLUME_STATUS_LABEL.get(code, "")
+        except Exception:
+            logger.debug("volume status failed for %s", t, exc_info=True)
+    return out
+
+
 def _format_one_line(ticker: str, ctx: dict, side_pos: dict[str, dict | None]) -> str:
     """One-line summary per stock. Segments separated by ' ｜ ';
     leading emoji indicates position state."""
@@ -1256,8 +1301,10 @@ def _format_one_line(ticker: str, ctx: dict, side_pos: dict[str, dict | None]) -
             limit_tag = " 🔒跌停"
     name_with_price = f"{name} {price_str}{limit_tag}"
     tv_str = f"排#{tv_rank}" if tv_rank else "—"
+    vol_str = ctx.get("vol_status") or "—"
 
-    return f"{head_emoji} {ticker} {name_with_price}  ｜{pos_str}  ｜{score_str}  ｜{tv_str}"
+    return (f"{head_emoji} {ticker} {name_with_price}  ｜{pos_str}  ｜{score_str}"
+            f"  ｜{tv_str}  ｜{vol_str}")
 
 
 def build_watchlist_summary(tickers: list[str]) -> str:
@@ -1299,6 +1346,9 @@ def build_watchlist_summary(tickers: list[str]) -> str:
         pos_map[t] = {"long": None, "short": None}
         for p in entries:
             pos_map[t][p["_side"]] = p
+
+    for t, status in _load_volume_status(tickers).items():
+        ctx_map[t]["vol_status"] = status
 
     ordered = sorted(tickers, key=lambda t: _watchlist_sort_key(t, pos_map[t]))
 
