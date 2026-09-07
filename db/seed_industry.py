@@ -284,6 +284,22 @@ def sync(cur, resolved, effective_from):
              OR e.evidence_period_end IS DISTINCT FROM d.period_end)
     """)
 
+    # The same reconciliation the deck rows get, for the ones dated off a filing.
+    # _dates_for only runs on rows that are inserted or corrected, so a row whose
+    # mirrored fields have not moved since before that logic existed keeps
+    # whatever it was born with — 6261 久元, 6789 采鈺 and 3663 鑫科 all carried
+    # annual-report evidence and a NULL evidence_period_end from the 2026-09-01
+    # load until this was added. effective_from rather than the constant, because
+    # it is the layer's own evidence period and stays right when a later one opens.
+    cur.execute("""
+        UPDATE tw.company_industry_exposure e
+           SET evidence_period_end = e.effective_from
+         WHERE e.effective_to IS NULL
+           AND e.evidence_kind IN ('annual_report_table', 'annual_report_prose',
+                                   'filing_too_coarse')
+           AND e.evidence_period_end IS NULL
+    """)
+
     # known_date is derived from the filing date, which often arrives after the
     # membership does — a company classified from its company site before the
     # annual report is parsed opens with NULL. Fill it in as it becomes

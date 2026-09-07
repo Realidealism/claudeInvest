@@ -45,7 +45,7 @@ CHECKS = ("core", "core_overlap", "core_reason", "core_pending", "listing", "sta
           "role_direct_null_minor_unsupported", "coverage",
           "temporal", "mix", "scale", "definition",
           "double", "depth",
-          "unknown", "known", "official")
+          "unknown", "known", "provenance", "official")
 FISCAL_YEAR = 2025
 
 
@@ -406,6 +406,13 @@ def check_temporal(cur):
     known_date after effective_to is NOT a violation and is not checked: a
     business that ran through 2020 and was disclosed in the FY2020 report filed
     in 2021 is exactly what known_date is for (R030).
+
+    A fifth condition, added 2026-09-07: filing-dated evidence with no
+    evidence_period_end at all. The other four compare the axes against each
+    other, and a NULL makes every one of those comparisons UNKNOWN — so the row
+    that has lost an axis is exactly the row this check cannot see. Three were
+    sitting there (6261 久元, 6789 采鈺, 3663 鑫科), untouched since the initial
+    load because _dates_for only fires on insert or correction.
     """
     return _rows(cur, """
         SELECT e.stock_id, s.name, e.node_code,
@@ -418,6 +425,8 @@ def check_temporal(cur):
                        THEN 'evidence_period_end after known_date'
                    WHEN e.evidence_period_end > current_date
                        THEN 'evidence_period_end in the future'
+                   WHEN e.evidence_period_end IS NULL
+                       THEN 'filing-dated evidence with no evidence period'
                END AS problem
         FROM tw.company_industry_exposure e
         JOIN tw.stocks s ON s.stock_id = e.stock_id
@@ -425,6 +434,9 @@ def check_temporal(cur):
            OR (e.effective_to IS NOT NULL AND e.effective_from > e.effective_to)
            OR e.evidence_period_end > e.known_date
            OR e.evidence_period_end > current_date
+           OR (e.evidence_period_end IS NULL
+               AND e.evidence_kind IN ('annual_report_table', 'annual_report_prose',
+                                       'filing_too_coarse'))
         ORDER BY e.stock_id
     """)
 
@@ -757,6 +769,58 @@ def check_known(cur):
         GROUP BY e.stock_id, s.name
         ORDER BY e.stock_id
     """)
+
+
+def check_provenance(cur):
+    """Rows whose evidence_kind names a source the database cannot show.
+
+    evidence_kind is a claim about where a row came from, and every date on the
+    row is derived from it: db.seed_industry's _dates_for sends investor_conf to
+    the deck's conference date and everything else to the annual report's filing
+    date, and evidence_period_end is set only for the annual-report kinds. A
+    wrong label therefore does not merely mislabel — it silently dates the row
+    off the wrong document, or leaves it undated and invisible to [temporal].
+
+    Two things a query can settle, both found on 2026-09-07:
+
+        claims a deck that is not here    6213 聯茂 and 6274 台燿 were
+                                          investor_conf while tw.conference_
+                                          product_mix held one company in total
+                                          (3583 辛耘), and neither row's evidence
+                                          mentioned a presentation at all
+        weight came from the filing       6187 萬潤, 6640 均華, 7734 印能科技 and
+                                          7751 竑騰 were company_site, yet their
+                                          weight_item matches a line in
+                                          tw.product_revenue_share verbatim and
+                                          db.fill_weight read the share off that
+                                          table. The filing is the source
+                                          whatever the label says
+
+    What it cannot settle is the opposite direction: a row honestly labelled
+    company_site because the filing gives no breakdown still leans on the
+    filing's date for known_date, and no query can tell whether the website said
+    it earlier or later. That is a rule question, not a check.
+    """
+    return _rows(cur, """
+        SELECT e.stock_id, s.name, e.node_code, e.evidence_kind, e.weight_item,
+               CASE WHEN e.evidence_kind = 'investor_conf'
+                    THEN 'no deck for this company in tw.conference_product_mix'
+                    ELSE 'weight_item matches the annual report, so the filing is the source'
+               END AS problem
+        FROM tw.company_industry_exposure e
+        JOIN tw.stocks s ON s.stock_id = e.stock_id
+        WHERE e.effective_to IS NULL
+          AND ((e.evidence_kind = 'investor_conf'
+                AND NOT EXISTS (SELECT 1 FROM tw.conference_product_mix c
+                                 WHERE c.stock_id = e.stock_id))
+            OR (e.evidence_kind NOT IN ('annual_report_table', 'annual_report_prose',
+                                        'filing_too_coarse')
+                AND e.weight_item IS NOT NULL
+                AND EXISTS (SELECT 1 FROM tw.product_revenue_share r
+                             WHERE r.stock_id = e.stock_id AND r.fiscal_year = %s
+                               AND r.item = ANY(string_to_array(e.weight_item, ' + ')))))
+        ORDER BY e.stock_id, e.node_code
+    """, (FISCAL_YEAR,))
 
 
 def check_core_pending(cur):
