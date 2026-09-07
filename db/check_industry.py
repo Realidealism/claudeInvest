@@ -43,8 +43,8 @@ from db.connection import get_cursor
 CHECKS = ("core", "core_overlap", "core_reason", "core_pending", "listing", "stale",
           "below", "role_numeric_consistency", "role_indirect_rationale_missing",
           "role_direct_null_minor_unsupported", "coverage",
-          "temporal", "mix", "scale", "definition",
-          "double", "depth",
+          "temporal", "mix", "scale", "definition_completeness",
+          "definition_boundary", "double", "depth",
           "unknown", "known_missing", "known_unavailable", "provenance", "official")
 FISCAL_YEAR = 2025
 
@@ -662,66 +662,129 @@ def check_scale(cur):
     """, (FISCAL_YEAR, FISCAL_YEAR))
 
 
-def check_definition(cur):
-    """Leaf nodes carrying members but no product definition.
+def check_definition_completeness(cur):
+    """Nodes with no product boundary of their own.
 
     R025 and R031 say the definition comes first and the mapping second: a
     company may only be hung on a node whose product boundary is already
-    written, and sibling definitions must be mutually exclusive before either
-    accepts anybody. Most of that needs a person — whether two prose
-    definitions overlap is a judgement, and no query decides it.
+    written. Most of that needs a person -- whether two prose definitions
+    overlap is a judgement, and no query decides it. This is the half a query
+    can decide about one node; [definition_boundary] is the half about a set.
 
-    This is the half a query can decide. A node with members and an empty
-    main_products has had the sequence run backwards, and it is not a
-    hypothetical: V1 held 32 companies against a definition field reading
-    文曄、大聯大、至上 — three company names, a mapping result written where the
-    definition belongs. That one read as a definition, which is worse than
-    empty, and only a person could see it. An empty one, a query can.
+    A leaf with members and an empty main_products has had the sequence run
+    backwards, and it is not hypothetical: V1 held 32 companies against a
+    definition field reading the names of three distributors, a mapping result
+    written where the definition belongs. That kind reads as a definition,
+    which is worse than empty, so it is tested by asking whether the field is
+    mostly names of listed companies.
 
-    Not every undefined leaf is a finding. 70 of them have no members, and an
-    empty node is a gap in the taxonomy rather than a rule being broken; it
-    becomes a finding the moment someone maps a company onto it.
+    Branch nodes joined the population on 2026-09-07. Until then the query
+    opened with NOT EXISTS(children) and 95 of the tree's 391 nodes were
+    structurally invisible, 88 of them undefined. A branch's definition may be
+    far more abstract than a leaf's -- it states the scope its children divide,
+    not a product list -- but it cannot be absent once the subtree is in use,
+    because then the thing the children are supposed to partition was never
+    said. E is the case: E1 through E6 are all undefined at L2 while their L3
+    children carry definitions and members, and E3's own deferral note reads
+    "every sibling in E is undefined too, so there is nothing to be exclusive
+    against" -- a judgement a person had to make because nothing reported it.
 
-    An empty definition is not the only way to have none. A field holding
-    company names is a mapping result written where the boundary belongs, and it
-    is worse than empty because it reads as a definition: V1 said
-    文曄、大聯大、至上 and 32 members were judged against it. That kind cannot be
-    found by testing for NULL, so it is tested by asking whether the field is
-    mostly names of listed companies -- A5-05 OSAT reads 日月光、矽品、力成、京元、
-    南茂、超豐、頎邦 and A3-01 Foundry 台積電、聯電、世界、力積電.
+    In use means the subtree has members or a child already carries a
+    definition. A branch whose whole subtree is empty is a gap in the taxonomy
+    rather than a rule being broken, the same allowance empty leaves get.
     """
     return _rows(cur, """
-        WITH leaf AS (
+        WITH node AS (
             SELECT t.node_code, t.name AS node_name, t.parent_code, t.main_products,
+                   EXISTS (SELECT 1 FROM tw.industry_tree c
+                            WHERE c.parent_code = t.node_code) AS is_branch,
                    (SELECT count(*) FROM tw.company_industry_exposure e
-                    WHERE e.node_code = t.node_code AND e.effective_to IS NULL) AS members
+                     WHERE e.node_code = t.node_code AND e.effective_to IS NULL) AS members,
+                   (SELECT count(*) FROM tw.company_industry_exposure e
+                      JOIN tw.industry_tree d ON d.node_code = e.node_code
+                     WHERE e.effective_to IS NULL
+                       AND (d.node_code = t.node_code
+                         OR d.parent_code = t.node_code
+                         OR d.parent_code IN (SELECT g.node_code FROM tw.industry_tree g
+                                               WHERE g.parent_code = t.node_code))) AS subtree_members,
+                   EXISTS (SELECT 1 FROM tw.industry_tree c
+                            WHERE c.parent_code = t.node_code
+                              AND c.main_products IS NOT NULL) AS child_defined
             FROM tw.industry_tree t
-            WHERE NOT EXISTS (SELECT 1 FROM tw.industry_tree c
-                              WHERE c.parent_code = t.node_code)
         ), tok AS (
-            SELECT l.node_code,
-                   btrim(x) AS token
-            FROM leaf l,
-                 regexp_split_to_table(coalesce(l.main_products, ''), '[、,，/／(（]') AS x
+            SELECT n.node_code, btrim(x) AS token
+            FROM node n,
+                 regexp_split_to_table(coalesce(n.main_products, ''), '[、,，/／(（]') AS x
             WHERE btrim(x) <> ''
         ), namey AS (
-            SELECT t.node_code,
-                   count(*) AS tokens,
+            SELECT t.node_code, count(*) AS tokens,
                    count(*) FILTER (WHERE EXISTS (
                        SELECT 1 FROM tw.stocks s
                        WHERE s.is_active AND s.security_type = 'STOCK'
                          AND s.name = t.token AND length(s.name) >= 2)) AS names
             FROM tok t GROUP BY t.node_code
         )
-        SELECT l.node_code, l.node_name, l.parent_code, l.members,
-               CASE WHEN l.main_products IS NULL THEN 'no definition'
-                    ELSE 'definition is company names' END AS kind
-        FROM leaf l
-        LEFT JOIN namey n USING (node_code)
-        WHERE l.members > 0
-          AND (l.main_products IS NULL
-               OR (n.names > 0 AND n.names * 2 >= n.tokens))
-        ORDER BY l.members DESC, l.node_code
+        SELECT n.node_code, n.node_name, n.parent_code, n.members, n.subtree_members,
+               CASE WHEN n.main_products IS NOT NULL THEN 'definition is company names'
+                    WHEN n.is_branch THEN 'branch in use with no scope definition'
+                    ELSE 'leaf with members and no definition' END AS kind
+        FROM node n
+        LEFT JOIN namey y USING (node_code)
+        WHERE (n.main_products IS NULL
+                 AND ((NOT n.is_branch AND n.members > 0)
+                   OR (n.is_branch AND (n.subtree_members > 0 OR n.child_defined))))
+           OR (n.main_products IS NOT NULL AND n.members > 0
+                 AND y.names > 0 AND y.names * 2 >= y.tokens)
+        ORDER BY n.subtree_members DESC, n.node_code
+    """)
+
+
+def check_definition_boundary(cur):
+    """Sibling sets whose exclusivity cannot be verified, because a sibling has
+    no boundary written.
+
+    This is what R031 actually asks for. "Sibling nodes under one parent must
+    have mutually exclusive product definitions" is a claim about a set, and a
+    set containing an undefined member cannot support it -- there is nothing to
+    compare the others against. [definition_completeness] cannot see this,
+    because it asks each node about itself and an undefined node with no members
+    has no obligation of its own.
+
+    B2-05 is the case it was written for. It is named HDI / SLP and has no
+    definition; B2-01's definition lists HDI in so many words and carries 28
+    companies. Whether any of those 28 belongs in B2-05 instead is unanswerable
+    and always has been, and the old [definition] said nothing, because B2-05 is
+    empty. Empty is precisely the state that makes the question unanswerable.
+
+    A6-04 Burn-in is the other half of the same problem and the reason R031
+    gained its 2026-09-07 enforcement clause: that day 3581 博磊's burn-in test
+    socket was reasoned into A6-03 partly because A6-04 had no definition and no
+    members. An empty node is not evidence of exclusion, and this check is what
+    should have been consulted instead.
+
+    Scoped to sets that are in use -- the siblings together hold at least one
+    member -- and to sets with at least two siblings, since a lone child has
+    nothing to be exclusive against and owes only its own definition.
+    """
+    return _rows(cur, """
+        WITH sib AS (
+            SELECT t.parent_code, t.node_code, t.name AS node_name,
+                   t.main_products IS NOT NULL AS defined,
+                   (SELECT count(*) FROM tw.company_industry_exposure e
+                     WHERE e.node_code = t.node_code AND e.effective_to IS NULL) AS members
+            FROM tw.industry_tree t
+            WHERE t.parent_code IS NOT NULL
+        ), grp AS (
+            SELECT parent_code, count(*) AS siblings,
+                   count(*) FILTER (WHERE defined) AS defined_siblings,
+                   sum(members) AS set_members
+            FROM sib GROUP BY parent_code
+        )
+        SELECT s.parent_code, s.node_code, s.node_name, s.members,
+               g.siblings, g.defined_siblings, g.set_members
+        FROM sib s JOIN grp g USING (parent_code)
+        WHERE NOT s.defined AND g.siblings >= 2 AND g.set_members > 0
+        ORDER BY g.set_members DESC, s.parent_code, s.node_code
     """)
 
 
