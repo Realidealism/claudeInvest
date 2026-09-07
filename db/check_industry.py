@@ -45,7 +45,7 @@ CHECKS = ("core", "core_overlap", "core_reason", "core_pending", "listing", "sta
           "role_direct_null_minor_unsupported", "coverage",
           "temporal", "mix", "scale", "definition",
           "double", "depth",
-          "unknown", "known", "provenance", "official")
+          "unknown", "known_missing", "known_unavailable", "provenance", "official")
 FISCAL_YEAR = 2025
 
 
@@ -760,14 +760,58 @@ def check_unknown(cur):
     """)
 
 
-def check_known(cur):
+def check_known_missing(cur):
+    """Rows whose evidence has a date to give and did not get it.
+
+    Split out of the old [known] on 2026-09-07, which asked only whether
+    known_date was NULL and so reported 2 while 26 rows carried a date borrowed
+    from a document they were never read from. A missing date and an
+    unreconstructible one are different states and only the first is a defect;
+    lumping them made the honest ones look like defects and the fabricated ones
+    look fine.
+
+    Filing-dated evidence owes the filing date and deck evidence owes the
+    conference date. If either is absent the row is a gap in the pipeline —
+    tw.product_revenue_status has no filing_date, or the deck never landed in
+    tw.conference_product_mix — not an inherent limit of the evidence.
+    """
     return _rows(cur, """
-        SELECT e.stock_id, s.name, count(*) AS exposures
+        SELECT e.stock_id, s.name, e.node_code, e.evidence_kind
         FROM tw.company_industry_exposure e
         JOIN tw.stocks s ON s.stock_id = e.stock_id
         WHERE e.effective_to IS NULL AND e.known_date IS NULL
-        GROUP BY e.stock_id, s.name
-        ORDER BY e.stock_id
+          AND e.evidence_kind IN ('annual_report_table', 'annual_report_prose',
+                                  'filing_too_coarse', 'investor_conf')
+        ORDER BY e.stock_id, e.node_code
+    """)
+
+
+def check_known_unavailable(cur):
+    """Rows whose evidence carries no publication date anyone can recover.
+
+    A company's product page says what it says with no date on it, so there is no
+    honest answer to "from when was this knowable". R030 already settled the
+    shape of that answer for the other axis — 不具期間語意的 evidence,
+    evidence_period_end 應為 NULL, 不得以推測日期填補 — and known_date is the same
+    axis with the same argument.
+
+    Two things come out of here and they are not the same. The NULL rows are the
+    standing, correct state, listed rather than hidden because a backtest filtering
+    on known_date silently drops them and someone should know how many that is:
+    conservative exclusion, which is the trade R030 asks for. A row of this kind
+    carrying a date is the real finding — nothing could have supplied it except a
+    guess or a borrowing.
+    """
+    return _rows(cur, """
+        SELECT e.stock_id, s.name, e.node_code, e.evidence_kind, e.known_date,
+               CASE WHEN e.known_date IS NULL
+                    THEN 'unavailable — excluded from any as-of query, by design'
+                    ELSE 'has a date its evidence cannot supply' END AS kind
+        FROM tw.company_industry_exposure e
+        JOIN tw.stocks s ON s.stock_id = e.stock_id
+        WHERE e.effective_to IS NULL
+          AND e.evidence_kind IN ('company_site', 'no_filing', 'pending')
+        ORDER BY e.known_date NULLS LAST, e.stock_id, e.node_code
     """)
 
 

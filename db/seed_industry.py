@@ -162,12 +162,23 @@ def _deck_dates(cur):
 
 
 def _dates_for(w, stock_id, known, decks):
-    """(known_date, evidence_period_end) for one row, by what evidences it."""
-    if w["evidence_kind"] == "investor_conf" and stock_id in decks:
+    """(known_date, evidence_period_end) for one row, by what evidences it.
+
+    Both dates come from the source evidence_kind names, and neither is borrowed
+    when that source has none to give. R030 already said so for the period —
+    「不具期間語意的 evidence，evidence_period_end 應為 NULL，不得以推測日期填補」
+    — and the code obeyed it: all 24 company_site rows had a NULL period. The
+    same rows were handed the annual report's filing date as known_date, because
+    the rule had only been written for one of the two axes. A product page has no
+    publication date we can see, so it gets neither.
+    """
+    kind = w["evidence_kind"]
+    if kind == "investor_conf" and stock_id in decks:
         period_end, conf_date = decks[stock_id]
         return conf_date, period_end
-    return (known.get(stock_id),
-            EVIDENCE_PERIOD_END if w["evidence_kind"] in DATED_EVIDENCE else None)
+    if kind in DATED_EVIDENCE:
+        return known.get(stock_id), EVIDENCE_PERIOD_END
+    return None, None
 
 
 # confidence, strategic_priority, strategic_evidence and supply_chain_position
@@ -300,10 +311,13 @@ def sync(cur, resolved, effective_from):
            AND e.evidence_period_end IS NULL
     """)
 
-    # known_date is derived from the filing date, which often arrives after the
-    # membership does — a company classified from its company site before the
-    # annual report is parsed opens with NULL. Fill it in as it becomes
-    # available rather than leaving the row invisible to a backtest forever.
+    # The filing date often arrives after the membership does, so a row read off
+    # the filing can open with a NULL known_date and get it later. Restricted to
+    # the filing-dated kinds on 2026-09-07: it used to fill any NULL row, which
+    # handed 26 company_site rows a date belonging to a document they were not
+    # read from — 2330 台積電 A3-01 claiming to have become knowable on the day
+    # its FY2025 report was filed. R030 forbids exactly that for
+    # evidence_period_end; known_date is the same axis with the same argument.
     cur.execute("""
         UPDATE tw.company_industry_exposure e
            SET known_date = st.filing_date
@@ -311,7 +325,20 @@ def sync(cur, resolved, effective_from):
          WHERE st.stock_id = e.stock_id AND st.fiscal_year = %s
            AND st.filing_date IS NOT NULL
            AND e.effective_to IS NULL AND e.known_date IS NULL
+           AND e.evidence_kind IN ('annual_report_table', 'annual_report_prose',
+                                   'filing_too_coarse')
     """, (FISCAL_YEAR,))
+
+    # And the reverse, for rows that were handed one before that restriction
+    # existed. Nothing else clears these: the correction branch only fires when a
+    # mirrored field moves, and evidence_kind staying company_site is precisely
+    # the case where it does not.
+    cur.execute("""
+        UPDATE tw.company_industry_exposure e
+           SET known_date = NULL
+         WHERE e.effective_to IS NULL AND e.known_date IS NOT NULL
+           AND e.evidence_kind IN ('company_site', 'no_filing', 'pending')
+    """)
 
     return len(added), len(superseded), len(corrected), len(closed), len(retracted)
 
