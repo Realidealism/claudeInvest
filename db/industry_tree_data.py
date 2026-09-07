@@ -530,8 +530,21 @@ NODES = [
      '★觸控的邊界規則：本支只收帶**顯示限定語**的觸控（顯示器觸控模組、觸控顯示模組、'
      '與面板貼合之觸控面板）；不與顯示器貼合的通用輸入元件（薄膜觸控開關、鍵盤開關）屬 F。'
      '「觸控」二字本身不構成進入本支的理由。'
-     '★E5 LED 尚未裁定，暫留本支之內：申報普遍只寫「LED」而不分照明、車用、背光與顯示，'
-     '證據粒度不足以歸位，其去留由 LED 另案決定。'),
+     '★**通用 LED 元件不屬本支**（2026-09-08 裁定，E5 已移除）。'
+     '先前以為問題是申報粒度不足；讀完年報後證據反了過來——'
+     '一家封裝廠 94.16% 的「LED」線，其年報「重要用途」欄同時列出電子看板、'
+     'LCD 背光源、交通號誌、電腦滑鼠、家用電器、光電開關位置感測與紅外線接收器，'
+     '而同一份年報有能力把「照明 0.48%」與「LCD 及其他 5.36%」單獨列出。'
+     '**不可拆的是產品族本身，不是報表**：同一顆元件賣進多種終端，'
+     'LED 元件的經濟活動天生跨應用。'
+     '★因此顯示只是 LED 的客戶之一，如同光通訊元件歸 D、成像光學留為 gap：'
+     '**元件族不因顯示是它的客戶之一就屬於顯示產業**。'
+     '★分界因此很乾淨：通用 LED 元件不屬本支；'
+     '**顯示專用**的背光模組、LED 背光模組與光源條屬 E2-02，'
+     '因為那是為顯示器光學路徑而製的子系統而非通用元件。'
+     '★LED 封裝／光電發射元件、不可見光 (IR／UV) 元件、照明模組三者'
+     '全樹皆無節點，屬 R025 taxonomy gap；車燈模組見 H 汽車。'
+     '**不得為了讓這批公司有地方掛而把它們留在顯示分支。**'),
     ('E1', 'E', 2, '顯示產品',
      '以自有面板製程產出之顯示面板與顯示器本體。'
      '★與 E2 顯示模組的分界是**有無自有面板製程**：自製面板（Array／Cell）屬本節點；'
@@ -583,7 +596,11 @@ NODES = [
      '而這五家橫跨材料→膜材→光學件→背光子系統四層，尚未證明其中任何一刀'
      '能形成與 E2-01 互斥且可重複套用的邊界。「導光板究竟是材料還是零組件」'
      '就是那一刀目前答不出來的地方。母體規模在兩次評估中都不是依據。'
-     '★通用光學膜材與成像光學不屬本節點；LED 元件本身見 E5。'),
+     '★通用光學膜材與成像光學不屬本節點。'
+     '★**通用 LED 元件亦不屬本節點，且全樹已無 LED 節點**（E5 於 2026-09-08 移除）：'
+     '本節點收的是**顯示專用**的背光模組、LED 背光模組與光源條——'
+     '它們是為顯示器光學路徑而製的子系統；一顆可賣進照明、車用、感測與背光的'
+     'LED 元件不是，那批公司屬 R025 taxonomy gap。'),
     # 2026-09-07 ruling on E: technology generation stops being E's first-level
     # sibling axis, and the two finest generation cells go with it.
     #
@@ -598,11 +615,27 @@ NODES = [
     # Both technologies keep existing where a technology that cuts across
     # products belongs: T28 Micro LED in theme_master.
     #
-    # Left standing on purpose because they are unruled: E's own parent scope
-    # (display industry, or the wider optical/photonics domain), and with it E5's
-    # rewrite, E6 光學元件 and E7 顯示設備. No definition is written in this pass.
-    ('E5', 'E', 2, 'LED', None),
-    ('E5-01', 'E5', 3, '發光二極體', 'LED Chip、Package、Display、Backlight、Driver'),
+    # E5 LED left E on 2026-09-08, and the reason is the opposite of the one
+    # expected. The working theory was that Taiwanese filings say only 「LED」
+    # and the applications could not be told apart. Reading them showed the
+    # applications are genuinely mixed inside one product: a packager's 94.16%
+    # LED line names electronic signage, LCD backlight, traffic signals, mice,
+    # home appliances, photo-interrupters and infrared receivers as its uses --
+    # in a filing that separately breaks out 照明 at 0.48% and LCD 及其他 at
+    # 5.36%. The company can split what is splittable; what it did not split is
+    # one component sold into many markets.
+    #
+    # So display is one of LED's customers, not its industry, and E is the
+    # display industry. Same shape as optical communication going to D and
+    # imaging optics staying a gap: a component family does not join a branch
+    # because that branch buys from it.
+    #
+    # Nothing about the members is retracted. The LED population -- packaging
+    # and emitter makers, invisible-light (IR/UV) makers, lighting-module makers
+    # -- has no node anywhere in the tree and is an R025 gap, recorded in
+    # db/industry_data.py where its evidence is. Automotive lamp modules go to
+    # H; display-specific backlight modules and LED light bars are E2-02, which
+    # is where they already were.
     # E6 光學元件 dissolved 2026-09-07. Its definition claimed Lens / Prism /
     # Filter and held no lens maker at all, while fifteen imaging-optics
     # companies sat outside the tree unclassified -- the B2-01/HDI shape with
@@ -635,9 +668,21 @@ NODES = [
      '★設備的技術型態本身不得跨越這條界線——同一台 AOI 服務面板製程屬 E7-02，'
      '服務晶圓製程屬 A2-08，服務 PCB 屬 B5-02。'
      '★面板／顯示器本體見 E1 顯示產品，貼合與整合模組見 E2 顯示模組。'
-     '★population gate（2026-09-07）：本節點的存在依據是**兩家以上**'
-     '具可辨識經濟規模的顯示設備業務，不是「顯示設備」這個名目；'
-     '以 Minor／Major 形式兼營者不構成存在依據。該條件不再成立時本節點應重新檢討。'),
+     '★population gate（2026-09-07 設，2026-09-08 檢視）：本節點的存在依據是'
+     '**兩家以上具可辨識經濟規模的顯示設備業務**，不是「顯示設備」這個名目。'
+     '角色本身不是判準——設備商以 Major 形式兼營顯示設備，只要規模可辨識就計入；'
+     '不計入的是佔比零星的順帶業務。（2026-09-07 初稿誤寫成「以 Minor／Major 形式'
+     '兼營者不構成存在依據」，比裁定本身嚴格，已更正。）'
+     '★2026-09-08 檢視：條件成立且已超過門檻。三家具可辨識規模——'
+     '一家 93.09% 以面板檢測設備為本業；一家 LCD 檢測系統 22.47%；'
+     '一家面板設備 20.87%，其年報「顯示器產業設備」欄列出九項產品：'
+     'Array ADI/AEI AOI、Color Filter Repair、Laser Repair、檢測與量測專用設備、'
+     'LCM 整廠設備、R2R 關鍵設備、AMOLED 設備、ACF/FPC Bonder、OLB Bonder。'
+     '第三家尚未掛入本支：其最大營收線是半導體機台及零件 43.93%，Core 須先另案裁定，'
+     '本輪不與 E7 存在性混判。另有三家佔比 5.35%～10.20% 的兼營，不作為存在依據。'
+     '★邊界仍以**設備服務哪一段製程**為準：面板級封裝 (FOPLP) 檢測與量測設備'
+     '服務的是半導體先進封裝，不因名稱含「面板」二字而屬本支。'
+     '★存在條件不再成立時本節點應重新檢討。'),
     ('E7-01', 'E7', 3, '製程設備',
      '【面板／顯示製造】凡主要服務於 TFT-LCD、OLED、觸控面板與顯示模組製造製程之設備：'
      '鍍膜與薄膜沉積、曝光與顯影、蝕刻、濕製程與清洗、配向與封合、貼合與組裝、'

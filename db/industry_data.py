@@ -124,9 +124,35 @@ MEMBERS = {
     "A4-24": [
         ('威盛', 'Core', None, 'filing_too_coarse', '年報自述「威盛長期深耕 x86 處理器與嵌入式運算平台技術」；該業務併於「中央處理器、智慧車載、邊緣 AI、工業及智慧建築解決方案等業務,約占集團總營收 56%」一線揭露，橫跨晶片與系統方案無法拆分故不計比重(R020②)。Core 理由：年報自述集團「逐步建構涵蓋『x86 運算平台、AI 邊緣智能系統、高速連接技術與先進 IC 設計服務』之完整技術生態系」，x86 運算平台列於四者之首，且其餘三者(邊緣智能系統、威鋒之高速連接、威宏之設計服務)皆建立在該平台之上，價值創造的源頭在 x86 與嵌入式處理器(R023①②)。★不採營收排序：56% 那條線本身已宣告不可拆，與威宏的 28% 不具可比性。★未決：56% 線的主體是 Mobile360 車載系統、Firewatch 365、4D+ 數位孿生等系統級方案而非晶片，樹上對應的 G2 工業電腦/H3-03 Telematics 皆無 Product Definition 且零成員，補格後須重跑本公司裁定', 'Direct'),
     ],
-    "E5-01": [
-        ('立碁', 'Core', 'LED模組產品', 'annual_report_table', '年報營業比重表：LED模組產品 55.55%，商品項目為室內外 LED 照明模組、傳統與超高亮發光二極體燈。原掛 A3-04 功率半導體製造係關鍵字誤中「傳統發光二極體燈」', 'Direct'),
-    ],
+    # "E5-01" went with the node on 2026-09-08 when E5 LED left the display
+    # branch. 8111 立碁's evidence stands and is not withdrawn:
+    #   年報營業比重表 LED模組產品 55.55%；商品項目為室內外 LED 照明模組、
+    #   傳統與超高亮發光二極體燈。
+    # That is a lighting company. It was on A3-04 功率半導體製造 before, by a
+    # keyword hitting 「傳統發光二極體燈」, and it went to E5-01 next because
+    # E5 was the only cell with LED in its name -- twice placed by a word rather
+    # than by what it makes. It is now taxonomy-gap pending: 照明模組 has no node
+    # anywhere in the tree, and 「LED」 is not a reason to keep it under a display
+    # parent.
+    #
+    # The wider gap this opens, recorded here because this is where the evidence
+    # lives. Observed candidates only -- the narrative sweep found five more that
+    # revenue-item search cannot see, so the true population is larger:
+    #   LED 封裝／發射元件：2393 億光 LED 94.16（用途欄橫跨背光、號誌、滑鼠、
+    #     家電、感測、紅外）、3031 佰鴻 89.00（可見光 Lamp/Display/SMD/PLCC/
+    #     Light Bar/照明燈具 + 不可見光 Infrared/Sensor Assembly）、
+    #     3437 榮創 SMD LED 97.07（自述涵蓋背光、照明、感測穿戴、車用）、
+    #     6226 光鼎 100.00（年報自我定位為「光電產業之光電元件」）、
+    #     6164 華興 96.36、3609 三一東林 29.49、8064 東捷 21.07；
+    #     敘述層另有 3591 艾笛森、3717 聯嘉投控、6168 宏齊、6654 天正國際、6278 台表科
+    #   不可見光 (IR／UV)：6559 研晶 不可見光LED 90.72
+    #   照明模組：8111 立碁 55.55
+    # 這三類全樹皆無節點。★不得以單一公司或單一群體反推新建節點——
+    # 每一類都要先做 population audit 並證明其邊界可互斥、可重複套用(R025)。
+    #
+    # Not in this gap, because they already have somewhere true to go:
+    #   車燈模組 2248 華勝 80.98、2254 巨鎧 90.40、3346 麗清 64.44 → H 汽車
+    #   顯示專用背光 3531 先益 87.60、6246 臺龍 → E2-02，其中先益已在位
     # "E3" went with the node on 2026-09-07. 6854 錼創科技-KY創's evidence is not
     # withdrawn -- re-reading the filing made it stronger than it was:
     #   業務範圍首句「本公司主要從事微發光二極體(MicroLED)顯示器之研發、製造及銷售」
