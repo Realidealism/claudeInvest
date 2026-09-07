@@ -44,7 +44,10 @@ CHECKS = ("core", "core_overlap", "core_reason", "core_pending", "listing", "sta
           "below", "role_numeric_consistency", "role_indirect_rationale_missing",
           "role_direct_null_minor_unsupported", "coverage",
           "temporal", "mix", "scale", "definition_completeness",
-          "definition_boundary", "double", "depth",
+          "definition_boundary", "definition_entity_reference",
+          "definition_placeholder", "definition_axis_undeclared",
+          "definition_boundary_overlap",
+          "double", "depth",
           "unknown", "known_missing", "known_unavailable", "provenance", "official")
 FISCAL_YEAR = 2025
 
@@ -785,6 +788,186 @@ def check_definition_boundary(cur):
         FROM sib s JOIN grp g USING (parent_code)
         WHERE NOT s.defined AND g.siblings >= 2 AND g.set_members > 0
         ORDER BY g.set_members DESC, s.parent_code, s.node_code
+    """)
+
+
+def _def_tokens(col):
+    """The SQL fragment that splits a definition into its listed terms."""
+    return ("regexp_split_to_table(coalesce(%s, ''), "
+            "'[、,，/／()（）:：;；。★\\n]') " % col)
+
+
+def check_definition_entity_reference(cur):
+    """Definitions that name a listed company.
+
+    A boundary says what a product is. The moment it says who is currently on
+    the node, the reasoning closes a loop -- the company is here, so the
+    definition names it, so the definition proves it belongs here -- and the
+    node can no longer be applied to anyone else. A6-02 read Probe、Probe Card、
+    Probe Interface（旺矽、雍智）, and 雍智 was not even on it: it sits on A6-03 with
+    98.04% of test load boards, so the definition cited a mapping that was wrong
+    as well as circular.
+
+    [definition_completeness] already tests for this and missed it, because that
+    test asks whether the field is *mostly* company names -- it was written for
+    V1, whose definition was three distributor names and nothing else. Two names
+    among five terms is the more common shape and slips under it. This asks
+    whether there is any at all.
+
+    Names of two characters or more, matched as whole terms against active
+    ordinary shares, so a definition may still use a word that happens to be part
+    of a company name without tripping.
+    """
+    return _rows(cur, """
+        WITH tok AS (
+            SELECT t.node_code, t.name AS node_name,
+                   btrim(x) AS token
+            FROM tw.industry_tree t,
+                 %s AS x
+            WHERE btrim(x) <> ''
+        )
+        SELECT k.node_code, k.node_name,
+               string_agg(DISTINCT k.token, '、') AS company_names,
+               (SELECT count(*) FROM tw.company_industry_exposure e
+                 WHERE e.node_code = k.node_code AND e.effective_to IS NULL) AS members
+        FROM tok k
+        WHERE EXISTS (SELECT 1 FROM tw.stocks s
+                       WHERE s.is_active AND s.security_type = 'STOCK'
+                         AND s.name = k.token AND length(s.name) >= 2)
+        GROUP BY k.node_code, k.node_name
+        ORDER BY k.node_code
+    """ % _def_tokens('t.main_products'))
+
+
+def check_definition_placeholder(cur):
+    """Definitions that are a pointer, an annotation or a promise.
+
+    A5-04 HBM Packaging carried, as its entire definition, （HBM 本身為 Theme
+    T07）. It is not empty, so [definition_completeness] passed it, and it has a
+    definition, so [definition_boundary] passed it too -- while nobody could have
+    used it to classify anything. A cross-reference tells a reader where else to
+    look; it does not say what belongs here.
+
+    The test is what is left once the parentheses come off. A definition whose
+    whole content is a bracketed reference has nothing outside them; J16 reads
+    碳粉、碳粉匣、列印耗材、電子成像用色料（碳黑原料見 J15） and keeps a full boundary
+    when the bracket goes, which is what a good definition with a cross-reference
+    looks like. Length alone flagged it, so length alone was the wrong test.
+    """
+    return _rows(cur, """
+        SELECT t.node_code, t.name AS node_name, t.main_products,
+               (SELECT count(*) FROM tw.company_industry_exposure e
+                 WHERE e.node_code = t.node_code AND e.effective_to IS NULL) AS members
+        FROM tw.industry_tree t
+        WHERE t.main_products IS NOT NULL
+          AND t.main_products ~ '(見 ?[A-Z]|Theme|參見|同上|待[定裁補]|TBD|pending|暫)'
+          AND length(btrim(regexp_replace(t.main_products,
+                       '（[^）]*）|[(][^)]*[)]', '', 'g'))) < 8
+        ORDER BY t.node_code
+    """)
+
+
+def check_definition_axis_undeclared(cur):
+    """Branch definitions that never say what their children divide on.
+
+    R031 requires sibling nodes to share one classification axis, and every
+    branch fixed in the 2026-09-07 pass ended up stating that axis outright: A2
+    by process stage, A5 by where the packaging happens, A6 by two declared
+    dimensions, B2 by board structure, J by position in the chemical chain, K by
+    material against product, V by category distributed. The ones that had not
+    stated it are the ones that drifted -- B2 held five axes at once and nobody
+    could see it from the tree.
+
+    Whether an axis is actually violated needs a person; no query decides
+    whether HDI is a structure or a property. What a query can decide is whether
+    the parent ever declared one, which is the precondition for the person to
+    have anything to check against. Named for what it tests.
+
+    Scoped to branches whose subtree is in use and which have at least two
+    children -- a lone child has no sibling to be exclusive against and its
+    parent owes a scope, not an axis -- and satisfied by any of the words a
+    declaration uses in this tree.
+    """
+    return _rows(cur, """
+        SELECT t.node_code, t.name AS node_name, t.level,
+               (SELECT count(*) FROM tw.company_industry_exposure e
+                  JOIN tw.industry_tree d ON d.node_code = e.node_code
+                 WHERE e.effective_to IS NULL
+                   AND (d.parent_code = t.node_code
+                     OR d.parent_code IN (SELECT g.node_code FROM tw.industry_tree g
+                                           WHERE g.parent_code = t.node_code))) AS subtree_members
+        FROM tw.industry_tree t
+        WHERE (SELECT count(*) FROM tw.industry_tree c
+                WHERE c.parent_code = t.node_code) >= 2
+          AND t.main_products IS NOT NULL
+          AND t.main_products !~ '(軸|維度|互斥|分界|依.{0,6}(切分|細分|分格))'
+          AND EXISTS (SELECT 1 FROM tw.company_industry_exposure e
+                        JOIN tw.industry_tree d ON d.node_code = e.node_code
+                       WHERE e.effective_to IS NULL
+                         AND (d.parent_code = t.node_code
+                           OR d.parent_code IN (SELECT g.node_code FROM tw.industry_tree g
+                                                 WHERE g.parent_code = t.node_code)))
+        ORDER BY t.node_code
+    """)
+
+
+def check_definition_boundary_overlap(cur):
+    """Sibling definitions that claim a sibling's own name.
+
+    B2-01 was named 硬板 / 多層板 / HDI and its definition listed HDI and
+    Server/AI Server PCB, which are the whole of B2-05 HDI / SLP and B2-06 AI
+    Server PCB. K2 said it covered 所有成形方式（⋯射出⋯）, which is the whole of
+    K4 塑膠射出. In both cases the empty sibling was the symptom and the defined
+    one was the cause, and neither [definition_completeness] nor
+    [definition_boundary] could say so: one asks whether a node has a definition,
+    the other whether a set has any gaps, and this is a set where the gap was
+    created by a definition that had already taken the ground.
+
+    Matches a sibling's name, minus the generic tail that most node names carry,
+    against the other siblings' definitions -- but only where the sibling's node
+    code is absent. That one condition is what separates a silent claim from a
+    boundary: 「與 A2-05 的分界是製造 vs 服務」 and 「不含被動元件（V2）」 name the code
+    because they are handing the ground over, and they are what a good definition
+    looks like. B2-01 wrote HDI and never wrote B2-05. Without the condition this
+    check reported 74 rows and most of them were definitions doing their job.
+    """
+    return _rows(cur, """
+        WITH n AS (
+            SELECT node_code, parent_code, name, main_products,
+                   btrim(regexp_replace(
+                       split_part(regexp_replace(name, '\\(.*\\)', '', 'g'), ' / ', 1),
+                       '(設備|製造|通路|服務|材料|IC|代工|加工|製品|原料|封裝|系統)$', '')) AS core_name
+            FROM tw.industry_tree
+            WHERE parent_code IS NOT NULL
+        )
+        SELECT a.node_code AS claiming_node, a.name AS claiming_name,
+               b.node_code AS claimed_node, b.name AS claimed_name,
+               b.core_name AS term,
+               (SELECT count(*) FROM tw.company_industry_exposure e
+                 WHERE e.node_code = a.node_code AND e.effective_to IS NULL) AS claiming_members,
+               (SELECT count(*) FROM tw.company_industry_exposure e
+                 WHERE e.node_code = b.node_code AND e.effective_to IS NULL) AS claimed_members
+        FROM n a JOIN n b ON b.parent_code = a.parent_code AND b.node_code <> a.node_code
+        WHERE a.main_products IS NOT NULL
+          AND length(b.core_name) >= 2
+          AND a.main_products NOT LIKE '%%' || b.node_code || '%%'
+          -- the term has to be one of the things A lists, not a fragment inside
+          -- a longer one: 不織布 contains 織布 and 貴金屬 contains 金屬, and neither
+          -- is a claim on anybody
+          AND EXISTS (SELECT 1 FROM regexp_split_to_table(a.main_products,
+                                       '[、,，/／()（）:：;；。★「」
+]') AS w
+                       WHERE length(btrim(w)) >= 2
+                         AND (btrim(w) = b.core_name
+                           OR b.core_name LIKE '%%' || btrim(w)))
+          -- and it has to be distinctive within the set: a word that names more
+          -- than one sibling is the domain, not a claim (PCB under B, 半導體
+          -- under A, 金屬 under L)
+          AND (SELECT count(*) FROM n c
+                WHERE c.parent_code = a.parent_code
+                  AND c.node_code <> b.node_code
+                  AND c.name LIKE '%%' || b.core_name || '%%') < 2
+        ORDER BY a.node_code, b.node_code
     """)
 
 
