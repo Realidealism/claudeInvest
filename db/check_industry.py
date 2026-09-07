@@ -30,6 +30,17 @@ schema cannot see:
 
 A finding is a question, not a verdict.
 
+And a rising count is not always a falling quality. Discovery expansion can
+increase DQ findings without reducing data quality: every check here is scoped
+to the classified population, so a company's existing defects become visible on
+the day it is classified, not on the day they were introduced. This has now
+happened three times in one taxonomy round -- [definition_boundary] jumped when
+a subtree walk replaced a direct-member test, [scale] and [mix] each gained a
+company whose percentages had always been stored in the amount column, and
+[mix] gained three more whose filings disclose a revenue table the database
+never parsed. Read a jump against what entered the population, before reading
+it as damage.
+
     python -m db.check_industry
     python -m db.check_industry --check below --below-threshold 10
 """
