@@ -20,12 +20,26 @@ Two rules govern every row:
 Scale for context (2026-09-08): 471 classified companies; 1597 unclassified
 active ordinary shares carry a FY2025 revenue line ≥20%.
 
+## gap_type
+
+Six rows does not mean six missing nodes. `gap_type` says what kind of thing
+each row is, because they need different work and some need none:
+
+| type | meaning |
+|---|---|
+| `population_pending` | a real population exists; nobody has adjudicated it company by company yet, so whether it is one branch, several, or additions to existing branches is unknown |
+| `taxonomy_node_candidate` | adjudicated far enough that a node is plausible; still owes a parent scope and an exclusivity test before R025 is satisfied |
+| `cross-role decomposition` | one label covering several economic activities; a single node here would repeat the E5 error. Must be split before any of it can be a candidate |
+| `taxonomy_design_choice` | not a missing node at all. A boundary was considered and deliberately not drawn; the row exists so the decision stays visible and monitored |
+| `evidence_insufficient` | the population cannot be measured with the evidence currently held, independent of any taxonomy question |
+
 ---
 
 ## G1 · 消費品製造（成品）
 
 | | |
 |---|---|
+| **gap_type** | `population_pending` |
 | observed candidates | 37 unclassified companies with a ≥15% line naming 鞋／自行車／傢俱／球類／健身／寵物／隱形眼鏡／行李箱／文具／玩具 |
 | evidence coverage | revenue items only; almost none of these have been read |
 | current candidate nodes | none. A full-tree search of names and definitions for 皮／箱／包／成品／消費／民生／家用／生活／雜貨／其他製造／文具／玩具／運動／自行車／鞋 returned only J14 家用化學品 and W2-01 消費金融 |
@@ -37,6 +51,7 @@ active ordinary shares carry a FY2025 revenue line ≥20%.
 
 | | |
 |---|---|
+| **gap_type** | `taxonomy_node_candidate` — evidence not yet sufficient to open one |
 | observed candidates | 1 clean: 2489 瑞軒 (顯示器 52.30% + 數位電視機 12.77%). Three more matched and were each disqualified: stale revenue lines, a failed narrative fetch, a line with no supporting product description |
 | evidence coverage | narratives read for all four |
 | current candidate nodes | none. E1 requires an own panel process, E2 requires bonding modules, E7 is equipment |
@@ -48,6 +63,7 @@ active ordinary shares carry a FY2025 revenue line ≥20%.
 
 | | |
 |---|---|
+| **gap_type** | `taxonomy_node_candidate` — **highest priority** |
 | observed candidates | 14 unclassified: 3008 大立光 99.48%, 3406 玉晶光 75%, 3630 新鉅科 100%, 4976 佳凌 98.30%, 6517 保勝, 6668 中揚光, 3019 亞光, 3362 先進光, 3504 揚明光, 6426 統新, 6498 久禾光, 6588 東典光電, 6722 輝創, 6742 澤米 |
 | evidence coverage | revenue items only |
 | current candidate nodes | none since E6 dissolved. E6-01 had claimed Lens/Prism/Filter while holding no lens maker at all |
@@ -59,6 +75,7 @@ active ordinary shares carry a FY2025 revenue line ≥20%.
 
 | | |
 |---|---|
+| **gap_type** | `cross-role decomposition` — at least three activities under one label |
 | observed candidates | 13 unclassified with a ≥15% LED line, plus 5 found only in narratives (3591 艾笛森, 3717 聯嘉投控, 6168 宏齊, 6654 天正國際, 6278 台表科) |
 | evidence coverage | narratives read for 8 of the packagers |
 | current candidate nodes | none since E5 was removed. A3-06 化合物半導體製造 covers epitaxy and wafer process, not packaging |
@@ -70,6 +87,7 @@ active ordinary shares carry a FY2025 revenue line ≥20%.
 
 | | |
 |---|---|
+| **gap_type** | `taxonomy_design_choice` — nothing to add; monitored only |
 | observed candidates | 5 on E2-02: 偏光板, TAC 膜, 增光膜, 導光板與擴散板, 背光膜材 |
 | evidence coverage | narratives read for all five |
 | current candidate nodes | E2-02, which holds them all |
@@ -81,6 +99,7 @@ active ordinary shares carry a FY2025 revenue line ≥20%.
 
 | | |
 |---|---|
+| **gap_type** | `population_pending` |
 | observed candidates | 3 unclassified |
 | evidence coverage | revenue items only |
 | current candidate nodes | none; the testing nodes under A6 are semiconductor test, not compliance certification |
