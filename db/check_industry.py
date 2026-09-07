@@ -41,7 +41,8 @@ import re
 from db.connection import get_cursor
 
 CHECKS = ("core", "core_overlap", "core_reason", "core_pending", "listing", "stale",
-          "below", "role_numeric_consistency", "role_evidence_missing", "coverage",
+          "below", "role_numeric_consistency", "role_indirect_rationale_missing",
+          "role_direct_null_minor_unsupported", "coverage",
           "temporal", "mix", "scale", "definition",
           "double", "depth",
           "unknown", "known", "official")
@@ -176,12 +177,15 @@ def check_role_numeric_consistency(cur):
 
     Scope, and why the name says "numeric": this can only speak about rows the
     15% default actually governs — Direct, with a weight. R026 has a second half
-    for the rows it does not govern (Indirect, and Emerging), where role comes
-    from evidence instead and the reasoning must be written down; that half is
-    [role_evidence_missing]. Splitting them is 2026-09-07: this check reported 0
-    while 9 of the 12 Indirect rows carried a Major/Minor nobody had justified,
-    and "[role] 0" was read as "the column is auditable" when it only ever meant
-    "no Direct row with a number contradicts the threshold".
+    for every row it does not govern, and those split two ways rather than one:
+    [role_indirect_rationale_missing] for Indirect and Emerging, where role comes
+    from evidence of importance, and [role_direct_null_minor_unsupported] for the
+    Direct rows with no weight, where Major is the default and Minor is a claim.
+    Splitting them is 2026-09-07: this check reported 0 while 9 of 12 Indirect
+    rows carried an unjustified Major/Minor and 14 of 22 Direct rows with no
+    weight were Minor with nothing supporting it. "[role] 0" was read as "the
+    column is auditable" when it only ever meant "no Direct row with a number
+    contradicts the threshold".
 
     A row whose evidence carries "role 理由：" is excluded. R026 says a deviation
     must be named, not that it must not happen, so a named one is the rule
@@ -201,7 +205,7 @@ def check_role_numeric_consistency(cur):
     """)
 
 
-def check_role_evidence_missing(cur):
+def check_role_indirect_rationale_missing(cur):
     """Indirect / Emerging rows ranked Major or Minor with no stated reason.
 
     R026 takes the numeric default away from these rows on purpose — an agency
@@ -225,6 +229,12 @@ def check_role_evidence_missing(cur):
     of_rows carries the population so the report reads "9 of 12" rather than a
     bare 9: a count of failures alone cannot say whether the rule is nearly kept
     or barely known.
+
+    Not to be confused with [role_direct_null_minor_unsupported]. Both ask for a
+    written reason and both accept the same "role 理由：" marker, but they are
+    asking different questions: here, why this borrowed line is important (or
+    not) to the parent; there, why a line the company runs itself is ancillary.
+    A Direct row with no weight defaults to Major and owes nothing.
     """
     return _rows(cur, """
         SELECT e.stock_id, s.name, e.node_code, t.name AS node_name,
@@ -239,6 +249,48 @@ def check_role_evidence_missing(cur):
         WHERE e.effective_to IS NULL
           AND (e.exposure_type = 'Indirect' OR e.role = 'Emerging')
           AND e.role IN ('Major', 'Minor')
+          AND e.evidence NOT LIKE '%%role 理由%%'
+        ORDER BY e.stock_id, e.node_code
+    """)
+
+
+def check_role_direct_null_minor_unsupported(cur):
+    """Direct rows with no weight labelled Minor and nothing saying why.
+
+    R026 makes this branch asymmetric on purpose. A Direct row whose weight is
+    NULL asks one question -- is there evidence this business is ancillary? --
+    and the two answers are not equally free: Major is the default and owes
+    nothing, Minor is a claim about the company and owes evidence. "「附屬業務」
+    須有 evidence 支持，不得僅因 weight 為 NULL 或營收未揭露而認定" is the whole
+    point; without it Minor becomes the place unquantifiable lines quietly go.
+
+    Nothing checked it, and the clause went from unexercised to heavily used
+    while nobody was looking: R026's own 現況 line said 0 such rows as of
+    2026-09-02 and there are now 22, 14 of them with no stated support. The eight
+    that do have it show what the bar looks like -- 5351 鈺創 "系統晶片為記憶體以外
+    之次要產品線"; 3581 博磊 "年報自述主力產品為測試產品、切割機及植球機，清洗機不在
+    其列"; 6129 普誠 "MCU 僅商品表一列". Each names what the main business is and
+    where this line sits relative to it.
+
+    Level 1 only, and the marker is shared with
+    [role_indirect_rationale_missing] because the eight compliant rows already
+    write it that way; one marker, two required contents. What the lint cannot
+    see is a row like 1722 台肥 J8, whose evidence ends "年報無營業比重表故不計
+    比重" -- that explains the NULL, not the Minor, and it would pass the moment
+    someone appended the marker to it. R026's definition of 附屬業務 exists so the
+    reader can fail that on a reading.
+    """
+    return _rows(cur, """
+        SELECT e.stock_id, s.name, e.node_code, t.name AS node_name,
+               e.role::text, e.weight_item, e.evidence_kind,
+               (SELECT count(*) FROM tw.company_industry_exposure x
+                 WHERE x.effective_to IS NULL AND x.exposure_type = 'Direct'
+                   AND x.weight_pct IS NULL AND x.role = 'Minor') AS of_rows
+        FROM tw.company_industry_exposure e
+        JOIN tw.stocks s ON s.stock_id = e.stock_id
+        JOIN tw.industry_tree t ON t.node_code = e.node_code
+        WHERE e.effective_to IS NULL AND e.exposure_type = 'Direct'
+          AND e.weight_pct IS NULL AND e.role = 'Minor'
           AND e.evidence NOT LIKE '%%role 理由%%'
         ORDER BY e.stock_id, e.node_code
     """)
