@@ -982,7 +982,44 @@ NODES = [
     ('W9', 'W', 2, '投信 / 資產管理', 'ETF、主動式ETF、基金、資產管理'),
     ('W10', 'W', 2, '租賃', None),
     ('W11', 'W', 2, '信用卡 / 支付', None),
-    ('X', None, 1, '消費 / 零售', None),
+    ('X', None, 1, '零售 / 消費通路',
+     '面向終端消費者之商品零售與零售通路活動：以店面、賣場或網路平台將商品售予'
+     '最終消費者，收入來自商品銷售價差、專櫃與聯營抽成、平台服務費。'
+     '★★2026-09-07 本支經 parent identity／sibling axis／商品垂直三題裁定後重整，'
+     '裁定內容如下四條。'
+     '★**一、本支是零售，不是消費**。消費活動中的餐飲、旅館、旅遊已由 Y 承接，'
+     '不得以「消費」這個大傘把它們併回本支；節點名同日由「消費 / 零售」改寫，'
+     '因為原名本身就在誘導那個併法。'
+     '★**二、製造端不屬本支**。自製消費性商品的公司是製造商，其 value-chain role '
+     '在製造側，不因為賣的是消費品而成為零售商。全樹目前沒有消費品製造節點，'
+     '這是已知的 taxonomy gap（R025）——掃 2025 年報，未分類母體中主要營收線落在'
+     '鞋類、自行車、家具、球具與健身器材、寵物用品、隱形眼鏡且占比 >= 20% 的公司'
+     '共 34 家、36 條線，其中 12 條 >= 90%。**但缺節點不是把公司塞進本支的理由**，'
+     '也還不是開節點的理由：那 34 家目前全部未經逐家裁定，'
+     '在對它們的 evidence 做過 population 檢查之前，任何共通邊界都只是先驗知識。'
+     '★**三、sibling 分類軸＝零售業態，且僅為 PROPOSAL 而非 approved**：'
+     '百貨、超商、電商、賣場，依店型與交易場所切分，同層互斥。'
+     '標為提案的理由是證據還撐不住——全庫 2025 年報中零售業者的營收切分方式共有'
+     '門市別、業態別、事業別、商品垂直、經營模式、收入性質等七種，彼此不同軸；'
+     '其中直接以業態命名營收線的只有一家一條（「量販業」），'
+     '而最能定義超商、百貨、賣場三種業態的三家指標公司在庫內營收表皆為 0 筆，'
+     '只有敘述。**沒有 driver 不等於沒有市場；但沒有 driver，'
+     '就不能先把 taxonomy 當成已證實。**'
+     '★**四、因此本支全部子節點上 mapping gate**：在業態軸經實際 population evidence '
+     '驗證、且各子節點寫出 Product Definition 之前，不得掛任何公司(R031)。'
+     '★**商品垂直不是本支的 sibling**。家電、家具、美妝、運動用品、食品零售五格'
+     '（原 X5～X8、X10）與業態軸不同軸——同一家超商同時賣食品與美妝，'
+     '同一間百貨同時賣家電與運動用品——已於 2026-09-07 移除。'
+     '零售的商品類別應以 attribute 或 Theme 表達，但 tw.theme_master 現有 11 個 '
+     'theme_group 全屬科技、能源與總經，**沒有消費／零售 group**，'
+     '故本輪是直接移除而非移入 Theme，theme group 的建立屬 backlog。'
+     '處置與 B2-04／B2-05／B2-06、A5-03／A5-04、K3／K4 一致：'
+     '屬性、應用與方法被誤置為 sibling 時，正解是移除，不是替空格補寫定義。'
+     '★原 X9 居家 / 生活用品同日移除：其定義列的家用品、文具、玩具、樂器、珠寶、皮革'
+     '同樣是商品類別而非業態，且其三家成員全部是製造商，沒有一家是零售商——'
+     '本支唯一有成員的一格，成員卻全部不符 parent 定義，這正是重整的起點。'
+     '★與 O 食品 / 農業的分界是價值鏈段：O 是食品的生產與加工，本支是把商品賣給'
+     '終端消費者。與 V 電子通路的分界是客戶：V 的客戶是廠商，本支的客戶是終端消費者。'),
     ('X1', 'X', 2, '百貨', None),
     ('X2', 'X', 2, '超商', None),
     ('X3', 'X', 2, '電商', None),
@@ -991,14 +1028,17 @@ NODES = [
     # company in front of you -- that is how a taxonomy ends up shaped by the
     # cases it happened to meet. Definition first, then map the whole table,
     # then re-run every Core whose candidate set the definition changed.
-    # Waiting: 3555 博士旺 56.91% 電玩通路, 1712 興農 23% 農友超市.
+    # All four of X1-X4 sit under X's mapping gate: the retail-format axis is a
+    # proposal, not evidence, so a definition written now would be prior
+    # knowledge dressed as a boundary. main_products stays NULL deliberately --
+    # a note about a node's status is not a boundary and does not belong in the
+    # boundary column (the H2-01 lesson).
+    # Waiting on the gate: 3555 博士旺 56.91% 電玩通路, 1712 興農 23% 農友超市.
     ('X4', 'X', 2, '賣場 / 通路', None),
-    ('X5', 'X', 2, '家電', None),
-    ('X6', 'X', 2, '家具', None),
-    ('X7', 'X', 2, '美妝', None),
-    ('X8', 'X', 2, '運動用品', None),
-    ('X9', 'X', 2, '居家 / 生活用品', '家用品、文具、玩具、樂器、珠寶、皮革'),
-    ('X10', 'X', 2, '食品零售', None),
+    # X5 家電 / X6 家具 / X7 美妝 / X8 運動用品 / X9 居家·生活用品 /
+    # X10 食品零售 removed 2026-09-07: product verticals, not retail formats.
+    # See X. X9's three members were all manufacturers; their disposition is
+    # recorded in db/industry_data.py where the X9 member block used to be.
     ('Y', None, 1, '觀光 / 餐旅 / 娛樂', None),
     ('Y1', 'Y', 2, '飯店', None),
     ('Y2', 'Y', 2, '旅行社', None),

@@ -96,11 +96,33 @@ MEMBERS = {
         ('聚鼎', 'Core', '保護元件', 'annual_report_table', '年報營業比重表：保護元件 64.45%（PPTC/OVP/CLM），年報自述「PPTC 與 OVP 元件係分類於電子零組件業中之電阻器產業」。原掛 A1-14 陶瓷基板，係關鍵字誤中——年報該句講的是 CLM 模組的投入材料，不是聚鼎的產品。Core 理由：①年報所經營業務順序為「(1)**保護元件**：包括過電流保護(OCP)及過電壓保護(OVP)…(2)散熱基板、散熱模組及散熱材料」，保護元件列首；商品項目首句「本公司**專注於保護元件**與散熱材料之研究、開發、製造及銷售」；④計畫開發首句為「**PPTC 產品平台**」；⑤本格 64.45% 大於 C6-01 散熱 35.55%。三項同向', 'Direct'),
         ('台聚', 'Minor', '電子材料', 'annual_report_table', '年報營業比重表：電子材料 6.00%；所營業務「(27)錳鋅及鎳鋅軟性鐵氧磁粉、磁鐵芯、碳化矽粉,以及其他相關電感零組件之製造及銷售業務」，產品項目列「(16)錳鋅軟性鐵氧磁鐵粉」「(18)錳鋅軟性鐵氧磁鐵芯」，計畫開發之新產品第 44～54 項全為鐵芯開發。本節點定義即含磁性元件', 'Direct'),
     ],
-    "X9": [
-        ('萬國通', 'Core', '行李箱', 'annual_report_table', '年報營業比重表：行李箱 94.00%', 'Direct'),
-        ('達新', 'Minor', '鋼鐵製品製造加工', 'annual_report_table', '年報營業比重表：鋼鐵製品製造加工 3.28%，主要產品欄為「傢俱用品(含衣櫥)」；商品項目「雨衣、成衣、塑膠什項加工、傢俱用品、衣櫥、裝訂機、護貝機、PP瓦楞板」。本節點定義含家用品', 'Direct'),
-        ('聚和', 'Major', '辦公文具用品', 'annual_report_table', '年報營業比重表：辦公文具用品 22.00%；為公司自有品牌「N 次貼」之自製產品，年報有獨立的產業概況節與獨立的上中下游關聯圖。本節點定義含文具', 'Direct'),
-    ],
+    # X9 居家 / 生活用品 was removed from the tree on 2026-09-07 together with the
+    # other product verticals (see X in db/industry_tree_data.py), and its three
+    # memberships are retracted with it. None of the three was ever a retailer,
+    # which is why this was the node that exposed the branch:
+    #
+    #   9950 萬國通  行李箱 94.17% (annual_report_table)  -- was Core, and X9 was
+    #     its only exposure. A luggage maker is a manufacturer; its value-chain
+    #     role is on the production side, and the tree has no consumer-goods
+    #     manufacturing node. Per the 2026-09-07 ruling this is an R025 taxonomy
+    #     gap with mapping pending, NOT a company that cannot be classified: the
+    #     revenue evidence stays in tw.product_revenue_share, and the company
+    #     joins the 34 others (36 lines >= 20%: footwear, bicycles, furniture,
+    #     golf and fitness, pet supplies) that already sit outside the classified
+    #     universe for exactly this reason. One company and one line do not
+    #     justify a new branch -- that is the mistake B2 and A5 made in reverse.
+    #
+    #   6509 聚和  辦公文具用品 22.00% -- was Major; Core stays on J4-01. Whether
+    #     the self-branded stationery line is manufacturing, brand or channel is
+    #     unadjudicated, and it must not be re-homed by default just because a
+    #     node was removed underneath it.
+    #
+    #   1315 達新  鋼鐵製品製造加工 3.28% (main product 傢俱用品) -- was Minor;
+    #     Core stays on K2. Same treatment: the furniture line needs its own
+    #     value-chain judgement, not an automatic move.
+    #
+    # 6509 and 1315 therefore lose 22.00pp and 3.28pp of assigned weight, which
+    # will show up in [coverage]. That is the honest state, not a regression.
     "M7": [
         ('恆大', 'Core', '紡結與複合不織布 + 加工品 + 熔噴不織布 + 材料加工', 'annual_report_table', '年報營業比重表：紡結與複合不織布 87.82% 加加工品 9.51% 加熔噴不織布 0.50% 加材料加工 0.02%，本節點定義即為「紡黏、熔噴、複合不織布」，合計 97.85%(R020④)。Core 理由：全部營收皆在本節點(R023⑤)', 'Direct'),
     ],
