@@ -765,29 +765,60 @@ def check_definition_boundary(cur):
     members. An empty node is not evidence of exclusion, and this check is what
     should have been consulted instead.
 
-    Scoped to sets that are in use -- the siblings together hold at least one
-    member -- and to sets with at least two siblings, since a lone child has
-    nothing to be exclusive against and owes only its own definition.
+    Scoped to sets that are in use, and to sets with at least two siblings,
+    since a lone child has nothing to be exclusive against and owes only its own
+    definition.
+
+    In use is a property of the sibling *set*, not of any one node in it.
+    Until 2026-09-07 this query asked whether a sibling carried an exposure on
+    its own node_code, which is the wrong question wherever exposures legally
+    land on leaves below it: a scope node is not supposed to carry members. So
+    every L2 set whose companies all sat at L3 was invisible -- A3 晶圓製造,
+    A1 半導體材料 and A7 半導體廠務 share a set holding 361 companies and were
+    never once reported, while F, G and Y were reported only because some
+    sibling of theirs happened to hold a direct member. The correction took
+    findings from 26 to 66; the 40 are false negatives being uncovered, not new
+    violations, and none of them are ordered by this check.
+
+    Population is therefore counted over each node's whole subtree, by DISTINCT
+    company: the question is whether real companies are being sorted by this set,
+    not how many exposure rows exist. Written as a descendant walk rather than a
+    parent/child join so that it keeps answering the same question if the tree
+    ever grows a fourth level (R016 defines a leaf as a node without children,
+    not as level 3).
     """
     return _rows(cur, """
-        WITH sib AS (
+        WITH RECURSIVE descendant AS (
+            SELECT node_code AS root, node_code FROM tw.industry_tree
+            UNION ALL
+            SELECT d.root, t.node_code
+              FROM descendant d
+              JOIN tw.industry_tree t ON t.parent_code = d.node_code
+        ), sib AS (
             SELECT t.parent_code, t.node_code, t.name AS node_name,
                    t.main_products IS NOT NULL AS defined,
-                   (SELECT count(*) FROM tw.company_industry_exposure e
-                     WHERE e.node_code = t.node_code AND e.effective_to IS NULL) AS members
+                   (SELECT count(DISTINCT e.stock_id)
+                      FROM descendant d
+                      JOIN tw.company_industry_exposure e ON e.node_code = d.node_code
+                     WHERE d.root = t.node_code AND e.effective_to IS NULL) AS members
             FROM tw.industry_tree t
             WHERE t.parent_code IS NOT NULL
         ), grp AS (
-            SELECT parent_code, count(*) AS siblings,
-                   count(*) FILTER (WHERE defined) AS defined_siblings,
-                   sum(members) AS set_members
-            FROM sib GROUP BY parent_code
+            SELECT s.parent_code, count(*) AS siblings,
+                   count(*) FILTER (WHERE s.defined) AS defined_siblings,
+                   (SELECT count(DISTINCT e.stock_id)
+                      FROM tw.industry_tree sub
+                      JOIN descendant d ON d.root = sub.node_code
+                      JOIN tw.company_industry_exposure e ON e.node_code = d.node_code
+                     WHERE sub.parent_code = s.parent_code
+                       AND e.effective_to IS NULL) AS subtree_members
+            FROM sib s GROUP BY s.parent_code
         )
         SELECT s.parent_code, s.node_code, s.node_name, s.members,
-               g.siblings, g.defined_siblings, g.set_members
+               g.siblings, g.defined_siblings, g.subtree_members
         FROM sib s JOIN grp g USING (parent_code)
-        WHERE NOT s.defined AND g.siblings >= 2 AND g.set_members > 0
-        ORDER BY g.set_members DESC, s.parent_code, s.node_code
+        WHERE NOT s.defined AND g.siblings >= 2 AND g.subtree_members > 0
+        ORDER BY g.subtree_members DESC, s.parent_code, s.node_code
     """)
 
 

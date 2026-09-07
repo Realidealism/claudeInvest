@@ -22,6 +22,7 @@ import pytest
 import db.connection as dbc
 from db.check_industry import (
     check_definition_axis_undeclared,
+    check_definition_boundary,
     check_definition_boundary_overlap,
     check_definition_entity_reference,
     check_definition_placeholder,
@@ -144,6 +145,72 @@ def test_axis_undeclared_wants_the_parent_to_say_what_its_children_divide_on(cur
     found = codes(check_definition_axis_undeclared(cur), "node_code")
     assert "T1" in found, "a branch in use that never states its axis must be reported"
     assert "T2" not in found, "a branch that states one must not be"
+
+
+def test_boundary_population_counts_the_subtree_not_direct_members(cur):
+    """A3 晶圓製造, A1 半導體材料 and A7 半導體廠務 sit in a set holding 361
+    companies and were never reported, because every one of those companies is
+    attached to an L3 leaf and the query asked whether the L2 sibling itself
+    carried an exposure.
+
+    A scope node is not supposed to carry members, so asking that question of it
+    answers a different one. The set is in use when companies are being sorted
+    by it anywhere underneath.
+    """
+    cur.execute("SELECT stock_id FROM tw.stocks WHERE is_active"
+                " AND security_type = 'STOCK' ORDER BY stock_id LIMIT 1")
+    sid = cur.fetchone()["stock_id"]
+
+    node(cur, "T", None, 1, "root")
+    node(cur, "T1", "T", 2, "undefined scope node")
+    node(cur, "T1-01", "T1", 3, "leaf a", "甲")
+    node(cur, "T2", "T", 2, "defined scope node", "本組的分類軸是製程段")
+    node(cur, "T2-01", "T2", 3, "leaf b", "乙")
+    # a second set, identical in shape, with nobody in it
+    node(cur, "U", None, 1, "empty root")
+    node(cur, "U1", "U", 2, "undefined and unused")
+    node(cur, "U1-01", "U1", 3, "leaf c", "丙")
+    node(cur, "U2", "U", 2, "defined and unused", "本組的分類軸是材質")
+    cur.execute(
+        "INSERT INTO tw.company_industry_exposure"
+        " (stock_id, node_code, role, evidence, evidence_kind, exposure_type,"
+        "  effective_from) VALUES (%s, 'T2-01', 'Core', 'x', 'company_site',"
+        " 'Direct', DATE '2025-12-31')", (sid,))
+
+    found = codes(check_definition_boundary(cur), "node_code")
+    assert "T1" in found, (
+        "the set is in use through an L3 leaf, so its undefined sibling must be"
+        " reported")
+    assert "U1" not in found, "a set with no population anywhere must not be"
+
+
+def test_boundary_population_counts_companies_not_exposure_rows(cur):
+    """One company holding three exposures under one set is one company.
+
+    The predicate asks whether real companies are being sorted by this set. Rows
+    would answer how much work has been recorded, which is a different thing and
+    would let a single heavily-split company make a set look populated.
+    """
+    cur.execute("SELECT stock_id FROM tw.stocks WHERE is_active"
+                " AND security_type = 'STOCK' ORDER BY stock_id LIMIT 1")
+    sid = cur.fetchone()["stock_id"]
+
+    node(cur, "T", None, 1, "root")
+    node(cur, "T1", "T", 2, "undefined scope node")
+    node(cur, "T2", "T", 2, "defined scope node", "本組的分類軸是製程段")
+    node(cur, "T2-01", "T2", 3, "leaf a", "甲")
+    node(cur, "T2-02", "T2", 3, "leaf b", "乙")
+    for leaf, role in (("T2-01", "Core"), ("T2-02", "Major")):
+        cur.execute(
+            "INSERT INTO tw.company_industry_exposure"
+            " (stock_id, node_code, role, evidence, evidence_kind, exposure_type,"
+            "  effective_from) VALUES (%s, %s, %s, 'x', 'company_site',"
+            " 'Direct', DATE '2025-12-31')", (sid, leaf, role))
+
+    rows = [f for f in check_definition_boundary(cur) if f["node_code"] == "T1"]
+    assert rows, "the set is in use, so its undefined sibling must be reported"
+    assert rows[0]["subtree_members"] == 1, (
+        "two exposures held by one company are one company, not two")
 
 
 def test_boundary_overlap_catches_a_definition_claiming_a_siblings_name(cur):
