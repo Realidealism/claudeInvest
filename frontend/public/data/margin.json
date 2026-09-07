@@ -1,26 +1,14 @@
 {
-  "latest_date": "2026-09-04",
+  "latest_date": "2026-09-07",
   "stats": {
     "stat_window_days": 752,
     "ma_window": 55,
-    "margin_balance_pct_1m": 95.5,
-    "margin_balance_pct_6m": 81.8,
-    "margin_balance_pct_3y": 96.8,
-    "margin_balance_z_3y": 2.6
+    "margin_balance_pct_1m": 100.0,
+    "margin_balance_pct_6m": 85.6,
+    "margin_balance_pct_3y": 97.5,
+    "margin_balance_z_3y": 2.65
   },
   "series": [
-    {
-      "date": "2025-09-18",
-      "margin_balance": 7252123,
-      "short_balance": 333640,
-      "margin_balance_value": 266808583,
-      "short_to_margin_pct": 4.6006,
-      "net_margin": 12061,
-      "net_short": 14311,
-      "ma60": 243886137,
-      "upper": 275653510,
-      "lower": 212118765
-    },
     {
       "date": "2025-09-19",
       "margin_balance": 7245469,
@@ -2804,6 +2792,18 @@
       "ma60": 572168727,
       "upper": 641115696,
       "lower": 503221758
+    },
+    {
+      "date": "2026-09-07",
+      "margin_balance": 9073251,
+      "short_balance": 211213,
+      "margin_balance_value": 588271579,
+      "short_to_margin_pct": 2.3279,
+      "net_margin": 54308,
+      "net_short": -7947,
+      "ma60": 572081910,
+      "upper": 640935465,
+      "lower": 503228354
     }
   ]
 }
