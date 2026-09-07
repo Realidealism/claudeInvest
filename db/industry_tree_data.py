@@ -117,7 +117,17 @@ NODES = [
      '★不含：NOR／NAND Flash 製造（A3-07）、記憶體 IC 設計而無自有 fab 者（A4-21）、'
      '記憶體模組封裝與模組銷售（見 A5／V 分支）。'),
     ('A3-04', 'A3', 3, '功率半導體製造 (Power)', 'MOSFET、IGBT、整流器、二極體、TVS、齊納二極體、SiC、GaN（自有 fab；無自有 fab 的設計公司見 A4-22）'),
-    ('A3-05', 'A3', 3, '影像感測製程 (CIS)', 'CMOS Image Sensor、BSI、CIS製程'),
+    ('A3-05', 'A3', 3, '半導體光學晶圓製程 (CIS / Wafer-level Optics)',
+     '以半導體晶圓製程製造光學結構之製造與晶圓代工：CMOS 影像感測器 (CIS)、'
+     '背照式 (BSI) 與其微透鏡及彩色濾光片等 CIS 製程；以及晶圓級光學 '
+     '(Wafer-level Optics)——微透鏡陣列、超穎表面 (Metasurface) 濾波元件、'
+     '矽光子用微光學、光波導。'
+     '★2026-09-07 依 R025 放寬：原定義只寫 CIS，於是同一座晶圓廠以同一種製程'
+     '產出的晶圓級光學元件無處可掛，被錯掛到顯示分支的光學元件節點。'
+     'R025 的順序是先放寬既有定義、確認仍容不下才新增節點，本案止於前者。'
+     '★與 A3-01 的分界是**產出是否為光學結構**；與 E 顯示分支的分界是'
+     '**製程屬半導體晶圓製造**——終端應用（手機相機、AR 眼鏡、光通訊）是 application，'
+     '不是歸屬依據。'),
     ('A3-06', 'A3', 3, '化合物半導體製造 (GaN/SiC)',
      '以化合物半導體為基材之晶圓製造與元件生產：砷化鎵 (GaAs)、氮化鎵 (GaN)、'
      '碳化矽 (SiC)、磷化銦 (InP) 之磊晶與晶圓製程，以及**以上述化合物基材製造**之'
@@ -506,11 +516,59 @@ NODES = [
     ('D5-01', 'D5', 3, '光通訊設備 (Optical Equipment)', 'Optical Network、Optical Switch、Optical Transport、Network Equipment'),
     ('D6', 'D', 2, '光通訊元件', None),
     ('D6-01', 'D6', 3, '光通訊元件 (Optical Component)', 'Optical Transceiver、Optical Engine、EML、DML、VCSEL、TIA、Driver、DSP、Silicon Photonics、Fiber、Passive（CPO 為跨產業 Theme，見 T12）'),
-    ('E', None, 1, '光電 / 顯示 / LED', None),
-    ('E1', 'E', 2, 'LCD', None),
-    ('E1-01', 'E1', 3, '液晶面板', '面板、Cell、Module'),
-    ('E2', 'E', 2, 'OLED', None),
-    ('E2-01', 'E2', 3, 'OLED', 'OLED Panel、AMOLED、LTPO、OLED材料'),
+    ('E', None, 1, '顯示產業',
+     '顯示器及其專用供應鏈之產業活動。'
+     '★本支的 L2 分類軸是**價值鏈角色**——產品、模組、設備各為一格，'
+     '與 A 半導體同型（材料、設備、製造、設計、封測並列於 L2）。'
+     '技術世代（TFT-LCD、OLED、Micro LED、Mini LED）**不是**本支的軸，'
+     '降為產品節點內的技術細分或 Theme（2026-09-07 裁定）。'
+     '★不屬本支者逐項寫明去處：光通訊元件見 D6-01、光通訊設備見 D5-01；'
+     '顯示器驅動 IC 見 A4-12；觸控控制 IC 見 A4-15；'
+     '半導體光學晶圓製程（晶圓級光學、超穎表面、光波導）見 A3-05。'
+     '★成像光學（相機鏡頭、光學鏡片、光學鍍膜元件）全樹尚無節點，屬 R025 taxonomy gap；'
+     '**不得因為全樹只有本支收得下就掛進來**——「只有這裡收得下」不是歸屬理由。'
+     '★觸控的邊界規則：本支只收帶**顯示限定語**的觸控（顯示器觸控模組、觸控顯示模組、'
+     '與面板貼合之觸控面板）；不與顯示器貼合的通用輸入元件（薄膜觸控開關、鍵盤開關）屬 F。'
+     '「觸控」二字本身不構成進入本支的理由。'
+     '★E5 LED 尚未裁定，暫留本支之內：申報普遍只寫「LED」而不分照明、車用、背光與顯示，'
+     '證據粒度不足以歸位，其去留由 LED 另案決定。'),
+    ('E1', 'E', 2, '顯示產品',
+     '以自有面板製程產出之顯示面板與顯示器本體。'
+     '★與 E2 顯示模組的分界是**有無自有面板製程**：自製面板（Array／Cell）屬本節點；'
+     '採購面板或 Open Cell 後貼合、組裝、整合者屬 E2。'
+     '★技術世代（TFT-LCD、STN、OLED、Micro LED）在本節點內為技術細分，不另立節點。'),
+    ('E1-01', 'E1', 3, '顯示面板',
+     '以自有面板製程製造之顯示面板與顯示器：Array、Cell 與 Module 各段自製，'
+     '涵蓋 TFT-LCD、STN、OLED、Micro LED 等各技術世代之面板本體。'
+     '★技術世代在本節點內為技術細分而非分格依據（2026-09-07 裁定）。'
+     '★採購面板進行貼合與整合者見 E2-01；背光模組見 E2-02；面板製造用設備見 E7。'
+     '★2026-09-07 由「E1 LCD／E1-01 液晶面板」改寫而來；改寫前本碼從未掛過任何成員。'
+     '★mapping gate：候選母體（申報 ≥15% 面板／顯示器營收線者）尚未逐家裁定，'
+     '且「有無自有面板製程」在營收品項字面上讀不出來，需年報業務章節才能判；'
+     '在完成該輪裁定前本節點不得掛成員(R031)。'),
+    ('E2', 'E', 2, '顯示模組',
+     '採購面板、觸控感測器或光源元件後，貼合、組裝或整合為顯示相關模組之製造。'
+     '★本組的分類軸是**模組類別**：一為顯示與觸控之貼合整合模組，'
+     '一為背光模組及其專用光學零組件，兩者互斥。'
+     '★與 E1 的分界是**有無自有面板製程**。'
+     '★只收帶顯示限定語的觸控；不與顯示器貼合的通用輸入元件屬 F5-01。'),
+    ('E2-01', 'E2', 3, '顯示與觸控模組',
+     '採購面板或 Open Cell 後之貼合、組裝與整合模組：觸控感測器 (Film Sensor)、'
+     '觸控面板與觸控模組、液晶顯示模組 (LCM)、觸控顯示模組、'
+     '光學貼合 (Optical Bonding)、蓋板玻璃貼合，'
+     '以及以上述模組整合而成之特殊應用顯示器（醫療、工控、車載、船舶）。'
+     '★觸控須帶**顯示限定**：服務顯示器貼合與整合之觸控面板／模組屬本節點；'
+     '不與顯示器貼合的通用輸入元件（筆記型電腦鍵盤薄膜觸控開關等）屬 F5-01。'
+     '★自有面板製程者見 E1-01；背光模組見 E2-02；觸控控制 IC 見 A4-15。'
+     '★2026-09-07 由「E2 OLED／E2-01 OLED」改寫而來；改寫前本碼從未掛過任何成員。'),
+    ('E2-02', 'E2', 3, '背光模組與顯示光學零組件',
+     '顯示器背光模組及其專用光學零組件之製造：背光模組、LED 背光模組與光源條、'
+     '導光板、擴散板、增光片、反射片、遮光反射材料，以及背光與面板用之光學膜。'
+     '★本節點同時收模組與其專用光學零組件；**「材料」與「零組件」的內部分界尚未寫定**，'
+     '屬 taxonomy backlog——2026-09-07 曾評估另立「顯示專用材料」一格，'
+     '因三家候選分屬顯示光學零組件、精密塗佈膠膜、投影銀幕三種不同經濟活動而不成立；'
+     '否決依據是節點異質性，不是母體過小（母體規模是 evidence strength，不是 ontology 依據）。'
+     '★通用光學膜材與成像光學不屬本節點；LED 元件本身見 E5。'),
     # 2026-09-07 ruling on E: technology generation stops being E's first-level
     # sibling axis, and the two finest generation cells go with it.
     #
@@ -530,9 +588,27 @@ NODES = [
     # rewrite, E6 光學元件 and E7 顯示設備. No definition is written in this pass.
     ('E5', 'E', 2, 'LED', None),
     ('E5-01', 'E5', 3, '發光二極體', 'LED Chip、Package、Display、Backlight、Driver'),
-    ('E6', 'E', 2, '光學元件', None),
-    ('E6-01', 'E6', 3, '光學',
-     'Lens、Prism、Optical Film、Filter；微型光學元件（矽基微透鏡陣列、超穎表面 Metasurface、光波導、晶圓級光學）'),
+    # E6 光學元件 dissolved 2026-09-07. Its definition claimed Lens / Prism /
+    # Filter and held no lens maker at all, while fifteen imaging-optics
+    # companies sat outside the tree unclassified -- the B2-01/HDI shape with
+    # the ground taken from outside rather than from a sibling. Its two members
+    # turned out to belong to two different worlds: display optical film, and
+    # wafer-level optics produced by a semiconductor foundry. Neither is an
+    # optical-component industry, so there was nothing left to define.
+    # Imaging optics stays an R025 taxonomy gap; wafer-level optics went to
+    # A3-05 by widening it rather than by adding a node.
+    #
+    # core_reassessment carries a foreign key onto industry_tree, so a deleted
+    # node takes its queue history with it. E6-01's one resolved item is kept
+    # here instead, because the record is the point of the queue:
+    #   2026-09-04 全表重掃：候選 4 家次；4 家候選中 2 家為 AOI 檢測機台製造商
+    #   （非光學元件）、1 家為 R020② 混合線、1 家為載板廠，無應補建者。
+    #   ★方法：以節點定義與名稱的品項詞，比對 447 家已分類公司 FY2025 營收
+    #   品項名稱，逐筆對定義判定。★盲點：(1) 無法辨識商業模式，通路型節點的
+    #   候選多為製造商；(2) 純英文定義不會命中中文營收線。本次掃描不宣稱窮盡。
+    # Read now, that rescan is itself evidence for the dissolution: a node named
+    # 光學元件 whose whole candidate set was inspection machines, a mixed line and
+    # a substrate maker was never sorting optical components.
     # 2026-09-07: E held only the panels, LEDs and optics themselves -- searching
     # 面板／顯示／LCD／Panel／蒸鍍／貼合／塗佈／鍍膜 across the tree returned no
     # equipment node at all, which is why 3535 晶彩科 93.09% and 3455 由田 22.47%
@@ -543,7 +619,10 @@ NODES = [
      '與顯示模組製造製程之設備；階段之內再依**設備在產線上做的事**分節點。'
      '★設備的技術型態本身不得跨越這條界線——同一台 AOI 服務面板製程屬 E7-02，'
      '服務晶圓製程屬 A2-08，服務 PCB 屬 B5-02。'
-     '★面板／顯示器本體見 E1 LCD、E2 OLED、E5 LED，光學元件見 E6。'),
+     '★面板／顯示器本體見 E1 顯示產品，貼合與整合模組見 E2 顯示模組。'
+     '★population gate（2026-09-07）：本節點的存在依據是**兩家以上**'
+     '具可辨識經濟規模的顯示設備業務，不是「顯示設備」這個名目；'
+     '以 Minor／Major 形式兼營者不構成存在依據。該條件不再成立時本節點應重新檢討。'),
     ('E7-01', 'E7', 3, '製程設備',
      '【面板／顯示製造】凡主要服務於 TFT-LCD、OLED、觸控面板與顯示模組製造製程之設備：'
      '鍍膜與薄膜沉積、曝光與顯影、蝕刻、濕製程與清洗、配向與封合、貼合與組裝、'
