@@ -85,9 +85,30 @@ MEMBERS = {
     "E5-01": [
         ('立碁', 'Core', 'LED模組產品', 'annual_report_table', '年報營業比重表：LED模組產品 55.55%，商品項目為室內外 LED 照明模組、傳統與超高亮發光二極體燈。原掛 A3-04 功率半導體製造係關鍵字誤中「傳統發光二極體燈」', 'Direct'),
     ],
-    "E3": [
-        ('錼創科技-KY創', 'Core', None, 'filing_too_coarse', '年報商品項目：COC (chip on carrier)、6" Red MicroLED COC、PixeLED Display MicroLED 顯示器。原掛 A3-06 化合物半導體製造，該證據取自年報第三代半導體「產業概況」段落而非自身產品', 'Direct'),
-    ],
+    # "E3" went with the node on 2026-09-07. 6854 錼創科技-KY創's evidence is not
+    # withdrawn -- re-reading the filing made it stronger than it was:
+    #   業務範圍首句「本公司主要從事微發光二極體(MicroLED)顯示器之研發、製造及銷售」
+    #   商品項目 (1) COC (chip on carrier)：6" Red／Green／Blue MicroLED COC
+    #            (4) PixeLED Display／PixeLED Matrix／μ-PixeLED MicroLED 顯示器
+    #   計畫開發之新商品首項：車用透明顯示器 8~12 吋
+    # ①④⑤ all say MicroLED display maker, and the older A3-06 化合物半導體製造
+    # attribution was a misreading of the annual report's 第三代半導體 industry
+    # overview rather than of its own products.
+    #
+    # What it has no longer is a node. E's parent scope is unruled, so no display
+    # product node exists to hold it, and an exposure cannot be recorded against
+    # a node that does not exist (company_industry_exposure.node_code and
+    # core_reassessment.trigger_node both carry foreign keys onto industry_tree).
+    # It goes to taxonomy-gap pending -- the 9950 萬國通 disposition -- and comes
+    # back when E's scope is ruled. It MUST NOT be routed to E5 by elimination:
+    # 「Micro LED 這格沒了所以回 LED」 is the inference the X round ruled out.
+    #
+    # Data note found in the same re-read: the 2025 table holds COC 36.74% +
+    # 其他 73.26% = 110.00%. The filing's own figures are 496,674 and 855,144 on
+    # a total of 1,351,818, so 其他 is 63.26% and the annual report printed one
+    # digit wrong -- its 2024 column sums to 100 correctly. Recorded rather than
+    # silently corrected: tw.product_revenue_share still holds what the source
+    # says, and the row is filing_too_coarse either way (其他 is unnamed).
     "C6-01": [
         ('華旭先進', 'Core', '散熱管材', 'annual_report_table', '年報營業比重表：散熱管材 73.03%（前一年度為 0），年報自述「主要為液冷散熱關鍵元件,應用於伺服器散熱系統」。Core 理由：73.03% 遠大於晶圓 22.27%，且產能與研發已移向液冷散熱(R023①③)', 'Direct'),
         ('聚鼎', 'Major', '散熱基板', 'annual_report_table', '年報營業比重表：散熱基板 35.55%，另有散熱模組與散熱材料', 'Direct'),
@@ -298,7 +319,7 @@ MEMBERS = {
     "A1-04": [
         ('華旭先進', 'Major', None, 'filing_too_coarse', '年報「晶圓 22.27%」同時含碳化矽晶圓產品(本節點)與半導體晶圓再生處理(A1-02)，無法拆分故不計比重', 'Direct'),
         ('IET-KY', 'Core', '磷化銦(InP)磊晶片 + 砷化鎵(GaAs)磊晶片 + 銻化鎵(GaSb)磊晶片', 'annual_report_table', '年報營業比重表：磷化銦(InP) 49.56% 加砷化鎵(GaAs) 26.55% 加銻化鎵(GaSb) 6.09%，三者同為 III-V 化合物磊晶片、同屬本節點，合計 82.20%', 'Direct'),
-        ('光環', 'Major', None, 'filing_too_coarse', '年報業務範圍載明產品「包含磊晶、元件、次模組、光引擎/AOC 等型式」，並自述建立「從上游磊晶設計製造」的垂直整合能力；磊晶未單獨列示營業比重故不計比重', 'Direct'),
+        ('光環', 'Major', None, 'filing_too_coarse', '年報業務範圍載明產品「包含磊晶、元件、次模組、光引擎/AOC 等型式」，並自述建立「從上游磊晶設計製造」的垂直整合能力；磊晶未單獨列示營業比重故不計比重。role 理由：磊晶是年報自述垂直整合鏈的起點（「從上游磊晶設計製造、中游晶粒設計生產、至下游的主動元件的封裝製造」），為自家晶粒競爭力的實質支柱故給 Major，惟不對外貢獻營收故不給比重。★2026-09-07 exposure_type 由 Direct 改 Indirect：磊晶為自家晶粒(A3-06，63.00%)的上游環節而非對外銷售之材料，年報無磊晶對外營收，該營收已計於 A3-06，依 R004 不得重複計入', 'Indirect'),
         ('全新', 'Core', None, 'annual_report_prose', '年報業務範圍載明「磊晶」：%3.公司目前之商品及服務項目A.異質接面雙載子電晶體(HBT)磊晶片B.假晶高電子遷移率電晶體(PHEMT)磊晶片C.磷化銦異質接面雙載子', 'Direct'),
         ('嘉晶', 'Core', '磊晶晶片', 'annual_report_table', '年報營業比重表：磊晶晶片 100.00%', 'Direct'),
     ],
@@ -737,7 +758,6 @@ MEMBERS = {
         ('聖暉*', 'Core', '工程收入', 'annual_report_table', '年報營業比重表：工程收入 97.00%', 'Direct'),
         ('聚賢研發-創', 'Core', '高科技產業廠務供應系統工程', 'annual_report_table', '年報營業比重表：高科技產業廠務供應系統工程 97.24%', 'Direct'),
         ('華景電', 'Core', '晶圓製程AMC微污染防治設備', 'annual_report_table', '年報營業比重表：晶圓製程AMC微污染防治設備 90.63%', 'Direct'),
-        ('進典', 'Core', '球閥及蝶閥', 'annual_report_table', '年報營業比重表：球閥及蝶閥 94.48%', 'Direct'),
         ('銳澤', 'Core', '工程合約收入', 'annual_report_table', '年報營業比重表：工程合約收入 97.27%', 'Direct'),
         ('隆銘綠能', 'Core', '機電系統整合工程', 'annual_report_table', '年報營業比重表：機電系統整合工程 96.43%', 'Direct'),
     ],
@@ -814,7 +834,7 @@ MEMBERS = {
         ('嘉聯益', 'Core', None, 'annual_report_prose', '年報業務範圍載明「軟性印刷電路板」：軟性電路板(FPC)之設計、開發、製造、加工及買賣之業務,為多應用產品用途之軟性印刷電路板。4.計劃開發之新商品(服務)軟性印刷電路板將隨著', 'Direct'),
         ('圓裕', 'Core', 'FPC軟性印刷線路板', 'annual_report_table', '年報營業比重表：FPC軟性印刷線路板 90.29%', 'Direct'),
         ('旭軟', 'Core', '各式軟性印刷電路板', 'annual_report_table', '年報營業比重表：各式軟性印刷電路板 97.46%', 'Direct'),
-        ('毅嘉', 'Major', None, 'annual_report_prose', '年報業務範圍載明「軟板」：(3)產品與研究發展A.延攬高階研發人員,投入產品之研發。B.除舊有之機構、軟板模組化整合產品外,更新增電子模組、散熱模組之開發。C.打破過。★2026-09-06 由 Core 降為 Major：本格的證據是「軟板」二字命中研發概況段落，而年報商品項目（電子模組→整合模組→散熱模組）與計畫開發（「從關鍵零組件供應商轉型為**模組解決方案**供應商」）皆未提軟板，①④⑤三項無一支持本格。Core 依 R023 移至 F4-01', 'Direct'),
+        ('毅嘉', 'Core', None, 'filing_too_coarse', '年報營業比重表：電子整合元件產品(含商品+模具+模組) 80.00% 為最大營收線，商品項目載明「電子模組：FPC、PCB、SLP 之佈線設計、測試,可配合SMT製程與其他零組件組裝」；計畫開發之新商品 18 項中 10 項為軟板類（多層軟板、極細線路軟板、雙面COF板、光通訊軟板、軟板基材、高速訊號軟板、CCM&OLED軟硬結合板、TGP散熱片軟板）。Core 理由：⑤本列 80.00% 為最大營收線，遠大於 F4-01 機構整合元件產品 20.00%；④計畫開發之新商品 18 項中 10 項為軟板類，方向與本格一致；①商品項目首列即「電子模組：FPC、PCB、SLP 之佈線設計、測試」。三項同向。★該列名稱橫跨 FPC／PCB／SLP 與 SMT 組裝故不計比重(R020②)，其中軟硬結合部分另見 B2-03 待補。★2026-09-07 由 Major 升 Core：2026-09-06 降為 Major 時認定「①④⑤無一支持本格」，但當時未察 80.00% 那列無任何節點認領、且其商品說明本身即 FPC／PCB／SLP 佈線，⑤與④實際皆指向本格；Core 依 R023⑤ 自 F4-01(20.00%) 移入', 'Direct'),
         ('臻鼎-KY', 'Core', None, 'annual_report_prose', '年報業務範圍載明「軟性印刷電路板」：業/複合專業背景,能為客戶開發出\uf075系統整合度兼具需求與市場趨勢之高端産品,如軟性印刷電路板(FPC)、高密度連接板(HDI)、高多層印刷電路。Core 理由：④長期策略決定性——年報「計畫開發之新商品」首項為「高頻寬天線 **FPC** 開發」；①商品項目按終端應用分列（手機／個人電腦／伺服器／儲存器／網通基站相關印刷電路板）不區辨硬板軟板，無法用以判別。⑤不可用：年報比重表未拆硬板與軟板(R020②)', 'Direct'),
         ('華通', 'Major', None, 'filing_too_coarse', '年報業務範圍「主要的業務範圍包含高密度電路板(HDI)、高層次板(HLC)、軟板(FPC)與軟硬板(Rigid-Flex PCB)」；研發成果列「完成 FPC 線圈板類 MSAP 技術開發」「完成軟板 L/S=25/25um & 20/20um 產品製程設立」。年報無比重表故不計比重', 'Direct'),
     ],
@@ -850,6 +870,7 @@ MEMBERS = {
     # 2026-09-07: B5-01 used to hold every PCB equipment maker regardless of what
     # the machine did. Split along the same functional line A2 already draws.
     "B5-02": [
+        ('川寶', 'Major', None, 'annual_report_prose', '年報業務範圍載明 PCB 部門除曝光機外並提供「相關載板用檢查分類、AVI 外觀檢查機械設備製造與買賣」，研發成果表 113、114 兩年度皆列「Lead Frame AVI 外觀檢查機」，長期目標亦載「AVI 佈局延伸：利用光學成像優勢,從 PCB 延伸至載板及半導體導線架(Lead Frame)檢測」。role 理由：AVI 檢測機為公司自有研發並連兩年列為年度研發成果，屬實質產品線而非附帶項目故給 Major；其營收含於 PCB 部門 31.03% 之內、已計於 B5-01 製程設備，依 R004 不重複計比重故為 Indirect。★B5-01 於 2026-09-07 將 AOI／AVI 移出改掛本節點，本筆為該次定義變更的連帶補列', 'Indirect'),
         ('牧德', 'Core', '其他檢測系列 + 線路檢測系列 + 外觀檢測系列', 'annual_report_table', '年報營業比重表：其他檢測系列 34.00% 加線路檢測系列 33.00% 加外觀檢測系列 25.00%，三線同屬 PCB 檢測設備，合計 92.00%(R020④)。年報商品項目前六項全為檢測與量測機台：高速孔位精度量測機 Hole-AOI、高速驗孔機、泛用型尺寸量測機 EZ3D、底片線路檢查機、線寬線距量測儀、內外層線路檢查機。★2026-09-07 由 B5-01 移入：公司無任何改變板材的製程機台，舊 B5-01 定義因含 AOI／AVI 才收得下它', 'Direct'),
         ('聯策', 'Core', None, 'filing_too_coarse', '年報所營業務列 a.AI 機器視覺設備 b.濕製程智慧化設備 c.生產智動化整合方案；「AI 機器視覺設備 41.17%」一線同時含 PCB／載板外觀檢測設備(本節點)與半導體晶圓級 AOI、封裝自動化檢測設備(A2-13)，橫跨兩節點故不計比重(R020②)。Core 理由（依 R023 順序判定）：①年報所營業務條列 a.AI 機器視覺設備 b.濕製程智慧化設備 c.生產智動化整合方案，AI 機器視覺列首，且年報自述以 AVRIOT 技術架構之外觀檢測「具備業界領先的瑕疵檢出率」——被具名為技術優勢的是檢測而非濕製程，①足以排除 B5-01 的競爭解釋，於此定案。★⑤不可用於本裁定：該線 41.17% 已依 R020② 判為橫跨本節點與 A2-13 而不計比重，一條不能歸屬本節點的線不得以全額充當本節點的營收支持證據', 'Direct'),
         ('德律', 'Core', '自動檢測設備', 'filing_too_coarse', '同一線「自動檢測設備 97.21%」的 PCBA 檢測部分；與 A2-13 為同一營收線，兩格均不計比重。Core 理由：①年報「公司目前主要商品及服務項目」前五項全為 PCBA 檢測設備：(1)組裝電路板測試機(ICT) (2)電路板分析、測試治具 (3)錫膏自動光學檢測機(SPI) (4)電路板自動光學檢測機(AOI) (5)在線式 3D X-Ray 自動檢測機(AXI)；④計畫開發首項「多核心高速高點數**組裝電路板測試機**，全自動化大尺寸在線式組裝電路板測試系統」同屬 PCBA。⑤不可用：年報僅一條「自動檢測設備 97.21%」橫跨半導體與 PCBA 兩側(R020②)，兩格皆 NULL', 'Direct'),
@@ -960,11 +981,12 @@ MEMBERS = {
         ('恩德', 'Core', None, 'filing_too_coarse', '年報商品項目 (1)機械：「電腦數控加工中心及各式電腦數控產業機械(適用金屬及非金屬)與電腦曲面磨床及相關刀具、零配件」；併於「機械 73.15%」一列，另含 PCB 鑽孔成型檢測機(B5-01)故不計比重(R020②)。Core 理由：年報產業概況三節「A.工具機應用於木工產業」「B.工具機應用於汽車產業」「C.工具機應用於航太產業」全在談工具機，計畫開發之新商品亦為開料生產線與航太角鋁切割多軸加工機(R023①④)。★本節點目前無 Product Definition；選它是因為節點名稱「工具機」對本公司之 CNC 加工中心與曲面磨床已無歧義，未為收本公司而回頭補寫定義(R031 同精神)', 'Direct'),
     ],
     "B2-03": [
+        ('毅嘉', 'Major', None, 'annual_report_prose', '年報計畫開發之新商品第 16 項具名「CCM&OLED 軟硬結合板專案」，為 18 項研發項目中唯一之軟硬結合板品項；其營收含於「電子整合元件產品(含商品+模具+模組) 80.00%」該列之內，該列橫跨 FPC／PCB／SLP 與 SMT 組裝故整列不計比重(R020②)，Core 掛 B2-02 軟板', 'Direct'),
         ('相互', 'Core', '軟硬複合板', 'annual_report_table', '年報營業比重表：軟硬複合板 88.00%，逐字命中本節點定義「同一片同時含硬區與軟區者屬本節點」。★2026-09-07 由 B2-01 移入：原掛硬板格，但年報同時另列「硬板 12.00%」一條，兩條線的區分正是本組的結構軸。Core 理由：①②同指——年報比重表以軟硬複合板列首且為 88.00% 對 12.00% 的壓倒性主線，公司的製程能力（硬質基材與軟性基材壓合為一體）即建立於此；硬板那條是同一產線的附帶產出，故 Core 在本節點', 'Direct'),
         ('華通', 'Major', None, 'filing_too_coarse', '年報業務範圍把軟硬板(Rigid-Flex PCB)與 HDI、HLC、FPC 並列為生產製造項目。年報無比重表故不計比重。★本節點目前無 Product Definition；節點名稱「軟硬結合」對 Rigid-Flex PCB 已無歧義', 'Direct'),
     ],
     "F4-01": [
-        ('毅嘉', 'Core', '機構整合元件產品(含商品+模具+模組+散熱模組)', 'annual_report_table', '年報營業比重表：機構整合元件產品(含商品+模具+模組+散熱模組) 20.00%；商品項目列整合模組「將過往之機構、電子整合元件整合…皆可客製化設計、製造」。該列內含散熱模組但無法拆分，且無其他節點認領本列，故比重歸本節點。Core 理由：①年報商品項目順序為 電子模組 → 整合模組 → 散熱模組，三項皆為模組；④計畫開發首句「從關鍵零組件供應商轉型為**模組解決方案**供應商」，第一項為「(1)電子模組解決方案」；⑤本格 20.00% 為唯一有比重的候選（B2-02 軟板無比重且無①④支持）。三項同向', 'Direct'),
+        ('毅嘉', 'Major', '機構整合元件產品(含商品+模具+模組+散熱模組)', 'annual_report_table', '年報營業比重表：機構整合元件產品(含商品+模具+模組+散熱模組) 20.00%；商品項目列整合模組「將過往之機構、電子整合元件整合…皆可客製化設計、製造」。該列內含散熱模組但無法拆分，且無其他節點認領本列，故比重歸本節點。★2026-09-07 由 Core 降為 Major：本列 20.00% 遠小於電子整合元件產品 80.00%，Core 依 R023⑤ 移至 B2-02 軟板', 'Direct'),
         ('敦吉', 'Core', '模具成型組裝等', 'annual_report_table', '年報營業比重表：模具成型組裝等 30.40%；年報上中下游圖將「模具加工、沖壓、塑膠射出成型」畫在「中游(本集團)」欄，正文並載明「本集團代理行銷或自行產製之零組件」，所營業務含「(14)CQ01010 模具製造業」「(1)C805050 工業用塑膠製品製造業」。依 R022，年報明確揭露自有製造的業務線建 Direct，不因公司另有通路業務而降級。Core 理由：⑤本線 30.40% 為最大營收線；①公司自述「代理行銷或自行產製」兩者並列，而自製部分具名於上中下游圖的中游欄。★2026-09-04 由 V1 半導體通路移入：該列的證據是「通路」二字誤中產業概況前一句，年報具名的代理品項是變壓器（→V2）與繼電器（→V6），無任何半導體線，V1 已移除。★安規及電磁相容測試驗證 13.80% 為第二大線，屬檢測驗證服務，樹上尚無對應節點，未建檔', 'Direct'),
     ],
     "B3-04": [
@@ -1012,6 +1034,7 @@ MEMBERS = {
     ],
     "G4-02": [
         ('捷流閥業', 'Core', '蝶閥', 'annual_report_table', '年報營業比重表：蝶閥 62.36%；年報自述「本公司主要營業項目為工業閥門的研發、設計、製造及銷售,生產閥類產品囊括蝶閥、球閥及控制閥等產品,產品廣泛運用於石油、石化、鋼鐵、造船、能源、水處理」。★原掛 A7-01 廠務系統，但該節點定義是無塵室／HVAC／Gas／廢水等**廠房系統**，而捷流是通用工業閥門製造商；A2-10 的閥件指半導體設備真空零組件、G4-01 是傳動精密件、G6-01 是專用機械整機，四格皆不含工業閥門本體(R025)。Core 理由：自製蝶閥為最大營收線且為公司自述主營(R023①⑤)。★另一列「外購閥 33.09%」品名自陳外購，依 R022 屬通路性質應為 Indirect，但本節點已有本公司的製造型 Direct 一列，無法在同一節點再記一列，故僅於此載明', 'Direct'),
+        ('進典', 'Core', '球閥及蝶閥', 'annual_report_table', '年報營業比重表：球閥及蝶閥 94.48%；年報所列產品即球閥、蝶閥本體。★2026-09-07 由 A7-01 廠務系統移入：A7-01 的定義是無塵室／HVAC／Gas／Chemical／Water／廢水等**廠房系統**，而進典售出的是閥門產品本身，與 4580 捷流閥業同型（捷流已於同一理由自 A7-01 移入本節點）。其閥門大量供應半導體廠務工程，但客戶所屬產業是終端市場不是產品，依 R031 不得據以掛 A7-01；半導體曝險應循題材／生態系表表達。Core 理由：本列 94.48% 為公司近乎全部營收(R023⑤)', 'Direct'),
     ],
     "F8": [
         ('鈺寶-創', 'Major', '模組', 'annual_report_table', '年報營業比重表：模組 58.00%；商品項目「(1) 24 位元高效能長距無線音訊傳輸晶片/模組」等三項皆為「晶片/模組」並列。模組為自家無線音訊晶片的出貨載體，售予品牌客戶而非終端周邊成品，故不掛 C11-01（Keyboard/Mouse/Webcam 成品）、D2-01（Wi-Fi 設備）或 V7-01（EMS 代工）', 'Direct'),

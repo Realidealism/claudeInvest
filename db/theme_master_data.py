@@ -41,7 +41,9 @@ THEMES = [
     ('T25', '電動車 / 電池 / 能源半導體', 'SiC / GaN (Power Semi)', 'SiC、GaN、MOSFET、IGBT、Power IC（應用另 Tag：EV/Solar/儲能/AI DC/Industrial）', 'A3'),
     ('T26', '電動車 / 電池 / 能源半導體', 'Charging', '充電樁、充電營運、OBC', 'I4、H'),
     ('T27', '電動車 / 電池 / 能源半導體', 'Energy Storage', 'Battery Cell、PCS、EMS、ESS、Container', 'I3'),
-    ('T28', '消費電子 / 顯示 / Edge', 'Micro LED', 'LED Chip、Transfer、Driver IC、Backplane、Display、Repair', 'E3'),
+    # hint was 'E3' until 2026-09-07, when that node was removed; the theme is
+    # where the technology lives now, so it points at the branch instead.
+    ('T28', '消費電子 / 顯示 / Edge', 'Micro LED', 'LED Chip、Transfer、Driver IC、Backplane、Display、Repair', 'E'),
     ('T29', '消費電子 / 顯示 / Edge', 'XR', 'AR、VR、MR、Micro OLED、Micro LED、Pancake Lens、Optical Waveguide、Eye Tracking、Motion Sensor', 'E、A（Sensor）'),
     ('T30', '消費電子 / 顯示 / Edge', 'AI Smartphone', 'AI 手機、影像、NPU', 'E、A'),
     ('T31', '消費電子 / 顯示 / Edge', 'AI PC', 'AI PC、NPU', 'C10、A'),

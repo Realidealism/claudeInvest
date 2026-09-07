@@ -511,11 +511,23 @@ NODES = [
     ('E1-01', 'E1', 3, '液晶面板', '面板、Cell、Module'),
     ('E2', 'E', 2, 'OLED', None),
     ('E2-01', 'E2', 3, 'OLED', 'OLED Panel、AMOLED、LTPO、OLED材料'),
-    # Definition deferred (2026-09-04): every sibling in E (E1 LCD, E2 OLED,
-    # E4 Mini LED, E5 LED, E6 光學元件) is undefined too, so there is nothing to
-    # be exclusive against. The E branch needs one pass, not one node.
-    ('E3', 'E', 2, 'Micro LED', None),
-    ('E4', 'E', 2, 'Mini LED', None),
+    # 2026-09-07 ruling on E: technology generation stops being E's first-level
+    # sibling axis, and the two finest generation cells go with it.
+    #
+    # E4 Mini LED had no members, and 「Mini LED」 appears in zero of the 2025
+    # revenue lines in the database. The cell was finer than any filing.
+    #
+    # E3 Micro LED had one member. 「Micro LED」 appears in exactly one 2025
+    # revenue line and that one is inspection equipment, not a display. The node
+    # is gone; the member's evidence is not -- see the E3 block in
+    # db/industry_data.py. A removed node is not a refuted exposure.
+    #
+    # Both technologies keep existing where a technology that cuts across
+    # products belongs: T28 Micro LED in theme_master.
+    #
+    # Left standing on purpose because they are unruled: E's own parent scope
+    # (display industry, or the wider optical/photonics domain), and with it E5's
+    # rewrite, E6 光學元件 and E7 顯示設備. No definition is written in this pass.
     ('E5', 'E', 2, 'LED', None),
     ('E5-01', 'E5', 3, '發光二極體', 'LED Chip、Package、Display、Backlight、Driver'),
     ('E6', 'E', 2, '光學元件', None),
@@ -531,8 +543,7 @@ NODES = [
      '與顯示模組製造製程之設備；階段之內再依**設備在產線上做的事**分節點。'
      '★設備的技術型態本身不得跨越這條界線——同一台 AOI 服務面板製程屬 E7-02，'
      '服務晶圓製程屬 A2-08，服務 PCB 屬 B5-02。'
-     '★面板／顯示器本體見 E1 LCD、E2 OLED、E3 Micro LED、E4 Mini LED、E5 LED，'
-     '光學元件見 E6。'),
+     '★面板／顯示器本體見 E1 LCD、E2 OLED、E5 LED，光學元件見 E6。'),
     ('E7-01', 'E7', 3, '製程設備',
      '【面板／顯示製造】凡主要服務於 TFT-LCD、OLED、觸控面板與顯示模組製造製程之設備：'
      '鍍膜與薄膜沉積、曝光與顯影、蝕刻、濕製程與清洗、配向與封合、貼合與組裝、'
@@ -597,8 +608,8 @@ NODES = [
      '蝶閥、球閥、閘閥、控制閥、致動器與流體控制元件（石化、鋼鐵、造船、水處理、電廠）；'
      '半導體設備用真空閥件見 A2-10'),
     # Definition deferred (2026-09-04): G4 精密機械, G5 工具機 and G6 機械設備 all
-    # plausibly hold a machine tool and none of the three is defined. Same reason
-    # as E3 -- the branch boundary comes first (R031).
+    # plausibly hold a machine tool and none of the three is defined. Deferred for
+    # the reason E's cells were -- the branch boundary comes first (R031).
     ('G5', 'G', 2, '工具機', None),
     ('G6', 'G', 2, '機械設備', None),
     ('G6-01', 'G6', 3, '專用機械', '食品機械、塑膠機械、紡織機械、包裝機械、其他專用機械（半導體設備→A2、PCB設備→B5）'),
