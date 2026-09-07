@@ -267,23 +267,41 @@ NODES = [
     ('B1-08', 'B1', 3, '膠片 (Prepreg)',
      '半固化片、黏合片、Low CTE Non-flow PP；浸樹脂而未貼銅箔之 B-stage 材料'
      '（貼銅後見 B1-01／B1-06，玻纖布本體見 B1-02）'),
-    ('B2', 'B', 2, 'PCB製造', None),
-    ('B2-01', 'B2', 3, '硬板 / 多層板 / HDI', '一般硬板、多層板、HDI、高層數板、Server/AI Server PCB、車用PCB'),
+    ('B2', 'B', 2, 'PCB製造',
+     '自製整片電路板之製造。**本組的分類軸是板材結構**，且只有這一個軸：'
+     'B2-01 整片皆硬、B2-02 整片皆軟、B2-03 同一片兼含硬區與軟區，三者互斥且窮盡。'
+     '★2026-09-07 裁定(R031 sibling 單軸條款)：原本並列的 B2-04 高速高頻、B2-05 HDI／SLP、'
+     'B2-06 AI Server PCB 分屬電性／材料、製程／密度、終端應用三個不同的軸，'
+     '彼此也不互斥——同一片 PCB 可以同時是 HDI、高速高頻且用於 AI Server——'
+     '那是三個**屬性**不是三個**類別**，已移出本樹，改由 Theme／attribute 表達'
+     '（T42 High Frequency / Low Loss、T03 AI Server；HDI／SLP 尚無對應 theme，屬缺口）。'
+     '同時把 B2-01 定義中的「HDI、Server/AI Server PCB、車用PCB」一併移除——'
+     '那些是屬性與應用，不是結構。'
+     '★B2-07 PCB 製程代工屬**商業模式**軸，依 R031 不納入上述結構軸的互斥判斷'
+     '（同 V1–V6 與 V7 的既有處理）；它究竟應為 Industry leaf 還是 business-model attribute，'
+     '待 A／B 分支整體設計一併裁定。'),
+    ('B2-01', 'B2', 3, '硬板 / 多層板',
+     '整片皆為硬質基材之電路板：單面板、雙面板、多層板、高層數板。'
+     '★與 B2-02／B2-03 的分界是**結構**：整片皆軟屬 B2-02，同一片兼含硬區與軟區屬 B2-03。'
+     '★2026-09-07 由「一般硬板、多層板、HDI、高層數板、Server/AI Server PCB、車用PCB」收斂而來：'
+     'HDI 是製程密度、Server/AI Server 是終端應用、車用是終端市場，三者皆非板材結構，'
+     '寫在本格定義裡使本格同時吞掉 B2-05 與 B2-06，28 家成員的歸屬因此無法驗證(R031)。'
+     '**高頻微波基板、HDI 板、AI Server 板只要整片皆硬，結構上就屬本節點**，'
+     '其材料等級、製程密度與終端應用由 Theme／attribute 表達，不在本軸上再切一格。'),
     ('B2-02', 'B2', 3, '軟板 (FPC)', 'FPC、RFPCB、Camera/Display/Battery FPC'),
     ('B2-03', 'B2', 3, '軟硬結合',
      '軟硬結合板 (Rigid-Flex PCB)：硬質基材與軟性基材壓合為一體之電路板，'
      '含多層軟硬結合板與動態彎折應用。'
      '★與 B2-01／B2-02 的分界是**結構**：整片皆硬屬 B2-01、整片皆軟屬 B2-02，'
      '同一片同時含硬區與軟區者屬本節點。'),
-    ('B2-04', 'B2', 3, '高速高頻 PCB', 'AI / HPC 用高頻高速板'),
-    ('B2-05', 'B2', 3, 'HDI / SLP', None),
     # Selling a step of board making is not selling the board: 聯致 does lamination
     # and 凱崴 drilling and electrical test, for board houses, and both sat on
     # consumables and EMS nodes whose definitions exclude a process service.
     ('B2-07', 'B2', 3, 'PCB 製程代工 (Toll Processing)',
      '壓合、鑽孔、雷射鑽孔、成型、電性測試等對他人板材之受託加工；'
-     '自製整板見 B2-01～B2-06，設備見 B5，耗材與藥水見 B6'),
-    ('B2-06', 'B2', 3, 'AI Server / Accelerator PCB', '高層數 Server PCB'),
+     '自製整板見 B2-01～B2-03，設備見 B5，耗材與藥水見 B6。'
+     '★本節點是**商業模式**軸（賣的是加工服務不是板子），'
+     '依 R031 不納入 B2-01～03 結構軸的互斥判斷'),
     # Branch-level definition adjudication pending (2026-09-03). B3-01 'ABF 載板 /
     # AI/HPC 高階載板' and B3-05 'HPC / AI Substrate / 高階ABF、大尺寸載板' are near
     # duplicates; B3-03 and B3-04 carry no definition at all and 0/1 members. A
