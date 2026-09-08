@@ -13,6 +13,14 @@ Two rules govern every row:
   search over parsed FY2025 revenue items, which cannot see the 202 companies
   whose revenue section never parsed, the 45 with no report, or the 69 whose
   largest line is worded 電子產品. See `project_revenue_discovery_gap` in memory.
+- **A keyword hit is not a candidate.** Population discovery runs in three
+  layers and only the third produces a number worth quoting:
+  **P1 lexical hit** — the regex matched. **P2 semantic exclusion** — drop the
+  matches the word itself misleads on; 「伺服」 matches 「伺服器」, and eleven
+  server and chassis makers entered a G candidate set that way on 2026-09-08.
+  **P3 economic candidate** — the revenue line or business activity actually
+  belongs to the industry being tested, which usually needs the filing read.
+  A count from P1 belongs in a work list, never in an existence argument.
 - **A low count never closes a row.** Population size is evidence strength, not
   an ontology rule. What closes a row is a boundary that can be written and
   applied to the next company without reading this file.
