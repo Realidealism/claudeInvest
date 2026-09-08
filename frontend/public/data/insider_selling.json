@@ -1,6 +1,42 @@
 {
-  "updated_at": "2026-09-07T21:50:10",
+  "updated_at": "2026-09-08T21:50:17",
   "events": [
+    {
+      "type": "transfer",
+      "stock_id": "3058",
+      "company_name": "立德",
+      "date": "2026-09-08",
+      "insider_role": "法人董事代表人利用他人名義持有者",
+      "insider_name": "立德勝投資股份有限公司",
+      "method": "洽特定人",
+      "shares": 9987396,
+      "security_kind": null,
+      "period": "115/09/08\r\n~\r\n115/09/10"
+    },
+    {
+      "type": "transfer",
+      "stock_id": "6655",
+      "company_name": "科定",
+      "date": "2026-09-08",
+      "insider_role": "經理人本人",
+      "insider_name": "彭聖翔",
+      "method": "洽特定人",
+      "shares": 208147,
+      "security_kind": null,
+      "period": "115/09/08\r\n~\r\n115/09/10"
+    },
+    {
+      "type": "transfer",
+      "stock_id": "3489",
+      "company_name": "森寶",
+      "date": "2026-08-24",
+      "insider_role": "董事本人",
+      "insider_name": "達容發投資有限公司",
+      "method": "洽特定人",
+      "shares": 9392000,
+      "security_kind": null,
+      "period": "115/08/24\r\n~\r\n115/08/26"
+    },
     {
       "type": "transfer",
       "stock_id": "3489",
@@ -46,18 +82,6 @@
       "insider_name": "正義投資有限公司",
       "method": "洽特定人",
       "shares": 12533000,
-      "security_kind": null,
-      "period": "115/08/24\r\n~\r\n115/08/26"
-    },
-    {
-      "type": "transfer",
-      "stock_id": "3489",
-      "company_name": "森寶",
-      "date": "2026-08-24",
-      "insider_role": "董事本人",
-      "insider_name": "達容發投資有限公司",
-      "method": "洽特定人",
-      "shares": 9392000,
       "security_kind": null,
       "period": "115/08/24\r\n~\r\n115/08/26"
     },
@@ -187,18 +211,6 @@
       "company_name": "健亞",
       "date": "2026-07-27",
       "insider_role": "董事本人",
-      "insider_name": "朱佳真",
-      "method": "洽特定人",
-      "shares": 164959,
-      "security_kind": null,
-      "period": "115/07/27\r\n~\r\n115/07/29"
-    },
-    {
-      "type": "transfer",
-      "stock_id": "4130",
-      "company_name": "健亞",
-      "date": "2026-07-27",
-      "insider_role": "董事本人",
       "insider_name": "行政院國家發展基金管理會",
       "method": "洽特定人",
       "shares": 30700406,
@@ -243,15 +255,15 @@
     },
     {
       "type": "transfer",
-      "stock_id": "5283",
-      "company_name": "禾聯碩",
-      "date": "2026-07-24",
-      "insider_role": "大股東利用他人名義持有者",
-      "insider_name": "禾發企業股份有限公司",
+      "stock_id": "4130",
+      "company_name": "健亞",
+      "date": "2026-07-27",
+      "insider_role": "董事本人",
+      "insider_name": "朱佳真",
       "method": "洽特定人",
-      "shares": 11400000,
+      "shares": 164959,
       "security_kind": null,
-      "period": "115/07/24\r\n~\r\n115/07/26"
+      "period": "115/07/27\r\n~\r\n115/07/29"
     },
     {
       "type": "transfer",
@@ -262,6 +274,18 @@
       "insider_name": "寶利信股份有限公司",
       "method": "洽特定人",
       "shares": 1322400,
+      "security_kind": null,
+      "period": "115/07/24\r\n~\r\n115/07/26"
+    },
+    {
+      "type": "transfer",
+      "stock_id": "5283",
+      "company_name": "禾聯碩",
+      "date": "2026-07-24",
+      "insider_role": "大股東利用他人名義持有者",
+      "insider_name": "禾發企業股份有限公司",
+      "method": "洽特定人",
+      "shares": 11400000,
       "security_kind": null,
       "period": "115/07/24\r\n~\r\n115/07/26"
     },
@@ -354,10 +378,10 @@
       "stock_id": "6584",
       "company_name": "南俊國際",
       "date": "2026-06-26",
-      "insider_role": "法人董事代表人本人",
-      "insider_name": "吳怡珊",
+      "insider_role": "經理人本人",
+      "insider_name": "吳仁山",
       "method": "洽特定人",
-      "shares": 3523253,
+      "shares": 3523521,
       "security_kind": null,
       "period": "115/06/26\r\n~\r\n115/06/28"
     },
@@ -366,10 +390,10 @@
       "stock_id": "6584",
       "company_name": "南俊國際",
       "date": "2026-06-26",
-      "insider_role": "經理人本人",
-      "insider_name": "吳仁山",
+      "insider_role": "法人董事代表人本人",
+      "insider_name": "吳怡珊",
       "method": "洽特定人",
-      "shares": 3523521,
+      "shares": 3523253,
       "security_kind": null,
       "period": "115/06/26\r\n~\r\n115/06/28"
     },
@@ -480,35 +504,11 @@
       "shares": null,
       "security_kind": "普通股",
       "period": null
-    },
-    {
-      "type": "transfer",
-      "stock_id": "4127",
-      "company_name": "天良",
-      "date": "2026-06-09",
-      "insider_role": "董事本人",
-      "insider_name": "臺北作想股份有限公司",
-      "method": "洽特定人",
-      "shares": 19876703,
-      "security_kind": null,
-      "period": "115/06/09\r\n~\r\n115/06/11"
-    },
-    {
-      "type": "transfer",
-      "stock_id": "4127",
-      "company_name": "天良",
-      "date": "2026-06-09",
-      "insider_role": "董事本人",
-      "insider_name": "臺北作想股份有限公司",
-      "method": "洽特定人",
-      "shares": 13767354,
-      "security_kind": null,
-      "period": "115/06/09\r\n~\r\n115/06/11"
     }
   ],
   "stats": {
-    "transfer_events_30d": 9,
-    "transfer_stocks_30d": 3,
+    "transfer_events_30d": 11,
+    "transfer_stocks_30d": 5,
     "placement_events_30d": 2
   }
 }
