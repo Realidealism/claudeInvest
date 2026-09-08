@@ -199,3 +199,16 @@ Not gaps of their own yet, recorded so they are not lost:
   it spans imaging optics, AR waveguides and material processing. Its Core sits
   on A3-05; this line is not assigned rather than assigned to the largest-looking
   candidate
+
+
+## G9 · 液壓／氣壓動力元件（fluid power）
+
+| | |
+|---|---|
+| **gap_type** | `taxonomy_node_candidate` — one clean company, excluded by name from two neighbouring cells |
+| observed candidates | 1 clean: 4584 君帆（液壓元件 76.61%＋氣壓元件 7.77%＋系統整合 11.46%）。登記首項為 CA02050 閥類製造業，產品為圓形／柱型／薄型油缸與氣缸等執行元件，加壓力控制閥、方向控制閥、流量控制閥與電磁閥。P2 排除 2067 嘉鋼（油壓機械鑄件 15.86%，鑄件廠） |
+| evidence coverage | narrative read |
+| current candidate nodes | none. **G4-01 and G4-02 each exclude it by name**, which is the cleanest possible statement that a role exists with no cell: G4-01 because the fluid carries energy rather than the part transmitting motion, G4-02 because the fluid is a power medium and not a process fluid being regulated |
+| reason no node | one company. The role is well bounded — the exclusions were written against this company as a live test case — but bounded is not populated |
+| population status | unclassified |
+| next audit | pneumatic and hydraulic component makers are a known Taiwanese cluster; the sweep ran on revenue items only and 液壓／氣壓 is exactly the kind of term a coarse filing buries under 機械零件 |
