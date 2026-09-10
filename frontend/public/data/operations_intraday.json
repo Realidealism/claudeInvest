@@ -1,13 +1,13 @@
 {
   "snapshot_date": "2026-09-10",
-  "snapshot_time": "2026-09-10T03:25:59.526424+00:00",
+  "snapshot_time": "2026-09-10T03:37:54.368045+00:00",
   "signals": {
     "pick": [
       {
         "ticker": "6840",
         "name": "東研信超",
         "market": "TPEx",
-        "turnover": 111573152.0,
+        "turnover": 115234712.0,
         "streak": 1
       }
     ],
@@ -17,11 +17,19 @@
         "ticker": "6416",
         "name": "瑞祺電通",
         "market": "TWSE",
-        "turnover": 208762736.0,
+        "turnover": 205934864.0,
         "streak": 1
       }
     ],
-    "sell": [],
+    "sell": [
+      {
+        "ticker": "1476",
+        "name": "儒鴻",
+        "market": "TWSE",
+        "turnover": 355445088.0,
+        "streak": 1
+      }
+    ],
     "buy_flee": [],
     "sell_flee": []
   }
