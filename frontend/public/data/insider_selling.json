@@ -1,6 +1,18 @@
 {
-  "updated_at": "2026-09-09T21:49:10",
+  "updated_at": "2026-09-10T21:50:59",
   "events": [
+    {
+      "type": "placement",
+      "stock_id": "4419",
+      "company_name": "皇家美食",
+      "date": "2026-09-09",
+      "insider_role": null,
+      "insider_name": null,
+      "method": null,
+      "shares": null,
+      "security_kind": "普通股",
+      "period": null
+    },
     {
       "type": "transfer",
       "stock_id": "3058",
@@ -492,23 +504,11 @@
       "shares": null,
       "security_kind": "普通股",
       "period": null
-    },
-    {
-      "type": "placement",
-      "stock_id": "6222",
-      "company_name": "立軒",
-      "date": "2026-06-11",
-      "insider_role": null,
-      "insider_name": null,
-      "method": null,
-      "shares": null,
-      "security_kind": "普通股",
-      "period": null
     }
   ],
   "stats": {
-    "transfer_events_30d": 11,
-    "transfer_stocks_30d": 5,
-    "placement_events_30d": 2
+    "transfer_events_30d": 10,
+    "transfer_stocks_30d": 4,
+    "placement_events_30d": 3
   }
 }
