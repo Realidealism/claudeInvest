@@ -1,29 +1,57 @@
 {
   "snapshot_date": "2026-09-11",
-  "snapshot_time": "2026-09-11T01:26:30.341484+00:00",
+  "snapshot_time": "2026-09-11T01:37:14.627608+00:00",
   "signals": {
     "pick": [],
     "touch": [],
     "buy": [
       {
+        "ticker": "3406",
+        "name": "玉晶光",
+        "market": "TWSE",
+        "turnover": 8599623680.0,
+        "streak": 1
+      },
+      {
+        "ticker": "3441",
+        "name": "聯一光",
+        "market": "TPEx",
+        "turnover": 6204101632.0,
+        "streak": 1
+      },
+      {
         "ticker": "2637",
         "name": "慧洋-KY",
         "market": "TWSE",
-        "turnover": 402039488.0,
+        "turnover": 416532256.0,
+        "streak": 1
+      },
+      {
+        "ticker": "6416",
+        "name": "瑞祺電通",
+        "market": "TWSE",
+        "turnover": 396084320.0,
+        "streak": 1
+      },
+      {
+        "ticker": "6214",
+        "name": "精誠",
+        "market": "TWSE",
+        "turnover": 283460928.0,
         "streak": 1
       },
       {
         "ticker": "2617",
         "name": "台航",
         "market": "TWSE",
-        "turnover": 183558352.0,
+        "turnover": 205202768.0,
         "streak": 1
       },
       {
         "ticker": "2069",
         "name": "運錩",
         "market": "TWSE",
-        "turnover": 68191632.0,
+        "turnover": 79982952.0,
         "streak": 1
       }
     ],
@@ -32,18 +60,19 @@
         "ticker": "5234",
         "name": "達興材料",
         "market": "TWSE",
-        "turnover": 89040192.0,
-        "streak": 1
-      },
-      {
-        "ticker": "6890",
-        "name": "來億-KY",
-        "market": "TWSE",
-        "turnover": 29734158.0,
+        "turnover": 92636472.0,
         "streak": 1
       }
     ],
     "buy_flee": [],
-    "sell_flee": []
+    "sell_flee": [
+      {
+        "ticker": "6486",
+        "name": "互動",
+        "market": "TPEx",
+        "turnover": 8628334.0,
+        "streak": 1
+      }
+    ]
   }
 }
