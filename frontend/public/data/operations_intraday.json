@@ -1,34 +1,48 @@
 {
-  "snapshot_date": "2026-09-10",
-  "snapshot_time": "2026-09-10T05:40:05.599818+00:00",
+  "snapshot_date": "2026-09-11",
+  "snapshot_time": "2026-09-11T01:17:14.428498+00:00",
   "signals": {
-    "pick": [
-      {
-        "ticker": "6840",
-        "name": "東研信超",
-        "market": "TPEx",
-        "turnover": 109774896.0,
-        "streak": 1
-      }
-    ],
+    "pick": [],
     "touch": [],
     "buy": [
       {
-        "ticker": "3624",
-        "name": "光頡",
-        "market": "TPEx",
-        "turnover": 2195857408.0,
+        "ticker": "2637",
+        "name": "慧洋-KY",
+        "market": "TWSE",
+        "turnover": 434078816.0,
         "streak": 1
       },
       {
         "ticker": "6416",
         "name": "瑞祺電通",
         "market": "TWSE",
-        "turnover": 202010000.0,
+        "turnover": 407124736.0,
+        "streak": 1
+      },
+      {
+        "ticker": "2617",
+        "name": "台航",
+        "market": "TWSE",
+        "turnover": 160113312.0,
+        "streak": 1
+      },
+      {
+        "ticker": "2069",
+        "name": "運錩",
+        "market": "TWSE",
+        "turnover": 49069828.0,
         "streak": 1
       }
     ],
-    "sell": [],
+    "sell": [
+      {
+        "ticker": "5234",
+        "name": "達興材料",
+        "market": "TWSE",
+        "turnover": 55513992.0,
+        "streak": 1
+      }
+    ],
     "buy_flee": [],
     "sell_flee": []
   }
