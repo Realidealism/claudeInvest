@@ -1,13 +1,13 @@
 {
   "snapshot_date": "2026-09-14",
-  "snapshot_time": "2026-09-14T02:16:59.777523+00:00",
+  "snapshot_time": "2026-09-14T02:27:31.072692+00:00",
   "signals": {
     "pick": [
       {
         "ticker": "6199",
         "name": "天品",
         "market": "TPEx",
-        "turnover": 236125440.0,
+        "turnover": 256311104.0,
         "streak": 1
       }
     ],
@@ -16,11 +16,26 @@
         "ticker": "4736",
         "name": "泰博",
         "market": "TWSE",
-        "turnover": 11729043.0,
+        "turnover": 11757228.0,
         "streak": 1
       }
     ],
-    "buy": [],
+    "buy": [
+      {
+        "ticker": "3443",
+        "name": "創意",
+        "market": "TWSE",
+        "turnover": 17225820160.0,
+        "streak": 1
+      },
+      {
+        "ticker": "5876",
+        "name": "上海商銀",
+        "market": "TWSE",
+        "turnover": 222687232.0,
+        "streak": 1
+      }
+    ],
     "sell": [],
     "buy_flee": [],
     "sell_flee": []
