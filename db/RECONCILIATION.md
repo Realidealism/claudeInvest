@@ -23,7 +23,7 @@ settled. Every rule below was ruled explicitly (2026-09-13/14) or extends a rule
     M2  reconciliation model              done
     M3  ownership O1–O5                   done
     M4  evidence authority                done
-    M5  classification proposals          done; HOLD
+    M5  classification proposals          done (2026-09-14); round 1 ruled and APPLIED 2026-09-15 (below)
     --  P22-A                                        mechanical PASS / semantic FAIL
     --  P22-B                                        PASS / 4 confirmed WRITE violations, removed
     --  P22-C                                        mechanical PASS / 4 confirmed WRITE violations, removed
@@ -31,7 +31,7 @@ settled. Every rule below was ruled explicitly (2026-09-13/14) or extends a rule
     --  P22                                          CLOSED (2026-09-14)
     --  write set                                    421 → 415 → 411, post-P22 candidate
     --  parser                                       repaired (P22-1..4, R1, R2-1..10); fifth 2302 diff PASS,
-                                                     REGRESSION 0; not committed
+                                                     REGRESSION 0; committed c0ea32dd
     --  reconciliation v3 (2026-09-15)               PASS on the repaired candidate (V3-1..V3-6 ruled);
                                                      write candidate 570 → M5/O5 final pass → 566
                                                      (4 to M5: 3229 3555 7750 6937; 6229 to M5 from v3)
@@ -41,14 +41,32 @@ settled. Every rule below was ruled explicitly (2026-09-13/14) or extends a rule
           measurement_error ∩ WRITE · plus no new semantic scope failure in the high-risk subset
     --  a diagnostic scan never changes a reconciliation action: observation → affected set
         → read at the source → decision → reconcile.py
-    M5  write-set finalisation            after P22 closes
-    M6  write authority manifest          built 2026-09-15, 566 rows, not applied:
+    M5  write-set finalisation            done in v3 (566)
+    M6  write authority manifest          built 2026-09-15, 566 rows, consumed by M7:
                                           tmp/rejudge/p22r5/m6/ (manifest.jsonl sha 5dbd7918…,
                                           audit_sidecar.json, SHA256SUMS; read-back 10/10 PASS)
-    M7  transactional apply               not started
+    M7  transactional apply               APPLIED 2026-09-15, transaction 801955: 566/566 preflight,
+                                          deleted 1938 / inserted 1920 / status 566, verified 566/566
+                                          before and after commit; parser commit c0ea32dd
+                                          (blob afc4071a…, executed bytes ab79af66…);
+                                          audit tmp/rejudge/p22r5/m7/
         (reclassification of the ~500 classified companies follows M7)
+    M5  round 1 (2026-09-15)              11 queued: 9 APPLIED in transaction 801960 (evidence 9/9,
+                                          exposure corrected 14 + added 1, verified before and after
+                                          commit), then db.fill_weight (15/15 weights as planned);
+                                          db/industry_data.py committed 79dfcb95. 6229 is the one
+                                          structural change (consolidated table; A4-12 Major added).
+                                          6582 and 8027 HOLD for taxonomy rulings. check_industry
+                                          coverage 161 -> 162 is 4754's corrected FY2025 coverage
+                                          (70.9% -> 62.3%): an expected work-list finding, not a
+                                          regression; no rollback. Audit tmp/rejudge/p22r5/m5/apply/
 
-**Database changes to date: 0.**
+**Database changes to date: the M7 apply of 2026-09-15** (tw.product_revenue and
+tw.product_revenue_status for the 566 manifest companies) **and the post-M7 `db.fill_weight` run of the same day**
+(76 exposure rows of 65 companies, exactly the manifest's declared weight-source changes; no other row moved).
+The five 'pre-existing weight discrepancies' flagged in M6 were a rounding false positive (erratum:
+tmp/rejudge/p22r5/post_m7/). **Then the M5 round 1 apply** (9 companies' evidence and 15 exposure rows,
+transaction 801960) and its db.fill_weight run. v3 HOLD / REJECT, and 6582 / 8027, untouched.
 
 **Evidence has to earn its way into the database before anyone asks whether it may
 change a classification — never the other way round.** Up to M4 this document governs
