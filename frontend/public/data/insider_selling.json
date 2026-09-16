@@ -1,6 +1,42 @@
 {
-  "updated_at": "2026-09-15T21:51:16",
+  "updated_at": "2026-09-16T21:55:17",
   "events": [
+    {
+      "type": "transfer",
+      "stock_id": "1477",
+      "company_name": "聚陽",
+      "date": "2026-09-16",
+      "insider_role": "董事本人",
+      "insider_name": "黃渝晴",
+      "method": "洽特定人",
+      "shares": 554585,
+      "security_kind": null,
+      "period": "115/09/16\r\n~\r\n115/09/18"
+    },
+    {
+      "type": "transfer",
+      "stock_id": "1477",
+      "company_name": "聚陽",
+      "date": "2026-09-16",
+      "insider_role": "董事本人",
+      "insider_name": "宋佩芳",
+      "method": "洽特定人",
+      "shares": 513732,
+      "security_kind": null,
+      "period": "115/09/16\r\n~\r\n115/09/18"
+    },
+    {
+      "type": "transfer",
+      "stock_id": "7730",
+      "company_name": "暉盛-創",
+      "date": "2026-09-16",
+      "insider_role": "董事本人",
+      "insider_name": "曾坤燦",
+      "method": "洽特定人",
+      "shares": 2645036,
+      "security_kind": null,
+      "period": "115/09/16\r\n~\r\n115/09/18"
+    },
     {
       "type": "placement",
       "stock_id": "5306",
@@ -504,23 +540,11 @@
       "shares": 2515866,
       "security_kind": null,
       "period": "115/06/22\r\n~\r\n115/06/24"
-    },
-    {
-      "type": "placement",
-      "stock_id": "2033",
-      "company_name": "佳大",
-      "date": "2026-06-17",
-      "insider_role": null,
-      "insider_name": null,
-      "method": null,
-      "shares": null,
-      "security_kind": "普通股",
-      "period": null
     }
   ],
   "stats": {
-    "transfer_events_30d": 10,
-    "transfer_stocks_30d": 4,
+    "transfer_events_30d": 13,
+    "transfer_stocks_30d": 6,
     "placement_events_30d": 2
   }
 }
