@@ -1,6 +1,30 @@
 {
-  "updated_at": "2026-09-16T21:55:17",
+  "updated_at": "2026-09-17T21:51:23",
   "events": [
+    {
+      "type": "transfer",
+      "stock_id": "6204",
+      "company_name": "艾華",
+      "date": "2026-09-17",
+      "insider_role": "董事本人",
+      "insider_name": "旭黃投資股份有限公司",
+      "method": "洽特定人",
+      "shares": 3516747,
+      "security_kind": null,
+      "period": "115/09/17\r\n~\r\n115/09/19"
+    },
+    {
+      "type": "transfer",
+      "stock_id": "6204",
+      "company_name": "艾華",
+      "date": "2026-09-17",
+      "insider_role": "董事本人",
+      "insider_name": "旭黃投資股份有限公司",
+      "method": "洽特定人",
+      "shares": 3915747,
+      "security_kind": null,
+      "period": "115/09/17\r\n~\r\n115/09/19"
+    },
     {
       "type": "transfer",
       "stock_id": "1477",
@@ -543,7 +567,7 @@
     }
   ],
   "stats": {
-    "transfer_events_30d": 13,
+    "transfer_events_30d": 14,
     "transfer_stocks_30d": 6,
     "placement_events_30d": 2
   }
