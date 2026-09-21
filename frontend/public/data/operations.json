@@ -1,27 +1,26 @@
 {
-  "snapshot_date": "2026-09-18",
+  "snapshot_date": "2026-09-21",
   "signals": {
-    "pick": [
-      {
-        "ticker": "6605",
-        "name": "帝寶",
-        "market": "TWSE",
-        "turnover": 74354744.0,
-        "streak": 1
-      }
-    ],
-    "touch": [
-      {
-        "ticker": "1718",
-        "name": "中纖",
-        "market": "TWSE",
-        "turnover": 144469936.0,
-        "streak": 1
-      }
-    ],
+    "pick": [],
+    "touch": [],
     "buy": [],
     "sell": [],
     "buy_flee": [],
-    "sell_flee": []
+    "sell_flee": [
+      {
+        "ticker": "3178",
+        "name": "公準",
+        "market": "TPEx",
+        "turnover": 160764080.0,
+        "streak": 1
+      },
+      {
+        "ticker": "6902",
+        "name": "GOGOLOOK",
+        "market": "TWSE",
+        "turnover": 49219632.0,
+        "streak": 1
+      }
+    ]
   }
 }
