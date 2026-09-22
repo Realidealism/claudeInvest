@@ -1,26 +1,111 @@
 {
-  "snapshot_date": "2026-09-21",
+  "snapshot_date": "2026-09-22",
   "signals": {
     "pick": [],
-    "touch": [],
-    "buy": [],
-    "sell": [],
-    "buy_flee": [],
-    "sell_flee": [
+    "touch": [
       {
-        "ticker": "3178",
-        "name": "公準",
+        "ticker": "6217",
+        "name": "中探針",
         "market": "TPEx",
-        "turnover": 160764080.0,
+        "turnover": 600202432.0,
         "streak": 1
       },
       {
-        "ticker": "6902",
-        "name": "GOGOLOOK",
-        "market": "TWSE",
-        "turnover": 49219632.0,
+        "ticker": "3388",
+        "name": "崇越電",
+        "market": "TPEx",
+        "turnover": 51376452.0,
         "streak": 1
       }
-    ]
+    ],
+    "buy": [
+      {
+        "ticker": "2409",
+        "name": "友達",
+        "market": "TWSE",
+        "turnover": 42147479552.0,
+        "streak": 1
+      },
+      {
+        "ticker": "6182",
+        "name": "合晶",
+        "market": "TPEx",
+        "turnover": 12333968384.0,
+        "streak": 1
+      },
+      {
+        "ticker": "8996",
+        "name": "高力",
+        "market": "TWSE",
+        "turnover": 9175872512.0,
+        "streak": 1
+      },
+      {
+        "ticker": "5274",
+        "name": "信驊",
+        "market": "TPEx",
+        "turnover": 7780313600.0,
+        "streak": 1
+      },
+      {
+        "ticker": "3443",
+        "name": "創意",
+        "market": "TWSE",
+        "turnover": 5957804544.0,
+        "streak": 1
+      },
+      {
+        "ticker": "1709",
+        "name": "和益",
+        "market": "TWSE",
+        "turnover": 3631559424.0,
+        "streak": 1
+      },
+      {
+        "ticker": "3055",
+        "name": "蔚華科",
+        "market": "TWSE",
+        "turnover": 1639252224.0,
+        "streak": 1
+      },
+      {
+        "ticker": "3265",
+        "name": "台星科",
+        "market": "TPEx",
+        "turnover": 1022971648.0,
+        "streak": 1
+      },
+      {
+        "ticker": "2030",
+        "name": "彰源",
+        "market": "TWSE",
+        "turnover": 295234592.0,
+        "streak": 1
+      },
+      {
+        "ticker": "2034",
+        "name": "允強",
+        "market": "TWSE",
+        "turnover": 159987696.0,
+        "streak": 1
+      },
+      {
+        "ticker": "2069",
+        "name": "運錩",
+        "market": "TWSE",
+        "turnover": 121870536.0,
+        "streak": 1
+      },
+      {
+        "ticker": "2033",
+        "name": "佳大",
+        "market": "TWSE",
+        "turnover": 49985896.0,
+        "streak": 1
+      }
+    ],
+    "sell": [],
+    "buy_flee": [],
+    "sell_flee": []
   }
 }
