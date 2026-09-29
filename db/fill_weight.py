@@ -59,6 +59,7 @@ import argparse
 import sys
 
 from db.connection import get_cursor
+from db.weight_status import blocks_autofill
 
 FISCAL_YEAR = 2025
 
@@ -84,6 +85,7 @@ def main():
     with get_cursor() as cur:
         cur.execute("""
             SELECT e.id, e.stock_id, e.node_code, e.weight_item, e.evidence_kind,
+                   e.weight_status,
                    s.name
             FROM tw.company_industry_exposure e
             JOIN tw.stocks s ON s.stock_id = e.stock_id
@@ -127,11 +129,13 @@ def main():
         # A weight_item is kept as evidence even when the filing is too coarse to
         # give the node a total (R020). Those rows name a real reported line, so
         # they would resolve here — and the number would be the line's, not the
-        # node's. They stay NULL.
+        # node's. They stay NULL. The test is weight_status, not evidence_kind:
+        # the reason lives in its own column now, and evidence_kind only says
+        # what the evidence was.
         coarse = [r for r in rows if r["weight_item"]
-                  and r["evidence_kind"] == "filing_too_coarse"]
+                  and blocks_autofill(r["weight_status"])]
         claimed = [r for r in rows if r["weight_item"]
-                   and r["evidence_kind"] != "filing_too_coarse"]
+                   and not blocks_autofill(r["weight_status"])]
         for r in claimed:
             parts = [p.strip() for p in r["weight_item"].split(" + ")]
             found, from_deck = [], False
@@ -158,7 +162,7 @@ def main():
         say(f"exposures {len(rows)}  naming an item {len(claimed)}  "
               f"resolved {len(hit)} (of which {merged} sum several lines)  "
               f"unresolved {len(miss)}  "
-              f"held NULL as filing_too_coarse {len(coarse)}")
+              f"held NULL as Too_Coarse {len(coarse)}")
         # Kept out of the line above so a change in one source cannot be read as
         # a change in the other.
         say(f"  by source: annual report {len(hit) - from_deck}  "
@@ -191,7 +195,9 @@ def main():
             cur.execute("""
                 UPDATE tw.company_industry_exposure
                    SET weight_pct = %s, weight_source = %s,
-                       weight_type = 'Revenue', weight_basis = 'consolidated_revenue'
+                       weight_type = 'Revenue', weight_basis = 'consolidated_revenue',
+                       -- a row that now has a share has no absence left to explain
+                       weight_status = NULL
                  WHERE id = %s
             """, (r["pct"], source, r["id"]))
 

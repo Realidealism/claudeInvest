@@ -50,6 +50,7 @@ import datetime
 import re
 
 from db.connection import get_cursor
+from db.weight_status import AUTOFILL_BLOCKED, COARSE
 
 CHECKS = ("core", "core_overlap", "core_reason", "core_pending", "listing", "stale",
           "below", "role_numeric_consistency", "role_indirect_rationale_missing",
@@ -59,7 +60,9 @@ CHECKS = ("core", "core_overlap", "core_reason", "core_pending", "listing", "sta
           "definition_placeholder", "definition_axis_undeclared",
           "definition_boundary_overlap",
           "double", "depth",
-          "unknown", "known_missing", "known_unavailable", "provenance", "official")
+          "unknown", "known_missing", "known_unavailable", "weight_reason",
+          "weight_status_consistency", "weight_status_lifecycle", "granularity_queue",
+          "revenue_rows", "provenance", "official", "rule_node_reference")
 FISCAL_YEAR = 2025
 
 
@@ -334,8 +337,13 @@ def check_coverage(cur, threshold):
 
         reliable            at or above the threshold
         parser_anomaly      the denominator itself is wrong (sums past 105)
-        coarse_filing       every exposure is filing_too_coarse; nothing to
-                            assign, and this is a closed case not a backlog
+        coarse_filing       every exposure carries a coarse weight_status
+                            (db.weight_status.COARSE: Too_Coarse or
+                            Granularity_Insufficient); nothing to assign, and
+                            this is a closed case not a backlog. It classifies
+                            disclosure granularity only -- not that a weight can
+                            be filled, the exposure is right, a gap is resolved
+                            or Core is settled
         off_period          the weights describe a period the denominator does
                             not. A deck-sourced weight is whatever quarter the
                             deck gave, and dividing a 2026/Q2 share by the FY2025
@@ -392,7 +400,8 @@ def check_coverage(cur, threshold):
                    WHEN NOT EXISTS (
                        SELECT 1 FROM tw.company_industry_exposure e
                        WHERE e.stock_id = c.stock_id AND e.effective_to IS NULL
-                         AND e.evidence_kind <> 'filing_too_coarse')
+                         AND (e.weight_status IS NULL
+                              OR NOT e.weight_status::text = ANY(%s)))
                        THEN 'coarse_filing'
                    WHEN EXISTS (SELECT 1 FROM off_period o
                                 WHERE o.stock_id = c.stock_id)
@@ -405,7 +414,7 @@ def check_coverage(cur, threshold):
         LEFT JOIN assigned a USING (stock_id)
         WHERE r.t > 0 AND 100 * coalesce(a.w, 0) / r.t < %s
         ORDER BY 100 * coalesce(a.w, 0) / r.t
-    """, (FISCAL_YEAR, FISCAL_YEAR, FISCAL_YEAR, threshold, threshold))
+    """, (FISCAL_YEAR, FISCAL_YEAR, FISCAL_YEAR, threshold, sorted(COARSE), threshold))
 
 
 def check_temporal(cur):
@@ -449,8 +458,7 @@ def check_temporal(cur):
            OR e.evidence_period_end > e.known_date
            OR e.evidence_period_end > current_date
            OR (e.evidence_period_end IS NULL
-               AND e.evidence_kind IN ('annual_report_table', 'annual_report_prose',
-                                       'filing_too_coarse'))
+               AND e.evidence_kind IN ('annual_report_table', 'annual_report_prose'))
         ORDER BY e.stock_id
     """)
 
@@ -693,7 +701,7 @@ def check_definition_completeness(cur):
     mostly names of listed companies.
 
     Branch nodes joined the population on 2026-09-07. Until then the query
-    opened with NOT EXISTS(children) and 95 of the tree's 391 nodes were
+    opened with NOT EXISTS(children) and 95 of the tree's nodes at the time were
     structurally invisible, 88 of them undefined. A branch's definition may be
     far more abstract than a leaf's -- it states the scope its children divide,
     not a product list -- but it cannot be absent once the subtree is in use,
@@ -1016,15 +1024,49 @@ def check_definition_boundary_overlap(cur):
 
 
 def check_double(cur):
-    return _rows(cur, """
-        SELECT e.stock_id, s.name, e.weight_item,
-               array_agg(e.node_code ORDER BY e.node_code) AS nodes
-        FROM tw.company_industry_exposure e
-        JOIN tw.stocks s ON s.stock_id = e.stock_id
-        WHERE e.effective_to IS NULL AND e.weight_pct IS NOT NULL
-        GROUP BY e.stock_id, s.name, e.weight_item
-        HAVING count(*) > 1
-        ORDER BY e.stock_id
+    r"""The same economic activity counted on two nodes. R004 and R020(2) both forbid it.
+
+    Split before grouping. R020(4) lets one exposure's weight_item list its component lines with " + ", so the
+    duplicate that matters never appears as two equal strings: 3374 carries
+    "晶圓級尺寸封裝 + 晶圓級後護層封裝 + 測試服務" on A5-05 (98.020) while A6-01 (47.860) carries "測試服務" by
+    itself. Grouping on the whole item -- what this check did until 2026-09-29 -- compares a merged string against a
+    single one, finds them unequal, and lets 47.86pp that is counted twice go by.
+
+    weight_pct IS NOT NULL is a HARD limit on scope, not a shortcut for speed. R020(2) 乙型 prescribes exactly the
+    shape this check would otherwise flag: when one revenue line spans several nodes with no reliable basis to split
+    it, every node gets a Direct exposure and every weight_pct is NULL. Four current rows are that prescribed
+    handling and not a defect -- 3030 (A2-13 / B5-02, 自動檢測設備), 3131 (A2-05 / A2-12, 機台設備產品, a regression
+    sample quoted inside R020 itself), 4968 (A4-10 / A4-13, Wi-Fi 產品) and 8054 (A4-11 / A4-19). Widening the scope
+    would report all four as violating the rule they comply with.
+
+    The separator is exactly " + ", the syntax R020(4) names. A bare "+" is not a separator and MUST NOT be split
+    on: 2451 "FLASH+DRAM產品" and 2402 "機構整合元件產品(含商品+模具+模組+散熱模組)" are single product names, and
+    shredding them would manufacture tokens the filing never disclosed.
+
+    Known limit: SQL folds whitespace here, not NFKC. Verified 2026-09-29 -- no two tokens in the table differ only
+    by a width variant, so both normalisations agree today. When that stops being true this belongs in Python.
+
+    This check does not decide what to do about a hit. 3374's own adjudication runs in the ids 163/164/165 queue.
+    """
+    return _rows(cur, r"""
+        WITH activity AS (
+            SELECT e.stock_id, e.node_code, e.weight_item,
+                   regexp_replace(t.token, '\s+', '', 'g') AS activity
+            FROM tw.company_industry_exposure e
+            CROSS JOIN LATERAL unnest(string_to_array(e.weight_item, ' + ')) AS t(token)
+            WHERE e.effective_to IS NULL
+              AND e.weight_pct IS NOT NULL
+              AND coalesce(e.weight_item, '') <> ''
+        )
+        SELECT a.stock_id, s.name, a.activity,
+               array_agg(DISTINCT a.node_code ORDER BY a.node_code) AS nodes,
+               array_agg(DISTINCT a.weight_item ORDER BY a.weight_item) AS items
+        FROM activity a
+        JOIN tw.stocks s ON s.stock_id = a.stock_id
+        WHERE length(a.activity) >= 2
+        GROUP BY a.stock_id, s.name, a.activity
+        HAVING count(DISTINCT a.node_code) > 1
+        ORDER BY a.stock_id
     """)
 
 
@@ -1050,6 +1092,237 @@ def check_unknown(cur):
     """)
 
 
+def check_weight_reason(cur):
+    """Rows with no weight and no recorded reason for having none.
+
+    R020's governance line is that a NULL weight is not itself a defect -- a
+    NULL without a correct reason is. Until 2026-09-08 the schema could not
+    hold that distinction: the only reason it could express was
+    evidence_kind='filing_too_coarse', which is a statement about the evidence
+    that happens to double as a reason. Every other evidence kind could sit on
+    a NULL weight saying nothing about why. That value was removed from
+    evidence_kind on 2026-09-10 and the reason now lives only in weight_status;
+    the two columns answer different questions and no longer share a namespace.
+
+    So this does not report a shortage of numbers -- [below] and [coverage]
+    already do that, and R020 is explicit that inventing shares to fill them
+    makes the data worse. It reports rows where nobody has said which of the
+    three cases applies: the filing combined several activities, the filing
+    disclosed no share at all, or a revenue share is not the right measure.
+
+    Expect this to start high. 94 rows carried an unexplained NULL on the day
+    the column was added, and each needs its filing read; the count falls as
+    they are adjudicated, not as weights appear.
+    """
+    return _rows(cur, """
+        SELECT e.stock_id, s.name, e.node_code, e.evidence_kind, e.role
+        FROM tw.company_industry_exposure e
+        JOIN tw.stocks s ON s.stock_id = e.stock_id
+        WHERE e.effective_to IS NULL
+          AND e.weight_pct IS NULL
+          AND e.weight_status IS NULL
+        ORDER BY e.stock_id, e.node_code
+    """)
+
+
+def check_weight_status_consistency(cur):
+    """Rows whose stated reason for having no weight contradicts something else.
+
+    weight_status answers "why is there no share". Three of its possible states
+    have consequences elsewhere, and this is where they are held together:
+
+    (a) evidence_kind='filing_too_coarse' is no longer a legal value -- the
+        reason belongs in weight_status. A row still carrying it is reported so
+        the value cannot creep back in through a hand-edited file.
+
+    (b) 'Not_Applicable' is the one value that should never accumulate quietly:
+        without a check it becomes the bin unexplained NULLs get swept into, and
+        [weight_reason] falls while the data gets worse. It used to be reported
+        on sight, as a review queue. Four rows went through that review on
+        2026-09-11 and came out as three different things -- 3055 蔚華科 and
+        3093 港建* where the company does not perform the node's activity at all
+        and a share of it has no object; 1595 川寶 where Not_Applicable was
+        absorbing Too_Coarse (its own AVI machines, disclosed only inside a
+        31.03% department line); 6138 茂達 where the measure applies perfectly
+        and the reason is that a separately-listed subsidiary, 6435 大中, holds
+        the same activity. All four carried the same value and the same
+        sentence.
+
+        So what is required now is the ground, not the review: 「理由＝度量不適用」
+        or 「理由＝合併治理」. A row naming neither is reported, which is how a
+        third kind surfaces instead of being absorbed by the first two.
+
+    (c) A row that names a weight_item and carries a status will have that status
+        wiped the next time db.fill_weight resolves the item -- unless the status
+        is one fill_weight skips by design. That set is db.weight_status.
+        AUTOFILL_BLOCKED and is read from there rather than repeated here, because
+        repeating it is how this paragraph went stale: it named two values and
+        Not_Applicable joined them on 2026-09-29. Keeping the known components in
+        weight_item on such a row is what R020(4) asks for, so that combination is
+        correct and only the others are reported.
+
+    Each CASE branch carries the condition of the clause it speaks for, not a
+    looser one. The third branch used to fire on weight_item alone, so a row
+    admitted by (b-ground) while exempt under (c) was told it was about
+    fill_weight -- true of the column, false of the row. A reorder would only
+    move that fault to the other branch; the conditions are what must match.
+    """
+    return _rows(cur, """
+        SELECT e.stock_id, s.name, e.node_code, e.role, e.evidence_kind,
+               e.weight_status::text, e.weight_item, e.weight_pct,
+               CASE
+                 WHEN e.weight_pct IS NOT NULL AND e.weight_item IS NULL
+                   THEN 'a number with no item: WEIGHTED needs (b) as well as (a)'
+                 WHEN e.evidence_kind = 'filing_too_coarse'
+                   THEN 'evidence_kind carrying a reason: it belongs in weight_status'
+                 WHEN e.weight_status IS NOT NULL AND e.weight_item IS NOT NULL
+                      AND NOT e.weight_status::text = ANY(%s)
+                   THEN 'an item this reason will not survive: fill_weight will resolve it'
+                 ELSE 'Not_Applicable without a stated ground: 度量不適用 or 合併治理?'
+               END AS kind
+        FROM tw.company_industry_exposure e
+        JOIN tw.stocks s ON s.stock_id = e.stock_id
+        WHERE e.effective_to IS NULL
+          AND (
+            -- R020 (1)-W (b): a share nobody can trace back to named revenue lines
+            (e.weight_pct IS NOT NULL AND e.weight_item IS NULL)
+            OR e.evidence_kind = 'filing_too_coarse'
+            OR (e.weight_status IS NOT NULL AND e.weight_item IS NOT NULL
+                AND NOT e.weight_status::text = ANY(%s))
+            OR (e.weight_status = 'Not_Applicable'
+                AND e.evidence NOT LIKE '%%理由＝度量不適用%%'
+                AND e.evidence NOT LIKE '%%理由＝合併治理%%')
+          )
+        ORDER BY e.stock_id, e.node_code
+    """, (sorted(AUTOFILL_BLOCKED), sorted(AUTOFILL_BLOCKED)))
+
+
+def check_weight_status_lifecycle(cur):
+    """Not_Extracted rows whose source has since become readable (R020-NE).
+
+    Not_Extracted says "the source exists and we did not get the number out of
+    it". That is a work queue, not a verdict, and the failure mode it invites is
+    silence: the parser gets fixed, the filing becomes readable, and the row goes
+    on saying we could not read it -- which by then is indistinguishable from
+    claiming the company disclosed nothing. R020-NE forbids a row staying here
+    only because it was already here, so this is where that is enforced.
+
+    The signal is the company's own revenue pipeline: once
+    tw.product_revenue_status reads 'ok' and rows exist, whatever blocked the
+    extraction is gone and the row owes a fresh adjudication into WEIGHTED,
+    TOO_COARSE, NOT_DISCLOSED or DISCLOSURE_INVALID.
+
+    Zero here does not mean the queue is empty -- it means nothing in it has
+    been fixed yet. The size of the queue is the count of Not_Extracted rows,
+    which is reported by the distribution rather than as a finding, because a
+    row waiting on a parser repair is an honest state, not a defect.
+    """
+    return _rows(cur, """
+        SELECT e.stock_id, s.name, e.node_code, e.weight_status::text,
+               st.status AS revenue_status, c.n AS revenue_rows
+        FROM tw.company_industry_exposure e
+        JOIN tw.stocks s ON s.stock_id = e.stock_id
+        JOIN tw.product_revenue_status st
+          ON st.stock_id = e.stock_id AND st.fiscal_year = %s
+        CROSS JOIN LATERAL (
+            SELECT count(*) AS n FROM tw.product_revenue p
+             WHERE p.stock_id = e.stock_id AND p.fiscal_year = %s
+        ) c
+        WHERE e.effective_to IS NULL
+          AND e.weight_status = 'Not_Extracted'
+          AND st.status = 'ok' AND c.n > 0
+        ORDER BY e.stock_id, e.node_code
+    """, (FISCAL_YEAR, FISCAL_YEAR))
+
+
+def check_granularity_queue(cur):
+    """Every current row held at Granularity_Insufficient -- the queue itself.
+
+    Granularity_Insufficient says "the revenue is disclosed along a product axis,
+    too coarsely to compute this node's weight, and the other node the line also
+    covers cannot be named" (R2, ruled 2026-09-17). Unlike Too_Coarse it is not
+    terminal: it ends when (a) the definition or mapping is repaired so the line
+    can be attributed, or (b) the source adds a revenue split that can be used.
+    Neither happens on its own, and a value nobody lists is a value rows sit in
+    forever -- the same failure Not_Extracted guards against.
+
+    So the whole queue is the report. A row here is an honest waiting state, not
+    a defect; the count should fall as (a) or (b) happen, never by relabelling.
+    Compared as text because the enum does not carry the value until its
+    migration is applied, and an enum comparison would then be an error.
+    """
+    return _rows(cur, """
+        SELECT e.stock_id, s.name, e.node_code, e.role, e.weight_item
+        FROM tw.company_industry_exposure e
+        JOIN tw.stocks s ON s.stock_id = e.stock_id
+        WHERE e.effective_to IS NULL
+          AND e.weight_status::text = %s
+        ORDER BY e.stock_id, e.node_code
+    """, ("Granularity_Insufficient",))
+
+def check_revenue_rows(cur):
+    """The revenue source's own integrity: does the status row match the table?
+
+    Every weight in this schema is a share of tw.product_revenue, so a company
+    whose rows silently went missing produces a denominator that is wrong in a
+    way no downstream check can see -- 6166 凌華 sat at an 88% denominator for
+    two weeks and was only caught by reading its filing against the database by
+    hand.
+
+    Two conditions, because they fail differently:
+
+    (a) persisted_rows disagrees with COUNT(*). save() writes that number in the
+        same transaction as the rows, so any drift afterwards means something
+        outside the scraper changed the table. Rows written before migration 104
+        have NULL counts and are not reported -- they fill in as each filing is
+        re-parsed, and asserting a count for them now would be inventing one.
+
+    (a) is not by itself a defect. The case it was built for is
+        **retained-last-known**: the parse failed or was refused this time, so
+        the rows from the last successful read are kept on purpose -- a fetch or
+        locator failure must not be allowed to empty a company that had a good
+        read. What the check reports is that the two disagree, so nobody mistakes
+        the stored rows for the current parse.
+
+        Until migration 109 that category also held a second, different thing:
+        rows the current parse had *contradicted* rather than failed to confirm.
+        23 companies sat here holding what earlier parser versions produced
+        before the context gate existed -- 8401 白紗科's 「整體印刷業銷售總值
+        (仟元)」 and 「市場佔有率(%)」, 9941 裕融's 「汽車分期設定台數」, 3577
+        泓格's 「研發費用」. Those now retract themselves when the document is
+        re-read and found to hold no mix, so what remains under (a) is once
+        again only the retained-last-known case -- 2302 麗正, whose filing could
+        not be found this time and whose rows therefore stand unchallenged.
+
+    (b) status is 'ok' with no rows at all. This needs no counts and is what
+        catches the 2026-08 batch: 20 companies whose status claims a successful
+        read while the table holds nothing. save() writes rows and status in one
+        transaction, so 'ok' with zero rows cannot be produced by the current
+        code path at all.
+    """
+    return _rows(cur, """
+        SELECT st.stock_id, s.name, st.status, st.parsed_rows, st.persisted_rows,
+               st.duplicate_rows, c.n AS actual_rows,
+               CASE WHEN st.persisted_rows IS NOT NULL AND st.persisted_rows <> c.n
+                    THEN 'persisted_rows disagrees with the table'
+                    ELSE 'status ok with no rows stored' END AS kind
+        FROM tw.product_revenue_status st
+        JOIN tw.stocks s ON s.stock_id = st.stock_id
+        CROSS JOIN LATERAL (
+            -- Retracted rows are not the current parse and are not evidence;
+            -- counting them here would keep reporting a disagreement that the
+            -- retraction resolved, and the finding would go dead (migration 109).
+            SELECT count(*) AS n FROM tw.product_revenue p
+             WHERE p.stock_id = st.stock_id AND p.fiscal_year = st.fiscal_year
+               AND p.retracted_at IS NULL
+        ) c
+        WHERE st.fiscal_year = %s
+          AND ((st.persisted_rows IS NOT NULL AND st.persisted_rows <> c.n)
+               OR (st.status = 'ok' AND c.n = 0))
+        ORDER BY st.stock_id
+    """, (FISCAL_YEAR,))
+
+
 def check_known_missing(cur):
     """Rows whose evidence has a date to give and did not get it.
 
@@ -1071,7 +1344,7 @@ def check_known_missing(cur):
         JOIN tw.stocks s ON s.stock_id = e.stock_id
         WHERE e.effective_to IS NULL AND e.known_date IS NULL
           AND e.evidence_kind IN ('annual_report_table', 'annual_report_prose',
-                                  'filing_too_coarse', 'investor_conf')
+                                  'investor_conf')
         ORDER BY e.stock_id, e.node_code
     """)
 
@@ -1147,8 +1420,7 @@ def check_provenance(cur):
           AND ((e.evidence_kind = 'investor_conf'
                 AND NOT EXISTS (SELECT 1 FROM tw.conference_product_mix c
                                  WHERE c.stock_id = e.stock_id))
-            OR (e.evidence_kind NOT IN ('annual_report_table', 'annual_report_prose',
-                                        'filing_too_coarse')
+            OR (e.evidence_kind NOT IN ('annual_report_table', 'annual_report_prose')
                 AND e.weight_item IS NOT NULL
                 AND EXISTS (SELECT 1 FROM tw.product_revenue_share r
                              WHERE r.stock_id = e.stock_id AND r.fiscal_year = %s
@@ -1197,6 +1469,99 @@ def check_official(cur):
               WHERE o.stock_id = e.stock_id AND o.effective_to IS NULL)
         ORDER BY e.stock_id
     """)
+
+
+# Words a rule uses when it is disclosing that a node is gone, not asserting that it is there. Checked against the
+# text, not invented: R025 says "A5-02 降級", R031 says "把 B2-04／05／06 移出 Industry tree".
+_RULE_NODE_HISTORICAL = ("移出", "移除", "降級", "已關閉", "CLOSED", "不再存在", "已廢", "已刪除", "撤除")
+
+# An explicit tag, for the day a rule wants to keep an illustration that uses a code the tree does not carry.
+# Nothing in the table uses these yet, which is why every hypothetical currently reports INVALID -- the point of the
+# check is to make someone write the tag.
+_RULE_NODE_HYPOTHETICAL = ("Hypothetical", "hypothetical", "假想例", "示範用", "虛構例")
+
+# How close a marker has to sit to count as marking THIS code. Measured 2026-09-29 over every stale reference in
+# the table: real markings land 6, 12, 54 and 60 characters from a mention (R025's "A5-02 降級", R031's
+# "B2-04／05／06 移出"), while words that merely happen to be in the same rule land at 405 (R019 says "移除" about a
+# Core ROW), 1418 and 2318. 120 sits between the two clusters rather than against either edge.
+_RULE_NODE_WINDOW = 120
+
+
+def _rule_node_marked(text, positions):
+    """True when some marker word sits within the window of any mention of this code."""
+    for w in _RULE_NODE_HISTORICAL + _RULE_NODE_HYPOTHETICAL:
+        start = 0
+        while True:
+            i = text.find(w, start)
+            if i < 0:
+                break
+            if any(abs(p - i) <= _RULE_NODE_WINDOW for p in positions):
+                return True
+            start = i + 1
+    return False
+
+
+def check_rule_node_reference(cur):
+    r"""Industry node codes quoted in rule prose that no longer resolve against the tree.
+
+    R027 already forbids writing live statistics into rule prose, because a number written down goes stale and the
+    rule then states something false. A node code is the same kind of mutable literal and was never governed: 50.16
+    is mutable data, A5-02 is a mutable taxonomy identifier. Both rot, and until now nothing looked at the second.
+
+    What it found on the day it was written (2026-09-29): R019 walks through 精材 and concludes "故 Core 為 A5-02",
+    then says A5-02 must carry weight_pct=50.16 -- and A5-02 is not in the tree at all, while 精材 actually sits on
+    A5-05 at 98.020. R005 and R017 both offer "T07 與 A3-03 ／ A5-04 HBM Packaging ／ A6-07 HBM Test 同時成立" as
+    the worked example of Industry and Theme coexisting; neither A5-04 nor A6-07 has ever existed, not even as a
+    historical exposure row. A reader has no way to tell those apart from the codes that do resolve.
+
+    Three states, per the 2026-09-29 ruling:
+        VALID_CURRENT      the code is in tw.industry_tree
+        VALID_HISTORICAL   it is not, and the rule that mentions it says so somewhere in its own text
+        INVALID            it is not, and nothing in that rule discloses it -- the finding
+
+    Marking is evaluated per (rule, code), not per mention. A rule that establishes "B2-04／05／06 移出 Industry
+    tree" once and then discusses them several times has disclosed their status; demanding the marker beside every
+    mention would report the disclosure itself as the defect.
+
+    But the marker has to sit near the code, not merely inside the same rule. Asking `any(word in rule_text)` loses
+    the headline case: R019 writes "移除該公司的 Core 列" about removing a Core ROW, 405 characters from any A5-02
+    mention, and a rule-wide search reads that as R019 disclosing that A5-02 is gone. See _RULE_NODE_WINDOW for the
+    measured separation between real markings and coincidences.
+
+    Scope is the dashed form only (A2-12, B5-01). That is not laziness, it is the only form with one owner: the gap
+    IDs in db/TAXONOMY_GAPS.md run G1..G18 and collide head-on with the live nodes G2 工業電腦, G5 工具機 and G6, so
+    a bare "G5" in rule prose cannot be classified by shape or by registry lookup. Themes (T##), ecosystems (E##),
+    groups (GT##) and the MOPS filing codes (F04／F19／FE4) carry no dash, so they never enter this check at all.
+    Bare L1/L2 codes are therefore unverified rather than passing; when the PASS/FAIL/UNVERIFIED work lands (P0-2)
+    that is the row this check should emit for them.
+
+    This check reads rule text and the tree. It writes nothing and it does not decide how a finding gets fixed --
+    the 2026-09-29 ruling is that a stale case is re-pointed at a regression fixture or tagged Historical or
+    Hypothetical, never quietly updated to today's node code, which would only start the clock again.
+    """
+    import re as _re
+
+    cur.execute("SELECT node_code FROM tw.industry_tree")
+    tree = {r["node_code"] for r in cur.fetchall()}
+    cur.execute("SELECT rule_id, coalesce(description, '') AS d FROM tw.classification_rules ORDER BY rule_id")
+    rules = [dict(r) for r in cur.fetchall()]
+
+    dashed = _re.compile(r"(?<![0-9A-Za-z-])([A-Z]{1,2}[0-9]{1,2}-[0-9]{2})(?![0-9A-Za-z-])")
+    findings = []
+    for r in rules:
+        seen = {}
+        for m in dashed.finditer(r["d"]):
+            seen.setdefault(m.group(1), []).append(m.start())
+        for code, at in sorted(seen.items()):
+            if code in tree:
+                continue
+            if _rule_node_marked(r["d"], at):
+                continue
+            findings.append({"rule_id": r["rule_id"], "node_code": code, "mentions": len(at),
+                             "state": "INVALID",
+                             "why": "not in tw.industry_tree and %s does not mark it historical or hypothetical"
+                                    % r["rule_id"]})
+    return findings
 
 
 def main():
