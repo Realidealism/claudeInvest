@@ -1,6 +1,42 @@
 {
-  "updated_at": "2026-09-24T21:49:11",
+  "updated_at": "2026-09-29T21:49:35",
   "events": [
+    {
+      "type": "transfer",
+      "stock_id": "1441",
+      "company_name": "大東",
+      "date": "2026-09-29",
+      "insider_role": "法人董事代表人本人",
+      "insider_name": "陳修忠",
+      "method": "洽特定人",
+      "shares": 2379747,
+      "security_kind": null,
+      "period": "115/09/29\r\n~\r\n115/10/01"
+    },
+    {
+      "type": "transfer",
+      "stock_id": "1441",
+      "company_name": "大東",
+      "date": "2026-09-29",
+      "insider_role": "董事本人",
+      "insider_name": "陳建州",
+      "method": "洽特定人",
+      "shares": 3347380,
+      "security_kind": null,
+      "period": "115/09/29\r\n~\r\n115/10/01"
+    },
+    {
+      "type": "transfer",
+      "stock_id": "1441",
+      "company_name": "大東",
+      "date": "2026-09-29",
+      "insider_role": "法人董事代表人配偶",
+      "insider_name": "陳修忠之配偶",
+      "method": "洽特定人",
+      "shares": 1128501,
+      "security_kind": null,
+      "period": "115/09/29\r\n~\r\n115/10/01"
+    },
     {
       "type": "placement",
       "stock_id": "3520",
@@ -480,35 +516,11 @@
       "shares": 1112881,
       "security_kind": null,
       "period": "115/07/06\r\n~\r\n115/07/08"
-    },
-    {
-      "type": "transfer",
-      "stock_id": "6584",
-      "company_name": "南俊國際",
-      "date": "2026-06-26",
-      "insider_role": "經理人本人",
-      "insider_name": "吳仁山",
-      "method": "洽特定人",
-      "shares": 3523521,
-      "security_kind": null,
-      "period": "115/06/26\r\n~\r\n115/06/28"
-    },
-    {
-      "type": "transfer",
-      "stock_id": "6584",
-      "company_name": "南俊國際",
-      "date": "2026-06-26",
-      "insider_role": "法人董事代表人本人",
-      "insider_name": "吳怡珊",
-      "method": "洽特定人",
-      "shares": 3523253,
-      "security_kind": null,
-      "period": "115/06/26\r\n~\r\n115/06/28"
     }
   ],
   "stats": {
-    "transfer_events_30d": 7,
-    "transfer_stocks_30d": 5,
+    "transfer_events_30d": 10,
+    "transfer_stocks_30d": 6,
     "placement_events_30d": 4
   }
 }
