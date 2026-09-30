@@ -13,7 +13,7 @@ So: each step runs only if the previous one exited 0, and the summary names the
 step that stopped it. Nothing here is clever -- the point is that it is not
 possible to read the tail of the output and miss the failure.
 
-    python -m db.verify              # seed -> fill -> check -> pytest
+    python -m db.verify              # migrations -> seed -> fill -> check -> pytest
     python -m db.verify --no-tests   # skip pytest when iterating
     python -m db.verify --check-only # read-only: check_industry and pytest
 
@@ -28,6 +28,11 @@ PY = sys.executable
 
 
 def _steps(args):
+    # First because it is read-only and cheap, and because a migration that has
+    # run without leaving a record in git is worth knowing about before anything
+    # writes. It exits 2 rather than 1 when it could not reach git: a direction
+    # that did not run has not passed.
+    yield ("check_migrations", [PY, "-m", "db.check_migrations"], True)
     yield ("seed_skeleton --check", [PY, "-m", "db.seed_skeleton", "--check"], False)
     if not args.check_only:
         yield ("seed_skeleton", [PY, "-m", "db.seed_skeleton"], False)
