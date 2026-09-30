@@ -1,6 +1,6 @@
 {
-  "as_of": "2026-09-29",
-  "score": 62.9,
+  "as_of": "2026-09-30",
+  "score": 60.4,
   "bucket": "無頂部訊號",
   "bucket_color": "#8a8a9a",
   "danger": false,
@@ -11,9 +11,9 @@
   "stance3_color": "#ef4444",
   "stance3_reason": "防守中（排列：強多）：高點防守（高信念頂部）／向下趨勢／波段停滯（過熱背景下跌破 5 日高）；漲回頂位之上／站回 5 日高／指數站回 13 日高／排列回多方／外資翻多且空頭力竭／恐慌急殺 V 任一則轉攻",
   "exposure": "空手",
-  "swing": true,
+  "swing": false,
   "near_high": true,
-  "pct_from_high": -1.1,
+  "pct_from_high": -0.5,
   "hi_window": 55,
   "alert": false,
   "alert_conditions": [
@@ -25,21 +25,21 @@
   "margin_alert": true,
   "margin_alert_conditions": [
     {
-      "name": "融資/成交金額 布林 z ≥ +1.5σ（現 +2.1σ）",
+      "name": "融資/成交金額 布林 z ≥ +1.5σ（現 +2.0σ）",
       "met": true
     }
   ],
   "limitup_alert": false,
   "limitup_alert_conditions": [
     {
-      "name": "漲停佔比 90 日乖離 z ≥ +1.0σ（現 -0.1σ、漲停 2.2%）",
+      "name": "漲停佔比 90 日乖離 z ≥ +1.0σ（現 +0.3σ、漲停 3.0%）",
       "met": false
     }
   ],
   "limitup_bear_alert": false,
   "limitup_bear_conditions": [
     {
-      "name": "漲停過熱（漲停佔比 90 日乖離 z ≥ +1.0σ，現 -0.1σ）",
+      "name": "漲停過熱（漲停佔比 90 日乖離 z ≥ +1.0σ，現 +0.3σ）",
       "met": false
     },
     {
@@ -60,7 +60,7 @@
       "met": false
     },
     {
-      "name": "漲停過熱（90 日乖離 z ≥ +1.5σ，投票用門檻比漲停燈的 +1.0σ 嚴；現 -0.1σ）",
+      "name": "漲停過熱（90 日乖離 z ≥ +1.5σ，投票用門檻比漲停燈的 +1.0σ 嚴；現 +0.3σ）",
       "met": false
     },
     {
@@ -79,7 +79,7 @@
       "met": true
     },
     {
-      "name": "short 空頭排列 3 日急升 ≥ +6pp（現 +17.5pp）",
+      "name": "short 空頭排列 3 日急升 ≥ +6pp（現 +8.7pp）",
       "met": true
     }
   ],
@@ -102,39 +102,17 @@
     {
       "key": "futures",
       "name": "外資期貨定位",
-      "hot": 34.6,
-      "detail": "外資臺股期貨淨未平倉 -79,029 口（78日百分位越低越淨空＝越熱）"
+      "hot": 26.9,
+      "detail": "外資臺股期貨淨未平倉 -78,151 口（78日百分位越低越淨空＝越熱）"
     },
     {
       "key": "margin",
       "name": "融資水位",
-      "hot": 91.1,
-      "detail": "融資餘額金額 6,187億（距 55 日均 +1.64σ；+2σ=過熱）"
+      "hot": 93.8,
+      "detail": "融資餘額金額 6,223億（距 55 日均 +1.75σ；+2σ=過熱）"
     }
   ],
   "history": [
-    {
-      "date": "2025-09-16",
-      "score": 44.8,
-      "tx": 25630,
-      "label": "無頂部訊號",
-      "color": "#8a8a9a",
-      "stance": "攻擊",
-      "s3": "攻擊",
-      "x": true,
-      "panic": false,
-      "m_alert": false,
-      "l_alert": true,
-      "lb_alert": true,
-      "tv_alert": false,
-      "tv_n": 0,
-      "warn": false,
-      "swing": false,
-      "c": {
-        "futures": 2.6,
-        "margin": 87.1
-      }
-    },
     {
       "date": "2025-09-17",
       "score": 45.3,
@@ -5611,6 +5589,28 @@
       "c": {
         "futures": 34.6,
         "margin": 91.1
+      }
+    },
+    {
+      "date": "2026-09-30",
+      "score": 60.4,
+      "tx": 47940,
+      "label": "無頂部訊號",
+      "color": "#8a8a9a",
+      "stance": "防守",
+      "s3": "防守",
+      "x": false,
+      "panic": false,
+      "m_alert": true,
+      "l_alert": false,
+      "lb_alert": false,
+      "tv_alert": false,
+      "tv_n": 1,
+      "warn": true,
+      "swing": false,
+      "c": {
+        "futures": 26.9,
+        "margin": 93.8
       }
     }
   ]
