@@ -41,6 +41,25 @@ company whose percentages had always been stored in the amount column, and
 never parsed. Read a jump against what entered the population, before reading
 it as damage.
 
+Three of the definition checks report a third state. A check that can only run
+where a precondition holds says nothing at all about the rows where it does not,
+so its zero is not a pass there: [definition_axis_undeclared] can only ask a
+branch that has a definition whether it declared an axis, [definition_boundary]
+can only ask a sibling set that has members whether it sorts them cleanly, and
+[definition_boundary_overlap] can only match a sibling name that survives into a
+term of two characters or more. Those three print a state and an UNVERIFIED count
+beside the finding count, and the rows behind it are listed with a leading ?:
+FAIL where there are findings, UNVERIFIED where there are none but a precondition
+is missing, and PASS only where the check ran over everything in scope.
+
+FAIL is a verdict those three have earned -- an undefined sibling in a set that
+is sorting companies breaks R031, full stop. It is not a verdict most of the
+others have: [core_pending] is an adjudication queue, [known_unavailable] is
+excluded from as-of queries by design, and [below] says outright that a small
+share may be correct for a niche node. So the closing tally counts checks WITH
+FINDINGS rather than calling them failures, and only UNVERIFIED carries a verdict
+there, because a missing precondition is never the answer to anything.
+
     python -m db.check_industry
     python -m db.check_industry --check below --below-threshold 10
 """
@@ -63,6 +82,12 @@ CHECKS = ("core", "core_overlap", "core_reason", "core_pending", "listing", "sta
           "unknown", "known_missing", "known_unavailable", "weight_reason",
           "weight_status_consistency", "weight_status_lifecycle", "granularity_queue",
           "revenue_rows", "provenance", "official", "rule_node_reference")
+
+# The checks that have a precondition of their own, and therefore a third state.
+# Each name here must have an unverified_<name> counterpart returning the rows
+# the check could not reach.
+UNVERIFIED = ("definition_boundary", "definition_axis_undeclared",
+              "definition_boundary_overlap")
 FISCAL_YEAR = 2025
 
 
@@ -1023,6 +1048,134 @@ def check_definition_boundary_overlap(cur):
     """)
 
 
+def unverified_definition_axis_undeclared(cur):
+    """Branches in use whose own scope was never written down.
+
+    The check asks whether a branch declared the axis its children divide on,
+    and it can only ask that of a branch that has a definition at all -- the
+    WHERE carries main_products IS NOT NULL. So a zero says the branches that
+    HAVE a definition declared an axis; it does not say every branch in use did.
+    What it cannot see is the worse state, not the better one: a branch with no
+    definition never said what its children partition, so there is nothing for a
+    person to check an axis against either, and the drift B2 accumulated is
+    exactly what goes unnoticed. A半導體 sorts 365 companies this way.
+
+    Same scope as the check -- at least two children and a subtree in use --
+    with the definition condition inverted.
+    """
+    return _rows(cur, """
+        SELECT t.node_code, t.name AS node_name, t.level,
+               (SELECT count(*) FROM tw.industry_tree c
+                 WHERE c.parent_code = t.node_code) AS children,
+               (SELECT count(*) FROM tw.company_industry_exposure e
+                  JOIN tw.industry_tree d ON d.node_code = e.node_code
+                 WHERE e.effective_to IS NULL
+                   AND (d.parent_code = t.node_code
+                     OR d.parent_code IN (SELECT g.node_code FROM tw.industry_tree g
+                                           WHERE g.parent_code = t.node_code))) AS subtree_members,
+               'branch in use with no scope definition' AS missing
+        FROM tw.industry_tree t
+        WHERE (SELECT count(*) FROM tw.industry_tree c
+                WHERE c.parent_code = t.node_code) >= 2
+          AND t.main_products IS NULL
+          AND EXISTS (SELECT 1 FROM tw.company_industry_exposure e
+                        JOIN tw.industry_tree d ON d.node_code = e.node_code
+                       WHERE e.effective_to IS NULL
+                         AND (d.parent_code = t.node_code
+                           OR d.parent_code IN (SELECT g.node_code FROM tw.industry_tree g
+                                                 WHERE g.parent_code = t.node_code)))
+        ORDER BY subtree_members DESC, t.node_code
+    """)
+
+
+def unverified_definition_boundary(cur):
+    """Sibling sets with nobody to be exclusive over.
+
+    The check is scoped to sets in use, and that scope is right: a set whose
+    whole subtree is empty is a gap in the taxonomy rather than R031 being
+    broken, the same allowance empty leaves get in [definition_completeness].
+    But the scope makes the zero ambiguous, because the check says the same
+    nothing for an empty set whether its definitions are clean or have never
+    been written. Eight of the nine sets in this state have no definition
+    anywhere in them, so the emptiness is hiding the quieter condition rather
+    than a harmless one.
+
+    Reported per set, not per node, because having no population is a property
+    of the set.
+    """
+    return _rows(cur, """
+        WITH RECURSIVE descendant AS (
+            SELECT node_code AS root, node_code FROM tw.industry_tree
+            UNION ALL
+            SELECT d.root, t.node_code
+              FROM descendant d
+              JOIN tw.industry_tree t ON t.parent_code = d.node_code
+        ), sib AS (
+            SELECT t.parent_code, t.node_code,
+                   t.main_products IS NOT NULL AS defined
+            FROM tw.industry_tree t
+            WHERE t.parent_code IS NOT NULL
+        ), grp AS (
+            SELECT s.parent_code, count(*) AS siblings,
+                   count(*) FILTER (WHERE s.defined) AS defined_siblings,
+                   (SELECT count(DISTINCT e.stock_id)
+                      FROM tw.industry_tree sub
+                      JOIN descendant d ON d.root = sub.node_code
+                      JOIN tw.company_industry_exposure e ON e.node_code = d.node_code
+                     WHERE sub.parent_code = s.parent_code
+                       AND e.effective_to IS NULL) AS subtree_members
+            FROM sib s GROUP BY s.parent_code
+        )
+        SELECT g.parent_code, p.name AS parent_name, g.siblings, g.defined_siblings,
+               'sibling set has no members to sort' AS missing
+        FROM grp g
+        LEFT JOIN tw.industry_tree p ON p.node_code = g.parent_code
+        WHERE g.siblings >= 2 AND g.subtree_members = 0
+        ORDER BY g.parent_code
+    """)
+
+
+def unverified_definition_boundary_overlap(cur):
+    """Siblings whose name leaves no term long enough to be claimed.
+
+    The check matches a definition against another sibling's whole identity,
+    taken from that sibling's name once the parenthetical, the part after ' / '
+    and a generic tail are removed. What survives has to be at least two
+    characters, because a one-character term matches far too much to mean
+    anything. The cost is that a one-character sibling can never be reported as
+    claimed, however plainly a sibling's definition takes its ground, and L6 鎳
+    carries a member.
+
+    This is the only precondition the check lacks. An undefined sibling is not
+    one: a node with no definition claims nothing, so leaving it out of the
+    claiming side loses no finding, and its missing definition is already
+    reported by [definition_completeness] or [definition_boundary].
+    """
+    return _rows(cur, """
+        WITH n AS (
+            SELECT node_code, parent_code, name, main_products,
+                   btrim(regexp_replace(
+                       split_part(regexp_replace(name, '\\(.*\\)', '', 'g'), ' / ', 1),
+                       '(設備|製造|通路|服務|材料|IC|代工|加工|製品|原料|封裝|系統)$', '')) AS core_name
+            FROM tw.industry_tree
+            WHERE parent_code IS NOT NULL
+        )
+        SELECT b.node_code, b.name AS node_name, b.parent_code,
+               (SELECT count(*) FROM n a
+                 WHERE a.parent_code = b.parent_code AND a.node_code <> b.node_code
+                   AND a.main_products IS NOT NULL) AS defined_siblings,
+               (SELECT count(*) FROM tw.company_industry_exposure e
+                 WHERE e.node_code = b.node_code AND e.effective_to IS NULL) AS members,
+               'name leaves no matchable term' AS missing
+        FROM n b
+        WHERE length(b.core_name) < 2
+          AND EXISTS (SELECT 1 FROM n a
+                       WHERE a.parent_code = b.parent_code AND a.node_code <> b.node_code
+                         AND a.main_products IS NOT NULL)
+        ORDER BY b.node_code
+    """)
+
+
 def check_double(cur):
     r"""The same economic activity counted on two nodes. R004 and R020(2) both forbid it.
 
@@ -1579,6 +1732,8 @@ def main():
         live = cur.fetchone()["c"]
         print(f"{live} current exposures\n")
 
+        tally = {"PASS": 0, "FAIL": 0, "UNVERIFIED": 0}
+        missing = []
         for name in wanted:
             if name == "below":
                 findings = check_below(cur, args.below_threshold)
@@ -1586,12 +1741,38 @@ def main():
                 findings = check_coverage(cur, args.coverage_threshold)
             else:
                 findings = globals()[f"check_{name}"](cur)
-            print(f"[{name}] {len(findings)}")
+            blocked = globals()[f"unverified_{name}"](cur) if name in UNVERIFIED else []
+            # A violation outranks an untestable precondition: something is
+            # already known to be wrong. A zero does not outrank one.
+            state = "FAIL" if findings else ("UNVERIFIED" if blocked else "PASS")
+            tally[state] += 1
+            head = f"[{name}] {len(findings)}"
+            if name in UNVERIFIED:
+                head += f"  {state}, unverified {len(blocked)}"
+            print(head)
             for f in findings[:args.limit]:
                 print("   ", {k: v for k, v in f.items() if v is not None})
             if len(findings) > args.limit:
                 print(f"    ... and {len(findings) - args.limit} more")
+            for b in blocked[:args.limit]:
+                print("  ? ", {k: v for k, v in b.items() if v is not None})
+            if len(blocked) > args.limit:
+                print(f"    ... and {len(blocked) - args.limit} more unverified")
+            if blocked:
+                missing.append((name, len(blocked)))
             print()
+
+        # Counted, not judged: a finding is not always a defect. [core_pending]
+        # is an adjudication queue, [known_unavailable] is excluded from as-of
+        # queries by design, and [below] says outright that a small share may be
+        # correct for a niche node. UNVERIFIED is the one state that IS a verdict,
+        # because a missing precondition is never the answer to anything.
+        print("%d checks -- %d with findings, %d clean, %d UNVERIFIED"
+              % (len(wanted), tally["FAIL"], tally["PASS"], tally["UNVERIFIED"]))
+        if missing:
+            print("missing preconditions: %d (%s)"
+                  % (sum(n for _, n in missing),
+                     ", ".join("%s %d" % (n, c) for n, c in missing)))
 
 
 if __name__ == "__main__":
