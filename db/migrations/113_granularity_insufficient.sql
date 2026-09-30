@@ -1,0 +1,12 @@
+-- Granularity_Insufficient: the filing discloses revenue along a product axis,
+-- too coarsely to compute this node's weight, and the other node the line also
+-- covers cannot be named (R2, ruled 2026-09-17; spec
+-- tmp/rejudge/rejudge73/n2_granularity_insufficient.md). Too_Coarse keeps the
+-- case where that other node CAN be named.
+--
+-- Deliberately this one statement and nothing else. init_db() runs every pending
+-- file in one transaction, and PostgreSQL does not let a value added by ALTER
+-- TYPE ... ADD VALUE be used before that transaction commits -- so no UPDATE to
+-- the new value may live here or in any file applied in the same batch.
+-- No row is changed: moving company rows onto this value is a separate write.
+ALTER TYPE tw.weight_status ADD VALUE IF NOT EXISTS 'Granularity_Insufficient';
