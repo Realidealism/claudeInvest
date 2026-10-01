@@ -1305,6 +1305,23 @@ def check_weight_status_consistency(cur):
         or 「理由＝合併治理」. A row naming neither is reported, which is how a
         third kind surfaces instead of being absorbed by the first two.
 
+        A third kind did surface, on 3374 精材 A6-01: the company performs the
+        node's activity, the measure applies and the figure is in hand (47.86%),
+        and the reason there is no share here is that another node of the SAME
+        company has already taken that revenue line into its weight_item. That is
+        neither of the first two -- not 度量不適用, because removing the other row
+        would leave this one perfectly measurable, and not 合併治理, because the
+        row absorbing it belongs to the same stock_id rather than a separately
+        listed entity. It is 「理由＝他節點已計入」, settled 2026-10-01.
+
+        That ground names a relationship rather than a property, so the
+        relationship is checked and not taken on the evidence's word -- otherwise
+        the third ground becomes the bin the first two were stopped from being.
+        A row claiming it must have a current sibling row under the same
+        stock_id whose weight_item, split on " + ", contains this row's
+        weight_item. A row with no weight_item cannot satisfy that and is
+        reported too.
+
     (c) A row that names a weight_item and carries a status will have that status
         wiped the next time db.fill_weight resolves the item -- unless the status
         is one fill_weight skips by design. That set is db.weight_status.
@@ -1331,7 +1348,13 @@ def check_weight_status_consistency(cur):
                  WHEN e.weight_status IS NOT NULL AND e.weight_item IS NOT NULL
                       AND NOT e.weight_status::text = ANY(%s)
                    THEN 'an item this reason will not survive: fill_weight will resolve it'
-                 ELSE 'Not_Applicable without a stated ground: 度量不適用 or 合併治理?'
+                 WHEN e.weight_status = 'Not_Applicable'
+                      AND e.evidence LIKE '%%理由＝他節點已計入%%'
+                   THEN '他節點已計入 names no row that absorbs this line: needs a '
+                        'current row on the same stock_id whose weight_item '
+                        'contains this one'
+                 ELSE 'Not_Applicable without a stated ground: '
+                      '度量不適用 / 合併治理 / 他節點已計入?'
                END AS kind
         FROM tw.company_industry_exposure e
         JOIN tw.stocks s ON s.stock_id = e.stock_id
@@ -1344,7 +1367,23 @@ def check_weight_status_consistency(cur):
                 AND NOT e.weight_status::text = ANY(%s))
             OR (e.weight_status = 'Not_Applicable'
                 AND e.evidence NOT LIKE '%%理由＝度量不適用%%'
-                AND e.evidence NOT LIKE '%%理由＝合併治理%%')
+                AND e.evidence NOT LIKE '%%理由＝合併治理%%'
+                AND e.evidence NOT LIKE '%%理由＝他節點已計入%%')
+            -- 他節點已計入 asserts a relationship, so the relationship is read
+            -- off the table rather than believed: a current sibling row under
+            -- the same stock_id has to carry this row's weight_item among its
+            -- own, tokenised on " + " the way [stale] and [double] split it.
+            OR (e.weight_status = 'Not_Applicable'
+                AND e.evidence LIKE '%%理由＝他節點已計入%%'
+                AND NOT EXISTS (
+                      SELECT 1 FROM tw.company_industry_exposure o
+                       WHERE o.stock_id = e.stock_id
+                         AND o.node_code <> e.node_code
+                         AND o.effective_to IS NULL
+                         AND e.weight_item IS NOT NULL
+                         AND btrim(e.weight_item) = ANY(
+                               SELECT btrim(x) FROM unnest(
+                                 string_to_array(coalesce(o.weight_item, ''), ' + ')) AS x)))
           )
         ORDER BY e.stock_id, e.node_code
     """, (sorted(AUTOFILL_BLOCKED), sorted(AUTOFILL_BLOCKED)))
