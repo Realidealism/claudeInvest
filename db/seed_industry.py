@@ -45,13 +45,14 @@ import argparse
 from datetime import date
 
 from db.connection import get_cursor
+from db.weight_status import blocks_autofill, usable_in_seed
 from db.industry_data import MEMBERS
 
 FIELDS = ("role", "weight_item", "evidence_kind", "evidence", "exposure_type")
 FISCAL_YEAR = 2025
 # The annual report evidences the year it reports on, not the day it was filed.
 EVIDENCE_PERIOD_END = "2025-12-31"
-DATED_EVIDENCE = ("annual_report_table", "annual_report_prose", "filing_too_coarse")
+DATED_EVIDENCE = ("annual_report_table", "annual_report_prose")
 
 
 def _name_index(cur):
@@ -81,7 +82,13 @@ def resolve(cur):
         if node_code not in nodes:
             problems.append(f"{node_code}: not a node in tw.industry_tree")
             continue
-        for name, role, weight_item, evidence_kind, evidence, exposure_type in members:
+        for member in members:
+            # The 7th element is optional: a row that cannot carry a weight says
+            # why (Too_Coarse / Not_Disclosed / Not_Applicable). Rows with a
+            # weight leave it out -- there is no absence to explain.
+            (name, role, weight_item, evidence_kind,
+             evidence, exposure_type) = member[:6]
+            weight_status = member[6] if len(member) > 6 else None
             stock_id = index.get(name)
             if stock_id is None:
                 why = "ambiguous name" if name in dupes else "not an active listed company"
@@ -94,10 +101,27 @@ def resolve(cur):
             if key in resolved:
                 problems.append(f"{node_code} / {name}: listed twice under the same node")
                 continue
+            # A named item plus a status is fine on a coarse filing -- R020(4)
+            # asks for the known components to be kept there and db.fill_weight
+            # skips those rows. Under any other status fill_weight would resolve
+            # the item and erase the reason on the next run. The exemption keys
+            # on the status because that is what states the reason; evidence_kind
+            # says what the evidence was, and stopped doubling as a reason when
+            # 'filing_too_coarse' was removed from it.
+            if weight_status and weight_item and not blocks_autofill(weight_status):
+                problems.append(f"{node_code} / {name}: names a weight_item and a "
+                                f"weight_status; fill_weight will resolve the item "
+                                f"and the reason will not survive")
+                continue
+            ok, why = usable_in_seed(weight_status)
+            if not ok:
+                problems.append(f"{node_code} / {name}: {why}")
+                continue
             resolved[key] = {
                 "role": role, "weight_item": weight_item,
                 "evidence_kind": evidence_kind, "evidence": evidence,
                 "exposure_type": exposure_type, "name": name,
+                "weight_status": weight_status,
             }
 
     cores = {}
@@ -245,8 +269,8 @@ def sync(cur, resolved, effective_from):
         w = resolved[key]
         known_date, period_end = _dates_for(w, key[0], known, decks)
         # weight_pct belongs to db.fill_weight, with one exception: a row being
-        # corrected to filing_too_coarse may not keep the share it used to
-        # claim. The constraint from migration 100 rejects the pair outright, so
+        # corrected to a weight_status may not keep the share it used to claim.
+        # cie_weight_status_only_when_absent rejects the pair outright, so
         # leaving it made "this line turned out to span two nodes" -- 6877
         # 鏵友益 42.78% on 2026-09-07 -- an edit the seeder could not express.
         cur.execute("""
@@ -254,11 +278,11 @@ def sync(cur, resolved, effective_from):
                SET role = %s, weight_item = %s, evidence_kind = %s,
                    evidence = %s, exposure_type = %s,
                    known_date = %s, evidence_period_end = %s,
-                   weight_pct = CASE WHEN %s = 'filing_too_coarse'
+                   weight_pct = CASE WHEN %s IS NOT NULL
                                      THEN NULL ELSE weight_pct END
              WHERE id = %s
         """, (w["role"], w["weight_item"], w["evidence_kind"], w["evidence"],
-              w["exposure_type"], known_date, period_end, w["evidence_kind"],
+              w["exposure_type"], known_date, period_end, w.get("weight_status"),
               live[key]["id"]))
 
     for key in added + superseded:
@@ -275,6 +299,24 @@ def sync(cur, resolved, effective_from):
               w["evidence_kind"], w["exposure_type"], effective_from,
               *_dates_for(w, stock_id, known, decks),
               *_carried(live.get(key))))
+
+    # Declared reasons first: an explicit judgement in db/industry_data.py wins
+    # over anything derived below. Cleared when the file stops declaring one, so
+    # removing the 7th element removes the status rather than leaving it behind.
+    stated = 0
+    for (stock_id, node_code), w in resolved.items():
+        declared = w.get("weight_status")
+        cur.execute("""
+            UPDATE tw.company_industry_exposure
+               SET weight_status = %s
+             WHERE stock_id = %s AND node_code = %s AND effective_to IS NULL
+               AND weight_pct IS NULL
+               AND weight_status IS DISTINCT FROM %s
+        """, (declared, stock_id, node_code, declared))
+        stated += cur.rowcount
+    if stated:
+        print(f"weight_status: {stated} row(s) set from db/industry_data.py")
+
 
     # Deck-dated rows are reconciled every run, not only when one of the mirrored
     # fields moved. The dates are derived from tw.conference_product_mix rather
@@ -306,8 +348,7 @@ def sync(cur, resolved, effective_from):
         UPDATE tw.company_industry_exposure e
            SET evidence_period_end = e.effective_from
          WHERE e.effective_to IS NULL
-           AND e.evidence_kind IN ('annual_report_table', 'annual_report_prose',
-                                   'filing_too_coarse')
+           AND e.evidence_kind IN ('annual_report_table', 'annual_report_prose')
            AND e.evidence_period_end IS NULL
     """)
 
@@ -325,8 +366,7 @@ def sync(cur, resolved, effective_from):
          WHERE st.stock_id = e.stock_id AND st.fiscal_year = %s
            AND st.filing_date IS NOT NULL
            AND e.effective_to IS NULL AND e.known_date IS NULL
-           AND e.evidence_kind IN ('annual_report_table', 'annual_report_prose',
-                                   'filing_too_coarse')
+           AND e.evidence_kind IN ('annual_report_table', 'annual_report_prose')
     """, (FISCAL_YEAR,))
 
     # And the reverse, for rows that were handed one before that restriction
@@ -337,7 +377,7 @@ def sync(cur, resolved, effective_from):
         UPDATE tw.company_industry_exposure e
            SET known_date = NULL
          WHERE e.effective_to IS NULL AND e.known_date IS NOT NULL
-           AND e.evidence_kind IN ('company_site', 'no_filing', 'pending')
+           AND e.evidence_kind = 'company_site'
     """)
 
     return len(added), len(superseded), len(corrected), len(closed), len(retracted)
