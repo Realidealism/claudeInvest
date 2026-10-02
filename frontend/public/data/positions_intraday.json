@@ -1,6 +1,6 @@
 {
   "snapshot_date": "2026-10-02",
-  "snapshot_time": "2026-10-02T05:25:16.108284+00:00",
+  "snapshot_time": "2026-10-02T05:28:09.054930+00:00",
   "buy_stance_blocked": false,
   "long": [
     {
@@ -46,10 +46,10 @@
       "entry_date": "2026-10-01",
       "entry_price": 1420.0,
       "entry_tier": "buy",
-      "current_close": 1450.0,
-      "pnl_pct": 2.113,
+      "current_close": 1460.0,
+      "pnl_pct": 2.817,
       "bars_held": 1,
-      "turnover": 22283065344.0,
+      "turnover": 23214544896.0,
       "defense_price": 1150.0,
       "defense_reason": "進場初始[buy]",
       "defense_date": "2026-10-01",
@@ -211,7 +211,7 @@
       "current_close": 127.0,
       "pnl_pct": 10.917,
       "bars_held": 2,
-      "turnover": 11992787968.0,
+      "turnover": 12014377984.0,
       "defense_price": 99.5,
       "defense_reason": "進場初始[buy]",
       "defense_date": "2026-09-30",
@@ -2182,6 +2182,24 @@
       "disposal_status": ""
     },
     {
+      "ticker": "9945",
+      "name": "潤泰新",
+      "market": "TWSE",
+      "entry_date": "2026-08-14",
+      "entry_price": 29.8,
+      "entry_tier": "buy",
+      "current_close": 29.1,
+      "pnl_pct": -2.349,
+      "bars_held": 33,
+      "turnover": 102947248.0,
+      "defense_price": 27.65,
+      "defense_reason": "近期高+大量+長下影→8日低",
+      "defense_date": "2026-09-24",
+      "exit_reason": null,
+      "volume_status": "量縮",
+      "disposal_status": ""
+    },
+    {
       "ticker": "8121",
       "name": "越峰",
       "market": "TPEx",
@@ -2197,24 +2215,6 @@
       "defense_date": "2026-10-01",
       "exit_reason": null,
       "volume_status": "量多",
-      "disposal_status": ""
-    },
-    {
-      "ticker": "9945",
-      "name": "潤泰新",
-      "market": "TWSE",
-      "entry_date": "2026-08-14",
-      "entry_price": 29.8,
-      "entry_tier": "buy",
-      "current_close": 29.1,
-      "pnl_pct": -2.349,
-      "bars_held": 33,
-      "turnover": 95846848.0,
-      "defense_price": 27.65,
-      "defense_reason": "近期高+大量+長下影→8日低",
-      "defense_date": "2026-09-24",
-      "exit_reason": null,
-      "volume_status": "窒息",
       "disposal_status": ""
     },
     {
@@ -2488,6 +2488,24 @@
       "disposal_status": ""
     },
     {
+      "ticker": "8431",
+      "name": "匯鑽科",
+      "market": "TPEx",
+      "entry_date": "2026-09-04",
+      "entry_price": 68.8,
+      "entry_tier": "buy",
+      "current_close": 64.1,
+      "pnl_pct": -6.831,
+      "bars_held": 18,
+      "turnover": 43008900.0,
+      "defense_price": 60.0,
+      "defense_reason": "停滯13日無新高→8日低",
+      "defense_date": "2026-09-24",
+      "exit_reason": null,
+      "volume_status": "量縮",
+      "disposal_status": ""
+    },
+    {
       "ticker": "2527",
       "name": "宏璟",
       "market": "TWSE",
@@ -2503,24 +2521,6 @@
       "defense_date": "2026-09-30",
       "exit_reason": null,
       "volume_status": "正常",
-      "disposal_status": ""
-    },
-    {
-      "ticker": "8431",
-      "name": "匯鑽科",
-      "market": "TPEx",
-      "entry_date": "2026-09-04",
-      "entry_price": 68.8,
-      "entry_tier": "buy",
-      "current_close": 64.9,
-      "pnl_pct": -5.669,
-      "bars_held": 18,
-      "turnover": 40060300.0,
-      "defense_price": 60.0,
-      "defense_reason": "停滯13日無新高→8日低",
-      "defense_date": "2026-09-24",
-      "exit_reason": null,
-      "volume_status": "窒息",
       "disposal_status": ""
     },
     {
