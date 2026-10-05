@@ -1,6 +1,90 @@
 {
-  "updated_at": "2026-10-02T21:51:16",
+  "updated_at": "2026-10-05T21:52:44",
   "events": [
+    {
+      "type": "transfer",
+      "stock_id": "6498",
+      "company_name": "久禾光",
+      "date": "2026-10-05",
+      "insider_role": "大股東利用他人名義持有者",
+      "insider_name": "大正國際投資股份有限公司",
+      "method": "洽特定人",
+      "shares": 1638213,
+      "security_kind": null,
+      "period": "115/10/05\r\n~\r\n115/10/07"
+    },
+    {
+      "type": "transfer",
+      "stock_id": "6498",
+      "company_name": "久禾光",
+      "date": "2026-10-05",
+      "insider_role": "大股東利用他人名義持有者",
+      "insider_name": "大陽國際投資股份有限公司",
+      "method": "洽特定人",
+      "shares": 1183847,
+      "security_kind": null,
+      "period": "115/10/05\r\n~\r\n115/10/07"
+    },
+    {
+      "type": "transfer",
+      "stock_id": "6498",
+      "company_name": "久禾光",
+      "date": "2026-10-05",
+      "insider_role": "大股東利用他人名義持有者",
+      "insider_name": "大禾國際投資股份有限公司",
+      "method": "洽特定人",
+      "shares": 1638213,
+      "security_kind": null,
+      "period": "115/10/05\r\n~\r\n115/10/07"
+    },
+    {
+      "type": "transfer",
+      "stock_id": "9951",
+      "company_name": "皇田",
+      "date": "2026-10-05",
+      "insider_role": "法人董事代表人本人",
+      "insider_name": "周幼珊",
+      "method": "洽特定人",
+      "shares": 3163920,
+      "security_kind": null,
+      "period": "115/10/05\r\n~\r\n115/10/07"
+    },
+    {
+      "type": "transfer",
+      "stock_id": "9951",
+      "company_name": "皇田",
+      "date": "2026-10-05",
+      "insider_role": "經理人配偶",
+      "insider_name": "內部人:垣沼健一郎之配偶",
+      "method": "洽特定人",
+      "shares": 748876,
+      "security_kind": null,
+      "period": "115/10/05\r\n~\r\n115/10/07"
+    },
+    {
+      "type": "transfer",
+      "stock_id": "9951",
+      "company_name": "皇田",
+      "date": "2026-10-05",
+      "insider_role": "法人董事代表人本人",
+      "insider_name": "林孟雨",
+      "method": "洽特定人",
+      "shares": 846802,
+      "security_kind": null,
+      "period": "115/10/05\r\n~\r\n115/10/07"
+    },
+    {
+      "type": "transfer",
+      "stock_id": "9951",
+      "company_name": "皇田",
+      "date": "2026-10-05",
+      "insider_role": "法人董事代表人本人",
+      "insider_name": "林永清",
+      "method": "洽特定人",
+      "shares": 5697350,
+      "security_kind": null,
+      "period": "115/10/05\r\n~\r\n115/10/07"
+    },
     {
       "type": "placement",
       "stock_id": "1527",
@@ -516,23 +600,11 @@
       "shares": 3206613,
       "security_kind": null,
       "period": "115/07/08\r\n~\r\n115/07/10"
-    },
-    {
-      "type": "transfer",
-      "stock_id": "3455",
-      "company_name": "由田",
-      "date": "2026-07-06",
-      "insider_role": "法人董事代表人本人",
-      "insider_name": "鄒嘉駿",
-      "method": "洽特定人",
-      "shares": 1112881,
-      "security_kind": null,
-      "period": "115/07/06\r\n~\r\n115/07/08"
     }
   ],
   "stats": {
-    "transfer_events_30d": 10,
-    "transfer_stocks_30d": 6,
+    "transfer_events_30d": 17,
+    "transfer_stocks_30d": 8,
     "placement_events_30d": 5
   }
 }
