@@ -27,12 +27,19 @@ from config_env import load_dotenv        # noqa: E402
 from core import clock                    # noqa: E402
 from notify import TelegramNotifier       # noqa: E402
 
-# Mirrors the InvestMicroPaper service cmdline (`--paper --gated --masha`):
-# --gated SWITCHES the composite engine's log file rather than adding an engine,
-# so reports/paper_trades.csv is dormant and deliberately not listed here.
+# Mirrors the InvestMicroPaper service cmdline (`--paper --masha --warmup
+# --buyonly`): the composite engine's log file follows its variant, so
+# reports/paper_trades.csv (all-6) and reports/paper_trades_gated.csv (--gated)
+# are both dormant and deliberately not listed here.
+#
+# Third field = counts toward 合計. buy-only is a same-tick controlled A/B
+# shadow of the composite engine — a strict subset of its signal set, so the two
+# frequently hold the SAME long at the SAME time and summing both would
+# double-count. Report it, exclude it from the total.
 ENGINES = [
-    ("composite", "reports/paper_trades_gated.csv"),
-    ("麻紗", "reports/paper_trades_masha.csv"),
+    ("composite", "reports/paper_trades_psfbuy.csv", True),
+    ("麻紗", "reports/paper_trades_masha.csv", True),
+    ("buy-only", "reports/paper_trades_buyonly.csv", False),
 ]
 
 
@@ -112,17 +119,18 @@ def build_report(session: clock.Session, anchor: date) -> str:
 
     parts = [f"📒 微台當沖結算　{title}", span, ""]
     total = 0.0
-    for label, rel_path in ENGINES:
+    for label, rel_path, in_total in ENGINES:
         lines, net = _engine_block(
             label,
             _load_session_trades(_ROOT / rel_path, session, anchor, cost),
         )
         parts.extend(lines)
-        total += net
+        if in_total:
+            total += net
 
     verdict = "賺" if total > 0 else ("賠" if total < 0 else "平手")
     parts.append("")
-    parts.append(f"合計 {total:+,.0f} 元（{verdict}）")
+    parts.append(f"合計 {total:+,.0f} 元（{verdict}）　※不含 buy-only 對照組")
     return "\n".join(parts)
 
 

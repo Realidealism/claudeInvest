@@ -82,6 +82,10 @@ SYMBOL = "TM0000"
 LOOKBACK = 20           # pick/touch engulfing relative-low/high window
 BREAKOUT_LB = 20        # buy/sell Donchian breakout window
 FLEE_LB = 10            # buy_flee/sell_flee trap window
+# Live signal set: the three long-side signals only. The three short signals
+# backtest negative in every period tested (short-side PF 0.88 on the bull
+# sample, 0.96 over the full 10-file sample incl. the 2026-06~07 selloff).
+LIVE_SIGNALS = {"pick", "sell_flee", "buy"}
 ATR_MULT = 2.0          # fallback Chandelier stop distance (both sides)
 # Day-trade (daily force-close) sweep: with 3 long signals (pick/sell_flee/buy)
 # the sweet spot is a TIGHT long stop (mult 3) + fast re-entry — PF 1.30 stable
@@ -112,12 +116,24 @@ def main(argv) -> int:
     trade = "--trade" in argv and not paper
     test_env = "--test-env" in argv
     real = "--real" in argv
-    # --gated: long-only pick+sell_flee gated by the self-computed daily-state
-    # (risk-adjusted variant). Default: ungated all-6 signals.
+    # --gated: additionally hard-gate entries by the daily factory's 大台 state.
+    # OFF by default -- the gate loses money in every period tested (ALL-10 net
+    # +86,510 gated vs +121,520 ungated): it blocks longs exactly when the 大台
+    # defense line breaks, which is when the counter-trend pick/sell_flee entries
+    # are at their best. Kept as a flag for comparison runs only.
     gated = "--gated" in argv
     # --masha: run the 麻紗 軌道 rail strategy as a parallel shadow engine in the
     # same --paper process (one COM login, own SimBroker/risk/log/TG-prefix).
     masha = "--masha" in argv
+    # --buyonly: run the same composite with only `buy` enabled as a parallel
+    # shadow, so it trades the SAME ticks as the live p+sf+buy engine. Backtest
+    # (10 files) says buy-only wins on every risk-adjusted measure -- maxL -242
+    # vs -747, maxDD -1761 vs -6404, 9.2% exposure, +10.0 vs +3.8 pts per
+    # exposure hour, and it is the only arm profitable on the never-tuned
+    # tm_2606/2607 -- but makes 44% of the absolute points. Same-tick shadowing
+    # is what makes the two comparable; the earlier gated/psfbuy runs never
+    # overlapped in time.
+    buyonly = "--buyonly" in argv
     # --warmup: before serve(), seed engines with recent closed 5m bars (fetch via
     # a throwaway quote connection) so ATR/軌道 are armed immediately after restart.
     warmup = "--warmup" in argv
@@ -152,10 +168,11 @@ def main(argv) -> int:
         tx_status = str(_ROOT.parent / "frontend" / "public" / "data" / "futures_tx.json")
         strategy = CompositeStrategy(timeframe=STRAT_TF, lookback=LOOKBACK,
                                      breakout_lb=BREAKOUT_LB, flee_lb=FLEE_LB,
-                                     enable={"pick", "sell_flee", "buy"}, tx_status_path=tx_status)
+                                     enable=LIVE_SIGNALS, tx_status_path=tx_status)
     else:
         strategy = CompositeStrategy(timeframe=STRAT_TF, lookback=LOOKBACK,
-                                     breakout_lb=BREAKOUT_LB, flee_lb=FLEE_LB)
+                                     breakout_lb=BREAKOUT_LB, flee_lb=FLEE_LB,
+                                     enable=LIVE_SIGNALS)
 
     stats = {"ticks": 0, "last_price": None, "last_date": None, "prev_ticks": 0}
     paper_sims = []   # SimBrokers in --paper mode (one per shadow engine)
@@ -217,7 +234,7 @@ def main(argv) -> int:
     is_active = lambda: clock.session_of(datetime.now()) is not Session.CLOSED
 
     if paper:
-        engines = []   # (engine, risk, label) — composite + optional 麻紗 shadow
+        engines = []   # (engine, risk, label) — composite + optional shadows
 
         def add_paper_engine(strat, risk_cfg, tlog_path, tag, label):
             sim = SimBroker(symbol=SYMBOL)
@@ -242,7 +259,7 @@ def main(argv) -> int:
                        # as the trailing exit.
                        max_loss_points_per_trade=20.0, masha_loss_atr_mult=0.5,
                        masha_loss_atr_hi_pct=STOP_HI_PCT),
-            "reports/paper_trades_gated.csv" if gated else "reports/paper_trades.csv",
+            "reports/paper_trades_gated.csv" if gated else "reports/paper_trades_psfbuy.csv",
             "", "composite")
         if masha:
             # 麻紗 軌道 rail primary (backtest-validated config: track lb40/mt2/rt40
@@ -253,6 +270,20 @@ def main(argv) -> int:
                            max_loss_points_per_trade=20.0, max_daily_loss_points=60.0,
                            daily_profit_target_points=50.0, masha_loss_atr_mult=0.5),
                 "reports/paper_trades_masha.csv", "麻紗", "麻紗")
+        if buyonly:
+            # buy-only shadow: same risk config as the composite engine above,
+            # only the enabled signal set differs -> a controlled same-tick A/B.
+            add_paper_engine(
+                CompositeStrategy(timeframe=STRAT_TF, lookback=LOOKBACK,
+                                  breakout_lb=BREAKOUT_LB, flee_lb=FLEE_LB,
+                                  enable={"buy"}),
+                RiskConfig(max_lots=1, stop_loss_atr_mult=ATR_MULT,
+                           long_stop_atr_mult=LONG_ATR_MULT,
+                           short_stop_atr_mult=SHORT_ATR_MULT,
+                           stop_buffer_atr=STOP_BUFFER_ATR,
+                           max_loss_points_per_trade=20.0, masha_loss_atr_mult=0.5,
+                           masha_loss_atr_hi_pct=STOP_HI_PCT),
+                "reports/paper_trades_buyonly.csv", "buy-only", "buy-only")
 
         def on_bar(bar):
             print_bar(bar)
@@ -339,8 +370,9 @@ def main(argv) -> int:
             print(f"[preload] {_start}..{_end} → seeded {len(warm)} bars"
                   + (f" up to {warm[-1].ts:%m-%d %H:%M}" if warm else ""))
 
-        variant = "gated p+sf (daily-state)" if gated else "ungated all-6"
-        shadow = " + 麻紗軌道 shadow" if masha else ""
+        variant = "p+sf+buy (daily-state gated)" if gated else "p+sf+buy"
+        shadow = (" + 麻紗軌道 shadow" if masha else "") + \
+                 (" + buy-only shadow" if buyonly else "")
         print(f"--- LIVE PAPER (real ticks + simulated fills, NO real orders) "
               f"{SYMBOL} composite [{variant}]{shadow} lb={LOOKBACK}/{BREAKOUT_LB}/{FLEE_LB} "
               f"atr({ATR_PERIOD}) mult L={LONG_ATR_MULT}/S={SHORT_ATR_MULT} ---")
