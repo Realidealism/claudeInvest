@@ -44,6 +44,7 @@ Usage:
 
 from __future__ import annotations
 
+import os
 import signal
 import sys
 import threading
@@ -84,20 +85,52 @@ def _maybe_scrape_vix() -> None:
         print(f"[LOOP] VIX intraday scrape failed (non-fatal): {e}")
 
 
+# Hard ceiling on a single pass. On 2026-09-09 a pass hung for 2 hours:
+# multiprocessing lost one result chunk, so pool.imap_unordered waited on a
+# result that never arrived while every worker sat idle. Nothing in the pass
+# has a timeout, so that state is permanent -- the service stays RUNNING and
+# only a manual restart clears it. Measured pass durations (n=3702) are
+# p50 264s / p99 407s / max 913s, so 1200s cannot fire on a merely slow pass.
+# NSSM relaunches us 30s later (AppExit Default=Restart, AppRestartDelay=30s).
+PASS_WATCHDOG_SECONDS = int(os.environ.get("INTRADAY_SNAPSHOT_WATCHDOG", "1200"))
+
+
+def _watchdog_fire(started_at: float) -> None:
+    """Kill the process so NSSM can restart it. Runs on a timer thread.
+
+    os._exit, not sys.exit: SystemExit would only unwind this thread, and a
+    hung pass leaves the main thread blocked on a lock it will never get, so
+    no cooperative shutdown can reach it."""
+    elapsed = time.time() - started_at
+    print(f"[WATCHDOG] [ERROR] pass exceeded {PASS_WATCHDOG_SECONDS}s "
+          f"(elapsed {elapsed:.0f}s) -- exiting so NSSM restarts the daemon.",
+          file=sys.stderr)
+    sys.stderr.flush()
+    sys.stdout.flush()
+    os._exit(1)
+
+
 def _run_pass(*, final_pass: bool = False) -> int:
     """Run a single snapshot pass + JSON export. Returns evaluated stock count."""
     from analysis.intraday_snapshot import run as run_snapshot
     from export.generate import export_intraday
 
-    # Refresh the latest TWVIX before export so vix.json reflects the
-    # current poll. Throttled to once/min internally.
-    _maybe_scrape_vix()
+    watchdog = threading.Timer(PASS_WATCHDOG_SECONDS, _watchdog_fire,
+                               args=(time.time(),))
+    watchdog.daemon = True
+    watchdog.start()
+    try:
+        # Refresh the latest TWVIX before export so vix.json reflects the
+        # current poll. Throttled to once/min internally.
+        _maybe_scrape_vix()
 
-    summary = run_snapshot(final_pass=final_pass)
-    print()
-    export_intraday()
-    print()
-    return summary["stocks_evaluated"]
+        summary = run_snapshot(final_pass=final_pass)
+        print()
+        export_intraday()
+        print()
+        return summary["stocks_evaluated"]
+    finally:
+        watchdog.cancel()
 
 
 def _push_final() -> None:
