@@ -477,7 +477,7 @@ def update_date(trade_date: date):
         # a no-op (already in DB, no JSON diff, nothing pushed).
         print(f"[{trade_date}] weekend — chip-only update (集保 → chip_picks.json).")
         update_chip_only(trade_date)
-        return
+        return True
 
     print(f"\n{'='*60}")
     print(f"  Daily update: {trade_date}")
@@ -489,8 +489,30 @@ def update_date(trade_date: date):
     # enforced by _has_taiex() below instead.
     gate_ok, gate_trace = run_scraper(*INDEX_SCRAPER, trade_date, expect_rows=False)
     if not _has_taiex(trade_date):
+        if not gate_ok:
+            # The scraper itself failed, so an absent TAIEX row says
+            # nothing about the calendar. Treating that as a holiday
+            # skips the whole pipeline and still exits 0: a network
+            # outage across the 21:30 slot on 2026-09-18 cost a full
+            # trading day that nothing noticed for two days. A real
+            # holiday returns zero rows *successfully*, so gate_ok is
+            # what separates the two.
+            print(f"\n[GATE FAILED] {trade_date}: TAIEX fetch "
+                  f"failed - cannot tell a holiday from an outage, "
+                  f"aborting the rest of the pipeline.")
+            try:
+                send_sync(
+                    f"[每日更新] {trade_date} 交易日判定失敗\n"
+                    f"大盤指數抓取失敗，無法分辨休市或斷線，整批 scraper 已中止。\n"
+                    f"確認是交易日後請回補：\n"
+                    f"C:\\Claude\\Invest\\dist\\daily_update.exe "
+                    f"{trade_date} {trade_date}"
+                )
+            except Exception:
+                traceback.print_exc()
+            return False
         print(f"\n[HOLIDAY] {trade_date} has no TAIEX data — skipping remaining scrapers.")
-        return
+        return True
 
     # Track results: list of (label, status) where status is "ok", "failed", "skip"
     results = []
@@ -927,13 +949,18 @@ def update_date(trade_date: date):
         traceback.print_exc()
 
     print()
+    return True
 
 
 def update_range(start: date, end: date):
+    """False when any day in the range could not establish its gate."""
     current = start
+    all_ok = True
     while current <= end:
-        update_date(current)
+        if update_date(current) is False:
+            all_ok = False
         current += timedelta(days=1)
+    return all_ok
 
 
 # ---------------------------------------------------------------------------
@@ -953,18 +980,26 @@ if __name__ == "__main__":
 
     args = sys.argv[1:]
 
+    # Exit code matters: Task Scheduler's LastTaskResult is the only
+    # trace a scheduled run leaves behind, and a silent 0 is what let
+    # 2026-09-18 go unnoticed for two days.
+    exit_code = 0
     try:
         if len(args) == 0:
-            update_date(date.today())
+            ok = update_date(date.today())
         elif len(args) == 1:
-            update_date(date.fromisoformat(args[0]))
+            ok = update_date(date.fromisoformat(args[0]))
         elif len(args) == 2:
-            update_range(date.fromisoformat(args[0]), date.fromisoformat(args[1]))
+            ok = update_range(date.fromisoformat(args[0]), date.fromisoformat(args[1]))
         else:
             print("Usage: python daily_update.py [start_date] [end_date]")
             sys.exit(1)
+        if ok is False:
+            exit_code = 1
     except Exception as e:
         print(f"\n[ERROR] {e}")
         traceback.print_exc()
+        exit_code = 1
 
     pause_before_exit()
+    sys.exit(exit_code)
