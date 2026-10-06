@@ -1071,6 +1071,17 @@ def _batch_fetch_sides_and_quotes(tickers: list[str]) -> dict[str, dict]:
     if not tickers:
         return out
     with get_cursor(commit=False) as cur:
+        # Watchlist tickers can sit outside the scoring universe (money_level
+        # below the snapshot's floor), so the join below returns no row and
+        # the line would render the ticker twice. Seed name/market from
+        # tw.stocks first; snapshot rows overwrite them with identical values.
+        cur.execute(
+            "SELECT stock_id, name, market FROM tw.stocks WHERE stock_id = ANY(%s)",
+            (list(tickers),))
+        for r in cur.fetchall():
+            out[r["stock_id"]]["name"] = r["name"] or ""
+            out[r["stock_id"]]["market"] = r["market"] or ""
+
         cur.execute("""
             SELECT s.stock_id, s.side, s.rank, s.total_pct, s.turnover,
                    s.is_new, s.prev_rank, s.rank_delta,
