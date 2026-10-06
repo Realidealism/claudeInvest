@@ -518,3 +518,177 @@ def _fetch_stock_data(stock_id: str) -> list[dict]:
             (stock_id,),
         )
         return cur.fetchall()
+
+
+# ── Live (intraday) breadth ────────────────────────────────────────────────
+#
+# Same universe, same dead-fish filter and the same *_total (normal ∪ forming)
+# counting as the end-of-day pass above, but evaluated on the *forming* bar:
+# today's tw.intraday_quotes row is appended with volume/turnover scaled to a
+# projected full-day by the caller's h(t) factor. intraday_snapshot.run()
+# drives this each pass and writes the counts to data/breadth_intraday.json.
+#
+# Deliberately independent of the intraday ScoreBoard universe — that one is
+# narrowed to money_level >= 4, which is a much harder cut than ~dead_fish and
+# used to make the live 分母 ~260 stocks smaller than the close's.
+
+# Bars of history per stock. The widest window this path touches is 55
+# (SORT_NORMAL's long leg; money's 55-day SMA + 55-day rolling count), so 300
+# is far past warm-up — parity against tw.market_breadth is the actual proof.
+LIVE_HISTORY_DAYS = 300
+
+LIVE_COUNT_KEYS = (
+    "total",
+    "short_up", "short_down",
+    "medium_up", "medium_down",
+    "long_up", "long_down",
+)
+
+
+def _live_start_date(win: int = LIVE_HISTORY_DAYS) -> date:
+    """Oldest trade_date of the most recent `win` trading days."""
+    dates = _get_recent_dates(win)
+    if not dates:
+        raise RuntimeError("tw.daily_prices has no trading days.")
+    return dates[0]
+
+
+def _fetch_live_history(stock_ids: list[str], start: date) -> dict[str, list[dict]]:
+    """Recent bars for a batch of stocks in one query, oldest first per stock.
+    Column set and NOT NULL conditions mirror _fetch_stock_data."""
+    with get_cursor(commit=False) as cur:
+        cur.execute(
+            """
+            SELECT stock_id, trade_date, close_price, turnover, volume
+            FROM tw.daily_prices
+            WHERE stock_id = ANY(%s)
+              AND trade_date >= %s
+              AND close_price IS NOT NULL
+              AND turnover IS NOT NULL
+              AND volume IS NOT NULL
+            ORDER BY stock_id, trade_date ASC
+            """,
+            (stock_ids, start),
+        )
+        out: dict[str, list[dict]] = {}
+        for r in cur.fetchall():
+            out.setdefault(r["stock_id"], []).append(r)
+        return out
+
+
+def _fetch_live_quotes(stock_ids: list[str]) -> dict[str, dict]:
+    """Current intraday snapshot rows for a batch of stocks. Same row filter as
+    analysis.realtime_data._fetch_intraday_row / _merge_intraday_into_daily —
+    whether the row can actually carry a forming bar is decided in
+    _append_forming_bar, not here."""
+    with get_cursor(commit=False) as cur:
+        cur.execute(
+            """
+            SELECT stock_id, trade_date, open_price, high_price, low_price,
+                   last_price, total_volume, total_value, ref_price
+            FROM tw.intraday_quotes
+            WHERE stock_id = ANY(%s)
+              AND trade_date IS NOT NULL
+              AND last_price IS NOT NULL
+            """,
+            (stock_ids,),
+        )
+        return {r["stock_id"]: r for r in cur.fetchall()}
+
+
+def _append_forming_bar(rows: list[dict], quote: dict | None,
+                        volume_scale: float) -> list[dict]:
+    """Append today's forming bar with h(t)-projected volume/turnover, using
+    the same merge rule as the ScoreBoard path (analysis.realtime_data)."""
+    from analysis.realtime_data import _merge_intraday_into_daily
+
+    merged = _merge_intraday_into_daily(rows, quote)
+    if merged is rows or quote is None or merged[-1]["trade_date"] != quote["trade_date"]:
+        return merged
+    last = dict(merged[-1])
+    if last["volume"] is None or last["turnover"] is None:
+        # A WS trade tick can set last_price while total_volume/total_value are
+        # still NULL (before the session's first REST sweep fills them in). No
+        # usable turnover for the money/volume analysis, so drop the forming
+        # bar — the stock then fails the ref_date check and sits this pass out,
+        # which is also what the ScoreBoard path does with such a row.
+        return rows
+    last["volume"] = float(last["volume"]) * volume_scale
+    last["turnover"] = float(last["turnover"]) * volume_scale
+    return [*merged[:-1], last]
+
+
+def live_breadth_chunk(args: tuple[list[str], date, date, float, bool]) -> dict[str, int]:
+    """Pool worker: breadth counts for one batch of stock ids.
+
+    args = (stock_ids, history_start, ref_date, volume_scale, use_quotes).
+    Each worker does its own two batched queries so nothing large gets
+    pickled."""
+    stock_ids, start, ref_date, volume_scale, use_quotes = args
+    history = _fetch_live_history(stock_ids, start)
+    quotes = _fetch_live_quotes(stock_ids) if use_quotes else {}
+
+    counts = {k: 0 for k in LIVE_COUNT_KEYS}
+    for stock_id in stock_ids:
+        rows = history.get(stock_id)
+        if not rows:
+            continue
+        rows = _append_forming_bar(rows, quotes.get(stock_id), volume_scale)
+        # The close pass only counts stocks that have a bar on the target day
+        # (calculate_market_breadth's date_set lookup); a suspended stock whose
+        # last bar is older must not be counted off stale history.
+        if rows[-1]["trade_date"] != ref_date:
+            continue
+        if len(rows) < MIN_DAYS:
+            continue
+
+        close = np.array([float(r["close_price"]) for r in rows], dtype=F32)
+        turnover = np.array([float(r["turnover"]) for r in rows], dtype=F32)
+        volume = np.array([float(r["volume"]) for r in rows], dtype=F32)
+
+        close_result = calculate_close(close)
+        money_result = calculate_money(turnover)
+        volume_result = calculate_volume(volume)
+        sort_forming = calc_sort_forming(close_result, volume_result.volume_status)
+
+        i = len(rows) - 1
+        if money_result.dead_fish[i]:
+            continue
+        counts["total"] += 1
+
+        sn = close_result.ma.sort_normal
+        for scope in ("short", "medium", "long"):
+            up = sn[scope].up[i] or sort_forming[scope].up[i]
+            down = sn[scope].down[i] or sort_forming[scope].down[i]
+            if up:
+                counts[f"{scope}_up"] += 1
+            elif down:
+                counts[f"{scope}_down"] += 1
+
+    return counts
+
+
+def compute_live_breadth(volume_scale: float, ref_date: date, *, mapper=None,
+                         chunk_size: int = 120,
+                         use_quotes: bool = True) -> dict[str, int]:
+    """Market-wide live breadth counts. Only stocks whose newest bar (forming
+    bar included) falls on `ref_date` are counted — the live equivalent of the
+    close pass counting just that day's rows.
+
+    `mapper` takes (func, iterable) — pass ``pool.imap_unordered`` to fan the
+    batches over an existing Pool. use_quotes=False skips the forming bar,
+    which is what the parity check against tw.market_breadth runs on."""
+    stock_ids = _get_active_stocks()
+    start = _live_start_date()
+    chunks = [
+        (stock_ids[i:i + chunk_size], start, ref_date, volume_scale, use_quotes)
+        for i in range(0, len(stock_ids), chunk_size)
+    ]
+    results = map(live_breadth_chunk, chunks) if mapper is None \
+        else mapper(live_breadth_chunk, chunks)
+
+    counts = {k: 0 for k in LIVE_COUNT_KEYS}
+    for part in results:
+        for k in LIVE_COUNT_KEYS:
+            counts[k] += part[k]
+    return counts

@@ -27,9 +27,7 @@ from psycopg2.extras import execute_batch
 
 from db.connection import get_cursor, get_connection
 from analysis.realtime_data import load_stock_data_intraday
-from analysis.close import calculate_close, calc_sort_forming
-from analysis.money import calculate_money
-from analysis.volume import calculate_volume
+from analysis.market_breadth import compute_live_breadth
 from analysis.score import build_scoreboard
 from intraday.estimate import (
     HCurveNotReadyError,
@@ -210,28 +208,6 @@ def _eval_stock(stock_id: str) -> dict | None:
     tv_raw = float(data.turnover[idx])
     tv = tv_raw if tv_raw == tv_raw else 0.0
 
-    # Market-breadth piggyback: align with tw.market_breadth *_total ∪
-    # total_stocks semantics — exclude dead_fish stocks, count union of
-    # sort_normal and sort_forming. Reduced market-wide in run() and
-    # written to the breadth sidecar so `/breadth` can append a live
-    # 90th bar.
-    try:
-        cr = calculate_close(data.close)
-        mr = calculate_money(data.turnover)
-        vr = calculate_volume(data.volume)
-        sn = cr.ma.sort_normal
-        sf = calc_sort_forming(cr, vr.volume_status)
-        alive = not bool(mr.dead_fish[idx])
-        sn_su = alive and bool(sn["short"].up[idx]    or sf["short"].up[idx])
-        sn_sd = alive and bool(sn["short"].down[idx]  or sf["short"].down[idx])
-        sn_mu = alive and bool(sn["medium"].up[idx]   or sf["medium"].up[idx])
-        sn_md = alive and bool(sn["medium"].down[idx] or sf["medium"].down[idx])
-        sn_lu = alive and bool(sn["long"].up[idx]     or sf["long"].up[idx])
-        sn_ld = alive and bool(sn["long"].down[idx]   or sf["long"].down[idx])
-    except Exception:
-        alive = False
-        sn_su = sn_sd = sn_mu = sn_md = sn_lu = sn_ld = False
-
     return {
         "sid": stock_id,
         "lp": lp, "sp": sp, "tv": tv,
@@ -243,10 +219,6 @@ def _eval_stock(stock_id: str) -> dict | None:
         # Classified here rather than at export time: the pipeline already
         # ran, and re-deriving it downstream would cost a second pass.
         "vol_status": int(data.volume_result.volume_status[idx]),
-        "br_alive": alive,
-        "sn_su": sn_su, "sn_sd": sn_sd,
-        "sn_mu": sn_mu, "sn_md": sn_md,
-        "sn_lu": sn_lu, "sn_ld": sn_ld,
     }
 
 
@@ -428,28 +400,16 @@ def _save_signal_fires(snapshot_date: date, snapshot_time: datetime,
 
 
 def _save_breadth_sidecar(snapshot_date: date, snapshot_time: datetime,
-                          results: list[dict]) -> dict:
-    """Reduce per-stock breadth flags (sort_normal ∪ sort_forming, dead_fish
-    excluded) into market-wide counts and write to
-    data/breadth_intraday.json so export_breadth() can append a live 90th
+                          counts: dict) -> dict:
+    """Write the live breadth counts (from market_breadth.compute_live_breadth)
+    to data/breadth_intraday.json so export_breadth() can append a live 90th
     bar in /breadth. Mirrors tw.market_breadth *_total semantics."""
     import json
     from pathlib import Path
 
-    total = sum(1 for r in results if r["br_alive"])
-    counts = {
-        "short_up":   sum(1 for r in results if r["sn_su"]),
-        "short_down": sum(1 for r in results if r["sn_sd"]),
-        "medium_up":  sum(1 for r in results if r["sn_mu"]),
-        "medium_down":sum(1 for r in results if r["sn_md"]),
-        "long_up":    sum(1 for r in results if r["sn_lu"]),
-        "long_down":  sum(1 for r in results if r["sn_ld"]),
-    }
-
     payload = {
         "trade_date": snapshot_date.isoformat(),
         "snapshot_time": snapshot_time.isoformat(),
-        "total": total,
         **counts,
     }
     sidecar = Path(__file__).parent.parent / "data" / "breadth_intraday.json"
@@ -537,7 +497,14 @@ def run(*, final_pass: bool = False) -> dict:
                 results.append(r)
                 if len(results) % 200 == 0:
                     print(f"  evaluated {len(results)} ...", file=sys.stderr)
-    print(f"  scored {len(results)} stocks in {time.time() - t0:.1f}s")
+        print(f"  scored {len(results)} stocks in {time.time() - t0:.1f}s")
+
+        # Breadth runs on the close's universe (all active stocks minus
+        # dead_fish), which is wider than the money_level >= 4 scoring
+        # universe above — hence its own lean pass over the same Pool.
+        t_br = time.time()
+        breadth_counts = compute_live_breadth(scale, snapshot_date, mapper=pool.imap_unordered)
+    print(f"  breadth {breadth_counts['total']} alive in {time.time() - t_br:.1f}s")
 
     prev_long  = _load_prev_score_ranks(snapshot_date, "long")
     prev_short = _load_prev_score_ranks(snapshot_date, "short")
@@ -554,7 +521,7 @@ def run(*, final_pass: bool = False) -> dict:
     print(f"  Open positions long: {pos_counts['long']} / short: {pos_counts['short']}")
     print(f"  Exited intraday  long: {pos_counts['exited_long']} / short: {pos_counts['exited_short']}")
 
-    breadth_counts = _save_breadth_sidecar(snapshot_date, now, results)
+    _save_breadth_sidecar(snapshot_date, now, breadth_counts)
     print(f"  Breadth  short: {breadth_counts['short_up']}↑/{breadth_counts['short_down']}↓  "
           f"medium: {breadth_counts['medium_up']}↑/{breadth_counts['medium_down']}↓  "
           f"long: {breadth_counts['long_up']}↑/{breadth_counts['long_down']}↓")
