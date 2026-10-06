@@ -265,26 +265,58 @@ def upsert_reference(records: list[dict], trade_date) -> int:
     return written
 
 
-def upsert_value_profile(trade_date, time_bucket: str, market_total_value: int):
+def upsert_value_profile(trade_date, time_bucket: str, market_total_value: int,
+                         index_snapshot: dict | None = None):
     """Write one market-wide cumulative value data point for the h(t) curve.
 
     Called by the sweeper after each TSE+OTC sweep. ON CONFLICT keeps the
     greater value since cumulative turnover only increases within a session.
+
+    index_snapshot optionally carries the authoritative exchange figures
+    (twse_trade_value, tpex_trade_value, taiex_close, taiex_change_pct,
+    tpex_close, tpex_change_pct). Cumulative values take the greater of old
+    and new for the same reason as above; index levels are last-write-wins
+    because the bucket should hold where the index stood at its end.
     """
+    snap = index_snapshot or {}
     with get_cursor() as cur:
         cur.execute(
             """
             INSERT INTO tw.intraday_value_profile
-                (trade_date, time_bucket, market_total_value, updated_at)
-            VALUES (%s, %s, %s, NOW())
+                (trade_date, time_bucket, market_total_value,
+                 twse_trade_value, tpex_trade_value,
+                 taiex_close, taiex_change_pct, tpex_close, tpex_change_pct,
+                 updated_at)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, NOW())
             ON CONFLICT (trade_date, time_bucket) DO UPDATE SET
                 market_total_value = GREATEST(
                     tw.intraday_value_profile.market_total_value,
                     EXCLUDED.market_total_value
                 ),
+                twse_trade_value = GREATEST(
+                    tw.intraday_value_profile.twse_trade_value,
+                    EXCLUDED.twse_trade_value
+                ),
+                tpex_trade_value = GREATEST(
+                    tw.intraday_value_profile.tpex_trade_value,
+                    EXCLUDED.tpex_trade_value
+                ),
+                taiex_close = COALESCE(EXCLUDED.taiex_close,
+                                       tw.intraday_value_profile.taiex_close),
+                taiex_change_pct = COALESCE(EXCLUDED.taiex_change_pct,
+                                            tw.intraday_value_profile.taiex_change_pct),
+                tpex_close = COALESCE(EXCLUDED.tpex_close,
+                                      tw.intraday_value_profile.tpex_close),
+                tpex_change_pct = COALESCE(EXCLUDED.tpex_change_pct,
+                                           tw.intraday_value_profile.tpex_change_pct),
                 updated_at = NOW()
             """,
-            (trade_date, time_bucket, market_total_value),
+            (
+                trade_date, time_bucket, market_total_value,
+                snap.get("twse_trade_value"), snap.get("tpex_trade_value"),
+                snap.get("taiex_close"), snap.get("taiex_change_pct"),
+                snap.get("tpex_close"), snap.get("tpex_change_pct"),
+            ),
         )
 
 

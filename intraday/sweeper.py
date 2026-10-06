@@ -37,6 +37,15 @@ _MAX_CONSECUTIVE_EMPTY = 3
 # 5-minute bucket boundaries for the value profile curve
 _BUCKET_MINUTES = 5
 
+# Indices recorded alongside each bucket: (symbol, value_col, close_col, pct_col).
+# IX0001 = 發行量加權股價指數 (TWSE), IX0043 = 櫃買指數 (TPEx). Each quote carries
+# its exchange's own cumulative turnover, which is the published figure — unlike
+# our summed market_total_value.
+_INDEX_SYMBOLS = (
+    ("IX0001", "twse_trade_value", "taiex_close", "taiex_change_pct"),
+    ("IX0043", "tpex_trade_value", "tpex_close", "tpex_change_pct"),
+)
+
 
 def _try_relogin(sdk, reason: str) -> bool:
     """Refresh the E.Sun SDK token. Returns True on success."""
@@ -69,13 +78,39 @@ def _time_bucket(now: datetime) -> str:
     return f"{h:02d}:{m:02d}"
 
 
-def _record_value_profile(records: list[dict], trade_date, now: datetime):
+def _fetch_index_snapshot(sdk) -> dict:
+    """Authoritative index levels + exchange turnover for the current bucket.
+
+    Best-effort: an index that can't be read is simply left out, so the
+    profile row still lands with whatever we did get.
+    """
+    snap: dict = {}
+    for symbol, value_key, close_key, pct_key in _INDEX_SYMBOLS:
+        quote = esun_rest.fetch_index_quote(sdk, symbol)
+        if not quote:
+            continue
+        snap[value_key] = quote["trade_value"]
+        snap[close_key] = quote["close"]
+        snap[pct_key] = quote["change_pct"]
+    return snap
+
+
+def _record_value_profile(records: list[dict], trade_date, now: datetime, sdk=None):
     """Sum total_value across all snapshot records and write to profile table."""
     total = sum(r.get("total_value") or 0 for r in records)
     if total <= 0:
         return
     bucket = _time_bucket(now)
-    store.upsert_value_profile(trade_date, bucket, total)
+    index_snapshot = None
+    if sdk is not None:
+        try:
+            index_snapshot = _fetch_index_snapshot(sdk)
+        except Exception:
+            # The h(t) curve is the load-bearing output here; index columns
+            # are a bonus and must never cost us the row.
+            print("[SWEEP] [WARN] index snapshot failed:")
+            traceback.print_exc()
+    store.upsert_value_profile(trade_date, bucket, total, index_snapshot)
 
 
 def _finalize_day_or_purge(trade_date):
@@ -158,7 +193,7 @@ def run(stop_event: threading.Event, sdk, interval_sec: int = 20, force: bool = 
 
                 n_tse = store.upsert_quotes(tse, market="TSE", trade_date=today)
                 n_otc = store.upsert_quotes(otc, market="OTC", trade_date=today)
-                _record_value_profile(tse + otc, today, now)
+                _record_value_profile(tse + otc, today, now, sdk)
                 print(f"[SWEEP] {now:%H:%M:%S} TSE={n_tse} OTC={n_otc}")
 
                 # Empty 200-OK responses are the silent-stale-token symptom.
@@ -194,6 +229,10 @@ def run(stop_event: threading.Event, sdk, interval_sec: int = 20, force: bool = 
 
                 n_tse = store.upsert_quotes(tse, market="TSE", trade_date=today)
                 n_otc = store.upsert_quotes(otc, market="OTC", trade_date=today)
+                # sdk is deliberately omitted: we only reach the fallback after
+                # E.Sun failed repeatedly, so index lookups against it would just
+                # burn a timeout per sweep. The profile row still lands; the
+                # brief degrades to ratios-only for those buckets.
                 _record_value_profile(tse + otc, today, now)
                 print(f"[SWEEP] {now:%H:%M:%S} TSE={n_tse} OTC={n_otc} (SinoPac fallback)")
 

@@ -105,6 +105,35 @@ def fetch_snapshot_quotes(sdk, market: Literal["TSE", "OTC"]) -> list[dict]:
     return out
 
 
+def fetch_index_quote(sdk, symbol: str) -> dict | None:
+    """Snapshot one index (IX0001 加權指數 / IX0043 櫃買指數).
+
+    Returns {close, change_pct, trade_value} where trade_value is that
+    exchange's own cumulative turnover in NTD, or None when the symbol is
+    unavailable. Never raises — the sweeper's main loop must not break
+    because a quote lookup hiccuped.
+    """
+    try:
+        resp = sdk.rest_client.stock.intraday.quote(symbol=symbol)
+    except Exception as exc:
+        print(f"  [REST] index quote {symbol} failed: {exc}")
+        return None
+
+    if not isinstance(resp, dict) or resp.get("statusCode"):
+        print(f"  [REST] index quote {symbol}: unexpected response {resp}")
+        return None
+
+    total = resp.get("total")
+    if not isinstance(total, dict):
+        total = {}
+
+    return {
+        "close": _to_float(resp.get("closePrice")),
+        "change_pct": _to_float(resp.get("changePercent")),
+        "trade_value": _to_int(total.get("tradeValue")),
+    }
+
+
 def fetch_intraday_candles(sdk, symbol: str, timeframe: str = "1") -> list[dict]:
     """Intraday candles for a single symbol. Used by the signal layer (Phase B)."""
     stock = sdk.rest_client.stock
