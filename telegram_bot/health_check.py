@@ -46,7 +46,6 @@ _DAILY_TABLES = [
     ("日線收盤", "tw.daily_prices", "trade_date"),
     ("市場廣度", "tw.market_breadth", "trade_date"),
     ("評分快照", "tw.score_snapshot", "snapshot_date"),
-    ("訊號快照", "tw.signal_snapshot", "snapshot_date"),
 ]
 
 # Sources that update on their own rhythm rather than every trading day, so the
@@ -61,6 +60,23 @@ _PERIODIC_TABLES = [
     ("法說會索引", "tw.investor_conferences", "updated_at", 3),
     ("年報產品別營收", "tw.product_revenue_status", "updated_at", 9),
     ("轉投資關係", "tw.company_affiliations", "updated_at", 200),
+]
+
+
+# Written by the daily pipeline but legitimately empty on a quiet day, so
+# 'did not advance to the latest trading day' is not evidence of failure.
+# tw.signal_snapshot holds only the signals that actually fired, and
+# 2026-09-17 produced none: the must-advance rule above called that a
+# pipeline failure, as it had on most days that fortnight. A daily probe
+# that cries wolf is a probe nobody reads, which is how the real outage on
+# 2026-09-18 went unnoticed. Liveness for that step is already covered by
+# tw.score_snapshot -- analysis/daily_snapshot.run() writes both from the
+# same results list, so score advancing proves the signal evaluation ran.
+# The tolerance here only has to catch _save_signal_fires breaking on its
+# own: fires have never been absent two sessions running, so a gap this
+# wide is a real anomaly rather than a quiet market.
+_SPARSE_DAILY_TABLES = [
+    ("訊號快照", "tw.signal_snapshot", "snapshot_date", 5),
 ]
 
 # Column groups of tw.daily_prices that each come from one scraper leg, checked
@@ -134,6 +150,17 @@ def _latest_trading_day():
     return _scalar(
         "SELECT MAX(trade_date) AS d FROM tw.index_prices WHERE index_id = 'TAIEX'"
     )
+
+
+def _trading_days_since(d: date, latest: date) -> int:
+    """Sessions between d and latest, counted off the TAIEX calendar."""
+    return _scalar(
+        """
+        SELECT count(*) AS n FROM tw.index_prices
+        WHERE index_id = 'TAIEX' AND trade_date > %s AND trade_date <= %s
+        """,
+        (d, latest),
+    ) or 0
 
 
 def _dead_column_groups(latest: date) -> list[str]:
@@ -383,6 +410,18 @@ def run_daily() -> int:
         if d is None or d < latest:
             seen = d.strftime("%m-%d") if d else "無"
             stale.append(f"{label} 停在 {seen}")
+
+    for label, table, col, max_gap in _SPARSE_DAILY_TABLES:
+        d = _scalar(f"SELECT MAX({col}) AS d FROM {table}")
+        if d is None:
+            stale.append(f"{label} 無任何資料")
+            continue
+        gap = _trading_days_since(d, latest)
+        if gap > max_gap:
+            stale.append(
+                f"{label} 停在 {d:%m-%d}（已 {gap} 個交易日未更新，"
+                f"容許 {max_gap}）"
+            )
 
     for label, table, col, max_age in _PERIODIC_TABLES:
         ts = _scalar(f"SELECT MAX({col}) AS d FROM {table}")
