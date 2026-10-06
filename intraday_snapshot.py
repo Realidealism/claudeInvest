@@ -114,9 +114,12 @@ def _push_final() -> None:
         print("[LOOP] [WARN] final-pass push failed (non-fatal):")
         traceback.print_exc()
         try:
-            import subprocess
-            subprocess.run([sys.executable, "-m", "telegram_bot.cron_alert",
-                            "git_push_failed"], check=False)
+            # In-process call: in the PyInstaller exe sys.executable is this
+            # daemon itself, so a "-m" subprocess would start a second daemon
+            # and block forever. send_sync uses a 10-second connect/read timeout;
+            # it does not impose a total-call deadline.
+            from telegram_bot.cron_alert import main as cron_alert_main
+            cron_alert_main(["git_push_failed"])
         except Exception:
             pass
 
