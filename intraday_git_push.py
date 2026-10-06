@@ -45,6 +45,7 @@ FILES = (
     "vix.json",
     "yield_curve.json",
     "fear_greed.json",
+    "thermometer_stance.json",   # live 攻防 (溫度計盤中 stance); EOD push resets it to close
 )
 
 
