@@ -13,7 +13,8 @@ REM
 REM Does NOT touch:
 REM   - InvestTelegramBot / InvestIntradaySweeper / InvestMicroPaper (services)
 REM   - vite dev server (node.exe)
-REM   - intraday_publish.bat / feargreed_update.bat (Task Scheduler)
+REM   - intraday_publish.bat (Task Scheduler; it runs feargreed_update.py,
+REM     vix_update.py and yield_update.py directly with system Python)
 REM
 REM Prerequisite: no daily_update.exe must be running, or PyInstaller can't
 REM overwrite dist\daily_update.exe. Kill stragglers first if needed:
@@ -34,9 +35,16 @@ if not exist logs mkdir logs
 echo ============================== >> logs\rebuild_and_restart.log
 echo [%DATE% %TIME%] starting %*       >> logs\rebuild_and_restart.log
 
+REM ===== 0. Require Administrator =====
+REM Without elevation every nssm stop/start fails with "Can't open service!
+REM OpenService(): Access denied" and the script sails on regardless, leaving
+REM the service unrestarted (or, on a trading day, the .exe locked).
+net session >nul 2>&1
+if errorlevel 1 goto :not_admin
+
 REM ===== 1. Stop the InvestIntradaySnapshot service =====
 echo [1/4] stopping InvestIntradaySnapshot service...
-echo [%DATE% %TIME%] nssm stop daemon   >> logs\rebuild_and_restart.log
+echo [%DATE% %TIME%] nssm stop InvestIntradaySnapshot >> logs\rebuild_and_restart.log
 "%NSSM%" stop InvestIntradaySnapshot >> logs\rebuild_and_restart.log 2>&1
 
 REM Clear any lingering multiprocessing Pool workers NSSM didn't reap, then
@@ -62,11 +70,6 @@ echo [%DATE% %TIME%] build intraday_snapshot >> logs\rebuild_and_restart.log
 "%PY%" -m PyInstaller --noconfirm --clean intraday_snapshot.spec >> logs\rebuild_and_restart.log 2>&1
 if errorlevel 1 goto :build_failed
 
-echo [3.5/4] rebuilding feargreed_update.exe...
-echo [%DATE% %TIME%] build feargreed_update >> logs\rebuild_and_restart.log
-"%PY%" -m PyInstaller --noconfirm --clean feargreed_update.spec >> logs\rebuild_and_restart.log 2>&1
-if errorlevel 1 goto :build_failed
-
 goto :after_build
 
 :skip_build
@@ -80,7 +83,7 @@ if "%1"=="--no-restart" goto :no_restart
 if "%2"=="--no-restart" goto :no_restart
 
 echo [4/4] starting InvestIntradaySnapshot service...
-echo [%DATE% %TIME%] nssm start daemon  >> logs\rebuild_and_restart.log
+echo [%DATE% %TIME%] nssm start InvestIntradaySnapshot >> logs\rebuild_and_restart.log
 "%NSSM%" start InvestIntradaySnapshot >> logs\rebuild_and_restart.log 2>&1
 
 REM nssm start returns non-zero when the service is slow to reach RUNNING
@@ -106,6 +109,12 @@ echo Rebuild done. daemon NOT restarted.
 echo Start it with:
 echo   "%NSSM%" start InvestIntradaySnapshot
 exit /b 0
+
+:not_admin
+echo [ERROR] Not elevated. nssm stop/start needs Administrator, and without it
+echo [ERROR] the service is never restarted. Reopen the shell as Administrator.
+echo [%DATE% %TIME%] FAILED - not admin  >> logs\rebuild_and_restart.log
+exit /b 4
 
 :still_running
 echo [ERROR] intraday_snapshot.exe still running after nssm stop + taskkill.
