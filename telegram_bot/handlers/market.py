@@ -1,7 +1,8 @@
 """`/market` — 市場面概況：台股寬度、籌碼、風險情緒、趨勢變化。
 
 Reads the dashboard JSON snapshots refreshed by the (now automated)
-intraday / EOD pipeline — no DB access. breadth.json is required; the
+intraday / EOD pipeline; only the 量能 section hits the DB (via
+market_volume_brief.compute_projection). breadth.json is required; the
 auxiliary sentiment/chip sources (margin / fear_greed / vix / yield_curve)
 degrade gracefully — a missing file or key just drops that line.
 
@@ -12,6 +13,7 @@ their own cadence; lines whose date lags the breadth date are tagged.
 
 from __future__ import annotations
 
+import asyncio
 import json
 import logging
 from datetime import date, datetime, timezone, timedelta
@@ -21,6 +23,13 @@ from telegram import Update
 from telegram.ext import CommandHandler, ContextTypes
 
 from telegram_bot.auth import restricted
+from telegram_bot.watchers.market_volume_brief import (
+    _NOISY_UNTIL,
+    _STALE_AFTER_MIN,
+    _mkt_line,
+    _verdict_line,
+    compute_projection,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -231,6 +240,50 @@ def _build_stance(base_date: str) -> list[str] | None:
     return [f"{emoji} 攻防狀態：{stance}{tag}".rstrip()]
 
 
+def _build_volume(base_date: str, now: datetime | None = None) -> list[str] | None:
+    """大盤量能 — the same calibrated projection the 09:10–10:30 push sends
+    (telegram_bot.watchers.market_volume_brief). Intraday: projected full day
+    with the push's confidence tier; the lone 09:05 bucket is too noisy to
+    project and says so. After the close (or pre-open / holiday, falling back
+    to the last trading day): the official full-day figure, or the calibrated
+    estimate until the EOD pipeline has written it."""
+    now = now or datetime.now(_TPE)
+    p, _ = compute_projection(now)
+    if p is None:
+        return None
+    bucket = p["bucket"]
+    prev_day, ma5 = p["prev_day"], p["ma5"]
+
+    if p["trade_date"] == now.date() and bucket < "13:30":
+        if bucket == "09:05":
+            return ["💰 量能（盤中 09:05）", "  資料不足，09:10 後出預估"]
+        flags = ""
+        if bucket <= _NOISY_UNTIL.strftime("%H:%M"):
+            flags += " ⚠ 初步、雜訊大"
+        if p["stale_min"] >= _STALE_AFTER_MIN:
+            flags += f" ⚠ 資料延遲 {p['stale_min']} 分"
+        lines = [f"💰 量能（盤中 {bucket} 預估）{flags}"]
+        projected = p["projected"]
+        lines.append(_mkt_line("上市", projected, prev_day, ma5, amount=p["official"]))
+        tpex = p["tpex_projected"]
+        if tpex:
+            lines.append(_mkt_line("上櫃", tpex, p["tpex_prev_day"], p["tpex_ma5"]))
+        lines.append(_verdict_line(projected, ma5, tpex, p["tpex_ma5"]))
+        return lines
+
+    suf = _date_suffix(p["trade_date"].isoformat(), base_date)
+    lines = [f"💰 量能（收盤）{suf}"]
+    value = (p["actual"] or p["projected"]) if p["official"] else p["projected"]
+    lines.append(_mkt_line("上市", value, prev_day, ma5,
+                           approx=p["official"] and not p["actual"], amount=p["official"]))
+    tpex = p["tpex_actual"] or p["tpex_projected"]
+    if tpex:
+        lines.append(_mkt_line("上櫃", tpex, p["tpex_prev_day"], p["tpex_ma5"],
+                               approx=not p["tpex_actual"]))
+    lines.append(_verdict_line(value, ma5, tpex, p["tpex_ma5"], closed=True))
+    return lines
+
+
 def _build_risk(base_date: str) -> list[str] | None:
     """美股/總經風險情緒：恐懼貪婪 + VIX + 殖利率曲線。"""
     lines: list[str] = []
@@ -321,6 +374,15 @@ def build_market_message() -> str:
     if stance:
         parts.append("\n".join(stance))
 
+    # 大盤量能（DB 讀取；失敗就省略此段）
+    try:
+        volume = _build_volume(base_date)
+    except Exception:
+        logger.exception("/market volume section failed")
+        volume = None
+    if volume:
+        parts.append("\n".join(volume))
+
     # 三尺度寬度。今日趨勢碼較前一交易日上升標 ↑、下降標 ↓（今天轉向）。
     width_lines = ["📊 市場寬度（漲/中/跌）"]
     for key, name in _SCOPES:
@@ -356,7 +418,7 @@ def build_market_message() -> str:
 @restricted
 async def cmd_market(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     try:
-        msg = build_market_message()
+        msg = await asyncio.to_thread(build_market_message)  # volume section hits the DB
     except Exception as exc:
         logger.exception("/market build failed: %s", exc)
         await update.message.reply_text(f"市場概況讀取失敗：{exc}")
