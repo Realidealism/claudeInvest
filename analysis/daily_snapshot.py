@@ -40,6 +40,7 @@ from signal_backtest.factories._conditions import (
     pick_condition, touch_condition,
     buy_condition, sell_condition,
     buy_flee_signal, sell_flee_signal,
+    post_break_blackout,
 )
 # Pull unified factories via SIGNAL_FACTORIES rather than direct import
 # from signal_backtest.factories.unified — the latter has a circular
@@ -178,14 +179,19 @@ def _eval_stock(args: tuple[str, date, date]) -> dict | None:
     lp_d3, sp_d3 = _eval_pct(data, idx - 3)
 
     # 2. Signal conditions on the latest bar.
+    # The unified factories AND their entries with ~post_break_blackout; these
+    # raw conditions bypass that wrapper, so apply the same seam filter here or
+    # a stock resuming on a new price scale fires on windows that span the seam
+    # (5904 fired buy_flee then sell_flee on 2026-08-10/11 at 0.11x its close).
     fires: list[str] = []
-    for name, fn in SIGNALS:
-        try:
-            arr = fn(data)
-        except Exception:
-            continue
-        if bool(arr[idx]):
-            fires.append(name)
+    if not bool(post_break_blackout(data)[idx]):
+        for name, fn in SIGNALS:
+            try:
+                arr = fn(data)
+            except Exception:
+                continue
+            if bool(arr[idx]):
+                fires.append(name)
 
     # 3. Unified-strategy open positions (full backtest each side).
     open_positions: list[dict] = []
