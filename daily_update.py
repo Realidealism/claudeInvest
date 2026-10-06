@@ -80,6 +80,10 @@ SCRAPERS = [
     # Forward-looking board (停券/融券最後回補日) — covering-squeeze calendar
     # Event-driven; exempt
     ("Short-cover calendar (停券)", "scrapers.short_cover_calendar", "scrape_date", False),
+    # 減資參考價 — feeds post_break_blackout, which needs the effective date to
+    # blank out the bars whose indicator windows span the unadjusted seam.
+    # Event-driven; exempt (a reduction lands only a few times a month)
+    ("Capital reductions (減資)", "scrapers.capital_reductions", "scrape_date", False),
     # Current-year AGM board (股東會開會日期, OpenAPI) — AGMs cluster in Q2;
     # exempt (0 rows outside the season is normal)
     ("Shareholder meetings (股東會)", "scrapers.shareholder_meetings", "scrape_date", False),

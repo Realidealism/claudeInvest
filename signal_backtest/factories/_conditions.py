@@ -67,6 +67,31 @@ SELL_STANCE_GATE: tuple[int, float] | None = (3, 25.0)
 BREAK_JUMP = 0.40
 BREAK_BLACKOUT_BARS: int | None = 377
 
+# v366: the jump test above only catches a seam when the step is large enough to
+# be impossible on its own. It is sufficient, not necessary -- a 20% capital
+# reduction moves the price by a quarter, well under BREAK_JUMP, and 151 of the
+# 626 recorded reductions land in that blind 15-40% band (6176 resumed +24.8%
+# and 6241 +23.8% on 2026-08-24/25, both missed). tw.capital_changes knows the
+# exact effective date, so use it directly rather than inferring the seam from
+# the price step.
+#
+# Only reductions are covered: FinMind's dataset is reduction-only, so splits
+# and par-value changes still rely on BREAK_JUMP. The halt-gap route was tried
+# and rejected -- of 560 gap-spanning 10-40% jumps only 156 are reductions, the
+# rest are genuine repricings on stocks that resume without a daily limit.
+#
+# A recorded reduction is only worth blanking out when its price step is one
+# trading could not have produced. The table holds plenty of token reductions
+# -- 1721 at ratio 1.0000 (0.0%), 3354 at 0.6%, 2492 at 5.7% -- and a step that
+# small is inside ordinary bar-to-bar movement, so a window spanning it is not
+# meaningless. The cutoff is the daily limit again, the same fact BREAK_JUMP is
+# derived from, not a swept value: 474 of the 628 recorded reductions clear it,
+# 286 of those already trip BREAK_JUMP, so this leg adds the 188 in between.
+#
+# Set to False to disable and reproduce v365 bit-identically.
+SEAM_FROM_CAPITAL_CHANGES = True
+SEAM_MIN_STEP = 0.10
+
 if TYPE_CHECKING:
     from backtest.data import StockData
 
@@ -76,11 +101,40 @@ BoolArray = NDArray[np.bool_]
 # ── Helpers ─────────────────────────────────────────────────────────────────
 
 
+@lru_cache(maxsize=1)
+def _reduction_seam_dates() -> dict:
+    """Effective dates of reductions large enough to break the price scale.
+
+    On these bars the share count changed without the price series being
+    adjusted, so the preceding bar sits on the old scale. Read live from
+    tw.capital_changes -- the same table health_check reports unrecorded
+    corporate actions against -- so there is no snapshot to keep in sync.
+    """
+    from db.connection import get_cursor
+    by_stock: dict = {}
+    with get_cursor(commit=False) as cur:
+        cur.execute(
+            "SELECT stock_id, effective_date FROM tw.capital_changes "
+            "WHERE event_type = 'REDUCTION' AND ratio > 0 "
+            "AND abs(1 / ratio - 1) > %s",
+            (SEAM_MIN_STEP,),
+        )
+        for r in cur.fetchall():
+            by_stock.setdefault(r["stock_id"], set()).add(r["effective_date"])
+    return {k: frozenset(v) for k, v in by_stock.items()}
+
+
 def post_break_blackout(data: "StockData") -> BoolArray:
     """Bars whose indicator history spans an unadjusted corporate-action seam.
 
-    True from the jump bar itself through BREAK_BLACKOUT_BARS bars after it,
+    True from the seam bar itself through BREAK_BLACKOUT_BARS bars after it,
     which is how long the longest window still reaches back across the seam.
+
+    Two sources feed the same window: a price step too large to be a real move
+    (BREAK_JUMP), and a reduction's effective date taken straight from
+    tw.capital_changes, which catches the reductions whose step is too small to
+    trip the first test. A seam on the first bar is ignored either way -- the
+    pre-seam bars are not in the series, so no window spans it.
     """
     n = data.n
     if BREAK_BLACKOUT_BARS is None or n == 0:
@@ -91,8 +145,13 @@ def post_break_blackout(data: "StockData") -> BoolArray:
     prev[1:] = close[:-1]
     with np.errstate(invalid="ignore", divide="ignore"):
         jump = np.abs(close / prev - 1.0) > BREAK_JUMP
-    jump[0] = False
     jump &= np.isfinite(prev) & (prev > 0)
+    if SEAM_FROM_CAPITAL_CHANGES:
+        seam = _reduction_seam_dates().get(data.stock_id)
+        if seam:
+            jump |= np.fromiter((d in seam for d in data.dates),
+                                dtype=np.bool_, count=n)
+    jump[0] = False
     if not jump.any():
         return np.zeros(n, dtype=np.bool_)
     # A bar is blacked out when any jump sits within the preceding window,
