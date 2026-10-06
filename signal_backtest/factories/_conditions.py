@@ -338,6 +338,18 @@ def _market_strongly_bullish(data: "StockData") -> BoolArray:
     return (ms.short_trend >= 2) | (ms.medium_trend >= 2) | (ms.long_trend >= 2)
 
 
+# v367 試驗封存 (2026-09-08, sweep 54): regime bear 判定加死區，不採用
+#   設計：classify_trend (analysis/market_breadth.py:36) 是無死區的裸多數比較，
+#     down_pct > up_pct 就判 bear。2026-09-07 長期腿 301 up / 305 down of 987
+#     (0.41pp) 否決全市場 gate，而 medium 腿同時是 +2；long_trend=-1 的日子有
+#     23.7% 是 <2pp 的薄多數。加 δ 百分點門檻後才認 bear (只降一階，不新增)。
+#   實測 δ=0.5/1.0/1.5/2.0/3.0pp → 差異日 17/37/59/70/90 天 (11 年均勻)：
+#     buy PF 全 grid 極差僅 0.0025 且符號交替；受控對照 (δ=1.0pp) 合池
+#     1.8356→1.8365 (+0.0009)、賺賠比 -0.0001、maxL -26.74 與 maxG 1549.8 一格未動。
+#   ★真正的證據在損益歸因：新增 81 筆勝率僅 37.0% (低於 buy 自身 38.2%)，而
+#     移除的 49 筆是賺錢單 — 死區只放寬門檻不可能擋單，那是部位機器狀態重排。
+#   機制問題屬實但修掉無增量：門檻鬆 5 分放進來的股票本來就不夠好。
+#   詳見 memory project_breadth_spread_gate_failed 與 sweeps 表 id=54。
 def _market_strongly_bearish(data: "StockData") -> BoolArray:
     """Strong bear at any scope (trend code <= -2). Filter for long entries."""
     ms = data.market_state

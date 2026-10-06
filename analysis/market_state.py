@@ -65,13 +65,26 @@ class MarketState:
     medium_pct_status: U8Array
     long_pct_status: U8Array
 
+    # Raw arrangement fractions on the "total" base: sort_normal + sort_forming
+    # over active_stocks — the series shown on the 多空頭排列 page. Distinct from
+    # the six *_hot/*_dir flags above, which are built from sort_normal over
+    # total_stocks. Exposed for market-level spread/convergence conditions.
+    short_up_pct_total: F32Array
+    short_down_pct_total: F32Array
+    medium_up_pct_total: F32Array
+    medium_down_pct_total: F32Array
+    long_up_pct_total: F32Array
+    long_down_pct_total: F32Array
+
 
 # Cache the per-date row tuple after the full-history computation.
 # Tuple layout (matches the per-date payload in _build_cache):
 #   (s_trend, m_trend, l_trend,
 #    s_up_hot, s_dn_hot, m_up_hot, m_dn_hot, l_up_hot, l_dn_hot,
 #    s_up_dir, s_dn_dir, m_up_dir, m_dn_dir, l_up_dir, l_dn_dir,
-#    s_pct_status, m_pct_status, l_pct_status)
+#    s_pct_status, m_pct_status, l_pct_status,
+#    s_up_pct_tot, s_dn_pct_tot, m_up_pct_tot, m_dn_pct_tot,
+#    l_up_pct_tot, l_dn_pct_tot)
 _CACHE: dict[str, tuple] | None = None
 
 
@@ -86,7 +99,10 @@ def _load_cache() -> dict[str, tuple]:
         cur.execute(
             "SELECT trade_date, short_trend, medium_trend, long_trend, "
             "       short_up, short_down, medium_up, medium_down, "
-            "       long_up, long_down, total_stocks "
+            "       long_up, long_down, total_stocks, active_stocks, "
+            "       short_up_total, short_down_total, "
+            "       medium_up_total, medium_down_total, "
+            "       long_up_total, long_down_total "
             "FROM tw.market_breadth ORDER BY trade_date"
         )
         rows = cur.fetchall()
@@ -94,10 +110,10 @@ def _load_cache() -> dict[str, tuple]:
     n = len(rows)
     dates = [r["trade_date"].isoformat() for r in rows]
 
-    def _pct(num_key: str) -> F32Array:
+    def _pct(num_key: str, den_key: str = "total_stocks") -> F32Array:
         arr = np.zeros(n, dtype=np.float32)
         for i, r in enumerate(rows):
-            t = r["total_stocks"]
+            t = r[den_key]
             v = r[num_key]
             if t and v is not None:
                 arr[i] = float(v) / float(t)
@@ -109,6 +125,17 @@ def _load_cache() -> dict[str, tuple]:
     m_dn_pct = _pct("medium_down")
     l_up_pct = _pct("long_up")
     l_dn_pct = _pct("long_down")
+
+    # "total" base: incl. sort_forming. Denominator is total_stocks, which
+    # despite the name is the non-dead-fish active count (1181 on 2026-07-14);
+    # active_stocks is the full listed count (1924). Same denominator as the
+    # normal base above, and matches the 多空頭排列 page.
+    s_up_tot = _pct("short_up_total")
+    s_dn_tot = _pct("short_down_total")
+    m_up_tot = _pct("medium_up_total")
+    m_dn_tot = _pct("medium_down_total")
+    l_up_tot = _pct("long_up_total")
+    l_dn_tot = _pct("long_down_total")
 
     # Flat = neither sort_normal up nor down for that scope, derived as
     # (1 - up_pct - down_pct) and clipped at 0 to absorb rounding.
@@ -149,6 +176,12 @@ def _load_cache() -> dict[str, tuple]:
             int(s_status[i]),
             int(m_status[i]),
             int(l_status[i]),
+            float(s_up_tot[i]),
+            float(s_dn_tot[i]),
+            float(m_up_tot[i]),
+            float(m_dn_tot[i]),
+            float(l_up_tot[i]),
+            float(l_dn_tot[i]),
         )
     _CACHE = cache
     return _CACHE
@@ -162,7 +195,8 @@ def _to_iso(d) -> str:
 _DEFAULT = (0, 0, 0,                              # trends
             False, False, False, False, False, False,   # hots
             False, False, False, False, False, False,   # dirs
-            3, 3, 3)                              # pct_status (3 = neutral)
+            3, 3, 3,                              # pct_status (3 = neutral)
+            0.0, 0.0, 0.0, 0.0, 0.0, 0.0)         # total-base pcts
 
 
 def calculate_market_state(dates) -> MarketState:
@@ -192,6 +226,12 @@ def calculate_market_state(dates) -> MarketState:
     s_status = np.full(n, 3, dtype=np.uint8)
     m_status = np.full(n, 3, dtype=np.uint8)
     l_status = np.full(n, 3, dtype=np.uint8)
+    s_up_tot = np.zeros(n, dtype=np.float32)
+    s_dn_tot = np.zeros(n, dtype=np.float32)
+    m_up_tot = np.zeros(n, dtype=np.float32)
+    m_dn_tot = np.zeros(n, dtype=np.float32)
+    l_up_tot = np.zeros(n, dtype=np.float32)
+    l_dn_tot = np.zeros(n, dtype=np.float32)
 
     last = _DEFAULT
     for i, d in enumerate(dates):
@@ -201,7 +241,9 @@ def calculate_market_state(dates) -> MarketState:
         (short[i], medium[i], long_[i],
          s_up_hot[i], s_dn_hot[i], m_up_hot[i], m_dn_hot[i], l_up_hot[i], l_dn_hot[i],
          s_up_dir[i], s_dn_dir[i], m_up_dir[i], m_dn_dir[i], l_up_dir[i], l_dn_dir[i],
-         s_status[i], m_status[i], l_status[i]) = last
+         s_status[i], m_status[i], l_status[i],
+         s_up_tot[i], s_dn_tot[i], m_up_tot[i], m_dn_tot[i],
+         l_up_tot[i], l_dn_tot[i]) = last
 
     return MarketState(
         short_trend=short, medium_trend=medium, long_trend=long_,
@@ -214,4 +256,7 @@ def calculate_market_state(dates) -> MarketState:
         short_pct_status=s_status,
         medium_pct_status=m_status,
         long_pct_status=l_status,
+        short_up_pct_total=s_up_tot, short_down_pct_total=s_dn_tot,
+        medium_up_pct_total=m_up_tot, medium_down_pct_total=m_dn_tot,
+        long_up_pct_total=l_up_tot, long_down_pct_total=l_dn_tot,
     )
