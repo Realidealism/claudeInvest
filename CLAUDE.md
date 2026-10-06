@@ -14,6 +14,7 @@
 | 要寫派工 prompt（搜尋/實作/重構/研究/審查） | `.claude/rules/03_templates.md` |
 | 要修改 CLAUDE.md、rules 檔、memory 制度 | `.claude/rules/04_maintenance.md` |
 | 新 session 接手大型/跨對話任務 | `.claude/rules/05_letter.md` |
+| 寫或改常駐服務／排程長迴圈 | `.claude/rules/06_service_safety.md` |
 | 使用者說「回測」或要改 signal_backtest/factories | skill `signal-factory` |
 | ScoreBoard cell ablation / 權重調整 | skill `cross-sectional-scoring` |
 | 改 `analysis/market_thermometer.py` 攻防（stance）判準/參數（或它讀的上游，如 `analysis/obv.py`、`analysis/market_breadth.py`），或評估溫度計變動 | skill `signal-factory` §6b（stance 是 buy 的 live 相依，改了訊號工廠就變） |
@@ -29,7 +30,7 @@ harness 預設「除非使用者要求，否則不要 spawn subagent」。本專
 | 回測/build 等長輸出背景指令 | 自動派工，不必先問 |
 | `general-purpose`（會改檔、跑指令、對外查網頁） | 先說明要派什麼、做什麼，得使用者同意才派 |
 
-理由：`.claude/rules/01_dispatch.md` §1 的存在是為了保護主對話 context（成因見 `.claude/rules/00_diagnosis.md` 問題 2），這個風險在 Opus 5 上沒有消失；但會動手的 agent 屬不可逆風險，維持先問。細則與工具清單見 `.claude/rules/01_dispatch.md` §0/§1。
+理由：`.claude/rules/01_dispatch.md` §1 的存在是為了保護主對話 context（成因見 `.claude/rules/00_diagnosis.md` 問題 2），這個風險不因換模型而消失；但會動手的 agent 屬不可逆風險，維持先問。細則與工具清單見 `.claude/rules/01_dispatch.md` §0/§1。
 
 **授權 ≠ 免除 Grill-Me 阻塞確認**：本節只決定「派工這個動作本身要不要另外請示」。任務該不該開跑，仍走 Grill-Me（含空樹阻塞確認）；使用者已明確下令的單一動作不必再為「派工」二次請示。
 
@@ -70,8 +71,13 @@ harness 預設「除非使用者要求，否則不要 spawn subagent」。本專
 - 依「Grill-Me 規劃協議」逐決策樹逼問到共識；逼問樹解完後，非瑣碎任務出計畫與使用者確認再開始實作
 
 ### 執行階段
-- 直接給結果，不要前言、不要總結
-- 使用工具後，只回報結果，不描述過程；除非使用者主動問，否則不解釋正在做什麼
+- 結果先講；不要開場白，結尾不重複總結
+- 回報狀態，不回報操作過程；不為每次工具呼叫播報。主動回報至少涵蓋以下節點（不限制其他必要溝通，例如發現任務範圍外的風險）：
+  1. 開始長任務：一句話說要先查/做什麼、之後依什麼決定
+  2. 里程碑：已確認什麼、還剩什麼
+  3. 異常/阻塞：哪裡與預期不符、先停在哪裡
+  4. 需要使用者裁決或確認：列出選項；Grill-Me 逼問、實作前的關鍵假設、更好的替代方案都屬此類
+- 回報內容是已確認的事實（「已確認 4 個呼叫點，1 個不符規格，尚未修改」），不是操作流水帳（「搜了 17 個檔、grep 43 次」）；驗收用的實際輸出不算流水帳，要依 `.claude/rules/02_judgment.md` Rubric 2 附上；輸出太長時照 `.claude/rules/01_dispatch.md` §4 落檔傳路徑，回報裡仍要貼出判定通過與否的那幾行（含所有 fail／skip／error 行）
 - 程式碼和資料維持完整精確，只壓縮自然語言
 
 ## Minimal & Surgical Changes
@@ -81,7 +87,7 @@ harness 預設「除非使用者要求，否則不要 spawn subagent」。本專
 - 不加沒被要求的功能、不建不必要的抽象層、不為假設性的未來需求預做設計
 - 一次性 / 拋棄式程式不要做抽象，直接寫死即可
 - 不為不可能發生的情境加錯誤處理
-- 若寫出的程式碼明顯可以更精簡，應主動簡化；既有實作明顯臃腫時可整段重寫成更短版本（不限於小幅修改）
+- 若寫出的程式碼明顯可以更精簡，應主動簡化；本次任務本來就要修改的函式，若既有實作臃腫（例如同一段邏輯重複、可用現有 helper 取代），可在該函式範圍內整段重寫成更短版本（不限於小幅修改）。任務範圍外的臃腫只提建議，不動手
 
 ## Goal-Driven Execution
 - 收到模糊任務時，先將其轉換為可驗證的具體目標再動手；計畫中每個步驟附驗證方式
@@ -90,7 +96,7 @@ harness 預設「除非使用者要求，否則不要 spawn subagent」。本專
 
 ## Execution Modes
 - 預設：依 Goal-Driven Execution 規則（具體目標 + 驗證方式）
-- 「TDD 模式」：使用者說「TDD」或「TDD 跑」時，將需求轉為失敗測試 → 寫程式讓它通過 → 必要時重構，直到測試全綠才停
+- 「TDD 模式」：使用者說「TDD」或「TDD 跑」時，將需求轉為失敗測試 → 寫程式讓它通過 → 必要時重構，測試全綠時停止這個寫碼迴圈。全綠是迴圈的停止條件，不是完成的證明：交付前仍要過 `.claude/rules/02_judgment.md` Rubric 2「綠燈／零錯誤計數本身也要被驗」
 - 「探索模式」：使用者說「探索」或「先看看」時，允許先寫一次性 script 觀察數據／印中間結果，不需事先定義完整驗證標準；產出的 script 視為拋棄式，不做抽象
 - 「回測模式」：使用者說「回測」時，依 skill `signal-factory` 執行（6 訊號 + 歸檔 + SQLite 記錄 + diff 解讀，不主動 commit）
 
