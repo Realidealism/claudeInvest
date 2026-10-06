@@ -65,6 +65,11 @@ ETF_REGISTRY = [
         "fund_no": "00980A",
     },
     {
+        "etf_id": "00985A",
+        "source": "nomura",
+        "fund_no": "00985A",
+    },
+    {
         "etf_id": "00993A",
         "source": "allianz",
         "fund_id": "E0001",
