@@ -28,9 +28,10 @@ from __future__ import annotations
 
 import ast
 import os
+import re
 import sys
 from collections import deque
-from datetime import date, datetime, timezone
+from datetime import date, datetime, time as dtime, timedelta, timezone
 from pathlib import Path
 
 from db.connection import get_cursor
@@ -78,6 +79,26 @@ _PERIODIC_TABLES = [
 _SPARSE_DAILY_TABLES = [
     ("訊號快照", "tw.signal_snapshot", "snapshot_date", 5),
 ]
+
+# Database backup freshness. Looks at the archives themselves, never at the
+# scheduled task or at backup_monthly.py: on 2026-07-02 that script was lost
+# and the task kept its slot for three months with nothing behind it. A
+# monitor that imports the thing it watches goes down with it, so the folder
+# and the file-name rule are restated here; tests/test_health_check_backup.py
+# pins them to what the script actually writes.
+#
+# Only freshness is judged. Whether an archive can be restored is established
+# when it is written (backup_monthly.py reads it back) and by a real restore
+# (ops/RESTORE.md), not by this probe.
+_BACKUP_DIR = Path(r"D:\invest_backup")
+_BACKUP_NAME = re.compile(r"^invest_(\d{8})\.dump$")
+# The monthly task is scheduled for the 1st at 03:00.
+_BACKUP_DUE_TIME = dtime(3, 0)
+# Operational grace period: how late the monthly dump may be before it counts
+# as missing. A policy value, not an SLA derived from how long a backup takes.
+# This probe runs at 08:30, so a dump missed on the 1st is first reported
+# then, not at 05:00.
+_BACKUP_GRACE = timedelta(hours=2)
 
 # Column groups of tw.daily_prices that each come from one scraper leg, checked
 # per market. MAX(trade_date) advancing says nothing about these: when one leg
@@ -398,6 +419,69 @@ def _corporate_actions(latest: date) -> list[str]:
     return sorted(found)
 
 
+def _backup_due_date(now: datetime) -> date:
+    """The 1st whose monthly backup must exist by `now`.
+
+    Derived from the monthly cycle rather than a fixed age, so the turn of the
+    month does not raise a false alarm: until the 1st at 03:00 plus the grace
+    period, last month's dump is still the current one.
+    """
+    this_first = now.date().replace(day=1)
+    if now >= datetime.combine(this_first, _BACKUP_DUE_TIME) + _BACKUP_GRACE:
+        return this_first
+    return (this_first - timedelta(days=1)).replace(day=1)
+
+
+def _backup_problems(now: datetime, backup_dir: Path | None = None) -> list[str]:
+    """What is wrong with the newest completed archive, if anything.
+
+    A completed archive is a file named invest_YYYYMMDD.dump whose date
+    parses. backup_monthly.py only gives a file that name after reading it
+    back, so a .partial or anything else in the folder does not count.
+    """
+    backup_dir = backup_dir or _BACKUP_DIR
+    try:
+        names = sorted(p.name for p in backup_dir.iterdir())
+    except OSError as exc:
+        return [f"備份目錄讀不到：{backup_dir}（{type(exc).__name__}）"]
+
+    dumps = []
+    for name in names:
+        m = _BACKUP_NAME.match(name)
+        if not m:
+            continue
+        try:
+            dumps.append((datetime.strptime(m.group(1), "%Y%m%d").date(), name))
+        except ValueError:
+            continue
+    if not dumps:
+        partial = [n for n in names if n.endswith(".partial")]
+        tail = f"（只有未完成的 {', '.join(partial)}）" if partial else ""
+        return [f"{backup_dir} 裡沒有任何完成的備份{tail}"]
+
+    newest_date, newest = max(dumps)
+    due = _backup_due_date(now)
+    if newest_date < due:
+        age = (now.date() - newest_date).days
+        return [f"最新一份是 {newest}（{age} 天前），{due:%m-%d} 的月備沒有產出"]
+    return []
+
+
+def _backup_section(now: datetime) -> str | None:
+    """The backup paragraph of the daily message, or None when it is fresh.
+
+    A failure of the check itself is reported as a problem: a monitor that
+    breaks silently reads exactly like a healthy system.
+    """
+    try:
+        problems = _backup_problems(now)
+    except Exception as exc:
+        problems = [f"備份檢查本身失敗：{type(exc).__name__}: {exc}"]
+    if not problems:
+        return None
+    return "資料庫備份異常：\n- " + "\n- ".join(problems)
+
+
 def run_daily() -> int:
     latest = _latest_trading_day()
     if latest is None:
@@ -451,6 +535,10 @@ def run_daily() -> int:
                 "\n- ".join(actions)
             )
         )
+    # Its own paragraph: an old backup is not a stale pipeline table.
+    backup = _backup_section(datetime.now())
+    if backup:
+        sections.append(backup)
     if sections:
         send_sync(f"[{_TAG}] " + "\n\n".join(sections))
         return 1
