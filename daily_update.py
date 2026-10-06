@@ -883,6 +883,20 @@ def update_date(trade_date: date):
         _capture_trace(failure_traces, "日線訊號推播")
         results.append(("日線訊號推播", "failed"))
 
+    # Two-week investor conference calendar → Telegram. Anchored on the wall
+    # clock rather than trade_date, and self-gating on its own sentinel, so a
+    # backfill range pushes once instead of once per day. Silent when no
+    # conference falls inside the window. Non-critical.
+    print(f"\n--- 法說會預告推播 ---")
+    try:
+        from telegram_bot.push_conference_calendar import push_conference_calendar
+        push_conference_calendar()
+        results.append(("法說會預告推播", "ok"))
+    except Exception:
+        print("  [ERROR] Conference calendar push failed:")
+        _capture_trace(failure_traces, "法說會預告推播")
+        results.append(("法說會預告推播", "failed"))
+
     # -----------------------------------------------------------------------
     # Final summary (Chinese)
     # -----------------------------------------------------------------------
