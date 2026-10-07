@@ -155,11 +155,18 @@ _COLUMN_BASELINE_DAYS = 20
 # closes, so the break stays in the series: 5904 went 720.00 -> 79.20 on
 # 2026-08-10 and then traded at 0.14x its own 20-day average, which is enough
 # to fire entry signals off nothing. Detecting the halt pattern needs no
-# external feed and covers TPEx and the emerging board, which the TWSE
-# reduction endpoint does not.
+# external feed.
 _HALT_MIN_DAYS = 3
 _HALT_MIN_JUMP = 0.15
 _HALT_LOOKBACK_DAYS = 5   # trading days after resumption to keep reporting
+
+# The signal factory already blanks out most of these breaks, and a break it
+# blanks out needs nobody's attention. These are its two thresholds, BREAK_JUMP
+# and SEAM_MIN_STEP in signal_backtest/factories/_conditions.py, copied rather
+# than imported so this probe does not pull the factory's stack in. A test
+# keeps both pairs equal.
+_QUIET_JUMP = 0.40
+_QUIET_SEAM_STEP = 0.10
 
 # Intraday: alert when tw.intraday_quotes has not advanced for this long.
 _INTRADAY_STALE_MINUTES = 5
@@ -377,12 +384,14 @@ def _stale_exes() -> list[str]:
 
 
 def _corporate_actions(latest: date) -> list[str]:
-    """Stocks that resumed trading after a halt at a price on a new scale.
+    """Resumptions at a new price scale that the signal factory does not blank out.
 
-    Reported whether or not tw.capital_changes knows about them: that table
-    only models reductions, so splits and par-value changes -- the ones that
-    move a price the furthest -- can never appear in it. The note says which
-    case it is so the reader knows whether a backfill is even possible.
+    Looks at the factory's universe (active listed common stocks) and applies
+    the two tests of its post_break_blackout: a step beyond _QUIET_JUMP, or a
+    reduction recorded in tw.capital_changes on the resumption day with a step
+    beyond _QUIET_SEAM_STEP. A break that passes either is already handled and
+    is left out. What remains is a break the factory will read as a real
+    move, and the note says why it was not covered.
     """
     with get_cursor(commit=False) as cur:
         cur.execute(
@@ -400,17 +409,28 @@ def _corporate_actions(latest: date) -> list[str]:
             """
             SELECT p.stock_id, p.trade_date AS d, p.close_price, s.name
             FROM tw.daily_prices p JOIN tw.stocks s USING (stock_id)
-            WHERE p.trade_date >= %s AND s.delisted_date IS NULL
+            WHERE p.trade_date >= %s
+              AND s.is_active = TRUE
+              AND s.security_type = 'STOCK'
+              AND s.market IN ('TWSE', 'TPEx')
             ORDER BY p.stock_id, p.trade_date
             """,
             (cal[0],),
         )
         rows = cur.fetchall()
         cur.execute(
-            "SELECT stock_id FROM tw.capital_changes WHERE effective_date >= %s",
+            """
+            SELECT stock_id, effective_date,
+                   CASE WHEN ratio > 0 THEN abs(1 / ratio - 1) END AS step
+            FROM tw.capital_changes
+            WHERE event_type = 'REDUCTION' AND effective_date >= %s
+            ORDER BY stock_id, effective_date
+            """,
             (cal[0],),
         )
-        known = {r["stock_id"] for r in cur.fetchall()}
+        recorded: dict[str, dict] = {}
+        for r in cur.fetchall():
+            recorded.setdefault(r["stock_id"], {})[r["effective_date"]] = float(r["step"] or 0)
 
     traded: dict[str, dict] = {}
     names: dict[str, str] = {}
@@ -431,8 +451,18 @@ def _corporate_actions(latest: date) -> list[str]:
                 before = [prices[x] for x in cal if x in prices and x < day]
                 if before and before[-1] > 0:
                     jump = prices[day] / before[-1] - 1
-                    if abs(jump) >= _HALT_MIN_JUMP:
-                        tag = "已記於 capital_changes" if sid in known else "capital_changes 無紀錄"
+                    seams = recorded.get(sid, {})
+                    step = seams.get(day)
+                    handled = abs(jump) > _QUIET_JUMP or (
+                        step is not None and step > _QUIET_SEAM_STEP)
+                    if abs(jump) >= _HALT_MIN_JUMP and not handled:
+                        if step is not None:
+                            tag = f"減資紀錄幅度僅 {step:.1%}，未達靜默門檻"
+                        elif seams:
+                            dates = "、".join(f"{d:%m-%d}" for d in sorted(seams))
+                            tag = f"減資紀錄生效日 {dates} 對不上復牌日"
+                        else:
+                            tag = "capital_changes 無紀錄"
                         found.append(
                             f"{sid} {names.get(sid, '')} {day:%m-%d} 復牌 "
                             f"{before[-1]:g} -> {prices[day]:g} ({jump:+.0%})，{tag}"
@@ -568,7 +598,7 @@ def run_daily() -> int:
         )
     if actions:
         sections.append(
-            "公司行為，價格序列有未還原斷點：\n- {}".format(
+            "公司行為，斷點未被訊號工廠靜默涵蓋：\n- {}".format(
                 "\n- ".join(actions)
             )
         )
