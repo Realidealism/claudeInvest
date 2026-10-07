@@ -63,6 +63,28 @@ _PERIODIC_TABLES = [
     ("轉投資關係", "tw.company_affiliations", "updated_at", 200),
 ]
 
+# Periodic checks whose source is switched off on purpose. While a pause is in
+# force the check is skipped and nothing is said about it; from the day after
+# `expires` it runs again and its line says the pause ran out. `expires` is
+# mandatory so a pause cannot outlive the decision behind it. It is a date to
+# rule again by -- the practice is a review 30 days out -- not something
+# derived from the source's own schedule. To extend a pause, edit `expires`
+# here: the commit is the record. `check` must be a label in _PERIODIC_TABLES,
+# one entry per check.
+_KNOWN_PAUSES = [
+    {
+        "check": "年報產品別營收",
+        "reason": "InvestAnnualReportSweep is disabled: it runs the working-tree "
+                  "parser against the production database while that parser is "
+                  "being repaired",
+        "started": date(2026, 9, 14),
+        "expires": date(2026, 11, 6),
+        "resume_condition": "re-enabling the task is ruled on separately, after "
+                            "the write boundary of the 447-company re-judgement "
+                            "is complete",
+    },
+]
+
 
 # Written by the daily pipeline but legitimately empty on a quiet day, so
 # 'did not advance to the latest trading day' is not evidence of failure.
@@ -482,6 +504,17 @@ def _backup_section(now: datetime) -> str | None:
     return "資料庫備份異常：\n- " + "\n- ".join(problems)
 
 
+def _pause(label: str, today: date) -> tuple[bool, str]:
+    """(skip this periodic check, note for its line) on `today`."""
+    for p in _KNOWN_PAUSES:
+        if p["check"] != label or today < p["started"]:
+            continue
+        if today <= p["expires"]:
+            return True, ""
+        return False, f"，暫停已於 {p['expires']:%m-%d} 到期、需重新裁定"
+    return False, ""
+
+
 def run_daily() -> int:
     latest = _latest_trading_day()
     if latest is None:
@@ -507,14 +540,18 @@ def run_daily() -> int:
                 f"容許 {max_gap}）"
             )
 
+    today = date.today()
     for label, table, col, max_age in _PERIODIC_TABLES:
+        paused, note = _pause(label, today)
+        if paused:
+            continue
         ts = _scalar(f"SELECT MAX({col}) AS d FROM {table}")
         if ts is None:
-            stale.append(f"{label} 無任何資料")
+            stale.append(f"{label} 無任何資料{note}")
             continue
         age = (datetime.now(timezone.utc) - ts).days
         if age > max_age:
-            stale.append(f"{label} 已 {age} 天未更新（容許 {max_age} 天）")
+            stale.append(f"{label} 已 {age} 天未更新（容許 {max_age} 天）{note}")
 
     stale.extend(_dead_column_groups(latest))
     stale.extend(_stale_exes())
