@@ -42,10 +42,13 @@ tw.product_revenue and fills it, so re-run that after any sync that opened rows.
 """
 
 import argparse
+import ast
 from datetime import date
+from pathlib import Path
 
 from db.connection import get_cursor
 from db.weight_status import blocks_autofill, usable_in_seed
+from db import industry_data
 from db.industry_data import MEMBERS
 
 FIELDS = ("role", "weight_item", "evidence_kind", "evidence", "exposure_type")
@@ -71,13 +74,53 @@ def _name_index(cur):
     return index, dupes
 
 
+def repeated_keys(source, name="MEMBERS"):
+    """Problems with node codes written more than once in the file's dict literal.
+
+    Read off the source text, because the built dict cannot show them: a repeated
+    key is legal Python and the later block replaces the earlier one, so the
+    members under the earlier block are gone before anything below sees a name
+    to complain about. 州巧 was written under a second "F4-01" on 2026-09-07 and
+    never reached the database; file and database agreed, one row short.
+    """
+    literal = None
+    for node in ast.walk(ast.parse(source)):
+        if (isinstance(node, ast.Assign) and len(node.targets) == 1
+                and getattr(node.targets[0], "id", None) == name):
+            literal = node.value
+    if not isinstance(literal, ast.Dict):
+        # A check that cannot see the literal has not passed.
+        return [f"{name}: not a dict literal in the file; repeated keys cannot be checked"]
+
+    blocks = {}
+    for key, value in zip(literal.keys, literal.values):
+        if not isinstance(key, ast.Constant):
+            return [f"{name}: line {getattr(key, 'lineno', literal.lineno)} is not a "
+                    f"plain key; repeated keys cannot be checked"]
+        names = [m.elts[0].value for m in getattr(value, "elts", [])
+                 if isinstance(m, ast.Tuple) and m.elts
+                 and isinstance(m.elts[0], ast.Constant)]
+        blocks.setdefault(key.value, []).append((key.lineno, names))
+
+    problems = []
+    for code, found in blocks.items():
+        if len(found) > 1:
+            lines = ", ".join(str(line) for line, _ in found)
+            lost = [n for _, names in found[:-1] for n in names]
+            problems.append(f"{code}: written {len(found)} times (lines {lines}); only "
+                            f"the last block is kept, dropping "
+                            + ("、".join(lost) if lost else "no members"))
+    return problems
+
+
 def resolve(cur):
     """File contents keyed by (stock_id, node_code); raises on any bad row."""
     index, dupes = _name_index(cur)
     cur.execute("SELECT node_code FROM tw.industry_tree")
     nodes = {r["node_code"] for r in cur.fetchall()}
 
-    resolved, problems = {}, []
+    resolved = {}
+    problems = repeated_keys(Path(industry_data.__file__).read_text(encoding="utf-8"))
     for node_code, members in MEMBERS.items():
         if node_code not in nodes:
             problems.append(f"{node_code}: not a node in tw.industry_tree")
