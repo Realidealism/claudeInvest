@@ -54,3 +54,13 @@ frontend/public/data/futures_tx.json
 # Source spreadsheet export for the industry classification; its contents
 # were transcribed into db/reference_data.py and db/industry_tree_data.py
 claude_code_export/
+
+# Intraday sidecars written by analysis/intraday_snapshot.py when it runs from
+# source (the packaged daemon writes them in its own extraction folder).
+# Runtime output, not data; the trailing * also covers the .json.tmp written
+# before each replace.
+data/breadth_intraday.json*
+data/thermometer_stance_intraday.json*
+
+# Office lock files left next to an open document
+~$*
