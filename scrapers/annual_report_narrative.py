@@ -30,6 +30,7 @@ import unicodedata
 import pdfplumber
 
 from db.connection import get_cursor
+from db.weight_status import REREAD
 from scrapers.annual_report_revenue import find_report, download_pdf
 
 ARCHIVE_DIR = r"D:\invest_data\annual_reports"
@@ -46,6 +47,8 @@ START_HINTS = ("業務範圍", "所營業務之主要內容", "主要產品之�
 # layout seen so far; the 天干 headings catch a jump to the next chapter.
 STOP_HINTS = ("市場及產銷概況", "從業員工", "環保支出", "勞資關係", "重要契約")
 STOP_RE = re.compile(r"^\s*[陸柒捌玖拾]、")
+# Top-level chapter markers, used to tell a contents page from a chapter divider.
+CHAPTER_RE = re.compile(r"[壹貳參肆伍陸柒捌玖拾]、")
 
 MAX_PAGES = 8          # 業務範圍 runs long at conglomerates; past this it is noise
 MAX_CHARS = 20000
@@ -60,7 +63,31 @@ DOT_LEADER = re.compile(r"[.·‧．]{5,}|[-─—]{10,}")
 
 
 def _is_toc(text: str) -> bool:
-    return "目錄" in text.replace(" ", "") or len(DOT_LEADER.findall(text)) >= 5
+    """Whether a page is a contents listing rather than the section itself.
+
+    6789 采鈺's contents page carries neither 目錄 nor dot leaders -- it is a bare
+    list of headings with page numbers -- so the locator started there and stored
+    the table of contents and a shareholding table as the company's business
+    description. The giveaway that survives any typography: a contents page names
+    several sibling sections at once, and a real 業務範圍 page names at most the
+    one that ends it.
+    """
+    flat = text.replace(" ", "")
+    if "目錄" in flat or len(DOT_LEADER.findall(text)) >= 5:
+        return True
+    # Listing sibling sections is not enough on its own. A chapter divider does
+    # the same thing and then runs straight into the content -- 1236 宏亞's page
+    # lists all seven sub-sections of 營運概況 and then gives
+    # 「『77巧克力』系列產品…營業比重約71.63%」 two lines later. Rejecting those
+    # would lose the very section this scraper exists to find, and the first
+    # version of this rule did exactly that to 25 companies.
+    #
+    # What separates the two is scope: a contents page spans MORE THAN ONE
+    # top-level chapter (6789 采鈺's lists 伍、營運概況 and 陸、財務狀況…), while a
+    # divider introduces exactly one.
+    if sum(h in flat for h in STOP_HINTS) >= 3:
+        return len(set(CHAPTER_RE.findall(flat))) >= 2
+    return False
 
 
 def _norm(text: str) -> str:
@@ -160,7 +187,7 @@ def _known_filename(stock_id: str, year: int) -> str | None:
 
 
 def scrape_one(stock_id: str, name: str, year: int) -> str:
-    filename = _known_filename(stock_id, year) or find_report(stock_id, year)
+    filename = _known_filename(stock_id, year) or find_report(stock_id, year)[0]
     if not filename:
         with get_cursor() as cur:
             _record_status(cur, stock_id, year, "no_report")
@@ -196,6 +223,8 @@ def scrape_one(stock_id: str, name: str, year: int) -> str:
 
     with get_cursor() as cur:
         for s in sections:
+            # pdfplumber can emit NUL from a malformed font map; psycopg2 rejects
+            # it and would otherwise abort the whole batch (6579 研揚, FY2025).
             cur.execute(
                 """
                 INSERT INTO tw.product_narrative
@@ -205,7 +234,8 @@ def scrape_one(stock_id: str, name: str, year: int) -> str:
                 SET body = EXCLUDED.body, pages = EXCLUDED.pages,
                     source_file = EXCLUDED.source_file, updated_at = NOW()
                 """,
-                (stock_id, year, s["section"], s["body"], s["pages"], filename))
+                (stock_id, year, s["section"], s["body"].replace(chr(0), ""),
+                 s["pages"], filename))
         _record_status(cur, stock_id, year, "ok", detail, filename)
     return "ok"
 
@@ -217,17 +247,21 @@ def _targets(args) -> list[tuple[str, str]]:
                 "SELECT stock_id, name FROM tw.stocks WHERE stock_id = ANY(%s) "
                 "ORDER BY stock_id", (args.stocks.split(","),))
         elif args.gap:
-            # The memberships that have no revenue-table evidence: exactly the
-            # ones this prose is meant to settle.
+            # The memberships whose share is missing for a reason the prose
+            # might settle: exactly what this narrative pass is for. Keyed on
+            # weight_status since 2026-09-10 -- the reason left evidence_kind,
+            # where it never belonged. Which statuses count is db.weight_status
+            # .REREAD (Granularity_Insufficient ruled in 2026-09-18); compared as
+            # text so a value not yet in the enum is not an error.
             cur.execute(
                 """
                 SELECT DISTINCT s.stock_id, s.name
                   FROM tw.company_industry_exposure e
                   JOIN tw.stocks s USING(stock_id)
                  WHERE e.effective_to IS NULL
-                   AND e.evidence_kind IN ('filing_too_coarse', 'no_filing', 'pending')
+                   AND e.weight_status::text = ANY(%s)
                  ORDER BY 1
-                """)
+                """, (sorted(REREAD),))
         else:
             cur.execute(
                 "SELECT stock_id, name FROM tw.stocks "
