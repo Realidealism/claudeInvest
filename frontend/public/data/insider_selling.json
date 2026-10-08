@@ -1,6 +1,54 @@
 {
-  "updated_at": "2026-10-07T21:54:33",
+  "updated_at": "2026-10-08T21:51:01",
   "events": [
+    {
+      "type": "transfer",
+      "stock_id": "7642",
+      "company_name": "昶瑞機電",
+      "date": "2026-10-08",
+      "insider_role": "董事本人",
+      "insider_name": "蔡慶泰",
+      "method": "洽特定人",
+      "shares": 1948750,
+      "security_kind": null,
+      "period": "115/10/08\r\n~\r\n115/10/10"
+    },
+    {
+      "type": "transfer",
+      "stock_id": "7642",
+      "company_name": "昶瑞機電",
+      "date": "2026-10-08",
+      "insider_role": "董事本人",
+      "insider_name": "蔡慶泰",
+      "method": "洽特定人",
+      "shares": 2148750,
+      "security_kind": null,
+      "period": "115/10/08\r\n~\r\n115/10/10"
+    },
+    {
+      "type": "transfer",
+      "stock_id": "7642",
+      "company_name": "昶瑞機電",
+      "date": "2026-10-08",
+      "insider_role": "董事配偶",
+      "insider_name": "蔡慶泰之配偶",
+      "method": "洽特定人",
+      "shares": 5000,
+      "security_kind": null,
+      "period": "115/10/08\r\n~\r\n115/10/10"
+    },
+    {
+      "type": "transfer",
+      "stock_id": "7642",
+      "company_name": "昶瑞機電",
+      "date": "2026-10-08",
+      "insider_role": "董事配偶",
+      "insider_name": "蔡慶泰之配偶",
+      "method": "洽特定人",
+      "shares": 10000,
+      "security_kind": null,
+      "period": "115/10/08\r\n~\r\n115/10/10"
+    },
     {
       "type": "transfer",
       "stock_id": "6498",
@@ -576,23 +624,11 @@
       "shares": null,
       "security_kind": "普通股",
       "period": null
-    },
-    {
-      "type": "placement",
-      "stock_id": "4128",
-      "company_name": "中天",
-      "date": "2026-07-09",
-      "insider_role": null,
-      "insider_name": null,
-      "method": null,
-      "shares": null,
-      "security_kind": "普通股",
-      "period": null
     }
   ],
   "stats": {
-    "transfer_events_30d": 17,
-    "transfer_stocks_30d": 8,
+    "transfer_events_30d": 21,
+    "transfer_stocks_30d": 9,
     "placement_events_30d": 5
   }
 }
