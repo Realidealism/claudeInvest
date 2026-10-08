@@ -44,12 +44,14 @@ Usage:
 
 from __future__ import annotations
 
+import faulthandler
 import os
 import signal
 import sys
 import threading
 import time
 import traceback
+from contextlib import contextmanager
 
 # Line-buffer stdout/stderr so NSSM-redirected log files get every print
 # immediately instead of waiting for a 4 KB block to fill (the daemon
@@ -94,20 +96,28 @@ def _maybe_scrape_vix() -> None:
 # NSSM relaunches us 30s later (AppExit Default=Restart, AppRestartDelay=30s).
 PASS_WATCHDOG_SECONDS = int(os.environ.get("INTRADAY_SNAPSHOT_WATCHDOG", "1200"))
 
+# Ceiling on each non-pass step: the post-pass signal push, the final-pass
+# git push, and the post-close bucket poll. No per-step timings are logged
+# here, so the bound comes from logs/intraday_publish.log, whose runs do the
+# same push work plus three scrapes: 1961 runs that pushed (2026-06-09 to
+# 2026-10-08) took p50 43.6s / p99 53.1s / max 336.2s; 450s is ~1.3x max.
+STEP_WATCHDOG_SECONDS = int(os.environ.get("INTRADAY_SNAPSHOT_STEP_WATCHDOG", "450"))
 
-def _watchdog_fire(started_at: float) -> None:
-    """Kill the process so NSSM can restart it. Runs on a timer thread.
 
-    os._exit, not sys.exit: SystemExit would only unwind this thread, and a
-    hung pass leaves the main thread blocked on a lock it will never get, so
-    no cooperative shutdown can reach it."""
-    elapsed = time.time() - started_at
-    print(f"[WATCHDOG] [ERROR] pass exceeded {PASS_WATCHDOG_SECONDS}s "
-          f"(elapsed {elapsed:.0f}s) -- exiting so NSSM restarts the daemon.",
-          file=sys.stderr)
-    sys.stderr.flush()
-    sys.stdout.flush()
-    os._exit(1)
+@contextmanager
+def _deadline(seconds: int):
+    """Kill the process if the block runs longer than `seconds`.
+
+    faulthandler's watchdog is a C-level thread that needs neither the GIL
+    nor Python-level printing: on expiry it writes every thread's stack to
+    stderr (snapshot.err.log under NSSM) and calls _exit(1), so termination
+    does not depend on the dump succeeding. NSSM then restarts the daemon.
+    Only one such timer exists per process; re-arming replaces it."""
+    faulthandler.dump_traceback_later(seconds, exit=True)
+    try:
+        yield
+    finally:
+        faulthandler.cancel_dump_traceback_later()
 
 
 def _run_pass(*, final_pass: bool = False) -> int:
@@ -115,11 +125,7 @@ def _run_pass(*, final_pass: bool = False) -> int:
     from analysis.intraday_snapshot import run as run_snapshot
     from export.generate import export_intraday
 
-    watchdog = threading.Timer(PASS_WATCHDOG_SECONDS, _watchdog_fire,
-                               args=(time.time(),))
-    watchdog.daemon = True
-    watchdog.start()
-    try:
+    with _deadline(PASS_WATCHDOG_SECONDS):
         # Refresh the latest TWVIX before export so vix.json reflects the
         # current poll. Throttled to once/min internally.
         _maybe_scrape_vix()
@@ -129,8 +135,6 @@ def _run_pass(*, final_pass: bool = False) -> int:
         export_intraday()
         print()
         return summary["stocks_evaluated"]
-    finally:
-        watchdog.cancel()
 
 
 def _push_final() -> None:
@@ -152,9 +156,12 @@ def _push_final() -> None:
             # and block forever. send_sync uses a 10-second connect/read timeout;
             # it does not impose a total-call deadline.
             from telegram_bot.cron_alert import main as cron_alert_main
-            cron_alert_main(["git_push_failed"])
+            arc = cron_alert_main(["git_push_failed"])
+            if arc != 0:
+                print(f"[LOOP] [WARN] git-push alert returned {arc}")
         except Exception:
-            pass
+            print("[LOOP] [WARN] git-push alert failed:")
+            traceback.print_exc()
 
 
 def _push_signals() -> None:
@@ -223,7 +230,8 @@ def _run_loop(stop_event: threading.Event) -> None:
                 if stop_event.wait(30):
                     break
                 continue
-            n = post_close_bucket_count(today)
+            with _deadline(STEP_WATCHDOG_SECONDS):
+                n = post_close_bucket_count(today)
             if n >= POST_CLOSE_GATE:
                 print(f"[LOOP] post-close: {n} post-close sweep bucket(s) "
                       f"confirmed → final pass")
@@ -247,8 +255,9 @@ def _run_loop(stop_event: threading.Event) -> None:
                 print(f"[LOOP] final pass for {today} complete{tag}")
                 # Deliver close-aligned fires + push the complete-close data
                 # now rather than on the next publish tick.
-                _push_signals()
-                _push_final()
+                with _deadline(STEP_WATCHDOG_SECONDS):
+                    _push_signals()
+                    _push_final()
             except Exception:
                 print("[LOOP] [ERROR] final pass failed:")
                 traceback.print_exc()
@@ -275,7 +284,8 @@ def _run_loop(stop_event: threading.Event) -> None:
             continue
         elapsed = time.time() - t0
         print(f"[LOOP] pass done in {elapsed:.1f}s")
-        _push_signals()
+        with _deadline(STEP_WATCHDOG_SECONDS):
+            _push_signals()
         # Yield briefly so signal handlers and stop_event can interrupt
         # before the next heavy pass kicks off.
         if stop_event.wait(1.0):
