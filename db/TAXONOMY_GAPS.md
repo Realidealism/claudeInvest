@@ -105,7 +105,7 @@ still has nowhere to go.
 |---|---|
 | **gap_type** | `resolved` — a new L1 branch and one approved leaf |
 | what happened | all 22 candidates' filings were read. Nine were one coherent activity with no home anywhere: they became **AA1 成像光學元件** under the new **AA 成像與精密光學** branch. The other thirteen resolved elsewhere, which is what made the nine a population rather than a residue |
-| where the rest went | 光通訊薄膜濾光片 2 家 → **D6-01**（統新 99.98、東典 75.29，兩家的商品項目都明寫「光通訊」）· 半導體晶圓級光學鍍膜 → **A3-05**（澤米 54.05）· 隱形眼鏡 2 家 → **N3**，定義依 R025 放寬（精華 99.87、望隼 99.65）· 車用感測與車用光學射出件 → H · 金屬沖壓 → F4-01 · 儲存媒體 → 見 G8 |
+| where the rest went | 光通訊薄膜濾光片 2 家 → **D6-01**（統新 99.98、東典 75.29，兩家的商品項目都明寫「光通訊」）· 半導體晶圓級光學鍍膜 → **A3-05**（澤米 54.05）· 隱形眼鏡 2 家 → **N3**，定義依 R025 放寬（精華 99.87、望隼 99.65）· 車用感測與車用光學射出件 → H 方向（6722 輝創、6867 坦德科技）· 金屬沖壓 → F4-01 方向（3685 元創精密）——**這三家只指出方向，尚未安置** · 儲存媒體 → 見 G8 |
 | what the branch does not contain | 「光學」二字不是入場券。AA 的 scope 逐項排除光通訊 (D)、半導體晶圓級光學 (A3-05)、顯示專用光學 (E2-02)、視力矯正鏡片 (N3)。判準是**光路服務誰** |
 
 ## G3a · 光學材料（光學玻璃毛胚）
@@ -228,10 +228,80 @@ Not gaps of their own yet, recorded so they are not lost:
   is on AA1. Same finished-goods shape as G2
 - **6742 澤米 精密光學元件製造 43.73%** — OLPF for interchangeable-lens cameras,
   LOE elements and optical glass substrate processing in one undivided line, so
-  it spans imaging optics, AR waveguides and material processing. Its Core sits
-  on A3-05; this line is not assigned rather than assigned to the largest-looking
-  candidate
+  it spans imaging optics, AR waveguides and material processing. **No longer
+  unplaced:** on 2026-10-07 it was put on AA1 as Major with no weight
+  (`Too_Coarse`) — the exposure is identifiable, the share is not. Its Core is
+  on A3-05, ruled on 2026-09-08 but not written until 2026-10-07
 
+
+## Unplaced lines of 8374 羅昇 — recorded 2026-10-07
+
+None remain: all five named revenue lines have a row as of 2026-10-07. The
+section is kept because two of the placements rest on a reading.
+
+Placed: 自動化控制類 28.11% and 工業傳動類 15.57% on V4 (Core, 43.68%);
+半導體設備材料銷售及服務類 11.96% on V1 (Major, `Too_Coarse`); 設備及耗材類
+31.63% on G6-02 (Major, `Granularity_Insufficient`); 能源管理類產品 12.64% on
+V9 (Major, `Granularity_Insufficient`).
+
+設備及耗材類 is read as the strapping machines of 怡進工業. The filing never
+says what is in the line: the name appears in the revenue table and nowhere
+else. The reading rests on the business scope naming 「捆包機設備、耗材」, on
+the line growing by 800,744 of the 857,991 the company grew, on the investee
+note giving 怡進's business as 「捆包設備生產製造及銷售」 and on the 2026-05-29
+investor deck; no document says in words that this line is 怡進. It was placed
+on that reading by ruling on 2026-10-07, once G6 was sealed, and carries no
+weight because the line also holds consumables that nothing describes.
+
+能源管理類產品 holds three things in one figure: energy-saving engineering by
+達昇能源 (the investee note gives it as 「能源技術服務」), own-brand UPS sold in
+Europe by BlueWalker GmbH (「能源管理產品之買賣及服務」) and resold
+energy-management products; the line's suppliers are Eaton, Voltronic Power,
+CyberPower and In Energy. The bought-in UPS and power equipment put it on V9,
+created 2026-10-07; the energy-service part has no node, so the row carries
+no weight.
+
+工業傳動類 was unplaced until V4's Definition was revised on 2026-10-07 to name
+傳動與線性運動元件. Before that V4 named 氣動與液壓元件 and not mechanical
+transmission parts, and under R031 a product the Definition cannot decide is
+settled by revising the Definition, not by placing the company. The line had
+been kept out of G4-01 on 2026-09-08 as distribution (R022).
+
+Evaluated 2026-10-07. Packaging machinery had a cell in name only, the old
+G6-01, and was given its own leaf, G6-02, when G6 was sealed into three
+leaves that day. Transmission-parts distribution was a question
+about V4's product list, not a missing sibling, and was settled by that
+revision: of the three distributors read, 8374 羅昇 and 6215 和椿 sell
+transmission and control parts in one line and 2359 所羅門 sells control
+products only; none distributes mechanical transmission parts alone. 和椿 and
+所羅門 are unclassified and wait on the V4 re-scan (core_reassessment id 168).
+UPS was named
+by three cells with no Definition between them; on 2026-10-07 I8-01 was
+given a Definition and took 3043 科風, 6409 旭隼 and 3628 盈正, and UPS left
+I7-01's list. Energy
+services has no cell, and the four lines a name scan finds (3712, 6849, 2390,
+2392) have not been read, so they are not yet one population. The scan
+matches names and narrative wording only; a line with a generic name, as this
+company's largest is, is not found by it.
+
+## Unplaced lines of 2359 所羅門 — recorded 2026-10-07
+
+Two of its five revenue lines, 29% together, have no row; a third, 其他電子業
+2%, is not described. Recorded because the company has no Core: its largest
+line and its research point at different businesses (R019 branch 3).
+
+- **光電製造業 21%** — TN/STN/TFT-LCD parts: LCD modules made by 富相 and its
+  plants, with agency of TFT-LCD cells and driver ICs alongside. Not read
+  against the E branch.
+- **電子通路業 8%** — agency of active, passive and protection components in
+  one line, which spans V1 and V2.
+
+Placed: 機電事業群（不斷電系統）40% on V9 (Major, `Too_Coarse`) — agency for
+Cummins generators, Piller and Eaton UPS, Siemens busway and Jenbacher gas
+engines, with own-brand generator sets assembled through 盈門能源 in the same
+figure; V9 was created 2026-10-07. 智動化業群 29% on V4 (Major,
+`Granularity_Insufficient`) — agency of Rockwell Automation and of robots,
+with the vision unit's own products in the same figure.
 
 ## G9 · 液壓／氣壓動力元件（fluid power）
 
@@ -325,7 +395,7 @@ Not gaps of their own yet, recorded so they are not lost:
 | **what changed on 2026-09-08** | G12's `next audit` had guessed that G9 and G12 were "G4 的軸宣告四個功能而只有三格" seen twice. The official three-way split says that reading is too small: these may not be a missing *cell under G4* but a missing *L2 role under G*. Both readings are still open — that is what this row is for |
 | reason no node | whether 流體動力元件、電動馬達與驅動器、空壓機 are one economic role or three is exactly what has not been shown. They share a negative (not a machine tool, not special-purpose process equipment) and a positive that may be too thin to build on (sold as general capability across many industries) |
 | population status | all three unclassified |
-| **how it dissolved** | every candidate resolved into a home that already existed or into a narrower role. 4583 台灣精銳 減速機 74.08% and 4571 鈞興-KY 齒輪箱 34.94% → **G4-01, whose definition already lists 齒輪與齒輪箱、減速機 word for word**. 7530 鋒魁 真空泵浦 85.56% → A2-10（定義字面列「真空幫浦」）／A2-14（其自述為「半導體及光電產業等級真空泵浦**維修技術服務**」）. 6641 基士德-KY → its own words are 「主要從事**環保水處理相關設備**的研發、生產、銷售」; the pumps and blowers are that product line. 2235 謚源 風扇 70.24%＋鼓風機 19.89% → H（「各式**車款**之散熱風扇與鼓風機」）. 2249 湧盛 汽車空調壓縮機、4557 永新 剎車泵 → H. 4532 瑞智 壓縮機 → 家電零組件. 4568 科際精密 泵類 → 裝置用微型泵，**G4-02 的定義早已具名排除**. 3060 銘異 音圈馬達 → 相機模組致動器. 4506 崇友／4565 宏偉 電梯 → 建築設備 |
+| **how it dissolved** | every candidate resolved into a home that already existed or into a narrower role. ★「resolved」 names where each belongs, not that it was written: only 4583 台灣精銳 and 4571 鈞興-KY were placed (G4-01); 7530 鋒魁 is a tracked pending write (id 162, A2-10 `CHANGE_PROPOSED`); the others remain unclassified as of 2026-10-07. 4583 台灣精銳 減速機 74.08% and 4571 鈞興-KY 齒輪箱 34.94% → **G4-01, whose definition already lists 齒輪與齒輪箱、減速機 word for word**. 7530 鋒魁 真空泵浦 85.56% → A2-10（定義字面列「真空幫浦」）／A2-14（其自述為「半導體及光電產業等級真空泵浦**維修技術服務**」）. 6641 基士德-KY → its own words are 「主要從事**環保水處理相關設備**的研發、生產、銷售」; the pumps and blowers are that product line. 2235 謚源 風扇 70.24%＋鼓風機 19.89% → H（「各式**車款**之散熱風扇與鼓風機」）. 2249 湧盛 汽車空調壓縮機、4557 永新 剎車泵 → H. 4532 瑞智 壓縮機 → 家電零組件. 4568 科際精密 泵類 → 裝置用微型泵，**G4-02 的定義早已具名排除**. 3060 銘異 音圈馬達 → 相機模組致動器. 4506 崇友／4565 宏偉 電梯 → 建築設備 |
 | **what was left, and why it still failed** | 空壓機（4552 力達 87.9%）、泵浦（6982 大井 95.81%）、液壓氣壓（4584 君帆）、馬達（4589 碩陽 94.89%、4590 富田 工業馬達 33.57%、2483 百容 12%）. No definition covers these without exclusion. 碩陽's motor modules serve 電動輪椅、代步車、高空作業車、農漁業、食品機械 and it also does OEM whole-machine assembly; 富田 self-describes as 「**電動載具動力系統**及工業馬達」 with US and Japanese carmakers as customers. Conveying a fluid (pumps, compressors) and using a fluid as a power medium (cylinders, G9) are already separated by G4-02's own definition |
 | **the precedent** | recorded into **R002** in `db/seed_skeleton.py`: an official *upper-level* category may not be copied into the tree either. Official classification is discovery and reference; a node still needs an economic role and a sibling boundary. **A category covering many real companies does not mean those companies share a Master Industry leaf.** |
 | what did NOT close | **G9** and **G12** stay open as separate candidates — this audit is positive evidence *against* merging them, not for it. And do not add G4-04 to make G4's declared axis look complete. 4552 力達 keeps its own row below |
