@@ -96,7 +96,7 @@ harness 預設「除非使用者要求，否則不要 spawn subagent」。本專
 
 ## Execution Modes
 - 預設：依 Goal-Driven Execution 規則（具體目標 + 驗證方式）
-- 「TDD 模式」：使用者說「TDD」或「TDD 跑」時，將需求轉為失敗測試 → 寫程式讓它通過 → 必要時重構，測試全綠時停止這個寫碼迴圈。全綠是迴圈的停止條件，不是完成的證明：交付前仍要過 `.claude/rules/02_judgment.md` Rubric 2「綠燈／零錯誤計數本身也要被驗」
+- 「TDD 模式」：使用者說「TDD」或「TDD 跑」時，將需求轉為失敗測試 → 寫程式讓它通過 → 必要時重構，測試全綠時停止這個寫碼迴圈。全綠是迴圈的停止條件，不是完成的證明：交付前仍要過整個 `.claude/rules/02_judgment.md` Rubric 2，尤其是「綠燈／零錯誤計數本身也要被驗」
 - 「探索模式」：使用者說「探索」或「先看看」時，允許先寫一次性 script 觀察數據／印中間結果，不需事先定義完整驗證標準；產出的 script 視為拋棄式，不做抽象
 - 「回測模式」：使用者說「回測」時，依 skill `signal-factory` 執行（6 訊號 + 歸檔 + SQLite 記錄 + diff 解讀，不主動 commit）
 

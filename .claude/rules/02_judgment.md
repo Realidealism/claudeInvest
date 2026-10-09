@@ -20,7 +20,7 @@
 - 程式碼：測試綠（且通過下方「綠燈／零錯誤計數本身也要被驗」）/ 實跑輸出貼在回報裡。回測改動：六訊號全跑完 + sanity（未動的訊號結果 bit-identical）
 - 檔案/文件：fresh agent read-back 通過（[01_dispatch.md](01_dispatch.md) §6）
 - 修 bug：能說出**根因**並解釋舊行為為何發生。「改了之後不再出現」不算——可能只是壓住症狀
-- 涉及排程/服務（.bat、NSSM、cron）：實際觸發一次或查到下次排程時間，不能只看檔案內容對
+- 涉及排程/服務（.bat、NSSM、cron）：實際觸發一次或查到下次排程時間，不能只看檔案內容對；常駐服務的看門狗另依 [06_service_safety.md](06_service_safety.md) 驗收：必須實際觸發，不能用查到下次排程時間代替
 - **多階段 pipeline（A → B → C）**：綠燈只證明**該階段自己跑完了**，不證明上一階真的寫入或改變了狀態。觸發條件＝任何「前一階失敗、後一階仍能從舊狀態產生正常輸出」的鏈；動作＝**逐階檢查 exit code 與該階自己的輸出**，不可只看最後一階的綠燈。判準：問「如果第一階什麼都沒做，後面幾階的輸出會長得不一樣嗎？」——答案是「不會」就代表綠燈沒有證據力。實例（2026-09-08）：`db.seed_industry` 因原始碼 SyntaxError 中止，但 `fill_weight`／`check_industry`／`pytest 616 passed` 全綠，因為那三個讀資料庫、不讀被改的檔；「所有檢查數字都沒變」看起來像成功，實際意義是**什麼都沒寫進去**。這比一般 bug 危險，因為它讓後續所有資料品質檢查都看似正常。
 - **綠燈／零錯誤計數本身也要被驗**：檢查機制吞掉失敗時，綠燈只代表「沒報錯」，不代表「驗到了」。本條決定綠燈能不能當證據：本節的「測試綠」、以及 CLAUDE.md TDD 模式全綠之後的交付，都要先確認驗證機制本身能正確辨識失敗，才算證據；TDD 迴圈什麼時候停不受本條影響。判斷方法：對同一個檢查建立一個預期必須失敗的案例，確認它在預期的斷言上失敗，而不是因為 import 錯誤、收集錯誤或被跳過而失敗；可使用改動前已知會失敗的案例，或刻意注入一個已知錯誤。刻意注入的錯誤，以及要執行的改動前舊版程式碼，都只放在測試替身、`tmp/` 的草稿複本，或另開的 git worktree，不直接改、stash 或 checkout 工作樹原檔：原檔可能被排程從原始碼執行或 import，也可能被健檢的 exe 新鮮度檢查以修改時間讀到，用 hash 確認內容還原，還原不了修改時間。這些位置只防排程執行，不代表非 production：在 repo 內執行仍會讀到正式的 `.env`，是不是 production 照 [06_service_safety.md](06_service_safety.md) 驗收第 1 步的定義判斷。寫入共用狀態照 Rubric 11；對外發送屬 Rubric 3 必問。必須失敗的案例沒有失敗時，先修驗證機制，再重新驗收。已發生的三種形狀：
   - `xfail(strict=True)` 把**任何**例外都算成預期失敗；當時測試內 SQL 是壞的，什麼都沒驗到照樣綠（2026-08-07）→ 斷言「已知問題仍存在」要用普通 assert 寫明特徵，不用 xfail 作為驗證依據；xfail 表示「預期測試會失敗」，不能證明驗證器本身正確辨識了該問題
@@ -186,7 +186,7 @@ reader 行為、每個欄位群的每日有值檔數…），聚合 key 至少�
 |---|---|
 | 先讀腳本的進入點與參數解析，確認旗標真的被解析、`__main__` 會呼叫什麼；不可用 memory／文件的描述代替讀檔 | 2026-08-14 依 memory 跑 `db.seed_themes --check`，該檔沒有 argparse，未知旗標被靜默忽略，把已清空的 themes 表灌回 33 題材／231 對照；未被解析的旗標＝直接執行本體 |
 | 會寫入共用產出路徑的腳本，執行前先備份該產出檔；照 skill 工作流做事不得跳步 | 2026-07-11 跑 `_score_panel 6` smoke test，`OUTPUT` 是寫死的共用路徑，覆蓋掉 production panel（244MB → 1.25MB）；腳本不知道你在測試 |
-| 「必須成功」型的破壞性對照測試不依賴 `finally: rollback` 收尾：執行前先確認測試使用的 transaction／連線不會 commit 到受保護的共用或 production 狀態；可用單一連線、SAVEPOINT／transaction rollback 等明確邊界驗證 constraint，測完再查 count／關鍵狀態確認沒有殘留並清理 | 2026-09-03 正例那半 commit 進 production，30 列 V1 曝險被搬到測試節點；rollback 在 commit 之後是 no-op |
+| 「必須成功」型的破壞性對照測試不依賴 `finally: rollback` 收尾：執行前先確認測試使用的 transaction／連線不會 commit 到受保護的共用或 production 狀態；可用單一連線、SAVEPOINT／transaction rollback 等明確邊界驗證 constraint，測完再查 count／關鍵狀態確認沒有殘留並清理。被驗的 constraint 若是 `DEFERRABLE INITIALLY DEFERRED`（例：`industry_tree_leaf_guard`，migration 097），違規通常延後到 transaction commit 時檢查；若違規操作在檢查前已由 SAVEPOINT／rollback 撤銷，trigger 不會因此執行，測試可能只得到「沒報錯」。要在同一個 transaction 內、受測操作全部做完之後下 `SET CONSTRAINTS ALL IMMEDIATE`，才看得到檢查結果；先下會退回逐句檢查，多步驟的合法操作（例如拆分有成員的葉節點）會在第一步被誤報。合法操作也一樣，沒設 IMMEDIATE 時的「沒報錯」不代表 guard 放行（2026-10-09 於隔離容器實測，PostgreSQL 16.13） | 2026-09-03 正例那半 commit 進 production，30 列 V1 曝險被搬到測試節點；rollback 在 commit 之後是 no-op |
 | 會 append 紀錄的腳本，重跑不得產生重複紀錄：寫入前除了錨點唯一性檢查（Rubric 9），還要確認要寫入的目標區塊還不存在，存在就不寫；也可用 unique key、upsert 等等價手段。渲染類與紀錄類最好分成不同腳本 | 渲染可以重跑、append 不行；2026-10-04 重跑補戳記腳本時，它順帶又 append 了一份重複的 ledger 裁定紀錄，因為兩件事綁在同一支非冪等腳本裡 |
 
 ## Rubric 12：效能與時長估計的基準要實測
