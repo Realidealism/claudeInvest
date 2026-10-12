@@ -1,13 +1,13 @@
 {
-  "snapshot_date": "2026-10-08",
+  "snapshot_date": "2026-10-12",
   "picks": [
     {
       "rank": 1,
-      "ticker": "1560",
-      "name": "中砂",
+      "ticker": "2305",
+      "name": "全友",
       "market": "TWSE",
-      "industry": "再生晶圓",
-      "industry_source": "chain",
+      "industry": "電腦及週邊設備業",
+      "industry_source": "official",
       "score": 8,
       "grade": "A",
       "rules": {
@@ -22,17 +22,47 @@
       },
       "valuation": {
         "method": "PE",
-        "multiple": 98.44,
-        "band": "> +2σ",
-        "upside_pct": -63.05,
+        "multiple": 86.71,
+        "band": "mean ~ +1σ",
+        "upside_pct": -122.99,
         "decision": "SELL"
       },
       "is_new": false,
-      "prev_rank": 1,
-      "rank_delta": 0
+      "prev_rank": 11,
+      "rank_delta": 10
     },
     {
       "rank": 2,
+      "ticker": "2327",
+      "name": "國巨*",
+      "market": "TWSE",
+      "industry": "電子零組件業",
+      "industry_source": "official",
+      "score": 8,
+      "grade": "A",
+      "rules": {
+        "F1": true,
+        "F2": true,
+        "F3": true,
+        "F4": true,
+        "F5": true,
+        "F6": true,
+        "F7": true,
+        "F8": true
+      },
+      "valuation": {
+        "method": "PE",
+        "multiple": 42.74,
+        "band": "> +2σ",
+        "upside_pct": -68.72,
+        "decision": "SELL"
+      },
+      "is_new": false,
+      "prev_rank": 12,
+      "rank_delta": 10
+    },
+    {
+      "rank": 3,
       "ticker": "2360",
       "name": "致茂",
       "market": "TWSE",
@@ -52,17 +82,17 @@
       },
       "valuation": {
         "method": "PE",
-        "multiple": 73.34,
+        "multiple": 74.44,
         "band": "> +2σ",
-        "upside_pct": -58.01,
+        "upside_pct": -58.57,
         "decision": "SELL"
       },
       "is_new": false,
       "prev_rank": 2,
-      "rank_delta": 0
+      "rank_delta": -1
     },
     {
-      "rank": 3,
+      "rank": 4,
       "ticker": "2383",
       "name": "台光電",
       "market": "TWSE",
@@ -82,77 +112,17 @@
       },
       "valuation": {
         "method": "PE",
-        "multiple": 128.89,
+        "multiple": 132.12,
         "band": "> +2σ",
-        "upside_pct": -74.87,
+        "upside_pct": -75.41,
         "decision": "SELL"
       },
       "is_new": false,
       "prev_rank": 3,
-      "rank_delta": 0
-    },
-    {
-      "rank": 4,
-      "ticker": "2436",
-      "name": "偉詮電",
-      "market": "TWSE",
-      "industry": "電源管理 IC (PMIC)",
-      "industry_source": "chain",
-      "score": 8,
-      "grade": "A",
-      "rules": {
-        "F1": true,
-        "F2": true,
-        "F3": true,
-        "F4": true,
-        "F5": true,
-        "F6": true,
-        "F7": true,
-        "F8": true
-      },
-      "valuation": {
-        "method": "PE",
-        "multiple": 20.0,
-        "band": "−1σ ~ mean",
-        "upside_pct": 136.09,
-        "decision": "BUY"
-      },
-      "is_new": false,
-      "prev_rank": 4,
-      "rank_delta": 0
+      "rank_delta": -1
     },
     {
       "rank": 5,
-      "ticker": "3006",
-      "name": "晶豪科",
-      "market": "TWSE",
-      "industry": "記憶體 IC 設計",
-      "industry_source": "chain",
-      "score": 8,
-      "grade": "A",
-      "rules": {
-        "F1": true,
-        "F2": true,
-        "F3": true,
-        "F4": true,
-        "F5": true,
-        "F6": true,
-        "F7": true,
-        "F8": true
-      },
-      "valuation": {
-        "method": "PB",
-        "multiple": 6.11,
-        "band": "> +2σ",
-        "upside_pct": -54.93,
-        "decision": "SELL"
-      },
-      "is_new": false,
-      "prev_rank": 5,
-      "rank_delta": 0
-    },
-    {
-      "rank": 6,
       "ticker": "4576",
       "name": "大銀微系統",
       "market": "TWSE",
@@ -172,14 +142,44 @@
       },
       "valuation": {
         "method": "PE",
-        "multiple": 90.32,
+        "multiple": 92.29,
         "band": "−1σ ~ mean",
-        "upside_pct": 80.28,
+        "upside_pct": 76.46,
         "decision": "BUY"
       },
       "is_new": false,
       "prev_rank": 6,
-      "rank_delta": 0
+      "rank_delta": 1
+    },
+    {
+      "rank": 6,
+      "ticker": "6197",
+      "name": "佳必琪",
+      "market": "TWSE",
+      "industry": "電子零組件業",
+      "industry_source": "official",
+      "score": 8,
+      "grade": "A",
+      "rules": {
+        "F1": true,
+        "F2": true,
+        "F3": true,
+        "F4": true,
+        "F5": true,
+        "F6": true,
+        "F7": true,
+        "F8": true
+      },
+      "valuation": {
+        "method": "PE",
+        "multiple": 38.1,
+        "band": "> +2σ",
+        "upside_pct": -50.85,
+        "decision": "SELL"
+      },
+      "is_new": true,
+      "prev_rank": null,
+      "rank_delta": null
     },
     {
       "rank": 7,
@@ -202,9 +202,9 @@
       },
       "valuation": {
         "method": "PE",
-        "multiple": 196.59,
+        "multiple": 198.05,
         "band": "> +2σ",
-        "upside_pct": -82.44,
+        "upside_pct": -82.49,
         "decision": "SELL"
       },
       "is_new": false,
@@ -213,10 +213,10 @@
     },
     {
       "rank": 8,
-      "ticker": "1456",
-      "name": "怡華",
+      "ticker": "1102",
+      "name": "亞泥",
       "market": "TWSE",
-      "industry": "建材營造業",
+      "industry": "水泥工業",
       "industry_source": "official",
       "score": 7,
       "grade": "A",
@@ -232,22 +232,22 @@
       },
       "valuation": {
         "method": "PE",
-        "multiple": 4.32,
-        "band": "−1σ ~ mean",
-        "upside_pct": 491.64,
-        "decision": "BUY"
+        "multiple": 9.54,
+        "band": "−2σ ~ −1σ",
+        "upside_pct": 17.68,
+        "decision": "HOLD"
       },
-      "is_new": false,
-      "prev_rank": 8,
-      "rank_delta": 0
+      "is_new": true,
+      "prev_rank": null,
+      "rank_delta": null
     },
     {
       "rank": 9,
-      "ticker": "1773",
-      "name": "勝一",
-      "market": "TWSE",
-      "industry": "蝕刻/清洗化學品",
-      "industry_source": "chain",
+      "ticker": "1240",
+      "name": "茂生農經",
+      "market": "TPEx",
+      "industry": "農業科技業",
+      "industry_source": "official",
       "score": 7,
       "grade": "A",
       "rules": {
@@ -262,21 +262,21 @@
       },
       "valuation": {
         "method": "PE",
-        "multiple": 24.24,
-        "band": "mean ~ +1σ",
-        "upside_pct": -15.37,
-        "decision": "SELL"
+        "multiple": 10.11,
+        "band": "−1σ ~ mean",
+        "upside_pct": 268.11,
+        "decision": "BUY"
       },
-      "is_new": false,
-      "prev_rank": 9,
-      "rank_delta": 0
+      "is_new": true,
+      "prev_rank": null,
+      "rank_delta": null
     },
     {
       "rank": 10,
-      "ticker": "1799",
-      "name": "易威",
-      "market": "TPEx",
-      "industry": "生技醫療業",
+      "ticker": "1597",
+      "name": "直得",
+      "market": "TWSE",
+      "industry": "電機機械",
       "industry_source": "official",
       "score": 7,
       "grade": "A",
@@ -291,20 +291,20 @@
         "F8": true
       },
       "valuation": {
-        "method": "PS",
-        "multiple": 5.22,
-        "band": "−1σ ~ mean",
-        "upside_pct": 215.85,
-        "decision": "BUY"
+        "method": "PE",
+        "multiple": 72.3,
+        "band": "mean ~ +1σ",
+        "upside_pct": -9.37,
+        "decision": "SELL"
       },
-      "is_new": false,
-      "prev_rank": 10,
-      "rank_delta": 0
+      "is_new": true,
+      "prev_rank": null,
+      "rank_delta": null
     },
     {
       "rank": 11,
-      "ticker": "2305",
-      "name": "全友",
+      "ticker": "2376",
+      "name": "技嘉",
       "market": "TWSE",
       "industry": "電腦及週邊設備業",
       "industry_source": "official",
@@ -313,8 +313,8 @@
       "rules": {
         "F1": true,
         "F2": true,
-        "F3": true,
-        "F4": false,
+        "F3": false,
+        "F4": true,
         "F5": true,
         "F6": true,
         "F7": true,
@@ -322,59 +322,29 @@
       },
       "valuation": {
         "method": "PE",
-        "multiple": 239.63,
-        "band": "mean ~ +1σ",
-        "upside_pct": -106.9,
-        "decision": "SELL"
+        "multiple": 16.64,
+        "band": "−1σ ~ mean",
+        "upside_pct": 15.07,
+        "decision": "HOLD"
       },
-      "is_new": false,
-      "prev_rank": 11,
-      "rank_delta": 0
+      "is_new": true,
+      "prev_rank": null,
+      "rank_delta": null
     },
     {
       "rank": 12,
-      "ticker": "2327",
-      "name": "國巨*",
+      "ticker": "2481",
+      "name": "強茂",
       "market": "TWSE",
-      "industry": "電子零組件業",
-      "industry_source": "official",
-      "score": 7,
-      "grade": "A",
-      "rules": {
-        "F1": true,
-        "F2": true,
-        "F3": true,
-        "F4": false,
-        "F5": true,
-        "F6": true,
-        "F7": true,
-        "F8": true
-      },
-      "valuation": {
-        "method": "PE",
-        "multiple": 31.7,
-        "band": "> +2σ",
-        "upside_pct": -58.89,
-        "decision": "SELL"
-      },
-      "is_new": false,
-      "prev_rank": 12,
-      "rank_delta": 0
-    },
-    {
-      "rank": 13,
-      "ticker": "2330",
-      "name": "台積電",
-      "market": "TWSE",
-      "industry": "Foundry (純晶圓代工)",
+      "industry": "功率半導體製造 (Power)",
       "industry_source": "chain",
       "score": 7,
       "grade": "A",
       "rules": {
         "F1": true,
-        "F2": true,
+        "F2": false,
         "F3": true,
-        "F4": false,
+        "F4": true,
         "F5": true,
         "F6": true,
         "F7": true,
@@ -382,17 +352,17 @@
       },
       "valuation": {
         "method": "PE",
-        "multiple": 34.28,
-        "band": "+1σ ~ +2σ",
-        "upside_pct": -33.53,
+        "multiple": 54.46,
+        "band": "> +2σ",
+        "upside_pct": -55.52,
         "decision": "SELL"
       },
-      "is_new": false,
-      "prev_rank": 13,
-      "rank_delta": 0
+      "is_new": true,
+      "prev_rank": null,
+      "rank_delta": null
     },
     {
-      "rank": 14,
+      "rank": 13,
       "ticker": "2486",
       "name": "一詮",
       "market": "TWSE",
@@ -412,28 +382,28 @@
       },
       "valuation": {
         "method": "PE",
-        "multiple": 458.65,
+        "multiple": 449.04,
         "band": "mean ~ +1σ",
-        "upside_pct": -58.49,
+        "upside_pct": -57.54,
         "decision": "SELL"
       },
       "is_new": false,
       "prev_rank": 14,
-      "rank_delta": 0
+      "rank_delta": 1
     },
     {
-      "rank": 15,
-      "ticker": "2754",
-      "name": "亞洲藏壽司",
-      "market": "TPEx",
-      "industry": "觀光餐旅",
+      "rank": 14,
+      "ticker": "3002",
+      "name": "歐格",
+      "market": "TWSE",
+      "industry": "電腦及週邊設備業",
       "industry_source": "official",
       "score": 7,
       "grade": "A",
       "rules": {
-        "F1": false,
+        "F1": true,
         "F2": true,
-        "F3": true,
+        "F3": false,
         "F4": true,
         "F5": true,
         "F6": true,
@@ -442,17 +412,17 @@
       },
       "valuation": {
         "method": "PE",
-        "multiple": 16.33,
+        "multiple": 58.33,
         "band": "mean ~ +1σ",
-        "upside_pct": -617.64,
+        "upside_pct": -64.74,
         "decision": "SELL"
       },
-      "is_new": false,
-      "prev_rank": 15,
-      "rank_delta": 0
+      "is_new": true,
+      "prev_rank": null,
+      "rank_delta": null
     },
     {
-      "rank": 16,
+      "rank": 15,
       "ticker": "3044",
       "name": "健鼎",
       "market": "TWSE",
@@ -472,17 +442,17 @@
       },
       "valuation": {
         "method": "PE",
-        "multiple": 28.28,
+        "multiple": 28.13,
         "band": "> +2σ",
-        "upside_pct": -48.73,
+        "upside_pct": -48.41,
         "decision": "SELL"
       },
       "is_new": false,
       "prev_rank": 16,
-      "rank_delta": 0
+      "rank_delta": 1
     },
     {
-      "rank": 17,
+      "rank": 16,
       "ticker": "3167",
       "name": "大量",
       "market": "TWSE",
@@ -502,107 +472,17 @@
       },
       "valuation": {
         "method": "PE",
-        "multiple": 102.43,
+        "multiple": 105.34,
         "band": "mean ~ +1σ",
-        "upside_pct": -69.52,
+        "upside_pct": -70.29,
         "decision": "SELL"
       },
       "is_new": false,
       "prev_rank": 17,
-      "rank_delta": 0
+      "rank_delta": 1
     },
     {
-      "rank": 18,
-      "ticker": "3231",
-      "name": "緯創",
-      "market": "TWSE",
-      "industry": "電腦及週邊設備業",
-      "industry_source": "official",
-      "score": 7,
-      "grade": "A",
-      "rules": {
-        "F1": true,
-        "F2": true,
-        "F3": false,
-        "F4": true,
-        "F5": true,
-        "F6": true,
-        "F7": true,
-        "F8": true
-      },
-      "valuation": {
-        "method": "PE",
-        "multiple": 18.43,
-        "band": "mean ~ +1σ",
-        "upside_pct": -11.19,
-        "decision": "SELL"
-      },
-      "is_new": false,
-      "prev_rank": 18,
-      "rank_delta": 0
-    },
-    {
-      "rank": 19,
-      "ticker": "3260",
-      "name": "威剛",
-      "market": "TPEx",
-      "industry": "記憶體模組 (Module)",
-      "industry_source": "chain",
-      "score": 7,
-      "grade": "A",
-      "rules": {
-        "F1": true,
-        "F2": true,
-        "F3": true,
-        "F4": false,
-        "F5": true,
-        "F6": true,
-        "F7": true,
-        "F8": true
-      },
-      "valuation": {
-        "method": "PE",
-        "multiple": 7.04,
-        "band": "−1σ ~ mean",
-        "upside_pct": 169.52,
-        "decision": "BUY"
-      },
-      "is_new": false,
-      "prev_rank": 19,
-      "rank_delta": 0
-    },
-    {
-      "rank": 20,
-      "ticker": "3293",
-      "name": "鈊象",
-      "market": "TPEx",
-      "industry": "文化創意業",
-      "industry_source": "official",
-      "score": 7,
-      "grade": "A",
-      "rules": {
-        "F1": true,
-        "F2": true,
-        "F3": true,
-        "F4": false,
-        "F5": true,
-        "F6": true,
-        "F7": true,
-        "F8": true
-      },
-      "valuation": {
-        "method": "PE",
-        "multiple": 19.52,
-        "band": "mean ~ +1σ",
-        "upside_pct": -14.6,
-        "decision": "SELL"
-      },
-      "is_new": false,
-      "prev_rank": 20,
-      "rank_delta": 0
-    },
-    {
-      "rank": 21,
+      "rank": 17,
       "ticker": "3332",
       "name": "幸康",
       "market": "TPEx",
@@ -622,21 +502,21 @@
       },
       "valuation": {
         "method": "PE",
-        "multiple": 16.48,
+        "multiple": 16.3,
         "band": "mean ~ +1σ",
-        "upside_pct": -6.26,
+        "upside_pct": -5.26,
         "decision": "SELL"
       },
       "is_new": false,
       "prev_rank": 21,
-      "rank_delta": 0
+      "rank_delta": 4
     },
     {
-      "rank": 22,
-      "ticker": "3583",
-      "name": "辛耘",
+      "rank": 18,
+      "ticker": "3702",
+      "name": "大聯大",
       "market": "TWSE",
-      "industry": "封裝設備",
+      "industry": "半導體通路（含設備與材料）",
       "industry_source": "chain",
       "score": 7,
       "grade": "A",
@@ -651,22 +531,22 @@
         "F8": true
       },
       "valuation": {
-        "method": "PE",
-        "multiple": 49.86,
+        "method": "PB",
+        "multiple": 2.16,
         "band": "+1σ ~ +2σ",
-        "upside_pct": -43.37,
+        "upside_pct": -22.93,
         "decision": "SELL"
       },
-      "is_new": false,
-      "prev_rank": 22,
-      "rank_delta": 0
+      "is_new": true,
+      "prev_rank": null,
+      "rank_delta": null
     },
     {
-      "rank": 23,
-      "ticker": "3607",
-      "name": "谷崧",
-      "market": "TWSE",
-      "industry": "電子零組件業",
+      "rank": 19,
+      "ticker": "4506",
+      "name": "崇友",
+      "market": "TPEx",
+      "industry": "電機機械",
       "industry_source": "official",
       "score": 7,
       "grade": "A",
@@ -681,23 +561,53 @@
         "F8": true
       },
       "valuation": {
-        "method": "PB",
-        "multiple": 0.99,
-        "band": "mean ~ +1σ",
-        "upside_pct": -0.17,
-        "decision": "SELL"
+        "method": "PE",
+        "multiple": 16.98,
+        "band": "−1σ ~ mean",
+        "upside_pct": 3.27,
+        "decision": "HOLD"
       },
-      "is_new": false,
-      "prev_rank": 23,
-      "rank_delta": 0
+      "is_new": true,
+      "prev_rank": null,
+      "rank_delta": null
     },
     {
-      "rank": 24,
-      "ticker": "4771",
-      "name": "望隼",
+      "rank": 20,
+      "ticker": "4562",
+      "name": "穎漢",
       "market": "TWSE",
-      "industry": "醫療器材",
+      "industry": "工具機",
       "industry_source": "chain",
+      "score": 7,
+      "grade": "A",
+      "rules": {
+        "F1": true,
+        "F2": false,
+        "F3": true,
+        "F4": true,
+        "F5": true,
+        "F6": true,
+        "F7": true,
+        "F8": true
+      },
+      "valuation": {
+        "method": "PB",
+        "multiple": 2.92,
+        "band": "mean ~ +1σ",
+        "upside_pct": -6.87,
+        "decision": "SELL"
+      },
+      "is_new": true,
+      "prev_rank": null,
+      "rank_delta": null
+    },
+    {
+      "rank": 21,
+      "ticker": "4903",
+      "name": "聯光通",
+      "market": "TPEx",
+      "industry": "通信網路業",
+      "industry_source": "official",
       "score": 7,
       "grade": "A",
       "rules": {
@@ -711,18 +621,18 @@
         "F8": true
       },
       "valuation": {
-        "method": "PS",
-        "multiple": 3.21,
-        "band": "−1σ ~ mean",
-        "upside_pct": 11.37,
-        "decision": "HOLD"
+        "method": "PE",
+        "multiple": 32.17,
+        "band": "mean ~ +1σ",
+        "upside_pct": -27.46,
+        "decision": "SELL"
       },
-      "is_new": false,
-      "prev_rank": 24,
-      "rank_delta": 0
+      "is_new": true,
+      "prev_rank": null,
+      "rank_delta": null
     },
     {
-      "rank": 25,
+      "rank": 22,
       "ticker": "4979",
       "name": "華星光",
       "market": "TPEx",
@@ -742,17 +652,17 @@
       },
       "valuation": {
         "method": "PE",
-        "multiple": 102.17,
+        "multiple": 105.24,
         "band": "+1σ ~ +2σ",
-        "upside_pct": -61.21,
+        "upside_pct": -62.25,
         "decision": "SELL"
       },
       "is_new": false,
       "prev_rank": 25,
-      "rank_delta": 0
+      "rank_delta": 3
     },
     {
-      "rank": 26,
+      "rank": 23,
       "ticker": "5274",
       "name": "信驊",
       "market": "TPEx",
@@ -772,47 +682,17 @@
       },
       "valuation": {
         "method": "PE",
-        "multiple": 148.34,
+        "multiple": 150.12,
         "band": "+1σ ~ +2σ",
-        "upside_pct": -45.13,
+        "upside_pct": -45.74,
         "decision": "SELL"
       },
       "is_new": false,
       "prev_rank": 26,
-      "rank_delta": 0
+      "rank_delta": 3
     },
     {
-      "rank": 27,
-      "ticker": "5289",
-      "name": "宜鼎",
-      "market": "TPEx",
-      "industry": "電腦及週邊設備業",
-      "industry_source": "official",
-      "score": 7,
-      "grade": "A",
-      "rules": {
-        "F1": true,
-        "F2": true,
-        "F3": false,
-        "F4": true,
-        "F5": true,
-        "F6": true,
-        "F7": true,
-        "F8": true
-      },
-      "valuation": {
-        "method": "PE",
-        "multiple": 16.53,
-        "band": "−1σ ~ mean",
-        "upside_pct": 21.91,
-        "decision": "BUY"
-      },
-      "is_new": false,
-      "prev_rank": 27,
-      "rank_delta": 0
-    },
-    {
-      "rank": 28,
+      "rank": 24,
       "ticker": "5340",
       "name": "建榮",
       "market": "TPEx",
@@ -832,22 +712,22 @@
       },
       "valuation": {
         "method": "PE",
-        "multiple": 67.91,
+        "multiple": 68.35,
         "band": "−1σ ~ mean",
-        "upside_pct": 164.47,
+        "upside_pct": 162.74,
         "decision": "BUY"
       },
       "is_new": false,
       "prev_rank": 28,
-      "rank_delta": 0
+      "rank_delta": 4
     },
     {
-      "rank": 29,
-      "ticker": "6142",
-      "name": "友勁",
-      "market": "TWSE",
-      "industry": "通信網路業",
-      "industry_source": "official",
+      "rank": 25,
+      "ticker": "5536",
+      "name": "聖暉*",
+      "market": "TPEx",
+      "industry": "廠務系統",
+      "industry_source": "chain",
       "score": 7,
       "grade": "A",
       "rules": {
@@ -861,23 +741,23 @@
         "F8": true
       },
       "valuation": {
-        "method": "PB",
-        "multiple": 1.05,
-        "band": "−1σ ~ mean",
-        "upside_pct": 8.51,
-        "decision": "HOLD"
+        "method": "PE",
+        "multiple": 25.86,
+        "band": "+1σ ~ +2σ",
+        "upside_pct": -38.12,
+        "decision": "SELL"
       },
-      "is_new": false,
-      "prev_rank": 29,
-      "rank_delta": 0
+      "is_new": true,
+      "prev_rank": null,
+      "rank_delta": null
     },
     {
-      "rank": 30,
-      "ticker": "6223",
-      "name": "旺矽",
-      "market": "TPEx",
-      "industry": "探針卡 (Probe Card)",
-      "industry_source": "chain",
+      "rank": 26,
+      "ticker": "6117",
+      "name": "迎廣",
+      "market": "TWSE",
+      "industry": "電腦及週邊設備業",
+      "industry_source": "official",
       "score": 7,
       "grade": "A",
       "rules": {
@@ -892,17 +772,17 @@
       },
       "valuation": {
         "method": "PE",
-        "multiple": 145.41,
-        "band": "> +2σ",
-        "upside_pct": -71.09,
-        "decision": "SELL"
+        "multiple": 14.0,
+        "band": "−1σ ~ mean",
+        "upside_pct": 735.32,
+        "decision": "BUY"
       },
-      "is_new": false,
-      "prev_rank": 30,
-      "rank_delta": 0
+      "is_new": true,
+      "prev_rank": null,
+      "rank_delta": null
     },
     {
-      "rank": 31,
+      "rank": 27,
       "ticker": "6510",
       "name": "精測",
       "market": "TPEx",
@@ -922,22 +802,22 @@
       },
       "valuation": {
         "method": "PE",
-        "multiple": 97.39,
+        "multiple": 100.32,
         "band": "mean ~ +1σ",
-        "upside_pct": -19.42,
+        "upside_pct": -21.72,
         "decision": "SELL"
       },
       "is_new": false,
       "prev_rank": 31,
-      "rank_delta": 0
+      "rank_delta": 4
     },
     {
-      "rank": 32,
-      "ticker": "6691",
-      "name": "洋基工程",
+      "rank": 28,
+      "ticker": "6861",
+      "name": "睿生光電",
       "market": "TWSE",
-      "industry": "廠務系統",
-      "industry_source": "chain",
+      "industry": "生技醫療業",
+      "industry_source": "official",
       "score": 7,
       "grade": "A",
       "rules": {
@@ -952,47 +832,17 @@
       },
       "valuation": {
         "method": "PE",
-        "multiple": 29.22,
-        "band": "> +2σ",
-        "upside_pct": -43.53,
+        "multiple": 55.88,
+        "band": "+1σ ~ +2σ",
+        "upside_pct": -52.49,
         "decision": "SELL"
       },
-      "is_new": false,
-      "prev_rank": 32,
-      "rank_delta": 0
+      "is_new": true,
+      "prev_rank": null,
+      "rank_delta": null
     },
     {
-      "rank": 33,
-      "ticker": "8042",
-      "name": "金山電",
-      "market": "TPEx",
-      "industry": "電子零組件業",
-      "industry_source": "official",
-      "score": 7,
-      "grade": "A",
-      "rules": {
-        "F1": true,
-        "F2": true,
-        "F3": true,
-        "F4": true,
-        "F5": false,
-        "F6": true,
-        "F7": true,
-        "F8": true
-      },
-      "valuation": {
-        "method": "PE",
-        "multiple": 44.11,
-        "band": "−1σ ~ mean",
-        "upside_pct": 122.41,
-        "decision": "BUY"
-      },
-      "is_new": false,
-      "prev_rank": 33,
-      "rank_delta": 0
-    },
-    {
-      "rank": 34,
+      "rank": 29,
       "ticker": "8358",
       "name": "金居",
       "market": "TPEx",
@@ -1012,21 +862,111 @@
       },
       "valuation": {
         "method": "PE",
-        "multiple": 102.49,
+        "multiple": 100.0,
         "band": "> +2σ",
-        "upside_pct": -67.92,
+        "upside_pct": -67.06,
         "decision": "SELL"
       },
       "is_new": false,
       "prev_rank": 34,
-      "rank_delta": 0
+      "rank_delta": 5
     },
     {
-      "rank": 35,
-      "ticker": "1217",
-      "name": "愛之味",
+      "rank": 30,
+      "ticker": "8996",
+      "name": "高力",
+      "market": "TWSE",
+      "industry": "電機機械",
+      "industry_source": "official",
+      "score": 7,
+      "grade": "A",
+      "rules": {
+        "F1": true,
+        "F2": true,
+        "F3": false,
+        "F4": true,
+        "F5": true,
+        "F6": true,
+        "F7": true,
+        "F8": true
+      },
+      "valuation": {
+        "method": "PE",
+        "multiple": 121.47,
+        "band": "> +2σ",
+        "upside_pct": -49.95,
+        "decision": "SELL"
+      },
+      "is_new": true,
+      "prev_rank": null,
+      "rank_delta": null
+    },
+    {
+      "rank": 31,
+      "ticker": "1210",
+      "name": "大成",
       "market": "TWSE",
       "industry": "食品工業",
+      "industry_source": "official",
+      "score": 6,
+      "grade": "B",
+      "rules": {
+        "F1": false,
+        "F2": false,
+        "F3": true,
+        "F4": true,
+        "F5": true,
+        "F6": true,
+        "F7": true,
+        "F8": true
+      },
+      "valuation": {
+        "method": "PE",
+        "multiple": 12.64,
+        "band": "−1σ ~ mean",
+        "upside_pct": 23.01,
+        "decision": "BUY"
+      },
+      "is_new": true,
+      "prev_rank": null,
+      "rank_delta": null
+    },
+    {
+      "rank": 32,
+      "ticker": "1416",
+      "name": "廣豐",
+      "market": "TWSE",
+      "industry": "其他業",
+      "industry_source": "official",
+      "score": 6,
+      "grade": "B",
+      "rules": {
+        "F1": true,
+        "F2": true,
+        "F3": false,
+        "F4": true,
+        "F5": false,
+        "F6": true,
+        "F7": true,
+        "F8": true
+      },
+      "valuation": {
+        "method": "PE",
+        "multiple": 10.72,
+        "band": "−1σ ~ mean",
+        "upside_pct": 49.61,
+        "decision": "BUY"
+      },
+      "is_new": true,
+      "prev_rank": null,
+      "rank_delta": null
+    },
+    {
+      "rank": 33,
+      "ticker": "1504",
+      "name": "東元",
+      "market": "TWSE",
+      "industry": "電機機械",
       "industry_source": "official",
       "score": 6,
       "grade": "B",
@@ -1042,51 +982,141 @@
       },
       "valuation": {
         "method": "PE",
-        "multiple": 20.73,
-        "band": "−1σ ~ mean",
-        "upside_pct": 55.54,
-        "decision": "BUY"
+        "multiple": 25.43,
+        "band": "mean ~ +1σ",
+        "upside_pct": -16.99,
+        "decision": "SELL"
       },
-      "is_new": false,
-      "prev_rank": 35,
-      "rank_delta": 0
+      "is_new": true,
+      "prev_rank": null,
+      "rank_delta": null
     },
     {
-      "rank": 36,
-      "ticker": "1528",
-      "name": "恩德",
+      "rank": 34,
+      "ticker": "1532",
+      "name": "勤美",
       "market": "TWSE",
-      "industry": "工具機",
-      "industry_source": "chain",
+      "industry": "電機機械",
+      "industry_source": "official",
       "score": 6,
       "grade": "B",
       "rules": {
-        "F1": true,
-        "F2": false,
-        "F3": true,
+        "F1": false,
+        "F2": true,
+        "F3": false,
         "F4": true,
-        "F5": false,
+        "F5": true,
         "F6": true,
         "F7": true,
         "F8": true
       },
       "valuation": {
-        "method": "PB",
-        "multiple": 2.11,
-        "band": "+1σ ~ +2σ",
-        "upside_pct": -41.38,
-        "decision": "SELL"
+        "method": "PE",
+        "multiple": 17.83,
+        "band": "−1σ ~ mean",
+        "upside_pct": 6.8,
+        "decision": "HOLD"
       },
-      "is_new": false,
-      "prev_rank": 36,
-      "rank_delta": 0
+      "is_new": true,
+      "prev_rank": null,
+      "rank_delta": null
+    },
+    {
+      "rank": 35,
+      "ticker": "1558",
+      "name": "伸興",
+      "market": "TWSE",
+      "industry": "電機機械",
+      "industry_source": "official",
+      "score": 6,
+      "grade": "B",
+      "rules": {
+        "F1": true,
+        "F2": false,
+        "F3": false,
+        "F4": true,
+        "F5": true,
+        "F6": true,
+        "F7": true,
+        "F8": true
+      },
+      "valuation": {
+        "method": "PE",
+        "multiple": 14.04,
+        "band": "−1σ ~ mean",
+        "upside_pct": 33.62,
+        "decision": "BUY"
+      },
+      "is_new": true,
+      "prev_rank": null,
+      "rank_delta": null
+    },
+    {
+      "rank": 36,
+      "ticker": "1584",
+      "name": "精剛",
+      "market": "TPEx",
+      "industry": "其他業",
+      "industry_source": "official",
+      "score": 6,
+      "grade": "B",
+      "rules": {
+        "F1": true,
+        "F2": false,
+        "F3": false,
+        "F4": true,
+        "F5": true,
+        "F6": true,
+        "F7": true,
+        "F8": true
+      },
+      "valuation": {
+        "method": "PE",
+        "multiple": 30.59,
+        "band": "−1σ ~ mean",
+        "upside_pct": 84.13,
+        "decision": "BUY"
+      },
+      "is_new": true,
+      "prev_rank": null,
+      "rank_delta": null
     },
     {
       "rank": 37,
-      "ticker": "2302",
-      "name": "麗正",
+      "ticker": "1720",
+      "name": "生達",
       "market": "TWSE",
-      "industry": "功率半導體製造 (Power)",
+      "industry": "生技醫療業",
+      "industry_source": "official",
+      "score": 6,
+      "grade": "B",
+      "rules": {
+        "F1": true,
+        "F2": false,
+        "F3": false,
+        "F4": true,
+        "F5": true,
+        "F6": true,
+        "F7": true,
+        "F8": true
+      },
+      "valuation": {
+        "method": "PE",
+        "multiple": 10.23,
+        "band": "−2σ ~ −1σ",
+        "upside_pct": 22.29,
+        "decision": "BUY"
+      },
+      "is_new": true,
+      "prev_rank": null,
+      "rank_delta": null
+    },
+    {
+      "rank": 38,
+      "ticker": "2049",
+      "name": "上銀",
+      "market": "TWSE",
+      "industry": "傳動與線性運動",
       "industry_source": "chain",
       "score": 6,
       "grade": "B",
@@ -1101,18 +1131,138 @@
         "F8": true
       },
       "valuation": {
+        "method": "PE",
+        "multiple": 51.21,
+        "band": "mean ~ +1σ",
+        "upside_pct": -28.27,
+        "decision": "SELL"
+      },
+      "is_new": true,
+      "prev_rank": null,
+      "rank_delta": null
+    },
+    {
+      "rank": 39,
+      "ticker": "2063",
+      "name": "世鎧",
+      "market": "TPEx",
+      "industry": "鋼鐵工業",
+      "industry_source": "official",
+      "score": 6,
+      "grade": "B",
+      "rules": {
+        "F1": true,
+        "F2": false,
+        "F3": false,
+        "F4": true,
+        "F5": true,
+        "F6": true,
+        "F7": true,
+        "F8": true
+      },
+      "valuation": {
+        "method": "PE",
+        "multiple": 12.81,
+        "band": "mean ~ +1σ",
+        "upside_pct": -1.54,
+        "decision": "SELL"
+      },
+      "is_new": true,
+      "prev_rank": null,
+      "rank_delta": null
+    },
+    {
+      "rank": 40,
+      "ticker": "2258",
+      "name": "鴻華先進-創",
+      "market": "TWSE",
+      "industry": "汽車工業",
+      "industry_source": "official",
+      "score": 6,
+      "grade": "B",
+      "rules": {
+        "F1": true,
+        "F2": false,
+        "F3": false,
+        "F4": true,
+        "F5": true,
+        "F6": true,
+        "F7": true,
+        "F8": true
+      },
+      "valuation": {
         "method": "PB",
-        "multiple": 4.66,
-        "band": "> +2σ",
-        "upside_pct": -55.62,
+        "multiple": 4.63,
+        "band": "mean ~ +1σ",
+        "upside_pct": -7.14,
         "decision": "SELL"
       },
       "is_new": false,
-      "prev_rank": 37,
-      "rank_delta": 0
+      "prev_rank": 71,
+      "rank_delta": 31
     },
     {
-      "rank": 38,
+      "rank": 41,
+      "ticker": "2303",
+      "name": "聯電",
+      "market": "TWSE",
+      "industry": "Foundry (純晶圓代工)",
+      "industry_source": "chain",
+      "score": 6,
+      "grade": "B",
+      "rules": {
+        "F1": true,
+        "F2": false,
+        "F3": false,
+        "F4": true,
+        "F5": true,
+        "F6": true,
+        "F7": true,
+        "F8": true
+      },
+      "valuation": {
+        "method": "PE",
+        "multiple": 21.78,
+        "band": "+1σ ~ +2σ",
+        "upside_pct": -41.98,
+        "decision": "SELL"
+      },
+      "is_new": true,
+      "prev_rank": null,
+      "rank_delta": null
+    },
+    {
+      "rank": 42,
+      "ticker": "2312",
+      "name": "金寶",
+      "market": "TWSE",
+      "industry": "其他電子業",
+      "industry_source": "official",
+      "score": 6,
+      "grade": "B",
+      "rules": {
+        "F1": true,
+        "F2": false,
+        "F3": true,
+        "F4": false,
+        "F5": true,
+        "F6": true,
+        "F7": true,
+        "F8": true
+      },
+      "valuation": {
+        "method": "PE",
+        "multiple": 26.21,
+        "band": "−1σ ~ mean",
+        "upside_pct": 41.74,
+        "decision": "BUY"
+      },
+      "is_new": true,
+      "prev_rank": null,
+      "rank_delta": null
+    },
+    {
+      "rank": 43,
       "ticker": "2337",
       "name": "旺宏",
       "market": "TWSE",
@@ -1132,17 +1282,17 @@
       },
       "valuation": {
         "method": "PB",
-        "multiple": 4.54,
+        "multiple": 3.7,
         "band": "+1σ ~ +2σ",
-        "upside_pct": -60.5,
+        "upside_pct": -52.19,
         "decision": "SELL"
       },
       "is_new": false,
       "prev_rank": 38,
-      "rank_delta": 0
+      "rank_delta": -5
     },
     {
-      "rank": 39,
+      "rank": 44,
       "ticker": "2344",
       "name": "華邦電",
       "market": "TWSE",
@@ -1162,17 +1312,17 @@
       },
       "valuation": {
         "method": "PE",
-        "multiple": 52.52,
+        "multiple": 19.21,
         "band": "mean ~ +1σ",
-        "upside_pct": -481.18,
+        "upside_pct": -1147.79,
         "decision": "SELL"
       },
       "is_new": false,
       "prev_rank": 39,
-      "rank_delta": 0
+      "rank_delta": -5
     },
     {
-      "rank": 40,
+      "rank": 45,
       "ticker": "2375",
       "name": "凱美",
       "market": "TWSE",
@@ -1192,47 +1342,17 @@
       },
       "valuation": {
         "method": "PE",
-        "multiple": 39.79,
+        "multiple": 39.48,
         "band": "> +2σ",
-        "upside_pct": -51.89,
+        "upside_pct": -51.46,
         "decision": "SELL"
       },
       "is_new": false,
       "prev_rank": 40,
-      "rank_delta": 0
+      "rank_delta": -5
     },
     {
-      "rank": 41,
-      "ticker": "2382",
-      "name": "廣達",
-      "market": "TWSE",
-      "industry": "電腦及週邊設備業",
-      "industry_source": "official",
-      "score": 6,
-      "grade": "B",
-      "rules": {
-        "F1": true,
-        "F2": true,
-        "F3": false,
-        "F4": false,
-        "F5": true,
-        "F6": true,
-        "F7": true,
-        "F8": true
-      },
-      "valuation": {
-        "method": "PE",
-        "multiple": 16.37,
-        "band": "−1σ ~ mean",
-        "upside_pct": 2.1,
-        "decision": "HOLD"
-      },
-      "is_new": false,
-      "prev_rank": 41,
-      "rank_delta": 0
-    },
-    {
-      "rank": 42,
+      "rank": 46,
       "ticker": "2464",
       "name": "盟立",
       "market": "TWSE",
@@ -1252,17 +1372,107 @@
       },
       "valuation": {
         "method": "PB",
-        "multiple": 7.68,
+        "multiple": 7.86,
         "band": "> +2σ",
-        "upside_pct": -63.71,
+        "upside_pct": -64.5,
         "decision": "SELL"
       },
       "is_new": false,
       "prev_rank": 42,
-      "rank_delta": 0
+      "rank_delta": -4
     },
     {
-      "rank": 43,
+      "rank": 47,
+      "ticker": "2472",
+      "name": "立隆電",
+      "market": "TWSE",
+      "industry": "電子零組件業",
+      "industry_source": "official",
+      "score": 6,
+      "grade": "B",
+      "rules": {
+        "F1": true,
+        "F2": false,
+        "F3": false,
+        "F4": true,
+        "F5": true,
+        "F6": true,
+        "F7": true,
+        "F8": true
+      },
+      "valuation": {
+        "method": "PB",
+        "multiple": 4.17,
+        "band": "+1σ ~ +2σ",
+        "upside_pct": -41.41,
+        "decision": "SELL"
+      },
+      "is_new": true,
+      "prev_rank": null,
+      "rank_delta": null
+    },
+    {
+      "rank": 48,
+      "ticker": "2476",
+      "name": "鉅祥",
+      "market": "TWSE",
+      "industry": "電子零組件業",
+      "industry_source": "official",
+      "score": 6,
+      "grade": "B",
+      "rules": {
+        "F1": false,
+        "F2": true,
+        "F3": false,
+        "F4": true,
+        "F5": true,
+        "F6": true,
+        "F7": true,
+        "F8": true
+      },
+      "valuation": {
+        "method": "PB",
+        "multiple": 3.02,
+        "band": "+1σ ~ +2σ",
+        "upside_pct": -27.07,
+        "decision": "SELL"
+      },
+      "is_new": true,
+      "prev_rank": null,
+      "rank_delta": null
+    },
+    {
+      "rank": 49,
+      "ticker": "2480",
+      "name": "敦陽科",
+      "market": "TWSE",
+      "industry": "資訊服務業",
+      "industry_source": "official",
+      "score": 6,
+      "grade": "B",
+      "rules": {
+        "F1": false,
+        "F2": true,
+        "F3": false,
+        "F4": true,
+        "F5": true,
+        "F6": true,
+        "F7": true,
+        "F8": true
+      },
+      "valuation": {
+        "method": "PE",
+        "multiple": 21.04,
+        "band": "+1σ ~ +2σ",
+        "upside_pct": -20.58,
+        "decision": "SELL"
+      },
+      "is_new": true,
+      "prev_rank": null,
+      "rank_delta": null
+    },
+    {
+      "rank": 50,
       "ticker": "2901",
       "name": "欣欣",
       "market": "TWSE",
@@ -1282,17 +1492,17 @@
       },
       "valuation": {
         "method": "PE",
-        "multiple": 61.22,
+        "multiple": 60.24,
         "band": "−1σ ~ mean",
-        "upside_pct": 125.51,
+        "upside_pct": 128.95,
         "decision": "BUY"
       },
       "is_new": false,
       "prev_rank": 43,
-      "rank_delta": 0
+      "rank_delta": -7
     },
     {
-      "rank": 44,
+      "rank": 51,
       "ticker": "3004",
       "name": "豐達科",
       "market": "TWSE",
@@ -1312,17 +1522,47 @@
       },
       "valuation": {
         "method": "PE",
-        "multiple": 20.85,
+        "multiple": 21.02,
         "band": "mean ~ +1σ",
-        "upside_pct": -595.0,
+        "upside_pct": -590.72,
         "decision": "SELL"
       },
       "is_new": false,
       "prev_rank": 44,
-      "rank_delta": 0
+      "rank_delta": -7
     },
     {
-      "rank": 45,
+      "rank": 52,
+      "ticker": "3033",
+      "name": "威健",
+      "market": "TWSE",
+      "industry": "半導體通路（含設備與材料）",
+      "industry_source": "chain",
+      "score": 6,
+      "grade": "B",
+      "rules": {
+        "F1": false,
+        "F2": true,
+        "F3": false,
+        "F4": true,
+        "F5": true,
+        "F6": true,
+        "F7": true,
+        "F8": true
+      },
+      "valuation": {
+        "method": "PE",
+        "multiple": 15.87,
+        "band": "mean ~ +1σ",
+        "upside_pct": -19.08,
+        "decision": "SELL"
+      },
+      "is_new": true,
+      "prev_rank": null,
+      "rank_delta": null
+    },
+    {
+      "rank": 53,
       "ticker": "3037",
       "name": "欣興",
       "market": "TWSE",
@@ -1342,17 +1582,47 @@
       },
       "valuation": {
         "method": "PE",
-        "multiple": 179.89,
+        "multiple": 177.76,
         "band": "> +2σ",
-        "upside_pct": -73.01,
+        "upside_pct": -72.61,
         "decision": "SELL"
       },
       "is_new": false,
       "prev_rank": 45,
-      "rank_delta": 0
+      "rank_delta": -8
     },
     {
-      "rank": 46,
+      "rank": 54,
+      "ticker": "3048",
+      "name": "益登",
+      "market": "TWSE",
+      "industry": "半導體通路（含設備與材料）",
+      "industry_source": "chain",
+      "score": 6,
+      "grade": "B",
+      "rules": {
+        "F1": false,
+        "F2": false,
+        "F3": true,
+        "F4": true,
+        "F5": true,
+        "F6": true,
+        "F7": true,
+        "F8": true
+      },
+      "valuation": {
+        "method": "PB",
+        "multiple": 2.58,
+        "band": "+1σ ~ +2σ",
+        "upside_pct": -29.81,
+        "decision": "SELL"
+      },
+      "is_new": true,
+      "prev_rank": null,
+      "rank_delta": null
+    },
+    {
+      "rank": 55,
       "ticker": "3152",
       "name": "璟德",
       "market": "TPEx",
@@ -1372,58 +1642,28 @@
       },
       "valuation": {
         "method": "PE",
-        "multiple": 25.99,
+        "multiple": 25.83,
         "band": "−1σ ~ mean",
-        "upside_pct": 24.55,
+        "upside_pct": 25.34,
         "decision": "BUY"
       },
       "is_new": false,
       "prev_rank": 46,
-      "rank_delta": 0
+      "rank_delta": -9
     },
     {
-      "rank": 47,
-      "ticker": "3264",
-      "name": "欣銓",
-      "market": "TPEx",
-      "industry": "IC 測試服務 (IC Test)",
-      "industry_source": "chain",
-      "score": 6,
-      "grade": "B",
-      "rules": {
-        "F1": true,
-        "F2": true,
-        "F3": false,
-        "F4": null,
-        "F5": true,
-        "F6": true,
-        "F7": true,
-        "F8": true
-      },
-      "valuation": {
-        "method": "PE",
-        "multiple": 38.32,
-        "band": "> +2σ",
-        "upside_pct": -62.17,
-        "decision": "SELL"
-      },
-      "is_new": false,
-      "prev_rank": 47,
-      "rank_delta": 0
-    },
-    {
-      "rank": 48,
-      "ticker": "3266",
-      "name": "昇陽",
+      "rank": 56,
+      "ticker": "3356",
+      "name": "奇偶",
       "market": "TWSE",
-      "industry": "建材營造業",
+      "industry": "光電業",
       "industry_source": "official",
       "score": 6,
       "grade": "B",
       "rules": {
-        "F1": false,
+        "F1": true,
         "F2": false,
-        "F3": true,
+        "F3": false,
         "F4": true,
         "F5": true,
         "F6": true,
@@ -1432,17 +1672,17 @@
       },
       "valuation": {
         "method": "PE",
-        "multiple": 22.22,
-        "band": "mean ~ +1σ",
-        "upside_pct": -14.3,
-        "decision": "SELL"
+        "multiple": 6.86,
+        "band": "−2σ ~ −1σ",
+        "upside_pct": 134.27,
+        "decision": "BUY"
       },
-      "is_new": false,
-      "prev_rank": 48,
-      "rank_delta": 0
+      "is_new": true,
+      "prev_rank": null,
+      "rank_delta": null
     },
     {
-      "rank": 49,
+      "rank": 57,
       "ticker": "3402",
       "name": "漢科",
       "market": "TPEx",
@@ -1462,17 +1702,77 @@
       },
       "valuation": {
         "method": "PE",
-        "multiple": 19.03,
+        "multiple": 18.55,
         "band": "+1σ ~ +2σ",
-        "upside_pct": -27.08,
+        "upside_pct": -25.17,
         "decision": "SELL"
       },
       "is_new": false,
       "prev_rank": 49,
-      "rank_delta": 0
+      "rank_delta": -8
     },
     {
-      "rank": 50,
+      "rank": 58,
+      "ticker": "3706",
+      "name": "神達",
+      "market": "TWSE",
+      "industry": "電腦及週邊設備業",
+      "industry_source": "official",
+      "score": 6,
+      "grade": "B",
+      "rules": {
+        "F1": true,
+        "F2": true,
+        "F3": false,
+        "F4": false,
+        "F5": true,
+        "F6": true,
+        "F7": true,
+        "F8": true
+      },
+      "valuation": {
+        "method": "PE",
+        "multiple": 15.38,
+        "band": "−1σ ~ mean",
+        "upside_pct": 0.46,
+        "decision": "HOLD"
+      },
+      "is_new": true,
+      "prev_rank": null,
+      "rank_delta": null
+    },
+    {
+      "rank": 59,
+      "ticker": "3709",
+      "name": "鑫聯大投控",
+      "market": "TPEx",
+      "industry": "電腦及週邊設備業",
+      "industry_source": "official",
+      "score": 6,
+      "grade": "B",
+      "rules": {
+        "F1": true,
+        "F2": true,
+        "F3": false,
+        "F4": false,
+        "F5": true,
+        "F6": true,
+        "F7": true,
+        "F8": true
+      },
+      "valuation": {
+        "method": "PS",
+        "multiple": 0.19,
+        "band": "mean ~ +1σ",
+        "upside_pct": -5.6,
+        "decision": "SELL"
+      },
+      "is_new": true,
+      "prev_rank": null,
+      "rank_delta": null
+    },
+    {
+      "rank": 60,
       "ticker": "4104",
       "name": "佳醫",
       "market": "TWSE",
@@ -1492,137 +1792,17 @@
       },
       "valuation": {
         "method": "PE",
-        "multiple": 15.16,
+        "multiple": 15.37,
         "band": "−1σ ~ mean",
-        "upside_pct": 10.02,
+        "upside_pct": 8.52,
         "decision": "HOLD"
       },
       "is_new": false,
       "prev_rank": 50,
-      "rank_delta": 0
+      "rank_delta": -10
     },
     {
-      "rank": 51,
-      "ticker": "4760",
-      "name": "勤凱",
-      "market": "TPEx",
-      "industry": "封裝材料",
-      "industry_source": "chain",
-      "score": 6,
-      "grade": "B",
-      "rules": {
-        "F1": true,
-        "F2": true,
-        "F3": false,
-        "F4": true,
-        "F5": false,
-        "F6": true,
-        "F7": true,
-        "F8": true
-      },
-      "valuation": {
-        "method": "PE",
-        "multiple": 47.6,
-        "band": "> +2σ",
-        "upside_pct": -53.52,
-        "decision": "SELL"
-      },
-      "is_new": false,
-      "prev_rank": 51,
-      "rank_delta": 0
-    },
-    {
-      "rank": 52,
-      "ticker": "4976",
-      "name": "佳凌",
-      "market": "TWSE",
-      "industry": "成像光學元件",
-      "industry_source": "chain",
-      "score": 6,
-      "grade": "B",
-      "rules": {
-        "F1": true,
-        "F2": false,
-        "F3": false,
-        "F4": true,
-        "F5": true,
-        "F6": true,
-        "F7": true,
-        "F8": true
-      },
-      "valuation": {
-        "method": "PB",
-        "multiple": null,
-        "band": null,
-        "upside_pct": null,
-        "decision": "HOLD"
-      },
-      "is_new": false,
-      "prev_rank": 52,
-      "rank_delta": 0
-    },
-    {
-      "rank": 53,
-      "ticker": "4989",
-      "name": "榮科",
-      "market": "TWSE",
-      "industry": "銅箔",
-      "industry_source": "chain",
-      "score": 6,
-      "grade": "B",
-      "rules": {
-        "F1": false,
-        "F2": true,
-        "F3": false,
-        "F4": true,
-        "F5": true,
-        "F6": true,
-        "F7": true,
-        "F8": true
-      },
-      "valuation": {
-        "method": "PB",
-        "multiple": 6.8,
-        "band": "+1σ ~ +2σ",
-        "upside_pct": -49.78,
-        "decision": "SELL"
-      },
-      "is_new": false,
-      "prev_rank": 53,
-      "rank_delta": 0
-    },
-    {
-      "rank": 54,
-      "ticker": "5386",
-      "name": "青雲",
-      "market": "TPEx",
-      "industry": "半導體通路（含設備與材料）",
-      "industry_source": "chain",
-      "score": 6,
-      "grade": "B",
-      "rules": {
-        "F1": true,
-        "F2": true,
-        "F3": false,
-        "F4": true,
-        "F5": false,
-        "F6": true,
-        "F7": true,
-        "F8": true
-      },
-      "valuation": {
-        "method": "PE",
-        "multiple": 5.59,
-        "band": "−2σ ~ −1σ",
-        "upside_pct": 318.69,
-        "decision": "BUY"
-      },
-      "is_new": false,
-      "prev_rank": 54,
-      "rank_delta": 0
-    },
-    {
-      "rank": 55,
+      "rank": 61,
       "ticker": "5493",
       "name": "三聯",
       "market": "TPEx",
@@ -1643,26 +1823,26 @@
       "valuation": {
         "method": "PS",
         "multiple": 0.7,
-        "band": "mean ~ +1σ",
-        "upside_pct": -0.2,
-        "decision": "SELL"
+        "band": "−1σ ~ mean",
+        "upside_pct": 0.46,
+        "decision": "HOLD"
       },
       "is_new": false,
       "prev_rank": 55,
-      "rank_delta": 0
+      "rank_delta": -6
     },
     {
-      "rank": 56,
-      "ticker": "6170",
-      "name": "統振",
+      "rank": 62,
+      "ticker": "6185",
+      "name": "幃翔",
       "market": "TPEx",
-      "industry": "通信網路業",
+      "industry": "電子零組件業",
       "industry_source": "official",
       "score": 6,
       "grade": "B",
       "rules": {
-        "F1": true,
-        "F2": false,
+        "F1": false,
+        "F2": true,
         "F3": false,
         "F4": true,
         "F5": true,
@@ -1671,30 +1851,30 @@
         "F8": true
       },
       "valuation": {
-        "method": "PB",
-        "multiple": 2.62,
-        "band": "−1σ ~ mean",
-        "upside_pct": 2.99,
-        "decision": "HOLD"
+        "method": "PE",
+        "multiple": 225.0,
+        "band": "+1σ ~ +2σ",
+        "upside_pct": -87.87,
+        "decision": "SELL"
       },
-      "is_new": false,
-      "prev_rank": 56,
-      "rank_delta": 0
+      "is_new": true,
+      "prev_rank": null,
+      "rank_delta": null
     },
     {
-      "rank": 57,
-      "ticker": "6215",
-      "name": "和椿",
+      "rank": 63,
+      "ticker": "6214",
+      "name": "精誠",
       "market": "TWSE",
-      "industry": "製程設備",
-      "industry_source": "chain",
+      "industry": "資訊服務業",
+      "industry_source": "official",
       "score": 6,
       "grade": "B",
       "rules": {
         "F1": true,
         "F2": true,
         "F3": false,
-        "F4": false,
+        "F4": null,
         "F5": true,
         "F6": true,
         "F7": true,
@@ -1702,17 +1882,17 @@
       },
       "valuation": {
         "method": "PE",
-        "multiple": 32.62,
-        "band": "−1σ ~ mean",
-        "upside_pct": 0.83,
-        "decision": "HOLD"
+        "multiple": 20.23,
+        "band": "+1σ ~ +2σ",
+        "upside_pct": -11.57,
+        "decision": "SELL"
       },
-      "is_new": false,
-      "prev_rank": 57,
-      "rank_delta": 0
+      "is_new": true,
+      "prev_rank": null,
+      "rank_delta": null
     },
     {
-      "rank": 58,
+      "rank": 64,
       "ticker": "6257",
       "name": "矽格",
       "market": "TWSE",
@@ -1732,28 +1912,28 @@
       },
       "valuation": {
         "method": "PE",
-        "multiple": 42.37,
+        "multiple": 42.96,
         "band": "> +2σ",
-        "upside_pct": -64.17,
+        "upside_pct": -64.61,
         "decision": "SELL"
       },
       "is_new": false,
       "prev_rank": 58,
-      "rank_delta": 0
+      "rank_delta": -6
     },
     {
-      "rank": 59,
-      "ticker": "6441",
-      "name": "廣錠",
+      "rank": 65,
+      "ticker": "6577",
+      "name": "勁豐",
       "market": "TPEx",
-      "industry": "電腦及週邊設備業",
-      "industry_source": "official",
+      "industry": "顯示與觸控模組",
+      "industry_source": "chain",
       "score": 6,
       "grade": "B",
       "rules": {
-        "F1": true,
+        "F1": false,
         "F2": false,
-        "F3": false,
+        "F3": true,
         "F4": true,
         "F5": true,
         "F6": true,
@@ -1761,22 +1941,22 @@
         "F8": true
       },
       "valuation": {
-        "method": "PB",
-        "multiple": 1.25,
+        "method": "PE",
+        "multiple": 13.65,
         "band": "−1σ ~ mean",
-        "upside_pct": 4.81,
+        "upside_pct": 8.28,
         "decision": "HOLD"
       },
-      "is_new": false,
-      "prev_rank": 59,
-      "rank_delta": 0
+      "is_new": true,
+      "prev_rank": null,
+      "rank_delta": null
     },
     {
-      "rank": 60,
-      "ticker": "6693",
-      "name": "廣閎科",
+      "rank": 66,
+      "ticker": "6683",
+      "name": "雍智科技",
       "market": "TPEx",
-      "industry": "功率分立元件設計",
+      "industry": "測試座 (Test Socket)",
       "industry_source": "chain",
       "score": 6,
       "grade": "B",
@@ -1791,18 +1971,48 @@
         "F8": true
       },
       "valuation": {
-        "method": "PB",
-        "multiple": 7.9,
-        "band": "> +2σ",
-        "upside_pct": -54.45,
+        "method": "PS",
+        "multiple": 16.91,
+        "band": "mean ~ +1σ",
+        "upside_pct": -36.43,
         "decision": "SELL"
       },
-      "is_new": false,
-      "prev_rank": 60,
-      "rank_delta": 0
+      "is_new": true,
+      "prev_rank": null,
+      "rank_delta": null
     },
     {
-      "rank": 61,
+      "rank": 67,
+      "ticker": "6751",
+      "name": "智聯服務",
+      "market": "TPEx",
+      "industry": "資訊服務業",
+      "industry_source": "official",
+      "score": 6,
+      "grade": "B",
+      "rules": {
+        "F1": true,
+        "F2": false,
+        "F3": false,
+        "F4": true,
+        "F5": true,
+        "F6": true,
+        "F7": true,
+        "F8": true
+      },
+      "valuation": {
+        "method": "PE",
+        "multiple": 9.6,
+        "band": "−2σ ~ −1σ",
+        "upside_pct": 171.23,
+        "decision": "BUY"
+      },
+      "is_new": true,
+      "prev_rank": null,
+      "rank_delta": null
+    },
+    {
+      "rank": 68,
       "ticker": "6834",
       "name": "天二科技",
       "market": "TWSE",
@@ -1822,28 +2032,28 @@
       },
       "valuation": {
         "method": "PB",
-        "multiple": 8.0,
+        "multiple": 8.78,
         "band": "> +2σ",
-        "upside_pct": -72.4,
+        "upside_pct": -74.8,
         "decision": "SELL"
       },
       "is_new": false,
       "prev_rank": 61,
-      "rank_delta": 0
+      "rank_delta": -7
     },
     {
-      "rank": 62,
-      "ticker": "6902",
-      "name": "GOGOLOOK",
-      "market": "TWSE",
-      "industry": "數位雲端",
-      "industry_source": "official",
+      "rank": 69,
+      "ticker": "7734",
+      "name": "印能科技",
+      "market": "TPEx",
+      "industry": "封裝設備",
+      "industry_source": "chain",
       "score": 6,
       "grade": "B",
       "rules": {
         "F1": false,
         "F2": true,
-        "F3": false,
+        "F3": null,
         "F4": true,
         "F5": true,
         "F6": true,
@@ -1851,18 +2061,18 @@
         "F8": true
       },
       "valuation": {
-        "method": "PS",
-        "multiple": 4.34,
-        "band": "mean ~ +1σ",
-        "upside_pct": -0.4,
+        "method": "PB",
+        "multiple": 11.92,
+        "band": "+1σ ~ +2σ",
+        "upside_pct": -34.18,
         "decision": "SELL"
       },
-      "is_new": false,
-      "prev_rank": 62,
-      "rank_delta": 0
+      "is_new": true,
+      "prev_rank": null,
+      "rank_delta": null
     },
     {
-      "rank": 63,
+      "rank": 70,
       "ticker": "8084",
       "name": "巨虹",
       "market": "TPEx",
@@ -1882,47 +2092,17 @@
       },
       "valuation": {
         "method": "PB",
-        "multiple": 1.87,
+        "multiple": 2.05,
         "band": "−2σ ~ −1σ",
-        "upside_pct": 517.79,
+        "upside_pct": 462.61,
         "decision": "BUY"
       },
       "is_new": false,
       "prev_rank": 63,
-      "rank_delta": 0
+      "rank_delta": -7
     },
     {
-      "rank": 64,
-      "ticker": "8103",
-      "name": "瀚荃",
-      "market": "TWSE",
-      "industry": "電子零組件業",
-      "industry_source": "official",
-      "score": 6,
-      "grade": "B",
-      "rules": {
-        "F1": true,
-        "F2": false,
-        "F3": true,
-        "F4": false,
-        "F5": true,
-        "F6": true,
-        "F7": true,
-        "F8": true
-      },
-      "valuation": {
-        "method": "PE",
-        "multiple": 26.02,
-        "band": "+1σ ~ +2σ",
-        "upside_pct": -42.79,
-        "decision": "SELL"
-      },
-      "is_new": false,
-      "prev_rank": 64,
-      "rank_delta": 0
-    },
-    {
-      "rank": 65,
+      "rank": 71,
       "ticker": "8299",
       "name": "群聯",
       "market": "TPEx",
@@ -1942,29 +2122,29 @@
       },
       "valuation": {
         "method": "PE",
-        "multiple": 19.58,
+        "multiple": 19.53,
         "band": "−1σ ~ mean",
-        "upside_pct": 18.8,
+        "upside_pct": 19.14,
         "decision": "HOLD"
       },
       "is_new": false,
       "prev_rank": 65,
-      "rank_delta": 0
+      "rank_delta": -6
     },
     {
-      "rank": 66,
-      "ticker": "8438",
-      "name": "昶昕",
-      "market": "TWSE",
-      "industry": "PCB 製程藥水",
-      "industry_source": "chain",
+      "rank": 72,
+      "ticker": "8415",
+      "name": "大國鋼",
+      "market": "TPEx",
+      "industry": "鋼鐵工業",
+      "industry_source": "official",
       "score": 6,
       "grade": "B",
       "rules": {
         "F1": true,
-        "F2": true,
+        "F2": false,
         "F3": false,
-        "F4": false,
+        "F4": true,
         "F5": true,
         "F6": true,
         "F7": true,
@@ -1972,21 +2152,21 @@
       },
       "valuation": {
         "method": "PE",
-        "multiple": 30.76,
-        "band": "mean ~ +1σ",
-        "upside_pct": -28.7,
-        "decision": "SELL"
+        "multiple": 10.76,
+        "band": "−1σ ~ mean",
+        "upside_pct": 6.51,
+        "decision": "HOLD"
       },
-      "is_new": false,
-      "prev_rank": 66,
-      "rank_delta": 0
+      "is_new": true,
+      "prev_rank": null,
+      "rank_delta": null
     },
     {
-      "rank": 67,
-      "ticker": "1234",
-      "name": "黑松",
+      "rank": 73,
+      "ticker": "1101",
+      "name": "台泥",
       "market": "TWSE",
-      "industry": "食品工業",
+      "industry": "水泥工業",
       "industry_source": "official",
       "score": 5,
       "grade": "B",
@@ -2001,18 +2181,18 @@
         "F8": true
       },
       "valuation": {
-        "method": "PE",
-        "multiple": 19.23,
-        "band": "+1σ ~ +2σ",
-        "upside_pct": -9.6,
-        "decision": "SELL"
+        "method": "PB",
+        "multiple": 0.88,
+        "band": "−1σ ~ mean",
+        "upside_pct": 23.29,
+        "decision": "BUY"
       },
-      "is_new": false,
-      "prev_rank": 67,
-      "rank_delta": 0
+      "is_new": true,
+      "prev_rank": null,
+      "rank_delta": null
     },
     {
-      "rank": 68,
+      "rank": 74,
       "ticker": "1303",
       "name": "南亞",
       "market": "TWSE",
@@ -2021,6 +2201,126 @@
       "score": 5,
       "grade": "B",
       "rules": {
+        "F1": false,
+        "F2": false,
+        "F3": false,
+        "F4": true,
+        "F5": true,
+        "F6": true,
+        "F7": true,
+        "F8": true
+      },
+      "valuation": {
+        "method": "PE",
+        "multiple": 48.87,
+        "band": "mean ~ +1σ",
+        "upside_pct": -1040.21,
+        "decision": "SELL"
+      },
+      "is_new": false,
+      "prev_rank": 68,
+      "rank_delta": -6
+    },
+    {
+      "rank": 75,
+      "ticker": "1530",
+      "name": "亞崴",
+      "market": "TWSE",
+      "industry": "工具機",
+      "industry_source": "chain",
+      "score": 5,
+      "grade": "B",
+      "rules": {
+        "F1": false,
+        "F2": false,
+        "F3": false,
+        "F4": true,
+        "F5": true,
+        "F6": true,
+        "F7": true,
+        "F8": true
+      },
+      "valuation": {
+        "method": "PB",
+        "multiple": 0.92,
+        "band": "−1σ ~ mean",
+        "upside_pct": 1.02,
+        "decision": "HOLD"
+      },
+      "is_new": true,
+      "prev_rank": null,
+      "rank_delta": null
+    },
+    {
+      "rank": 76,
+      "ticker": "1537",
+      "name": "廣隆",
+      "market": "TWSE",
+      "industry": "電機機械",
+      "industry_source": "official",
+      "score": 5,
+      "grade": "B",
+      "rules": {
+        "F1": false,
+        "F2": false,
+        "F3": false,
+        "F4": true,
+        "F5": true,
+        "F6": true,
+        "F7": true,
+        "F8": true
+      },
+      "valuation": {
+        "method": "PE",
+        "multiple": 13.92,
+        "band": "−1σ ~ mean",
+        "upside_pct": 10.29,
+        "decision": "HOLD"
+      },
+      "is_new": true,
+      "prev_rank": null,
+      "rank_delta": null
+    },
+    {
+      "rank": 77,
+      "ticker": "1563",
+      "name": "巧新",
+      "market": "TWSE",
+      "industry": "汽車工業",
+      "industry_source": "official",
+      "score": 5,
+      "grade": "B",
+      "rules": {
+        "F1": false,
+        "F2": false,
+        "F3": false,
+        "F4": true,
+        "F5": true,
+        "F6": true,
+        "F7": true,
+        "F8": true
+      },
+      "valuation": {
+        "method": "PB",
+        "multiple": 2.38,
+        "band": "> +2σ",
+        "upside_pct": -36.81,
+        "decision": "SELL"
+      },
+      "is_new": true,
+      "prev_rank": null,
+      "rank_delta": null
+    },
+    {
+      "rank": 78,
+      "ticker": "1717",
+      "name": "長興",
+      "market": "TWSE",
+      "industry": "樹脂",
+      "industry_source": "chain",
+      "score": 5,
+      "grade": "B",
+      "rules": {
         "F1": true,
         "F2": false,
         "F3": false,
@@ -2031,22 +2331,232 @@
         "F8": true
       },
       "valuation": {
-        "method": "PE",
-        "multiple": 134.2,
-        "band": "mean ~ +1σ",
-        "upside_pct": -440.94,
+        "method": "PB",
+        "multiple": 2.81,
+        "band": "+1σ ~ +2σ",
+        "upside_pct": -32.99,
         "decision": "SELL"
       },
-      "is_new": false,
-      "prev_rank": 68,
-      "rank_delta": 0
+      "is_new": true,
+      "prev_rank": null,
+      "rank_delta": null
     },
     {
-      "rank": 69,
-      "ticker": "1323",
-      "name": "永裕",
+      "rank": 79,
+      "ticker": "1723",
+      "name": "中碳",
       "market": "TWSE",
-      "industry": "塑膠加工",
+      "industry": "煤化工 (Coal Chemical)",
+      "industry_source": "chain",
+      "score": 5,
+      "grade": "B",
+      "rules": {
+        "F1": false,
+        "F2": false,
+        "F3": false,
+        "F4": true,
+        "F5": true,
+        "F6": true,
+        "F7": true,
+        "F8": true
+      },
+      "valuation": {
+        "method": "PB",
+        "multiple": 2.47,
+        "band": "−1σ ~ mean",
+        "upside_pct": 6.42,
+        "decision": "HOLD"
+      },
+      "is_new": true,
+      "prev_rank": null,
+      "rank_delta": null
+    },
+    {
+      "rank": 80,
+      "ticker": "1802",
+      "name": "台玻",
+      "market": "TWSE",
+      "industry": "玻璃陶瓷",
+      "industry_source": "official",
+      "score": 5,
+      "grade": "B",
+      "rules": {
+        "F1": false,
+        "F2": false,
+        "F3": false,
+        "F4": true,
+        "F5": true,
+        "F6": true,
+        "F7": true,
+        "F8": true
+      },
+      "valuation": {
+        "method": "PB",
+        "multiple": 3.57,
+        "band": "> +2σ",
+        "upside_pct": -55.43,
+        "decision": "SELL"
+      },
+      "is_new": true,
+      "prev_rank": null,
+      "rank_delta": null
+    },
+    {
+      "rank": 81,
+      "ticker": "1909",
+      "name": "榮成",
+      "market": "TWSE",
+      "industry": "造紙工業",
+      "industry_source": "official",
+      "score": 5,
+      "grade": "B",
+      "rules": {
+        "F1": false,
+        "F2": false,
+        "F3": true,
+        "F4": true,
+        "F5": false,
+        "F6": true,
+        "F7": true,
+        "F8": true
+      },
+      "valuation": {
+        "method": "PB",
+        "multiple": 0.65,
+        "band": "−1σ ~ mean",
+        "upside_pct": 22.65,
+        "decision": "BUY"
+      },
+      "is_new": true,
+      "prev_rank": null,
+      "rank_delta": null
+    },
+    {
+      "rank": 82,
+      "ticker": "2002",
+      "name": "中鋼",
+      "market": "TWSE",
+      "industry": "鋼鐵工業",
+      "industry_source": "official",
+      "score": 5,
+      "grade": "B",
+      "rules": {
+        "F1": true,
+        "F2": false,
+        "F3": false,
+        "F4": true,
+        "F5": false,
+        "F6": true,
+        "F7": true,
+        "F8": true
+      },
+      "valuation": {
+        "method": "PB",
+        "multiple": 1.02,
+        "band": "−2σ ~ −1σ",
+        "upside_pct": 24.46,
+        "decision": "BUY"
+      },
+      "is_new": true,
+      "prev_rank": null,
+      "rank_delta": null
+    },
+    {
+      "rank": 83,
+      "ticker": "2031",
+      "name": "新光鋼",
+      "market": "TWSE",
+      "industry": "鋼鐵工業",
+      "industry_source": "official",
+      "score": 5,
+      "grade": "B",
+      "rules": {
+        "F1": false,
+        "F2": false,
+        "F3": false,
+        "F4": true,
+        "F5": true,
+        "F6": true,
+        "F7": true,
+        "F8": true
+      },
+      "valuation": {
+        "method": "PE",
+        "multiple": 7.15,
+        "band": "mean ~ +1σ",
+        "upside_pct": -27.69,
+        "decision": "SELL"
+      },
+      "is_new": true,
+      "prev_rank": null,
+      "rank_delta": null
+    },
+    {
+      "rank": 84,
+      "ticker": "2069",
+      "name": "運錩",
+      "market": "TWSE",
+      "industry": "鋼鐵工業",
+      "industry_source": "official",
+      "score": 5,
+      "grade": "B",
+      "rules": {
+        "F1": true,
+        "F2": false,
+        "F3": false,
+        "F4": false,
+        "F5": true,
+        "F6": true,
+        "F7": true,
+        "F8": true
+      },
+      "valuation": {
+        "method": "PB",
+        "multiple": 0.93,
+        "band": "mean ~ +1σ",
+        "upside_pct": -9.79,
+        "decision": "SELL"
+      },
+      "is_new": true,
+      "prev_rank": null,
+      "rank_delta": null
+    },
+    {
+      "rank": 85,
+      "ticker": "2328",
+      "name": "廣宇",
+      "market": "TWSE",
+      "industry": "電子零組件業",
+      "industry_source": "official",
+      "score": 5,
+      "grade": "B",
+      "rules": {
+        "F1": false,
+        "F2": false,
+        "F3": false,
+        "F4": true,
+        "F5": true,
+        "F6": true,
+        "F7": true,
+        "F8": true
+      },
+      "valuation": {
+        "method": "PE",
+        "multiple": 113.49,
+        "band": "> +2σ",
+        "upside_pct": -79.27,
+        "decision": "SELL"
+      },
+      "is_new": true,
+      "prev_rank": null,
+      "rank_delta": null
+    },
+    {
+      "rank": 86,
+      "ticker": "2347",
+      "name": "聯強",
+      "market": "TWSE",
+      "industry": "電腦通路",
       "industry_source": "chain",
       "score": 5,
       "grade": "B",
@@ -2062,22 +2572,22 @@
       },
       "valuation": {
         "method": "PE",
-        "multiple": 38.48,
-        "band": "mean ~ +1σ",
-        "upside_pct": -15.75,
+        "multiple": 17.17,
+        "band": "+1σ ~ +2σ",
+        "upside_pct": -34.63,
         "decision": "SELL"
       },
-      "is_new": false,
-      "prev_rank": 69,
-      "rank_delta": 0
+      "is_new": true,
+      "prev_rank": null,
+      "rank_delta": null
     },
     {
-      "rank": 70,
-      "ticker": "2221",
-      "name": "大甲",
-      "market": "TPEx",
-      "industry": "其他業",
-      "industry_source": "official",
+      "rank": 87,
+      "ticker": "2355",
+      "name": "敬鵬",
+      "market": "TWSE",
+      "industry": "硬板 / 多層板",
+      "industry_source": "chain",
       "score": 5,
       "grade": "B",
       "rules": {
@@ -2091,52 +2601,22 @@
         "F8": true
       },
       "valuation": {
-        "method": "PB",
-        "multiple": 7.4,
-        "band": "> +2σ",
-        "upside_pct": -79.86,
-        "decision": "SELL"
-      },
-      "is_new": false,
-      "prev_rank": 70,
-      "rank_delta": 0
-    },
-    {
-      "rank": 71,
-      "ticker": "2258",
-      "name": "鴻華先進-創",
-      "market": "TWSE",
-      "industry": "汽車工業",
-      "industry_source": "official",
-      "score": 5,
-      "grade": "B",
-      "rules": {
-        "F1": true,
-        "F2": false,
-        "F3": false,
-        "F4": false,
-        "F5": true,
-        "F6": true,
-        "F7": true,
-        "F8": true
-      },
-      "valuation": {
-        "method": "PB",
-        "multiple": 4.28,
+        "method": "PE",
+        "multiple": 29.24,
         "band": "mean ~ +1σ",
-        "upside_pct": -0.14,
+        "upside_pct": -13.71,
         "decision": "SELL"
       },
-      "is_new": false,
-      "prev_rank": 71,
-      "rank_delta": 0
+      "is_new": true,
+      "prev_rank": null,
+      "rank_delta": null
     },
     {
-      "rank": 72,
-      "ticker": "2441",
-      "name": "超豐",
+      "rank": 88,
+      "ticker": "2397",
+      "name": "友通",
       "market": "TWSE",
-      "industry": "封裝測試代工 (OSAT)",
+      "industry": "工業電腦與控制運算",
       "industry_source": "chain",
       "score": 5,
       "grade": "B",
@@ -2151,18 +2631,48 @@
         "F8": true
       },
       "valuation": {
-        "method": "PB",
-        "multiple": 2.86,
+        "method": "PE",
+        "multiple": 28.1,
         "band": "+1σ ~ +2σ",
-        "upside_pct": -34.53,
+        "upside_pct": -31.23,
         "decision": "SELL"
       },
-      "is_new": false,
-      "prev_rank": 72,
-      "rank_delta": 0
+      "is_new": true,
+      "prev_rank": null,
+      "rank_delta": null
     },
     {
-      "rank": 73,
+      "rank": 89,
+      "ticker": "2428",
+      "name": "興勤",
+      "market": "TWSE",
+      "industry": "電子零組件業",
+      "industry_source": "official",
+      "score": 5,
+      "grade": "B",
+      "rules": {
+        "F1": false,
+        "F2": false,
+        "F3": true,
+        "F4": false,
+        "F5": true,
+        "F6": true,
+        "F7": true,
+        "F8": true
+      },
+      "valuation": {
+        "method": "PE",
+        "multiple": 25.59,
+        "band": "> +2σ",
+        "upside_pct": -42.84,
+        "decision": "SELL"
+      },
+      "is_new": true,
+      "prev_rank": null,
+      "rank_delta": null
+    },
+    {
+      "rank": 90,
       "ticker": "2492",
       "name": "華新科",
       "market": "TWSE",
@@ -2182,47 +2692,17 @@
       },
       "valuation": {
         "method": "PE",
-        "multiple": 80.46,
+        "multiple": 80.08,
         "band": "> +2σ",
-        "upside_pct": -67.77,
+        "upside_pct": -67.54,
         "decision": "SELL"
       },
       "is_new": false,
       "prev_rank": 73,
-      "rank_delta": 0
+      "rank_delta": -17
     },
     {
-      "rank": 74,
-      "ticker": "2495",
-      "name": "普安",
-      "market": "TWSE",
-      "industry": "電腦及週邊設備業",
-      "industry_source": "official",
-      "score": 5,
-      "grade": "B",
-      "rules": {
-        "F1": false,
-        "F2": false,
-        "F3": false,
-        "F4": true,
-        "F5": true,
-        "F6": true,
-        "F7": true,
-        "F8": true
-      },
-      "valuation": {
-        "method": "PE",
-        "multiple": 33.5,
-        "band": "mean ~ +1σ",
-        "upside_pct": -12.82,
-        "decision": "SELL"
-      },
-      "is_new": false,
-      "prev_rank": 74,
-      "rank_delta": 0
-    },
-    {
-      "rank": 75,
+      "rank": 91,
       "ticker": "2603",
       "name": "長榮",
       "market": "TWSE",
@@ -2242,17 +2722,17 @@
       },
       "valuation": {
         "method": "PE",
-        "multiple": 10.16,
+        "multiple": 11.17,
         "band": "> +2σ",
-        "upside_pct": -57.29,
+        "upside_pct": -61.09,
         "decision": "SELL"
       },
       "is_new": false,
       "prev_rank": 75,
-      "rank_delta": 0
+      "rank_delta": -16
     },
     {
-      "rank": 76,
+      "rank": 92,
       "ticker": "2615",
       "name": "萬海",
       "market": "TWSE",
@@ -2272,17 +2752,47 @@
       },
       "valuation": {
         "method": "PB",
-        "multiple": 1.09,
+        "multiple": 1.18,
         "band": "−1σ ~ mean",
-        "upside_pct": 16.23,
+        "upside_pct": 6.81,
         "decision": "HOLD"
       },
       "is_new": false,
       "prev_rank": 76,
-      "rank_delta": 0
+      "rank_delta": -16
     },
     {
-      "rank": 77,
+      "rank": 93,
+      "ticker": "3010",
+      "name": "華立",
+      "market": "TWSE",
+      "industry": "半導體通路（含設備與材料）",
+      "industry_source": "chain",
+      "score": 5,
+      "grade": "B",
+      "rules": {
+        "F1": false,
+        "F2": false,
+        "F3": false,
+        "F4": true,
+        "F5": true,
+        "F6": true,
+        "F7": true,
+        "F8": true
+      },
+      "valuation": {
+        "method": "PE",
+        "multiple": 14.14,
+        "band": "+1σ ~ +2σ",
+        "upside_pct": -21.26,
+        "decision": "SELL"
+      },
+      "is_new": true,
+      "prev_rank": null,
+      "rank_delta": null
+    },
+    {
+      "rank": 94,
       "ticker": "3023",
       "name": "信邦",
       "market": "TWSE",
@@ -2302,29 +2812,29 @@
       },
       "valuation": {
         "method": "PE",
-        "multiple": 25.76,
+        "multiple": 25.29,
         "band": "mean ~ +1σ",
-        "upside_pct": -14.71,
+        "upside_pct": -13.12,
         "decision": "SELL"
       },
       "is_new": false,
       "prev_rank": 77,
-      "rank_delta": 0
+      "rank_delta": -17
     },
     {
-      "rank": 78,
-      "ticker": "3088",
-      "name": "艾訊",
-      "market": "TPEx",
-      "industry": "電腦及週邊設備業",
+      "rank": 95,
+      "ticker": "3026",
+      "name": "禾伸堂",
+      "market": "TWSE",
+      "industry": "電子零組件業",
       "industry_source": "official",
       "score": 5,
       "grade": "B",
       "rules": {
-        "F1": false,
+        "F1": true,
         "F2": false,
         "F3": false,
-        "F4": true,
+        "F4": false,
         "F5": true,
         "F6": true,
         "F7": true,
@@ -2332,29 +2842,29 @@
       },
       "valuation": {
         "method": "PE",
-        "multiple": 23.2,
+        "multiple": 108.25,
         "band": "> +2σ",
-        "upside_pct": -38.35,
+        "upside_pct": -80.22,
         "decision": "SELL"
       },
-      "is_new": false,
-      "prev_rank": 78,
-      "rank_delta": 0
+      "is_new": true,
+      "prev_rank": null,
+      "rank_delta": null
     },
     {
-      "rank": 79,
-      "ticker": "3467",
-      "name": "台灣精材",
-      "market": "TPEx",
-      "industry": "真空 / 精密零組件",
-      "industry_source": "chain",
+      "rank": 96,
+      "ticker": "3605",
+      "name": "宏致",
+      "market": "TWSE",
+      "industry": "電子零組件業",
+      "industry_source": "official",
       "score": 5,
       "grade": "B",
       "rules": {
         "F1": false,
         "F2": false,
-        "F3": null,
-        "F4": true,
+        "F3": true,
+        "F4": false,
         "F5": true,
         "F6": true,
         "F7": true,
@@ -2362,47 +2872,17 @@
       },
       "valuation": {
         "method": "PB",
-        "multiple": null,
-        "band": null,
-        "upside_pct": null,
-        "decision": "HOLD"
-      },
-      "is_new": false,
-      "prev_rank": 79,
-      "rank_delta": 0
-    },
-    {
-      "rank": 80,
-      "ticker": "3588",
-      "name": "通嘉",
-      "market": "TWSE",
-      "industry": "電源管理 IC (PMIC)",
-      "industry_source": "chain",
-      "score": 5,
-      "grade": "B",
-      "rules": {
-        "F1": false,
-        "F2": false,
-        "F3": false,
-        "F4": true,
-        "F5": true,
-        "F6": true,
-        "F7": true,
-        "F8": true
-      },
-      "valuation": {
-        "method": "PE",
-        "multiple": 87.21,
-        "band": "mean ~ +1σ",
-        "upside_pct": -89.03,
+        "multiple": 3.68,
+        "band": "> +2σ",
+        "upside_pct": -67.61,
         "decision": "SELL"
       },
-      "is_new": false,
-      "prev_rank": 80,
-      "rank_delta": 0
+      "is_new": true,
+      "prev_rank": null,
+      "rank_delta": null
     },
     {
-      "rank": 81,
+      "rank": 97,
       "ticker": "3617",
       "name": "碩天",
       "market": "TWSE",
@@ -2422,77 +2902,17 @@
       },
       "valuation": {
         "method": "PE",
-        "multiple": 17.0,
+        "multiple": 18.19,
         "band": "mean ~ +1σ",
-        "upside_pct": -136.33,
+        "upside_pct": -133.92,
         "decision": "SELL"
       },
       "is_new": false,
       "prev_rank": 81,
-      "rank_delta": 0
+      "rank_delta": -16
     },
     {
-      "rank": 82,
-      "ticker": "3625",
-      "name": "西勝",
-      "market": "TPEx",
-      "industry": "電腦及週邊設備業",
-      "industry_source": "official",
-      "score": 5,
-      "grade": "B",
-      "rules": {
-        "F1": false,
-        "F2": false,
-        "F3": false,
-        "F4": true,
-        "F5": true,
-        "F6": true,
-        "F7": true,
-        "F8": true
-      },
-      "valuation": {
-        "method": "PB",
-        "multiple": 2.04,
-        "band": "−1σ ~ mean",
-        "upside_pct": 22.36,
-        "decision": "BUY"
-      },
-      "is_new": false,
-      "prev_rank": 82,
-      "rank_delta": 0
-    },
-    {
-      "rank": 83,
-      "ticker": "3646",
-      "name": "艾恩特",
-      "market": "TPEx",
-      "industry": "電子零組件業",
-      "industry_source": "official",
-      "score": 5,
-      "grade": "B",
-      "rules": {
-        "F1": false,
-        "F2": false,
-        "F3": false,
-        "F4": true,
-        "F5": true,
-        "F6": true,
-        "F7": true,
-        "F8": true
-      },
-      "valuation": {
-        "method": "PE",
-        "multiple": 156.88,
-        "band": "> +2σ",
-        "upside_pct": -80.52,
-        "decision": "SELL"
-      },
-      "is_new": false,
-      "prev_rank": 83,
-      "rank_delta": 0
-    },
-    {
-      "rank": 84,
+      "rank": 98,
       "ticker": "4566",
       "name": "時碩工業",
       "market": "TWSE",
@@ -2512,497 +2932,82 @@
       },
       "valuation": {
         "method": "PE",
-        "multiple": 82.61,
+        "multiple": 83.8,
         "band": "mean ~ +1σ",
-        "upside_pct": -89.0,
+        "upside_pct": -89.1,
         "decision": "SELL"
       },
       "is_new": false,
       "prev_rank": 84,
-      "rank_delta": 0
-    },
-    {
-      "rank": 85,
-      "ticker": "4572",
-      "name": "駐龍",
-      "market": "TWSE",
-      "industry": "電機機械",
-      "industry_source": "official",
-      "score": 5,
-      "grade": "B",
-      "rules": {
-        "F1": false,
-        "F2": false,
-        "F3": false,
-        "F4": true,
-        "F5": true,
-        "F6": true,
-        "F7": true,
-        "F8": true
-      },
-      "valuation": {
-        "method": "PE",
-        "multiple": 52.66,
-        "band": "mean ~ +1σ",
-        "upside_pct": -18.07,
-        "decision": "SELL"
-      },
-      "is_new": false,
-      "prev_rank": 85,
-      "rank_delta": 0
-    },
-    {
-      "rank": 86,
-      "ticker": "4934",
-      "name": "太極",
-      "market": "TWSE",
-      "industry": "光電業",
-      "industry_source": "official",
-      "score": 5,
-      "grade": "B",
-      "rules": {
-        "F1": false,
-        "F2": false,
-        "F3": false,
-        "F4": true,
-        "F5": true,
-        "F6": true,
-        "F7": true,
-        "F8": true
-      },
-      "valuation": {
-        "method": "PB",
-        "multiple": 2.52,
-        "band": "−1σ ~ mean",
-        "upside_pct": 8.82,
-        "decision": "HOLD"
-      },
-      "is_new": false,
-      "prev_rank": 86,
-      "rank_delta": 0
-    },
-    {
-      "rank": 87,
-      "ticker": "4961",
-      "name": "天鈺",
-      "market": "TWSE",
-      "industry": "顯示器驅動 IC (DDI)",
-      "industry_source": "chain",
-      "score": 5,
-      "grade": "B",
-      "rules": {
-        "F1": false,
-        "F2": false,
-        "F3": false,
-        "F4": true,
-        "F5": true,
-        "F6": true,
-        "F7": true,
-        "F8": true
-      },
-      "valuation": {
-        "method": "PE",
-        "multiple": 21.58,
-        "band": "+1σ ~ +2σ",
-        "upside_pct": -38.07,
-        "decision": "SELL"
-      },
-      "is_new": false,
-      "prev_rank": 87,
-      "rank_delta": 0
-    },
-    {
-      "rank": 88,
-      "ticker": "4974",
-      "name": "亞泰",
-      "market": "TPEx",
-      "industry": "電子零組件業",
-      "industry_source": "official",
-      "score": 5,
-      "grade": "B",
-      "rules": {
-        "F1": false,
-        "F2": false,
-        "F3": false,
-        "F4": true,
-        "F5": true,
-        "F6": true,
-        "F7": true,
-        "F8": true
-      },
-      "valuation": {
-        "method": "PB",
-        "multiple": 1.58,
-        "band": "−2σ ~ −1σ",
-        "upside_pct": 23.05,
-        "decision": "BUY"
-      },
-      "is_new": false,
-      "prev_rank": 88,
-      "rank_delta": 0
-    },
-    {
-      "rank": 89,
-      "ticker": "5460",
-      "name": "同協",
-      "market": "TPEx",
-      "industry": "電子零組件業",
-      "industry_source": "official",
-      "score": 5,
-      "grade": "B",
-      "rules": {
-        "F1": false,
-        "F2": false,
-        "F3": false,
-        "F4": true,
-        "F5": true,
-        "F6": true,
-        "F7": true,
-        "F8": true
-      },
-      "valuation": {
-        "method": "PB",
-        "multiple": 1.65,
-        "band": "> +2σ",
-        "upside_pct": -31.93,
-        "decision": "SELL"
-      },
-      "is_new": false,
-      "prev_rank": 89,
-      "rank_delta": 0
-    },
-    {
-      "rank": 90,
-      "ticker": "5604",
-      "name": "中連",
-      "market": "TPEx",
-      "industry": "其他業",
-      "industry_source": "official",
-      "score": 5,
-      "grade": "B",
-      "rules": {
-        "F1": false,
-        "F2": false,
-        "F3": false,
-        "F4": true,
-        "F5": true,
-        "F6": true,
-        "F7": true,
-        "F8": true
-      },
-      "valuation": {
-        "method": "PE",
-        "multiple": 33.26,
-        "band": "−1σ ~ mean",
-        "upside_pct": 15.94,
-        "decision": "HOLD"
-      },
-      "is_new": false,
-      "prev_rank": 90,
-      "rank_delta": 0
-    },
-    {
-      "rank": 91,
-      "ticker": "6168",
-      "name": "宏齊",
-      "market": "TWSE",
-      "industry": "光電業",
-      "industry_source": "official",
-      "score": 5,
-      "grade": "B",
-      "rules": {
-        "F1": false,
-        "F2": false,
-        "F3": false,
-        "F4": true,
-        "F5": true,
-        "F6": true,
-        "F7": true,
-        "F8": true
-      },
-      "valuation": {
-        "method": "PB",
-        "multiple": 2.7,
-        "band": "> +2σ",
-        "upside_pct": -43.66,
-        "decision": "SELL"
-      },
-      "is_new": false,
-      "prev_rank": 91,
-      "rank_delta": 0
-    },
-    {
-      "rank": 92,
-      "ticker": "6173",
-      "name": "信昌電",
-      "market": "TPEx",
-      "industry": "電子零組件業",
-      "industry_source": "official",
-      "score": 5,
-      "grade": "B",
-      "rules": {
-        "F1": true,
-        "F2": false,
-        "F3": false,
-        "F4": false,
-        "F5": true,
-        "F6": true,
-        "F7": true,
-        "F8": true
-      },
-      "valuation": {
-        "method": "PB",
-        "multiple": 5.48,
-        "band": "> +2σ",
-        "upside_pct": -66.97,
-        "decision": "SELL"
-      },
-      "is_new": false,
-      "prev_rank": 92,
-      "rank_delta": 0
-    },
-    {
-      "rank": 93,
-      "ticker": "6187",
-      "name": "萬潤",
-      "market": "TPEx",
-      "industry": "封裝設備",
-      "industry_source": "chain",
-      "score": 5,
-      "grade": "B",
-      "rules": {
-        "F1": false,
-        "F2": false,
-        "F3": false,
-        "F4": true,
-        "F5": true,
-        "F6": true,
-        "F7": true,
-        "F8": true
-      },
-      "valuation": {
-        "method": "PB",
-        "multiple": 21.81,
-        "band": "> +2σ",
-        "upside_pct": -59.94,
-        "decision": "SELL"
-      },
-      "is_new": false,
-      "prev_rank": 93,
-      "rank_delta": 0
-    },
-    {
-      "rank": 94,
-      "ticker": "6234",
-      "name": "高僑",
-      "market": "TPEx",
-      "industry": "光電業",
-      "industry_source": "official",
-      "score": 5,
-      "grade": "B",
-      "rules": {
-        "F1": false,
-        "F2": false,
-        "F3": false,
-        "F4": true,
-        "F5": true,
-        "F6": true,
-        "F7": true,
-        "F8": true
-      },
-      "valuation": {
-        "method": "PE",
-        "multiple": 493.75,
-        "band": "+1σ ~ +2σ",
-        "upside_pct": -85.94,
-        "decision": "SELL"
-      },
-      "is_new": false,
-      "prev_rank": 94,
-      "rank_delta": 0
-    },
-    {
-      "rank": 95,
-      "ticker": "6271",
-      "name": "同欣電",
-      "market": "TWSE",
-      "industry": "封裝測試代工 (OSAT)",
-      "industry_source": "chain",
-      "score": 5,
-      "grade": "B",
-      "rules": {
-        "F1": false,
-        "F2": false,
-        "F3": true,
-        "F4": false,
-        "F5": true,
-        "F6": true,
-        "F7": true,
-        "F8": true
-      },
-      "valuation": {
-        "method": "PE",
-        "multiple": 36.42,
-        "band": "> +2σ",
-        "upside_pct": -51.02,
-        "decision": "SELL"
-      },
-      "is_new": false,
-      "prev_rank": 95,
-      "rank_delta": 0
-    },
-    {
-      "rank": 96,
-      "ticker": "6274",
-      "name": "台燿",
-      "market": "TPEx",
-      "industry": "高速高頻 CCL",
-      "industry_source": "chain",
-      "score": 5,
-      "grade": "B",
-      "rules": {
-        "F1": true,
-        "F2": true,
-        "F3": false,
-        "F4": false,
-        "F5": false,
-        "F6": true,
-        "F7": true,
-        "F8": true
-      },
-      "valuation": {
-        "method": "PE",
-        "multiple": 123.76,
-        "band": "> +2σ",
-        "upside_pct": -71.67,
-        "decision": "SELL"
-      },
-      "is_new": false,
-      "prev_rank": 96,
-      "rank_delta": 0
-    },
-    {
-      "rank": 97,
-      "ticker": "6526",
-      "name": "達發",
-      "market": "TWSE",
-      "industry": "網通 IC",
-      "industry_source": "chain",
-      "score": 5,
-      "grade": "B",
-      "rules": {
-        "F1": false,
-        "F2": false,
-        "F3": false,
-        "F4": true,
-        "F5": true,
-        "F6": true,
-        "F7": true,
-        "F8": true
-      },
-      "valuation": {
-        "method": "PE",
-        "multiple": 45.96,
-        "band": "−1σ ~ mean",
-        "upside_pct": 10.23,
-        "decision": "HOLD"
-      },
-      "is_new": false,
-      "prev_rank": 97,
-      "rank_delta": 0
-    },
-    {
-      "rank": 98,
-      "ticker": "6548",
-      "name": "長科*",
-      "market": "TPEx",
-      "industry": "導線架 (Lead Frame)",
-      "industry_source": "chain",
-      "score": 5,
-      "grade": "B",
-      "rules": {
-        "F1": false,
-        "F2": true,
-        "F3": false,
-        "F4": false,
-        "F5": true,
-        "F6": true,
-        "F7": true,
-        "F8": true
-      },
-      "valuation": {
-        "method": "PE",
-        "multiple": 45.74,
-        "band": "> +2σ",
-        "upside_pct": -54.85,
-        "decision": "SELL"
-      },
-      "is_new": false,
-      "prev_rank": 98,
-      "rank_delta": 0
+      "rank_delta": -14
     },
     {
       "rank": 99,
-      "ticker": "8070",
-      "name": "長華*",
-      "market": "TWSE",
-      "industry": "導線架 (Lead Frame)",
+      "ticker": "4580",
+      "name": "捷流閥業",
+      "market": "TPEx",
+      "industry": "工業製程閥門與流體控制元件",
       "industry_source": "chain",
       "score": 5,
       "grade": "B",
       "rules": {
         "F1": false,
-        "F2": true,
+        "F2": false,
         "F3": false,
-        "F4": false,
+        "F4": true,
         "F5": true,
         "F6": true,
         "F7": true,
         "F8": true
       },
       "valuation": {
-        "method": "PB",
-        "multiple": 0.21,
-        "band": "mean ~ +1σ",
-        "upside_pct": -4.75,
+        "method": "PE",
+        "multiple": 13.53,
+        "band": "+1σ ~ +2σ",
+        "upside_pct": -11.26,
         "decision": "SELL"
       },
-      "is_new": false,
-      "prev_rank": 99,
-      "rank_delta": 0
+      "is_new": true,
+      "prev_rank": null,
+      "rank_delta": null
     },
     {
       "rank": 100,
-      "ticker": "2399",
-      "name": "映泰",
+      "ticker": "4720",
+      "name": "德淵",
       "market": "TWSE",
-      "industry": "電腦及週邊設備業",
-      "industry_source": "official",
-      "score": 4,
-      "grade": "C",
+      "industry": "接著劑 (Adhesive)",
+      "industry_source": "chain",
+      "score": 5,
+      "grade": "B",
       "rules": {
         "F1": false,
         "F2": false,
         "F3": false,
-        "F4": false,
+        "F4": true,
         "F5": true,
         "F6": true,
         "F7": true,
         "F8": true
       },
       "valuation": {
-        "method": "PB",
-        "multiple": 3.56,
-        "band": "> +2σ",
-        "upside_pct": -47.28,
+        "method": "PE",
+        "multiple": 40.33,
+        "band": "mean ~ +1σ",
+        "upside_pct": -9.01,
         "decision": "SELL"
       },
-      "is_new": false,
-      "prev_rank": 100,
-      "rank_delta": 0
+      "is_new": true,
+      "prev_rank": null,
+      "rank_delta": null
     }
   ],
   "history": [
+    {
+      "date": "2026-10-12",
+      "top_n": 100,
+      "new_count": 62
+    },
     {
       "date": "2026-10-08",
       "top_n": 100,
@@ -3145,11 +3150,6 @@
     },
     {
       "date": "2026-08-27",
-      "top_n": 100,
-      "new_count": 0
-    },
-    {
-      "date": "2026-08-26",
       "top_n": 100,
       "new_count": 0
     }

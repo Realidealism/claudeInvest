@@ -1,6 +1,18 @@
 {
-  "updated_at": "2026-10-08T21:51:01",
+  "updated_at": "2026-10-12T21:52:30",
   "events": [
+    {
+      "type": "transfer",
+      "stock_id": "2755",
+      "company_name": "揚秦",
+      "date": "2026-10-12",
+      "insider_role": "董事本人",
+      "insider_name": "元裕投資有限公司",
+      "method": "洽特定人",
+      "shares": 4498350,
+      "security_kind": null,
+      "period": "115/10/12\r\n~\r\n115/10/14"
+    },
     {
       "type": "transfer",
       "stock_id": "7642",
@@ -627,8 +639,8 @@
     }
   ],
   "stats": {
-    "transfer_events_30d": 21,
-    "transfer_stocks_30d": 9,
-    "placement_events_30d": 5
+    "transfer_events_30d": 20,
+    "transfer_stocks_30d": 8,
+    "placement_events_30d": 4
   }
 }
