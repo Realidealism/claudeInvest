@@ -131,6 +131,7 @@ def daily(monkeypatch):
                         else datetime.now(hc.timezone.utc) if "updated_at" in sql else 0)
     monkeypatch.setattr(hc, "_dead_column_groups", lambda latest: [])
     monkeypatch.setattr(hc, "_stale_exes", lambda: [])
+    monkeypatch.setattr(hc, "_calendar_gap", lambda today, latest: ([], latest))
     monkeypatch.setattr(hc, "_corporate_actions", lambda latest: [])
     monkeypatch.setattr(hc, "send_sync", lambda text, **kw: sent.append((text, kw)) or True)
     return sent

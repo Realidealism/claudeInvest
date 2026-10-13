@@ -23,8 +23,10 @@ from utils.format_shift import ScrapeResult, SHIFT_ERROR_RATE, SHIFT_MIN_ROWS
 # ---------------------------------------------------------------------------
 # Scraper registry — order matters (prices first, derived data last)
 # ---------------------------------------------------------------------------
-# Trading-day gate: TAIEX is scraped first; absent TAIEX => non-trading day.
+# Trading-day gate: TAIEX is scraped first. When it is absent, the exchange
+# calendar (tw.market_holidays) says whether that is a holiday or a failure.
 INDEX_SCRAPER = ("Market indices", "scrapers.index_prices", "scrape_date")
+HOLIDAY_SCRAPER = ("Market holidays", "scrapers.market_holidays", "scrape_date")
 
 # Labels in SCRAPERS whose failure invalidates everything downstream
 # (daily_liquidity, market_breadth, daily_snapshot, export). When any of
@@ -104,6 +106,8 @@ SCRAPERS = [
     # swallowed into an empty list.
     ("Private placements",      "scrapers.private_placements", "scrape_date", True),
     ("Treasury stock",          "scrapers.treasury_stock",    "scrape_date", False),
+    # Monitored: the source returns the whole current-year list on every call.
+    (*HOLIDAY_SCRAPER, True),
 ]
 
 
@@ -216,6 +220,166 @@ def run_scraper(
                 time.sleep(SCRAPER_RETRY_WAIT)
 
     return False, last_trace
+
+
+def _holiday_rows(year: int) -> dict[date, bool]:
+    """{holiday_date: is_closed} for one year of tw.market_holidays."""
+    with get_cursor(commit=False) as cur:
+        cur.execute(
+            "SELECT holiday_date, is_closed FROM tw.market_holidays "
+            "WHERE holiday_date BETWEEN %s AND %s",
+            (date(year, 1, 1), date(year, 12, 31)),
+        )
+        return {r["holiday_date"]: r["is_closed"] for r in cur.fetchall()}
+
+
+def _is_scheduled_closure(rows: dict[date, bool], trade_date: date) -> bool | None:
+    """True when the calendar closes the date, False when it covers the year
+    and does not, None when it has nothing for that year (rows is empty).
+
+    A date listed with is_closed=FALSE is a trading day: the source marks the
+    first and last trading days around a long holiday that way."""
+    if not rows:
+        return None
+    return rows.get(trade_date, False)
+
+
+# Years the gate already tried to load in this process. A range backfill over
+# a year the source no longer serves would otherwise re-request it every day.
+_holiday_refresh_tried: set[int] = set()
+
+
+def _scheduled_closure(trade_date: date) -> bool | None:
+    """_is_scheduled_closure against the stored calendar. A year with no rows
+    is fetched once: the scheduled refresh only runs on trading days, so the
+    first run of a new year can arrive before the calendar does."""
+    closure = _is_scheduled_closure(_holiday_rows(trade_date.year), trade_date)
+    if closure is None and trade_date.year not in _holiday_refresh_tried:
+        _holiday_refresh_tried.add(trade_date.year)
+        run_scraper(*HOLIDAY_SCRAPER, trade_date, expect_rows=True)
+        closure = _is_scheduled_closure(_holiday_rows(trade_date.year), trade_date)
+    return closure
+
+
+def _exchange_month(trade_date: date) -> dict | None:
+    """The exchange's own list of trading days for trade_date's month, asked
+    right now: {"stat", "days"}, or None when it does not answer. A single
+    request with no soft retries — the gate alert waits on this."""
+    from scrapers.index_prices import TWSE_STAT_URL, _roc_to_date
+    from utils.http_client import fetch_json
+    data = fetch_json(TWSE_STAT_URL,
+                      params={"date": f"{trade_date:%Y%m}01", "response": "json"})
+    if not isinstance(data, dict):
+        return None
+    try:
+        days = {_roc_to_date(str(r[0])) for r in data.get("data") or []} - {None}
+    except (TypeError, IndexError, KeyError):
+        return {"stat": "回應格式無法解析", "days": set()}
+    return {"stat": data.get("stat"), "days": days}
+
+
+def _absent_from_month(month: dict | None, trade_date: date) -> bool:
+    """The exchange answered with that month's trading days and the date is
+    not one of them."""
+    return (month is not None and month["stat"] == "OK"
+            and bool(month["days"]) and trade_date not in month["days"])
+
+
+def _probe_line(month: dict | None, trade_date: date) -> str:
+    """One line for the gate alert: what the exchange says right now."""
+    if month is None:
+        return "證交所目前沒有回應，可能是斷線。"
+    if trade_date in month["days"]:
+        return "證交所已有這一天的資料，但沒有寫進資料庫。"
+    if not _absent_from_month(month, trade_date):
+        return f"證交所有回應，但沒有給資料（stat={month['stat']}）。"
+    n = len(month["days"])
+    if trade_date == date.today():
+        # Before the close this is the normal state, not a sign of a closure.
+        return f"證交所目前有回應（本月 {n} 個交易日，還沒有今天）。"
+    return (f"證交所目前有回應（本月 {n} 個交易日，沒有這一天），"
+            f"可能是颱風等臨時休市，可忽略。")
+
+
+def _gate_alert(trade_date: date, closure: bool | None, gate_ok: bool,
+                month: dict | None) -> str:
+    lines = [f"[每日更新] {trade_date} 交易日判定失敗"]
+    if closure is None:
+        lines.append(f"休市日曆沒有 {trade_date.year} 年的資料（或查詢失敗），"
+                     f"無法判定這一天是否休市，整批 scraper 已中止。")
+    else:
+        lines.append("休市日曆排定這一天開市，但沒有當日大盤指數，整批 scraper 已中止。")
+    if not gate_ok:
+        lines.append("大盤指數的抓取程式本身回報失敗。")
+    lines.append(_probe_line(month, trade_date))
+    if trade_date == date.today():
+        lines.append("若在收盤資料公布前執行，也會出現這則訊息。")
+    lines.append("確認是交易日後請回補：")
+    lines.append(f"C:\\Claude\\Invest\\dist\\daily_update.exe {trade_date} {trade_date}")
+    return "\n".join(lines)
+
+
+def _trading_day_gate(trade_date: date) -> tuple[str, bool, str | None]:
+    """(decision, index scraper ok, index scraper trace). The decision is what
+    update_date does with a weekday: "run" the pipeline, skip a "holiday", or
+    "abort" because the date cannot be shown to be either. The other two are
+    run_scraper's result for the index scraper, which the summary reports.
+
+    An absent TAIEX row used to mean holiday. A fetch that fails without
+    raising leaves no row either, so a network outage across the 21:30 slot on
+    2026-09-18 skipped the whole pipeline, exited 0, and cost a trading day
+    that nothing noticed for two days. The exchange calendar now decides: only
+    a date it closes is a holiday. A scheduled trading day with no TAIEX row
+    aborts and alerts, which also happens on an unscheduled closure (typhoon):
+    the calendar cannot know about those and one alert is the accepted cost.
+
+    The calendar source only serves the current year, so a backfill into an
+    earlier year finds no calendar. There the exchange's list of trading days
+    for that month stands in: it is long settled, and a date missing from it
+    was a closure. This never applies to the current year, where a missing
+    date may simply not have been published yet.
+    """
+    print(f"\n--- {INDEX_SCRAPER[0]} (trading-day gate) ---")
+    # expect_rows=False: a holiday legitimately has no TAIEX row.
+    gate_ok, gate_trace = run_scraper(*INDEX_SCRAPER, trade_date, expect_rows=False)
+    if _has_taiex(trade_date):
+        return "run", gate_ok, gate_trace
+
+    if trade_date > date.today():
+        print(f"\n[NOT YET] {trade_date} is in the future — nothing to fetch.")
+        return "holiday", gate_ok, gate_trace
+
+    try:
+        closure = _scheduled_closure(trade_date)
+    except Exception:
+        # No calendar to ask is not a holiday.
+        traceback.print_exc()
+        closure = None
+    if closure:
+        print(f"\n[HOLIDAY] {trade_date} is closed on the exchange calendar "
+              f"— skipping remaining scrapers.")
+        return "holiday", gate_ok, gate_trace
+
+    try:
+        month = _exchange_month(trade_date)
+    except Exception:
+        traceback.print_exc()
+        month = None
+    if (closure is None and trade_date.year < date.today().year
+            and _absent_from_month(month, trade_date)):
+        print(f"\n[HOLIDAY] {trade_date} is not among the exchange's trading "
+              f"days for that month — skipping remaining scrapers.")
+        return "holiday", gate_ok, gate_trace
+
+    reason = ("no exchange calendar for that year" if closure is None
+              else "a scheduled trading day")
+    print(f"\n[GATE FAILED] {trade_date}: no TAIEX row on {reason} "
+          f"- aborting the rest of the pipeline.")
+    try:
+        send_sync(_gate_alert(trade_date, closure, gate_ok, month))
+    except Exception:
+        traceback.print_exc()
+    return "abort", gate_ok, gate_trace
 
 
 def _build_daily_update_message(
@@ -483,36 +647,9 @@ def update_date(trade_date: date):
     print(f"  Daily update: {trade_date}")
     print(f"{'='*60}")
 
-    # Trading-day gate: TAIEX index must exist for the date to be valid.
-    print(f"\n--- {INDEX_SCRAPER[0]} (trading-day gate) ---")
-    # expect_rows=False: a holiday legitimately has no TAIEX row; the gate is
-    # enforced by _has_taiex() below instead.
-    gate_ok, gate_trace = run_scraper(*INDEX_SCRAPER, trade_date, expect_rows=False)
-    if not _has_taiex(trade_date):
-        if not gate_ok:
-            # The scraper itself failed, so an absent TAIEX row says
-            # nothing about the calendar. Treating that as a holiday
-            # skips the whole pipeline and still exits 0: a network
-            # outage across the 21:30 slot on 2026-09-18 cost a full
-            # trading day that nothing noticed for two days. A real
-            # holiday returns zero rows *successfully*, so gate_ok is
-            # what separates the two.
-            print(f"\n[GATE FAILED] {trade_date}: TAIEX fetch "
-                  f"failed - cannot tell a holiday from an outage, "
-                  f"aborting the rest of the pipeline.")
-            try:
-                send_sync(
-                    f"[每日更新] {trade_date} 交易日判定失敗\n"
-                    f"大盤指數抓取失敗，無法分辨休市或斷線，整批 scraper 已中止。\n"
-                    f"確認是交易日後請回補：\n"
-                    f"C:\\Claude\\Invest\\dist\\daily_update.exe "
-                    f"{trade_date} {trade_date}"
-                )
-            except Exception:
-                traceback.print_exc()
-            return False
-        print(f"\n[HOLIDAY] {trade_date} has no TAIEX data — skipping remaining scrapers.")
-        return True
+    gate, gate_ok, gate_trace = _trading_day_gate(trade_date)
+    if gate != "run":
+        return gate == "holiday"
 
     # Track results: list of (label, status) where status is "ok", "failed", "skip"
     results = []

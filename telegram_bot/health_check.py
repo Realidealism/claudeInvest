@@ -42,7 +42,8 @@ _TAG = "健康檢查"
 
 # (label, table, date column) checked by the daily probe. Every table here
 # must have advanced to the latest trading day (per tw.index_prices/TAIEX)
-# once the previous evening's daily_update pipeline has finished.
+# once the previous evening's daily_update pipeline has finished. Whether
+# TAIEX itself is current is a separate question, answered by _calendar_gap.
 _DAILY_TABLES = [
     ("日線收盤", "tw.daily_prices", "trade_date"),
     ("市場廣度", "tw.market_breadth", "trade_date"),
@@ -231,6 +232,121 @@ def _trading_days_since(d: date, latest: date) -> int:
         """,
         (d, latest),
     ) or 0
+
+
+def _holiday_rows(year: int) -> dict[date, bool]:
+    """{holiday_date: is_closed} for one year of tw.market_holidays."""
+    with get_cursor(commit=False) as cur:
+        cur.execute(
+            "SELECT holiday_date, is_closed FROM tw.market_holidays "
+            "WHERE holiday_date BETWEEN %s AND %s",
+            (date(year, 1, 1), date(year, 12, 31)),
+        )
+        return {r["holiday_date"]: r["is_closed"] for r in cur.fetchall()}
+
+
+def _is_scheduled_closure(rows: dict[date, bool], d: date) -> bool | None:
+    """True when the calendar closes the date, False when it covers the year
+    and does not, None when it has nothing for that year.
+
+    Same rule as daily_update._is_scheduled_closure, copied rather than
+    imported; tests/test_health_check_calendar.py keeps the two equal."""
+    if not rows:
+        return None
+    return rows.get(d, False)
+
+
+# How many days before today the calendar check covers. Comparing only the
+# newest day would drop a lost day from the report the morning after any later
+# night succeeds; if the probe itself did not run on those mornings (machine
+# off over a weekend), the day would never be reported at all. The cost is
+# that an unscheduled closure (typhoon) is reported every morning it stays in
+# the window, unless a row marking it closed is added to tw.market_holidays.
+_CALENDAR_LOOKBACK_DAYS = 7
+
+# How far back to look for a date the calendar closes although it traded.
+_CALENDAR_CONTRADICTION_DAYS = 30
+
+
+def _open_weekdays(today: date) -> tuple[list[date], list[int]]:
+    """(weekdays in the lookback window that the calendar leaves open, years
+    in the window the calendar has no rows for).
+
+    The window ends yesterday: the daily probe runs in the morning, ahead of
+    the evening pipeline that fetches today. A year without a calendar counts
+    as having no closures, so the comparison keeps running while the calendar
+    is missing instead of going quiet behind the "no calendar" line."""
+    by_year: dict[int, dict[date, bool]] = {}
+    days, missing = [], []
+    for back in range(_CALENDAR_LOOKBACK_DAYS, 0, -1):
+        d = today - timedelta(days=back)
+        if d.weekday() >= 5:
+            continue
+        if d.year not in by_year:
+            by_year[d.year] = _holiday_rows(d.year)
+            if not by_year[d.year]:
+                missing.append(d.year)
+        if not _is_scheduled_closure(by_year[d.year], d):
+            days.append(d)
+    return days, missing
+
+
+def _taiex_days(first: date, last: date) -> set[date]:
+    with get_cursor(commit=False) as cur:
+        cur.execute(
+            "SELECT trade_date FROM tw.index_prices "
+            "WHERE index_id = 'TAIEX' AND trade_date BETWEEN %s AND %s",
+            (first, last),
+        )
+        return {r["trade_date"] for r in cur.fetchall()}
+
+
+def _closed_days_that_traded(today: date) -> list[date]:
+    with get_cursor(commit=False) as cur:
+        cur.execute(
+            """
+            SELECT h.holiday_date AS d
+            FROM tw.market_holidays h
+            JOIN tw.index_prices p
+              ON p.trade_date = h.holiday_date AND p.index_id = 'TAIEX'
+            WHERE h.is_closed AND h.holiday_date >= %s
+            ORDER BY 1
+            """,
+            (today - timedelta(days=_CALENDAR_CONTRADICTION_DAYS),),
+        )
+        return [r["d"] for r in cur.fetchall()]
+
+
+def _calendar_gap(today: date, latest: date) -> tuple[list[str], date]:
+    """(problem lines, the day the data should have reached).
+
+    latest is MAX(TAIEX), which is also what every other check measures
+    against: when the index itself was not fetched, all tables stop on the
+    same day and agree with each other. The exchange calendar is the only
+    outside reference, and on a night the whole machine is offline — when the
+    pipeline's own alert cannot be sent either — this is the line that reports
+    the lost day.
+
+    A failure of the check itself is reported as a problem, like the backup
+    section: a monitor that breaks silently reads like a healthy system.
+    """
+    try:
+        want = latest
+        days, missing_years = _open_weekdays(today)
+        lines = [f"休市日曆沒有 {y} 年資料（該年度只能排除週末）" for y in missing_years]
+        have = _taiex_days(days[0], days[-1]) if days else set()
+        lost = [d for d in days if d not in have]
+        for d in lost:
+            lines.append(f"大盤指數缺 {d:%m-%d}，休市日曆排定開市"
+                         f"（颱風等臨時休市可忽略）")
+        if lost and lost[-1] > latest:
+            want = lost[-1]
+        for d in _closed_days_that_traded(today):
+            lines.append(f"休市日曆把 {d:%m-%d} 標為休市，但當天有大盤指數"
+                         f"（日曆解析規則可能失效）")
+        return lines, want
+    except Exception as exc:
+        return [f"交易日曆檢查本身失敗：{type(exc).__name__}: {exc}"], latest
 
 
 def _dead_column_groups(latest: date) -> list[str]:
@@ -638,10 +754,12 @@ def run_daily() -> int:
     stale.extend(_dead_column_groups(latest))
     stale.extend(_financial_coverage(today))
     stale.extend(_stale_exes())
+    calendar_lines, should_reach = _calendar_gap(today, latest)
+    stale.extend(calendar_lines)
 
     actions = _corporate_actions(latest)
 
-    want = latest.strftime("%m-%d")
+    want = should_reach.strftime("%m-%d")
     sections = []
     if stale:
         sections.append(
