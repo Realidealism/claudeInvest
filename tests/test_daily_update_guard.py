@@ -17,6 +17,7 @@ from types import SimpleNamespace
 import pytest
 
 import daily_update as du
+from daily_update_guards import no_side_effects  # noqa: F401
 from utils.format_shift import (
     SHIFT_ERROR_RATE, SHIFT_MIN_ROWS, ScrapeResult,
 )
@@ -296,7 +297,7 @@ def test_next_day_disposal_failure_reaches_the_summary():
     prediction, which looks exactly like a day with no disposals.
     """
     import inspect
-    src = inspect.getsource(du.update_date)
+    src = inspect.getsource(du._update_trading_day)
     block = src[src.index("明日處置名單抓取"):][:800]
     assert 'results.append(("明日處置名單抓取", "ok")' in block
     assert '_capture_trace(failure_traces, "明日處置名單抓取")' in block

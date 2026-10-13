@@ -35,7 +35,7 @@ from datetime import date, datetime, time as dtime, timedelta, timezone
 from pathlib import Path
 
 from db.connection import get_cursor
-from intraday.session import in_session, in_snapshot_session, now_tpe
+from intraday.session import TPE_TZ, in_session, in_snapshot_session, now_tpe
 from telegram_bot.notify import send_sync
 
 _TAG = "健康檢查"
@@ -347,6 +347,102 @@ def _calendar_gap(today: date, latest: date) -> tuple[list[str], date]:
         return lines, want
     except Exception as exc:
         return [f"交易日曆檢查本身失敗：{type(exc).__name__}: {exc}"], latest
+
+
+# First night run by an exe that writes tw.daily_update_runs. Earlier nights
+# have no row and must not be reported as missing. A constant rather than the
+# table's earliest row: backfilling an old date would pull that back, and an
+# empty table would switch the check off altogether.
+_RUN_RECORDS_SINCE = date(2026, 10, 14)
+
+# The pipeline takes about 20 minutes and the scheduler kills it at 60.
+_RUN_STUCK_AFTER = timedelta(hours=2)
+
+# daily_update's label for the export step (kept equal by
+# tests/test_health_check_runs.py).
+_EXPORT_STEP = "前端匯出部署"
+
+
+def _run_rows(first: date) -> list[dict]:
+    """Run records for trade dates from `first` on, oldest run first."""
+    with get_cursor(commit=False) as cur:
+        cur.execute(
+            """
+            SELECT trade_date, started_at, outcome, summary_sent, steps
+            FROM tw.daily_update_runs
+            WHERE trade_date >= %s
+            ORDER BY started_at, id
+            """,
+            (first,),
+        )
+        return [dict(r) for r in cur.fetchall()]
+
+
+def _nightly_run_problems(today: date, now: datetime | None = None) -> list[str]:
+    """One line per recent trading day whose nightly run needs attention.
+
+    Reads what daily_update recorded about itself, which is the only trace of
+    a failure on a night its Telegram summary could not be sent, and the only
+    way to tell a run that never started from one that died.
+
+    The newest run of a date decides, so re-running a failed date clears it.
+    A core failure is always reported; a partial night only when its summary
+    did not arrive. An aborted night is left to _calendar_gap, which reports
+    the missing index row behind it.
+
+    Not covered: a manual run in the afternoon of the same day counts as that
+    date's run. If it gets past the gate and the scheduled run then never
+    starts, the night reads as done; the tables it left short show up in the
+    other checks, not here.
+    """
+    try:
+        now = now or datetime.now(timezone.utc)
+        days = [d for d in _open_weekdays(today)[0] if d >= _RUN_RECORDS_SINCE]
+        if not days:
+            return []
+        rows = _run_rows(days[0])
+        newest: dict[date, dict] = {}
+        for row in rows:
+            # A run started before its date had come (a manual run for a
+            # future date ends at the gate) says nothing about that night.
+            if row["started_at"].astimezone(TPE_TZ).date() >= row["trade_date"]:
+                newest[row["trade_date"]] = row
+
+        lines = []
+        for d in days:
+            row = newest.get(d)
+            if row is None:
+                lines.append(f"{d:%m-%d} 盤後流程沒有執行紀錄")
+                continue
+            outcome = row["outcome"]
+            if outcome == "running":
+                if now - row["started_at"] > _RUN_STUCK_AFTER:
+                    began = row["started_at"].astimezone(TPE_TZ)
+                    lines.append(f"{d:%m-%d} 盤後流程沒有跑完（{began:%H:%M} 開始）")
+                continue
+            bad = [s for s in row["steps"] or []
+                   if s["status"] in ("failed", "blocked")]
+            if outcome == "failed":
+                # The export publishes everything current, so a later run
+                # whose export went through has already made up for this one.
+                # What is left of the night is then its non-core failures.
+                core_bad = [s["label"] for s in bad if s.get("core")]
+                if core_bad == [_EXPORT_STEP] and any(
+                    r["started_at"] > row["started_at"]
+                    and any(s["label"] == _EXPORT_STEP and s["status"] == "ok"
+                            for s in r["steps"] or [])
+                    for r in rows
+                ):
+                    bad = [s for s in bad if s["label"] != _EXPORT_STEP]
+                    outcome = "partial" if bad else "success"
+            named = "、".join(s["label"] for s in bad) or "紀錄裡沒有步驟"
+            if outcome == "failed":
+                lines.append(f"{d:%m-%d} 盤後流程失敗：{named}")
+            elif outcome == "partial" and row["summary_sent"] is not True:
+                lines.append(f"{d:%m-%d} 盤後流程有步驟失敗、摘要未送達：{named}")
+        return lines
+    except Exception as exc:
+        return [f"盤後執行紀錄檢查本身失敗：{type(exc).__name__}: {exc}"]
 
 
 def _dead_column_groups(latest: date) -> list[str]:
@@ -756,6 +852,7 @@ def run_daily() -> int:
     stale.extend(_stale_exes())
     calendar_lines, should_reach = _calendar_gap(today, latest)
     stale.extend(calendar_lines)
+    stale.extend(_nightly_run_problems(today))
 
     actions = _corporate_actions(latest)
 

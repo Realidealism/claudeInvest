@@ -187,6 +187,7 @@ def daily(monkeypatch):
     monkeypatch.setattr(hc, "_dead_column_groups", lambda latest: [])
     monkeypatch.setattr(hc, "_stale_exes", lambda: [])
     monkeypatch.setattr(hc, "_calendar_gap", lambda today, latest: ([], latest))
+    monkeypatch.setattr(hc, "_nightly_run_problems", lambda today: [])
     monkeypatch.setattr(hc, "_backup_section", lambda now: None)
     monkeypatch.setattr(hc, "send_sync", lambda text, **kw: sent.append((text, kw)) or True)
     return sent

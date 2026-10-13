@@ -10,9 +10,10 @@ Each scraper runs independently; failures are logged but do not stop the rest.
 """
 
 import io
+import json
 import sys
 import traceback
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 from pathlib import Path
 
 from db.connection import get_cursor
@@ -36,6 +37,22 @@ CRITICAL_SCRAPER_LABELS = {
     "TWSE daily prices",
     "TPEx daily prices",
 }
+
+# The chain every page of the frontend depends on. A night in which one of
+# these failed, or was blocked by something upstream, is a failed night; a
+# failure anywhere else makes it a partial one (see _run_outcome). A label that
+# no step produces would silently demote a core failure to partial, so
+# tests/test_daily_update_pipeline.py pins every entry to a real step.
+CORE_STEP_LABELS = CRITICAL_SCRAPER_LABELS | {
+    INDEX_SCRAPER[0],
+    "市場廣度",
+    "每日流動性",
+    "市場波動基準",
+    "多空評比 + 操作訊號 + 策略持倉快照",
+    "前端匯出部署",
+}
+# Stands in for the steps when the pipeline itself raised.
+UNHANDLED_STEP = "未處理的例外"
 
 # Fourth field is expect_rows: True when the source must yield rows on every
 # trading day, so records==0 means the scraper failed silently (HTTP 200 with
@@ -398,15 +415,19 @@ def _build_daily_update_message(
     failure_traces = failure_traces or {}
     ok_n = sum(1 for _, s in results if s == "ok")
     failed = [label for label, s in results if s == "failed"]
+    blocked = [label for label, s in results if s == "blocked"]
     skip_n = sum(1 for _, s in results if s == "skip")
     counts = f"成功 {ok_n} / 失敗 {len(failed)} / 跳過 {skip_n}"
-    if failed:
+    if blocked:
+        counts += f" / 未執行 {len(blocked)}"
+    if failed or blocked:
         critical_failed = [l for l in failed if l in CRITICAL_SCRAPER_LABELS]
-        lines = [
-            f"[每日更新] {trade_date}",
-            f"失敗：{', '.join(failed)}",
-            counts,
-        ]
+        lines = [f"[每日更新] {trade_date}"]
+        if failed:
+            lines.append(f"失敗：{', '.join(failed)}")
+        if blocked:
+            lines.append(f"因上游失敗未執行：{', '.join(blocked)}")
+        lines.append(counts)
         if critical_failed:
             lines.append(
                 f"【關鍵抓檔失敗】{', '.join(critical_failed)}，"
@@ -420,6 +441,189 @@ def _build_daily_update_message(
         lines.append(f"重跑指令：daily_update.exe {trade_date}")
         return "\n".join(lines)
     return f"[每日更新] {trade_date} 全部成功（{counts}）"
+
+
+# ---------------------------------------------------------------------------
+# What a night amounted to, and where that is kept
+# ---------------------------------------------------------------------------
+# A step ends as one of:
+#   ok       it ran and did its job
+#   failed   it ran and did not
+#   skip     it was not due today (monthly / quarterly windows)
+#   blocked  it was due, but something upstream failed, so it did not run
+#
+# The night as a whole is one of the outcomes below. The exit code is all Task
+# Scheduler keeps; the row in tw.daily_update_runs is what the morning health
+# check reads, and it is the only trace left when the Telegram summary could
+# not be sent.
+_OUTCOME_EXIT_CODES = {
+    "success": 0,   # nothing failed, nothing was blocked
+    "holiday": 0,   # the gate found the market closed
+    "weekend": 0,   # chip-only update; no run record
+    "partial": 2,   # only non-core steps failed
+    "failed":  1,   # a core step failed or was blocked, or the pipeline raised
+    "aborted": 1,   # the trading-day gate could not establish the date
+}
+
+
+def _exit_code(outcome) -> int:
+    return _OUTCOME_EXIT_CODES.get(outcome, 1)
+
+
+def _severity(outcome) -> int:
+    return {0: 0, 2: 1, 1: 2}[_exit_code(outcome)]
+
+
+def _run_outcome(results: list[tuple[str, str]]) -> str:
+    bad = [label for label, status in results if status in ("failed", "blocked")]
+    if any(label in CORE_STEP_LABELS for label in bad):
+        return "failed"
+    return "partial" if bad else "success"
+
+
+def _steps_json(results: list[tuple[str, str]], failure_traces: dict[str, str]) -> str:
+    steps = []
+    for label, status in results:
+        trace = failure_traces.get(label)
+        steps.append({
+            "label": label,
+            "status": status,
+            "core": label in CORE_STEP_LABELS or label == UNHANDLED_STEP,
+            # jsonb rejects NUL inside a string.
+            "trace": trace.replace("\x00", "") if trace else None,
+        })
+    return json.dumps(steps, ensure_ascii=False)
+
+
+_RUN_START_SQL = "INSERT INTO tw.daily_update_runs (trade_date) VALUES (%s) RETURNING id"
+_RUN_FINISH_SQL = """
+    UPDATE tw.daily_update_runs
+    SET finished_at = NOW(), outcome = %s, summary_sent = %s, steps = %s::jsonb
+    WHERE id = %s
+"""
+# Used when the opening row could not be written but the database is back.
+_RUN_INSERT_SQL = """
+    INSERT INTO tw.daily_update_runs (trade_date, finished_at, outcome, summary_sent, steps)
+    VALUES (%s, NOW(), %s, %s, %s::jsonb)
+"""
+
+
+def _run_start(trade_date: date) -> int | None:
+    """Record that a run began. A run that dies leaves this row as 'running'.
+    The record never stops the pipeline: None when it could not be written."""
+    try:
+        with get_cursor() as cur:
+            cur.execute(_RUN_START_SQL, (trade_date,))
+            run_id = cur.fetchone()["id"]
+        return run_id
+    except Exception:
+        print("  [WARN] run record not opened:")
+        traceback.print_exc()
+        return None
+
+
+def _run_finish(run_id: int | None, trade_date: date, outcome: str,
+                results: list[tuple[str, str]], failure_traces: dict[str, str],
+                summary_sent: bool | None) -> None:
+    try:
+        steps = _steps_json(results, failure_traces)
+        with get_cursor() as cur:
+            if run_id is None:
+                cur.execute(_RUN_INSERT_SQL, (trade_date, outcome, summary_sent, steps))
+            else:
+                cur.execute(_RUN_FINISH_SQL, (outcome, summary_sent, steps, run_id))
+    except Exception:
+        print("  [WARN] run record not written:")
+        traceback.print_exc()
+
+
+class _RunLog:
+    """The log file shared by the stdout and stderr mirrors. Best-effort: the
+    first error on it switches it off for both."""
+
+    def __init__(self, file):
+        self.file = file
+
+    def write(self, text: str) -> None:
+        if self.file is None:
+            return
+        try:
+            self.file.write(text)
+        except Exception:
+            self.close()
+
+    def close(self) -> None:
+        file, self.file = self.file, None
+        if file is not None:
+            try:
+                file.close()
+            except Exception:
+                pass
+
+
+class _Tee:
+    """Passes writes to the original stream and copies them into the run log."""
+
+    def __init__(self, original, log: _RunLog):
+        self._original = original
+        self._log = log
+
+    def write(self, text: str) -> int:
+        # Log first: it never raises, and when the original does (a console
+        # that cannot encode the text) that line is the one worth keeping.
+        self._log.write(text)
+        if self._original is not None:
+            self._original.write(text)
+        return len(text)
+
+    def flush(self) -> None:
+        if self._original is not None:
+            self._original.flush()
+
+    def __getattr__(self, name):
+        # encoding, isatty, fileno ...: whatever the original says.
+        return getattr(self._original, name)
+
+
+def _open_run_log():
+    """Mirror stdout and stderr into logs/daily_update/<start time>.log and
+    return the function that undoes it.
+
+    Call the returned function before pause_before_exit(): that waits on
+    input() in a daemon thread, and with sys.stdout replaced the interpreter
+    can die in a fatal error at shutdown, taking the exit code with it.
+
+    Only what this process prints through Python lands in the file. Pool
+    workers and git subprocesses write to the console directly.
+    """
+    # Frozen: __file__ points into the temporary unpack directory.
+    if getattr(sys, "frozen", False):
+        root = Path(sys.executable).parent.parent
+    else:
+        root = Path(__file__).parent
+    try:
+        folder = root / "logs" / "daily_update"
+        folder.mkdir(parents=True, exist_ok=True)
+        log = _RunLog(open(folder / f"{datetime.now():%Y%m%d_%H%M%S}.log", "w",
+                           encoding="utf-8", errors="replace", buffering=1))
+    except Exception as exc:
+        print(f"[WARN] run log not opened: {exc}")
+        return lambda: None
+
+    out, err = sys.stdout, sys.stderr
+    tee_out, tee_err = _Tee(out, log), _Tee(err, log)
+    sys.stdout, sys.stderr = tee_out, tee_err
+
+    def restore():
+        # Only undo our own replacement: if something else swapped a stream
+        # in the meantime, putting the old one back would drop theirs.
+        if sys.stdout is tee_out:
+            sys.stdout = out
+        if sys.stderr is tee_err:
+            sys.stderr = err
+        log.close()
+
+    return restore
 
 
 DELIST_THRESHOLD_DAYS = 20  # consecutive trading days absent before marking delisted
@@ -632,8 +836,9 @@ def update_chip_only(trade_date: date):
         traceback.print_exc()
 
 
-def update_date(trade_date: date):
-    """Run all scrapers for a single trading date."""
+def update_date(trade_date: date) -> str:
+    """Run the pipeline for one date and return what it amounted to (one of
+    _OUTCOME_EXIT_CODES). A weekday run is recorded in tw.daily_update_runs."""
     if trade_date.weekday() >= 5:
         # Market closed. Skip the daily pipeline but still refresh the one
         # dataset that updates on a non-trading day: TDCC weekly 集保 →
@@ -641,19 +846,40 @@ def update_date(trade_date: date):
         # a no-op (already in DB, no JSON diff, nothing pushed).
         print(f"[{trade_date}] weekend — chip-only update (集保 → chip_picks.json).")
         update_chip_only(trade_date)
-        return True
+        return "weekend"
 
+    # Created here so that what finished before an unhandled exception is
+    # still on record.
+    results: list[tuple[str, str]] = []
+    failure_traces: dict[str, str] = {}
+    run_id = _run_start(trade_date)
+    try:
+        outcome, summary_sent = _update_trading_day(trade_date, results, failure_traces)
+    except BaseException:
+        # BaseException: a Ctrl+C during a manual re-run would otherwise leave
+        # 'running' as the newest record of a date that had already succeeded.
+        results.append((UNHANDLED_STEP, "failed"))
+        lines = [l for l in traceback.format_exc().splitlines() if l.strip()]
+        failure_traces[UNHANDLED_STEP] = "\n".join(lines[-3:])
+        _run_finish(run_id, trade_date, "failed", results, failure_traces, None)
+        raise
+    _run_finish(run_id, trade_date, outcome, results, failure_traces, summary_sent)
+    return outcome
+
+
+def _update_trading_day(trade_date: date, results: list[tuple[str, str]],
+                        failure_traces: dict[str, str]) -> tuple[str, bool | None]:
+    """Run all scrapers and derived steps for a weekday, appending each step's
+    (label, status) to results. Returns (outcome, whether the Telegram summary
+    was delivered); the latter is None when the gate stopped the run."""
     print(f"\n{'='*60}")
     print(f"  Daily update: {trade_date}")
     print(f"{'='*60}")
 
     gate, gate_ok, gate_trace = _trading_day_gate(trade_date)
     if gate != "run":
-        return gate == "holiday"
+        return ("holiday" if gate == "holiday" else "aborted"), None
 
-    # Track results: list of (label, status) where status is "ok", "failed", "skip"
-    results = []
-    failure_traces: dict[str, str] = {}
     results.append((INDEX_SCRAPER[0], "ok" if gate_ok else "failed"))
     if not gate_ok and gate_trace:
         failure_traces[INDEX_SCRAPER[0]] = gate_trace
@@ -866,11 +1092,12 @@ def update_date(trade_date: date):
     breadth_days = 0
     breadth_ok = False
     market_vol_ok = False
+    snapshot_ok = False
     print(f"\n--- Market breadth ---")
     if critical_failed:
         print(f"  [SKIP] critical scraper(s) failed: {', '.join(critical_failed)}; "
               f"breadth would be partial.")
-        results.append(("市場廣度", "skip"))
+        results.append(("市場廣度", "blocked"))
     else:
         try:
             from analysis.market_breadth import calculate_market_breadth, save_market_breadth
@@ -916,7 +1143,7 @@ def update_date(trade_date: date):
     if critical_failed:
         print(f"  [SKIP] critical scraper(s) failed: {', '.join(critical_failed)}; "
               f"liquidity would be partial.")
-        results.append(("每日流動性", "skip"))
+        results.append(("每日流動性", "blocked"))
     else:
         try:
             from analysis.daily_liquidity import compute_daily_liquidity
@@ -935,7 +1162,7 @@ def update_date(trade_date: date):
     if critical_failed:
         print(f"  [SKIP] critical scraper(s) failed: {', '.join(critical_failed)}; "
               f"the median would be taken over half the universe.")
-        results.append(("市場波動基準", "skip"))
+        results.append(("市場波動基準", "blocked"))
     else:
         try:
             from analysis.build_market_vol import main as build_market_vol
@@ -955,18 +1182,19 @@ def update_date(trade_date: date):
     print(f"\n--- Daily snapshot (score + signal + positions) ---")
     if critical_failed:
         print(f"  [SKIP] critical scraper(s) failed: {', '.join(critical_failed)}.")
-        results.append(("多空評比 + 操作訊號 + 策略持倉快照", "skip"))
+        results.append(("多空評比 + 操作訊號 + 策略持倉快照", "blocked"))
     elif not breadth_ok:
         print("  [SKIP] market_breadth failed; daily_snapshot needs fresh market_state.")
-        results.append(("多空評比 + 操作訊號 + 策略持倉快照", "skip"))
+        results.append(("多空評比 + 操作訊號 + 策略持倉快照", "blocked"))
     elif not market_vol_ok:
         print("  [SKIP] market_vol failed; the 波動 cell needs a fresh market baseline.")
-        results.append(("多空評比 + 操作訊號 + 策略持倉快照", "skip"))
+        results.append(("多空評比 + 操作訊號 + 策略持倉快照", "blocked"))
     else:
         try:
             from analysis.daily_snapshot import run as run_daily_snapshot
             run_daily_snapshot(trade_date)
             results.append(("多空評比 + 操作訊號 + 策略持倉快照", "ok"))
+            snapshot_ok = True
         except Exception:
             print("  [ERROR] Daily snapshot failed:")
             _capture_trace(failure_traces, "多空評比 + 操作訊號 + 策略持倉快照")
@@ -995,7 +1223,13 @@ def update_date(trade_date: date):
     if critical_failed:
         print(f"  [SKIP] critical scraper(s) failed: {', '.join(critical_failed)}; "
               f"would publish partial positions.json to Vercel.")
-        results.append(("前端匯出部署", "skip"))
+        results.append(("前端匯出部署", "blocked"))
+    elif not snapshot_ok:
+        # Scores and positions would stay on the previous day while every
+        # other page moved to today, and nothing on the site would show it.
+        print("  [SKIP] daily snapshot did not complete; the site stays on the "
+              "previous day as a whole.")
+        results.append(("前端匯出部署", "blocked"))
     else:
         try:
             from export.generate import export_all
@@ -1033,14 +1267,21 @@ def update_date(trade_date: date):
     # on backfill runs (trade_date is not the newest snapshot), on no-fire
     # days, and on re-runs of an already-pushed date. Non-critical.
     print(f"\n--- 日線訊號推播 ---")
-    try:
-        from telegram_bot.push_daily_signals import push_daily_signals
-        push_daily_signals(trade_date)
-        results.append(("日線訊號推播", "ok"))
-    except Exception:
-        print("  [ERROR] Daily signal push failed:")
-        _capture_trace(failure_traces, "日線訊號推播")
-        results.append(("日線訊號推播", "failed"))
+    if not snapshot_ok:
+        # The snapshot can fail after its tables are written. Pushing those
+        # signals while the export is held back would have Telegram and the
+        # site disagree.
+        print("  [SKIP] daily snapshot did not complete.")
+        results.append(("日線訊號推播", "blocked"))
+    else:
+        try:
+            from telegram_bot.push_daily_signals import push_daily_signals
+            push_daily_signals(trade_date)
+            results.append(("日線訊號推播", "ok"))
+        except Exception:
+            print("  [ERROR] Daily signal push failed:")
+            _capture_trace(failure_traces, "日線訊號推播")
+            results.append(("日線訊號推播", "failed"))
 
     # Two-week investor conference calendar → Telegram. Anchored on the wall
     # clock rather than trade_date, and self-gating on its own sentinel, so a
@@ -1062,81 +1303,96 @@ def update_date(trade_date: date):
     ok_list     = [r for r in results if r[1] == "ok"]
     failed_list = [r for r in results if r[1] == "failed"]
     skip_list   = [r for r in results if r[1] == "skip"]
+    blocked_list = [r for r in results if r[1] == "blocked"]
 
     print(f"\n{'='*60}")
     print(f"  每日更新總結：{trade_date}")
     print(f"{'='*60}")
-    print(f"  成功：{len(ok_list)}　失敗：{len(failed_list)}　跳過：{len(skip_list)}")
+    print(f"  成功：{len(ok_list)}　失敗：{len(failed_list)}　跳過：{len(skip_list)}"
+          f"　未執行：{len(blocked_list)}")
     if failed_list:
         print(f"  [X] 失敗項目：{', '.join(r[0] for r in failed_list)}")
+    if blocked_list:
+        print(f"  [X] 因上游失敗未執行：{', '.join(r[0] for r in blocked_list)}")
     if etf_signal_count:
         print(f"  - ETF 信號：{etf_signal_count} 筆")
     if breadth_days:
         print(f"  - 市場廣度：更新 {breadth_days} 天")
     if skip_list:
         print(f"  - 跳過（非執行區間）：{', '.join(r[0] for r in skip_list)}")
-    status = "全部成功" if not failed_list else "有失敗項目"
+    status = "全部成功" if not (failed_list or blocked_list) else "有失敗項目"
     print(f"\n  最終狀態：{status}")
     print(f"{'='*60}")
 
     # Telegram summary: silent if TELEGRAM_BOT_TOKEN is not configured.
     try:
-        send_sync(_build_daily_update_message(trade_date, results, failure_traces))
+        summary_sent = bool(send_sync(
+            _build_daily_update_message(trade_date, results, failure_traces)))
     except Exception:
         traceback.print_exc()
+        summary_sent = False
 
     print()
-    return True
+    return _run_outcome(results), summary_sent
 
 
-def update_range(start: date, end: date):
-    """False when any day in the range could not establish its gate."""
+def update_range(start: date, end: date) -> str:
+    """The worst outcome among the days of the range."""
     current = start
-    all_ok = True
+    worst = "success"
     while current <= end:
-        if update_date(current) is False:
-            all_ok = False
+        outcome = update_date(current)
+        if _severity(outcome) > _severity(worst):
+            worst = outcome
         current += timedelta(days=1)
-    return all_ok
+    return worst
 
 
 # ---------------------------------------------------------------------------
 # Entry point
 # ---------------------------------------------------------------------------
-if __name__ == "__main__":
-    # Required when packaged as a Windows exe — multiprocessing workers
-    # spawn by re-running the executable, and without freeze_support they'd
-    # re-execute __main__ recursively. No-op in unfrozen Python.
-    from multiprocessing import freeze_support
-    freeze_support()
+def _main(args: list[str]) -> int:
+    """Run for the dates in args and return the process exit code.
 
-    from db.connection import init_db
-    print("Initializing database schema ...")
-    init_db()
-    print()
-
-    args = sys.argv[1:]
-
-    # Exit code matters: Task Scheduler's LastTaskResult is the only
-    # trace a scheduled run leaves behind, and a silent 0 is what let
-    # 2026-09-18 go unnoticed for two days.
-    exit_code = 0
+    The exit code matters: it is all Task Scheduler's LastTaskResult keeps of
+    a run, and a silent 0 is what let 2026-09-18 go unnoticed for two days.
+    """
+    close_run_log = _open_run_log()
     try:
+        from db.connection import init_db
+        print("Initializing database schema ...")
+        init_db()
+        print()
+
         if len(args) == 0:
-            ok = update_date(date.today())
+            outcome = update_date(date.today())
         elif len(args) == 1:
-            ok = update_date(date.fromisoformat(args[0]))
+            outcome = update_date(date.fromisoformat(args[0]))
         elif len(args) == 2:
-            ok = update_range(date.fromisoformat(args[0]), date.fromisoformat(args[1]))
+            outcome = update_range(date.fromisoformat(args[0]), date.fromisoformat(args[1]))
         else:
             print("Usage: python daily_update.py [start_date] [end_date]")
-            sys.exit(1)
-        if ok is False:
-            exit_code = 1
+            return 1
+        print(f"Outcome: {outcome} (exit code {_exit_code(outcome)})")
+        return _exit_code(outcome)
     except Exception as e:
         print(f"\n[ERROR] {e}")
         traceback.print_exc()
-        exit_code = 1
+        return 1
+    finally:
+        # Before the caller's pause_before_exit(); see _open_run_log.
+        close_run_log()
 
+
+if __name__ == "__main__":
+    # Required when packaged as a Windows exe — multiprocessing workers
+    # spawn by re-running the executable, and without freeze_support they'd
+    # re-execute __main__ recursively. No-op in unfrozen Python. It also has
+    # to come before _main(): a worker must not get as far as opening a run
+    # log of its own.
+    from multiprocessing import freeze_support
+    freeze_support()
+
+    exit_code = _main(sys.argv[1:])
     pause_before_exit()
     sys.exit(exit_code)

@@ -15,6 +15,7 @@ import pytest
 
 import daily_update as du
 import telegram_bot.health_check as hc
+from daily_update_guards import no_side_effects  # noqa: F401
 import utils.http_client as http_client
 from holiday_fixture_2026 import RAW_2026
 from scrapers.market_holidays import parse
@@ -189,22 +190,28 @@ def test_running_for_today_mentions_unpublished_data(monkeypatch):
 
 # ── update_date wiring ─────────────────────────────────────────────────────
 
-@pytest.mark.parametrize("gate, expected", [("abort", False), ("holiday", True)])
-def test_update_date_stops_at_the_gate(monkeypatch, gate, expected):
+@pytest.fixture
+def no_run_record(monkeypatch):
+    monkeypatch.setattr(du, "_run_start", lambda d: None)
+    monkeypatch.setattr(du, "_run_finish", lambda *a: None)
+
+
+@pytest.mark.parametrize("gate, expected", [("abort", "aborted"), ("holiday", "holiday")])
+def test_update_date_stops_at_the_gate(monkeypatch, no_run_record, gate, expected):
     def pipeline_reached(*a, **k):
         raise AssertionError("update_date went past the gate")
 
     monkeypatch.setattr(du, "_trading_day_gate", lambda d: (gate, True, None))
     monkeypatch.setattr(du, "run_scraper", pipeline_reached)
     monkeypatch.setattr(du, "SCRAPERS", [("tripwire", "scrapers.none", "f", True)])
-    assert du.update_date(OPEN_DAY) is expected
+    assert du.update_date(OPEN_DAY) == expected
 
 
 class _FirstScraperReached(Exception):
     pass
 
 
-def test_update_date_gets_from_the_gate_to_the_first_scraper(monkeypatch):
+def test_update_date_gets_from_the_gate_to_the_first_scraper(monkeypatch, no_run_record):
     # The lines between the gate and the scraper loop read the index scraper's
     # result. Stop at the first scraper: nothing behind it may run in a test.
     def first_scraper(*a, **k):

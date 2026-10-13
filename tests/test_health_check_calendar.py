@@ -172,6 +172,7 @@ def test_header_names_the_day_the_data_should_have_reached(monkeypatch):
     monkeypatch.setattr(hc, "_corporate_actions", lambda latest: [])
     monkeypatch.setattr(hc, "_backup_section", lambda now: None)
     monkeypatch.setattr(hc, "_calendar_gap", lambda today, latest: (["大盤指數缺 09-18"], date(2026, 9, 18)))
+    monkeypatch.setattr(hc, "_nightly_run_problems", lambda today: [])
     monkeypatch.setattr(hc, "send_sync", lambda text, **kw: sent.append(text) or True)
     assert hc.run_daily() == 1
     assert sent == ["[健康檢查] 盤後 pipeline 異常（應更新至 09-18）：\n- 大盤指數缺 09-18"]
