@@ -168,6 +168,26 @@ _HALT_LOOKBACK_DAYS = 5   # trading days after resumption to keep reporting
 _QUIET_JUMP = 0.40
 _QUIET_SEAM_STEP = 0.10
 
+# Quarterly statements. No updated_at age works here: the normal gap between
+# quarters runs up to ~137 days (Q3 to the annual report), and a daily sweep
+# that tops up one late filer refreshes updated_at anyway. Instead ask whether
+# the latest quarter whose filing deadline has passed is actually in the
+# tables. Deadlines and grace are copied from scrapers/financials.py
+# (FILING_DEADLINES, FILING_GRACE_DAYS) rather than imported, so the monitor
+# does not go down with the scraper; tests/test_health_check_financials.py
+# keeps them equal. 2026Q2 was missing for two months before anyone noticed.
+_FILING_DEADLINES = {1: (5, 15), 2: (8, 14), 3: (11, 14), 4: (3, 31)}
+_FILING_GRACE_DAYS = 7
+# A due quarter covering fewer companies than this share of the previous
+# quarter counts as missing. A policy value; late filers and the industries
+# the scraper does not map keep coverage a little under 100%.
+_FILING_MIN_RATIO = 0.9
+_FINANCIAL_TABLES = [
+    ("損益表", "tw.income_statements"),
+    ("資產負債表", "tw.balance_sheets"),
+    ("現金流量表", "tw.cash_flows"),
+]
+
 # Intraday: alert when tw.intraday_quotes has not advanced for this long.
 _INTRADAY_STALE_MINUTES = 5
 
@@ -534,6 +554,38 @@ def _backup_section(now: datetime) -> str | None:
     return "資料庫備份異常：\n- " + "\n- ".join(problems)
 
 
+def _due_quarter(today: date) -> tuple[int, int]:
+    """Latest (year, quarter) whose filing deadline plus grace has passed."""
+    best = None
+    for year in (today.year - 2, today.year - 1, today.year):
+        for quarter, (m, d) in _FILING_DEADLINES.items():
+            due = date(year + 1 if quarter == 4 else year, m, d)
+            if due + timedelta(days=_FILING_GRACE_DAYS) <= today:
+                best = max(best or (year, quarter), (year, quarter))
+    return best
+
+
+def _previous_quarter(year: int, quarter: int) -> tuple[int, int]:
+    return (year, quarter - 1) if quarter > 1 else (year - 1, 4)
+
+
+def _financial_coverage(today: date) -> list[str]:
+    """One line per statement table whose due quarter is short of companies."""
+    year, quarter = _due_quarter(today)
+    prev = _previous_quarter(year, quarter)
+    m, d = _FILING_DEADLINES[quarter]
+    lines = []
+    for label, table in _FINANCIAL_TABLES:
+        sql = (f"SELECT COUNT(DISTINCT stock_id) AS n FROM {table} "
+               f"WHERE year = %s AND quarter = %s")
+        have = _scalar(sql, (year, quarter)) or 0
+        base = _scalar(sql, prev) or 0
+        if base and have < _FILING_MIN_RATIO * base:
+            lines.append(f"季報 {label} {year}Q{quarter} 僅 {have:,} 家"
+                         f"（上一季 {base:,} 家；期限 {m:02d}-{d:02d}）")
+    return lines
+
+
 def _pause(label: str, today: date) -> tuple[bool, str]:
     """(skip this periodic check, note for its line) on `today`."""
     for p in _KNOWN_PAUSES:
@@ -584,6 +636,7 @@ def run_daily() -> int:
             stale.append(f"{label} 已 {age} 天未更新（容許 {max_age} 天）{note}")
 
     stale.extend(_dead_column_groups(latest))
+    stale.extend(_financial_coverage(today))
     stale.extend(_stale_exes())
 
     actions = _corporate_actions(latest)

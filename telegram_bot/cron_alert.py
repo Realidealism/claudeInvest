@@ -32,6 +32,11 @@ def _msg_backfill_financials_failed(extra: str) -> str:
     return f"財報 backfill 失敗（exit {exit_code}）"
 
 
+def _msg_financials_sweep_failed(extra: str) -> str:
+    exit_code = extra or "?"
+    return f"季報更新失敗（exit {exit_code}）"
+
+
 def _msg_backfill_hermit_failed(extra: str) -> str:
     exit_code = extra or "?"
     return f"hermit 快照 backfill 失敗（exit {exit_code}）"
@@ -48,6 +53,7 @@ _EVENTS = {
     "backfill_financials_failed": _msg_backfill_financials_failed,
     "backfill_hermit_failed": _msg_backfill_hermit_failed,
     "microtaiex_report_failed": _msg_microtaiex_report_failed,
+    "financials_sweep_failed": _msg_financials_sweep_failed,
 }
 
 

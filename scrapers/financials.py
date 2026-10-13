@@ -3,6 +3,7 @@ Quarterly financial statement scraper — data source: FinMind API.
 
 FinMind wraps MOPS (公開資訊觀測站) data and returns structured JSON.
 No token required for basic queries; free tier allows ~600 queries/hour.
+FINMIND_TOKEN from the environment is sent when set.
 
 Endpoints used:
   - TaiwanStockFinancialStatements  → income statement (17 fields, summary)
@@ -21,8 +22,9 @@ IMPORTANT notes on the data:
     added in a later phase.
 """
 
+import os
 import time
-from datetime import date
+from datetime import date, timedelta
 
 import requests
 
@@ -30,8 +32,11 @@ from db.connection import get_cursor
 
 
 FINMIND_URL = "https://api.finmindtrade.com/api/v4/data"
-# FinMind free tier: ~600 req/hour. Be conservative: one request every 2s.
-MIN_INTERVAL = 2.0
+# FinMind free tier: 600 req/hour (api_request_limit_hour, checked 2026-10-12).
+# One request every 6s stays inside it. At 2s the 2026-10-12 backfill hit 402
+# within the hour and the escalating cooldowns cut it to ~132 stocks/hour,
+# with some fetches failing after 70 minutes of waiting.
+MIN_INTERVAL = 6.0
 MAX_RETRIES = 3
 # When 402 hits, wait this long before retrying — FinMind hourly cap typically
 # resets within 30-60 min, so a long sleep avoids burning retries on a still-
@@ -41,6 +46,30 @@ BACKOFF_BASE = 600.0  # 10 min
 
 _last_req_time = 0.0
 _cooldown_until = 0.0
+
+# Optional. Sent as a header, never as a query parameter, so a request error
+# that prints the URL cannot leak it into a log.
+FINMIND_TOKEN = os.getenv("FINMIND_TOKEN", "")
+
+# Statutory filing deadline per quarter, as (month, day). Q4 is the annual
+# report, due in the following year. telegram_bot/health_check.py keeps its own
+# copy so the monitor does not import what it watches; a test keeps them equal.
+FILING_DEADLINES = {1: (5, 15), 2: (8, 14), 3: (11, 14), 4: (3, 31)}
+# Days after a deadline before a quarter counts as due. Filers are allowed
+# to be late by a day or two and FinMind lags MOPS slightly.
+FILING_GRACE_DAYS = 7
+
+
+def expected_period(today: date, grace_days: int = FILING_GRACE_DAYS) -> tuple[int, int]:
+    """Latest (year, quarter) whose filing deadline plus grace has passed."""
+    best = None
+    for year in (today.year - 2, today.year - 1, today.year):
+        for quarter, (m, d) in FILING_DEADLINES.items():
+            due = date(year + 1 if quarter == 4 else year, m, d)
+            if due + timedelta(days=grace_days) <= today:
+                if best is None or (year, quarter) > best:
+                    best = (year, quarter)
+    return best
 
 
 # ---------- FinMind type → DB column mapping (general industry only) ----------
@@ -122,7 +151,8 @@ def _fetch(dataset: str, stock_id: str, start: str, end: str) -> list[dict] | No
     for attempt in range(MAX_RETRIES):
         try:
             _rate_limit()
-            r = requests.get(FINMIND_URL, params=params, timeout=30)
+            headers = {"Authorization": f"Bearer {FINMIND_TOKEN}"} if FINMIND_TOKEN else None
+            r = requests.get(FINMIND_URL, params=params, headers=headers, timeout=30)
             if r.status_code == 402:
                 # Rate limit exceeded. Set a shared cooldown so subsequent
                 # stocks block on the same wait via _rate_limit(), instead of
@@ -281,17 +311,46 @@ def scrape_stock(stock_id: str, start_year: int = 2013, end_year: int | None = N
     return ok
 
 
+def _covered(years: set[int], periods: set[tuple[int, int]],
+             start_year: int, end_year: int, due: tuple[int, int]) -> bool:
+    """Every year in range has a row, and so does the latest due quarter.
+
+    Year-level coverage alone skipped every stock all year once its Q1 was in,
+    which is how 2026Q2 never arrived.
+    """
+    if any(y not in years for y in range(start_year, end_year + 1)):
+        return False
+    return not (start_year <= due[0] <= end_year) or due in periods
+
+
+STATEMENT_TABLES = ("tw.income_statements", "tw.balance_sheets", "tw.cash_flows")
+
+
+def _complete_periods(by_table: dict[str, set]) -> set:
+    """Periods present in every statement table.
+
+    scrape_stock fetches the three statements separately, so one can fail while
+    the others land. Judging by the income statement alone would then skip the
+    stock for good and leave the failed table without that quarter.
+    """
+    tables = [by_table.get(t, set()) for t in STATEMENT_TABLES]
+    return set.intersection(*tables)
+
+
 def _already_covered(stock_id: str, start_year: int, end_year: int) -> bool:
-    """Skip if we already have at least one income-statement row per year in range."""
-    expected = end_year - start_year + 1
+    """Skip if all three statements already cover the range."""
+    by_table = {}
     with get_cursor(commit=False) as cur:
-        cur.execute(
-            "SELECT COUNT(DISTINCT year) FROM tw.income_statements "
-            "WHERE stock_id = %s AND year BETWEEN %s AND %s",
-            (stock_id, start_year, end_year),
-        )
-        got = cur.fetchone()["count"]
-    return got >= expected
+        for table in STATEMENT_TABLES:
+            cur.execute(
+                f"SELECT DISTINCT year, quarter FROM {table} "
+                "WHERE stock_id = %s AND year BETWEEN %s AND %s",
+                (stock_id, start_year, end_year),
+            )
+            by_table[table] = {(r["year"], r["quarter"]) for r in cur.fetchall()}
+    periods = _complete_periods(by_table)
+    years = {y for y, _ in by_table["tw.income_statements"]}
+    return _covered(years, periods, start_year, end_year, expected_period(date.today()))
 
 
 def scrape_all(start_year: int = 2013, end_year: int | None = None,
@@ -336,17 +395,28 @@ def scrape_all(start_year: int = 2013, end_year: int | None = None,
 
 if __name__ == "__main__":
     import sys
-    # Full-market backfill: python -m scrapers.financials all [start_year] [end_year]
+    # Latest due quarter:  python -m scrapers.financials --quarterly
+    # Full-market backfill: python -m scrapers.financials all [start_year] [end_year] [--no-resume]
     # Single stock:        python -m scrapers.financials 2330 [start_year] [end_year]
-    if len(sys.argv) >= 2 and sys.argv[1] == "all":
-        sy = int(sys.argv[2]) if len(sys.argv) >= 3 else 2013
-        ey = int(sys.argv[3]) if len(sys.argv) >= 4 else None
-        if scrape_all(sy, ey):
+    no_resume = "--no-resume" in sys.argv
+    argv = [a for a in sys.argv if a != "--no-resume"]
+    if len(argv) >= 2 and argv[1] == "--quarterly":
+        due = expected_period(date.today())
+        print(f"Latest due quarter: {due[0]}Q{due[1]}")
+        # Only the due quarter's year: in April-May the due quarter is last
+        # year's Q4 and this year has no rows yet, so including it would make
+        # every stock look uncovered every day.
+        if scrape_all(due[0], due[0], resume=not no_resume):
             sys.exit(1)
-    elif len(sys.argv) >= 2:
-        sid = sys.argv[1]
-        sy = int(sys.argv[2]) if len(sys.argv) >= 3 else 2013
-        ey = int(sys.argv[3]) if len(sys.argv) >= 4 else None
+    elif len(argv) >= 2 and argv[1] == "all":
+        sy = int(argv[2]) if len(argv) >= 3 else 2013
+        ey = int(argv[3]) if len(argv) >= 4 else None
+        if scrape_all(sy, ey, resume=not no_resume):
+            sys.exit(1)
+    elif len(argv) >= 2:
+        sid = argv[1]
+        sy = int(argv[2]) if len(argv) >= 3 else 2013
+        ey = int(argv[3]) if len(argv) >= 4 else None
         if not scrape_stock(sid, sy, ey):
             sys.exit(1)
     else:
