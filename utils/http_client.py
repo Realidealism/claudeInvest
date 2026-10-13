@@ -74,18 +74,21 @@ def fetch(url: str, params: dict = None, timeout: int = 30) -> requests.Response
             return resp
 
         except requests.exceptions.HTTPError as e:
-            status = e.response.status_code if e.response else None
+            # Not `if e.response`: a Response is falsy for every 4xx/5xx, which
+            # is exactly when HTTPError is raised, so status was always None
+            # and the 429/503 branch below never ran.
+            status = e.response.status_code if e.response is not None else None
             print(f"  HTTP {status} on attempt {attempt + 1}: {e}")
 
+            if attempt == MAX_RETRIES - 1:
+                return None
             # 429 Too Many Requests or 503: back off aggressively
             if status in (429, 503):
                 wait = BACKOFF_BASE * (2 ** attempt) + random.uniform(1, 3)
                 print(f"  Rate limited. Waiting {wait:.1f}s ...")
                 time.sleep(wait)
-            elif attempt < MAX_RETRIES - 1:
-                time.sleep(BACKOFF_BASE)
             else:
-                return None
+                time.sleep(BACKOFF_BASE)
 
         except requests.exceptions.ConnectionError as e:
             print(f"  Connection error on attempt {attempt + 1}: {e}")
@@ -122,16 +125,16 @@ def post(url: str, data: dict = None, timeout: int = 30) -> requests.Response | 
             return resp
 
         except requests.exceptions.HTTPError as e:
-            status = e.response.status_code if e.response else None
+            status = e.response.status_code if e.response is not None else None
             print(f"  HTTP {status} on attempt {attempt + 1}: {e}")
+            if attempt == MAX_RETRIES - 1:
+                return None
             if status in (429, 503):
                 wait = BACKOFF_BASE * (2 ** attempt) + random.uniform(1, 3)
                 print(f"  Rate limited. Waiting {wait:.1f}s ...")
                 time.sleep(wait)
-            elif attempt < MAX_RETRIES - 1:
-                time.sleep(BACKOFF_BASE)
             else:
-                return None
+                time.sleep(BACKOFF_BASE)
 
         except requests.exceptions.ConnectionError as e:
             print(f"  Connection error on attempt {attempt + 1}: {e}")
@@ -175,16 +178,16 @@ def post_json(url: str, data: dict = None, timeout: int = 30) -> dict | None:
             return resp.json()
 
         except requests.exceptions.HTTPError as e:
-            status = e.response.status_code if e.response else None
+            status = e.response.status_code if e.response is not None else None
             print(f"  HTTP {status} on attempt {attempt + 1}: {e}")
+            if attempt == MAX_RETRIES - 1:
+                return None
             if status in (429, 503):
                 wait = BACKOFF_BASE * (2 ** attempt) + random.uniform(1, 3)
                 print(f"  Rate limited. Waiting {wait:.1f}s ...")
                 time.sleep(wait)
-            elif attempt < MAX_RETRIES - 1:
-                time.sleep(BACKOFF_BASE)
             else:
-                return None
+                time.sleep(BACKOFF_BASE)
 
         except requests.exceptions.ConnectionError as e:
             print(f"  Connection error on attempt {attempt + 1}: {e}")
