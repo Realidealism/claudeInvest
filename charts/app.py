@@ -23,11 +23,16 @@ from dash import dcc, html
 from dash.dependencies import Input, Output, State
 
 from db.connection import get_cursor
+from db.price_availability import PriceUnavailable, require_available, unavailable_codes
 
 
 def _load_watchlist() -> dict[str, list[dict]]:
-    """Load watchlist groups with stock names and latest price from database."""
+    """Load watchlist groups with stock names and latest price from database.
+
+    Emerging-board codes get no price and are labelled 不可用."""
     with get_cursor(commit=False) as cur:
+        cur.execute("SELECT DISTINCT stock_id FROM tw.watchlist")
+        unavailable = unavailable_codes(cur, [r["stock_id"] for r in cur.fetchall()])
         cur.execute(
             """
             SELECT w.group_name, w.stock_id,
@@ -42,6 +47,7 @@ def _load_watchlist() -> dict[str, list[dict]]:
                 SELECT close_price, change, change_pct
                 FROM tw.daily_prices d
                 WHERE d.stock_id = w.stock_id
+                  AND NOT (d.stock_id = ANY(%s))
                 ORDER BY d.trade_date DESC LIMIT 1
             ) dp ON true
             LEFT JOIN LATERAL (
@@ -51,7 +57,8 @@ def _load_watchlist() -> dict[str, list[dict]]:
                 ORDER BY ix.trade_date DESC LIMIT 1
             ) ip ON true
             ORDER BY w.group_name, w.sort_order
-            """
+            """,
+            (list(unavailable),),
         )
         rows = cur.fetchall()
     result: dict[str, list[dict]] = {}
@@ -61,7 +68,7 @@ def _load_watchlist() -> dict[str, list[dict]]:
         chg_pct = r["change_pct"]
         result.setdefault(r["group_name"], []).append({
             "id": r["stock_id"],
-            "name": r["name"],
+            "name": f"{r['name']}（不可用）" if r["stock_id"] in unavailable else r["name"],
             "close": float(close) if close is not None else None,
             "change": float(chg) if chg is not None else None,
             "change_pct": float(chg_pct) if chg_pct is not None else None,
@@ -142,7 +149,8 @@ def fetch_price_data(
 
     Special IDs 'TAIEX' and 'TPEx' fetch from the index table.
     Returns dict with keys: dates, open, high, low, close, turnover, name.
-    Returns None if no data found.
+    Returns None if no data found. Raises PriceUnavailable for
+    emerging-board codes.
     """
     is_index = stock_id in ("TAIEX", "TPEx")
 
@@ -168,6 +176,7 @@ def fetch_price_data(
                 (stock_id, start_date, end_date),
             )
         else:
+            require_available(cur, stock_id)
             cur.execute(
                 "SELECT name FROM tw.stocks WHERE stock_id = %s",
                 (stock_id,),
@@ -1229,13 +1238,17 @@ def update_chart(n_clicks, stock_id, start_date, end_date, obv_select,
         return dash.no_update, "Please enter stock ID and date range."
 
     # Fetch data
-    data = fetch_price_data(stock_id, start_date, end_date)
+    try:
+        data = fetch_price_data(stock_id, start_date, end_date)
+        message = f"No data found for {stock_id}."
+    except PriceUnavailable as e:
+        data, message = None, str(e)
     if data is None:
         empty_fig = build_candlestick_figure(
             [], np.array([]), np.array([]), np.array([]),
             np.array([]), np.array([]),
         )
-        return empty_fig, f"No data found for {stock_id}."
+        return empty_fig, message
 
     # Run analysis
     analysis_results = {}

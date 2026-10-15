@@ -33,6 +33,7 @@ from telegram.ext import (
 )
 
 from db.connection import get_cursor
+from db.price_availability import PriceUnavailable, require_available
 from telegram_bot.auth import restricted
 from telegram_bot.handlers.status import (
     BTN_MARKET,
@@ -87,7 +88,13 @@ def _lookup_stock_in_db(symbol: str) -> dict | None:
 
 
 def _add(symbol: str) -> str:
-    """Per-ticker add. Validates format → DB existence → upsert."""
+    """Per-ticker add. Validates format → DB existence → price availability
+    → upsert. Emerging-board codes are refused before anything is written."""
+    try:
+        with get_cursor(commit=False) as cur:
+            require_available(cur, symbol)
+    except PriceUnavailable as e:
+        return f"❌ {e}"
     if classify_tw_security(symbol) is None:
         return f"❌ {symbol} 不是有效的台股代號格式（權證 / TDR / 債券？）"
     stock = _lookup_stock_in_db(symbol)

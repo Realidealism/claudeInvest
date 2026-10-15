@@ -96,6 +96,14 @@ def main() -> None:
         [s.strip() for s in args.stocks.split(",") if s.strip()]
         if args.stocks else None
     )
+    if stock_ids:
+        from db.connection import get_cursor
+        from db.price_availability import UNAVAILABLE_MESSAGE, unavailable_codes
+        with get_cursor(commit=False) as cur:
+            unavailable = sorted(unavailable_codes(cur, stock_ids))
+        if unavailable:
+            print(f"{', '.join(unavailable)} {UNAVAILABLE_MESSAGE}", file=sys.stderr)
+            sys.exit(1)
 
     if args.signals:
         names = [s.strip() for s in args.signals.split(",") if s.strip()]

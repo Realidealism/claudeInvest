@@ -42,6 +42,7 @@ Intraday snapshot variant:
 from __future__ import annotations
 
 from db.connection import get_cursor
+from db.price_availability import require_available
 from backtest.data import (
     StockData,
     build_stock_data,
@@ -110,8 +111,11 @@ def load_stock_data_intraday(stock_id: str, volume_scale: float) -> StockData:
 
 
 def _fetch_all_daily_prices(stock_id: str) -> list[dict]:
-    """All historical daily bars for a stock, oldest first."""
+    """All historical daily bars for a stock, oldest first.
+
+    Raises PriceUnavailable for emerging-board codes."""
     with get_cursor(commit=False) as cur:
+        require_available(cur, stock_id)
         cur.execute(
             """
             SELECT trade_date, open_price, high_price, low_price,

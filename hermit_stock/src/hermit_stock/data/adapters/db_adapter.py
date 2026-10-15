@@ -11,6 +11,7 @@ Pydantic models are denominated in NTD.
 
 from __future__ import annotations
 
+import logging
 import os
 from datetime import date
 from decimal import Decimal
@@ -27,6 +28,50 @@ from ..publish_date import monthly_publish_date, quarter_period_end, quarter_pub
 
 THOUSAND = Decimal(1000)
 _DOTENV_LOADED = False
+
+logger = logging.getLogger(__name__)
+
+UNAVAILABLE_MESSAGE = "不可用：興櫃證券，不提供上市櫃價格"
+
+# Verbatim copy of UNAVAILABLE_CODES_TEMPLATE in the parent Invest project's
+# db/price_availability.py (this package runs in its own environment and
+# cannot import it); the parent's tests/test_price_availability_guards.py
+# checks the two texts are identical.  A code in this set must not be
+# served listed-market prices from tw.daily_prices.
+UNAVAILABLE_CODES_TEMPLATE = """
+    SELECT s.stock_id FROM {stocks} s WHERE s.market = 'ESB'
+    UNION
+    SELECT d.stock_id FROM {prices} d
+    WHERE d.open_price IS NULL AND d.turnover IS NULL
+      AND (d.close_price IS NOT NULL OR d.high_price IS NOT NULL
+           OR d.low_price IS NOT NULL OR d.volume IS NOT NULL)
+"""
+
+_UNAVAILABLE_CODES_SQL = UNAVAILABLE_CODES_TEMPLATE.format(
+    stocks="tw.stocks", prices="tw.daily_prices",
+)
+
+
+class PriceUnavailable(Exception):
+    """The code is an emerging-board security; its prices must not be read."""
+
+    def __init__(self, code: str):
+        self.code = code
+        super().__init__(f"{code} {UNAVAILABLE_MESSAGE}")
+
+    def __reduce__(self):
+        # Rebuild from the code, not the message, when crossing a process boundary.
+        return (type(self), (self.code,))
+
+
+def _unavailable_codes(cur, codes: list[str]) -> set[str]:
+    if not codes:
+        return set()
+    cur.execute(
+        f"SELECT u.stock_id FROM ({_UNAVAILABLE_CODES_SQL}) u WHERE u.stock_id = ANY(%s)",
+        (list(codes),),
+    )
+    return {r["stock_id"] for r in cur.fetchall()}
 
 
 def _load_env_once() -> None:
@@ -538,7 +583,9 @@ def load_index_close(index_id: str = "TAIEX") -> list[tuple[date, float]]:
 
 
 def load_all_daily_prices(tickers: list[str]) -> dict[str, list[DailyPrice]]:
-    """Batch-load daily prices for many tickers in one query."""
+    """Batch-load daily prices for many tickers in one query.
+
+    Emerging-board tickers are left out of the result (and logged)."""
     sql = """
         SELECT stock_id, trade_date, open_price, high_price, low_price, close_price, volume
         FROM tw.daily_prices
@@ -546,7 +593,11 @@ def load_all_daily_prices(tickers: list[str]) -> dict[str, list[DailyPrice]]:
         ORDER BY stock_id, trade_date
     """
     with _connect() as conn, conn.cursor(cursor_factory=RealDictCursor) as cur:
-        cur.execute(sql, (tickers,))
+        unavailable = _unavailable_codes(cur, tickers)
+        if unavailable:
+            logger.warning("dropped price-unavailable (emerging board) tickers %s",
+                           sorted(unavailable))
+        cur.execute(sql, ([t for t in tickers if t not in unavailable],))
         rows = cur.fetchall()
     out: dict[str, list[DailyPrice]] = {}
     for r in rows:
@@ -568,6 +619,7 @@ def load_all_daily_prices(tickers: list[str]) -> dict[str, list[DailyPrice]]:
 def load_daily_prices(
     ticker: str, start: date | None = None, end: date | None = None
 ) -> list[DailyPrice]:
+    """Raises PriceUnavailable for emerging-board tickers."""
     sql = """
         SELECT trade_date, open_price, high_price, low_price, close_price, volume
         FROM tw.daily_prices
@@ -577,6 +629,8 @@ def load_daily_prices(
         ORDER BY trade_date
     """
     with _connect() as conn, conn.cursor(cursor_factory=RealDictCursor) as cur:
+        if _unavailable_codes(cur, [ticker]):
+            raise PriceUnavailable(ticker)
         cur.execute(sql, (ticker, start, start, end, end))
         rows = cur.fetchall()
     return [

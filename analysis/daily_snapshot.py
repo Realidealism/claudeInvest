@@ -34,6 +34,7 @@ from multiprocessing import Pool, cpu_count
 from psycopg2.extras import execute_batch
 
 from db.connection import get_cursor, get_connection
+from db.price_availability import PriceUnavailable
 from backtest.data import load_stock_data
 from analysis.score import build_scoreboard
 from signal_backtest.factories._conditions import (
@@ -158,10 +159,14 @@ def _eval_stock(args: tuple[str, date, date]) -> dict | None:
     backfill); produces score pcts at 4 bars, signal-factory fires on the
     last bar within the window, and unified-strategy open-position info.
     Returns flat dict so result pickles cheaply, or None when the stock is
-    unusable."""
+    unusable; {"_unavailable": sid} when its price is unavailable (emerging
+    board)."""
     sid, start_date, end_date = args
     try:
         data = load_stock_data(sid, start_date=start_date, end_date=end_date)
+    except PriceUnavailable:
+        print(f"  [WARN] {sid} skipped: price unavailable (emerging board)", file=sys.stderr)
+        return {"_unavailable": sid}
     except Exception:
         return None
     if data.n < 60:
@@ -512,14 +517,19 @@ def run(snapshot_date: date) -> dict:
     work_items = [(sid, start_date, snapshot_date) for sid in stock_ids]
 
     results: list[dict] = []
+    unavailable = 0
     with Pool(N_WORKERS, initializer=_init_worker) as pool:
         for r in pool.imap_unordered(_eval_stock, work_items, chunksize=20):
-            if r is not None:
+            if r is not None and "_unavailable" in r:
+                unavailable += 1
+            elif r is not None:
                 results.append(r)
                 if len(results) % 200 == 0:
                     print(f"  evaluated {len(results)} ...", file=sys.stderr)
 
     print(f"  scored {len(results)} stocks in {time.time() - t0:.1f}s")
+    if unavailable:
+        print(f"  [WARN] {unavailable} stocks skipped: price unavailable (emerging board)", file=sys.stderr)
 
     prev_long  = _load_prev_score_ranks(snapshot_date, "long")
     prev_short = _load_prev_score_ranks(snapshot_date, "short")

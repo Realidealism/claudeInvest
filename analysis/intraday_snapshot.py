@@ -26,6 +26,7 @@ from datetime import date, datetime, timezone, timedelta
 from psycopg2.extras import execute_batch
 
 from db.connection import get_cursor, get_connection
+from db.price_availability import PriceUnavailable
 from analysis.realtime_data import load_stock_data_intraday
 from analysis.market_breadth import compute_live_breadth
 from analysis.score import build_scoreboard
@@ -146,9 +147,13 @@ def _extract_position(result, side: str, last_trade_date) -> dict | None:
 
 
 def _eval_stock(stock_id: str) -> dict | None:
-    """Per-stock worker. Returns flat dict (cheap pickle) or None."""
+    """Per-stock worker. Returns flat dict (cheap pickle) or None;
+    {"_unavailable": stock_id} when the price is unavailable (emerging board)."""
     try:
         data = load_stock_data_intraday(stock_id, _VOLUME_SCALE)
+    except PriceUnavailable:
+        print(f"  [WARN] {stock_id} skipped: price unavailable (emerging board)", file=sys.stderr)
+        return {"_unavailable": stock_id}
     except Exception:
         return None
     if data.n < 60:
@@ -491,13 +496,19 @@ def run(*, final_pass: bool = False) -> dict:
 
     t0 = time.time()
     results: list[dict] = []
+    unavailable = 0
     with Pool(N_WORKERS, initializer=_init_worker, initargs=(scale,)) as pool:
         for r in pool.imap_unordered(_eval_stock, stock_ids, chunksize=20):
-            if r is not None:
+            if r is not None and "_unavailable" in r:
+                unavailable += 1
+            elif r is not None:
                 results.append(r)
                 if len(results) % 200 == 0:
                     print(f"  evaluated {len(results)} ...", file=sys.stderr)
         print(f"  scored {len(results)} stocks in {time.time() - t0:.1f}s")
+        if unavailable:
+            print(f"  [WARN] {unavailable} stocks skipped: price unavailable (emerging board)",
+                  file=sys.stderr)
 
         # Breadth runs on the close's universe (all active stocks minus
         # dead_fish), which is wider than the money_level >= 4 scoring

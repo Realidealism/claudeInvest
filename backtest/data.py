@@ -18,6 +18,7 @@ import numpy as np
 from numpy.typing import NDArray
 
 from db.connection import get_cursor
+from db.price_availability import require_available
 from analysis.close import calculate_close, calc_sort_forming, CloseResult, SortResult
 from analysis.volume import calculate_volume, VolumeResult
 from analysis.candle import calculate_candle, CandleResult
@@ -212,7 +213,12 @@ def load_stock_data(
     pickled StockData under ``data/stock_cache/<stock_id>_<db_date>.pkl``
     and rebuilds + writes the cache on miss. Cache is keyed by the DB's
     latest trade_date so it auto-invalidates after fresh data is loaded.
+
+    Raises PriceUnavailable for emerging-board codes, before the cache is read.
     """
+    with get_cursor(commit=False) as cur:
+        require_available(cur, stock_id)
+
     if stock_id in _INDEX_IDS:
         return _load_index_data(stock_id, start_date, end_date)
 

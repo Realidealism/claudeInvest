@@ -48,7 +48,11 @@ def analyze(
     meta = db_adapter.load_stock_meta(ticker)
     quarterly = db_adapter.load_quarterly_reports(ticker)
     monthly = db_adapter.load_monthly_revenue(ticker)
-    prices = db_adapter.load_daily_prices(ticker)
+    try:
+        prices = db_adapter.load_daily_prices(ticker)
+    except db_adapter.PriceUnavailable as e:
+        typer.echo(str(e))
+        raise typer.Exit(1)
 
     # Macro snapshot at as_of
     if "Q" in as_of:

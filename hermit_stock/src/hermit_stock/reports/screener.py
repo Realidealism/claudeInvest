@@ -15,6 +15,7 @@ Lookahead-bias defense reuses data/as_of.py — same chokepoint as analyze.
 
 from __future__ import annotations
 
+import logging
 from collections.abc import Callable, Iterable
 from dataclasses import dataclass
 from datetime import date
@@ -31,6 +32,8 @@ from ..valuation.bands import rolling_band
 from ..valuation.methods import ValuationSnapshot, make_snapshot
 from ..valuation.multiples import daily_multiples
 from ..valuation.selector import select_valuation_method
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass(frozen=True)
@@ -100,7 +103,11 @@ def run_screener(
         if r.scoreboard.score < min_valuation_score:
             upgraded.append(r)
             continue
-        prices = db_adapter.load_daily_prices(r.ticker)
+        try:
+            prices = db_adapter.load_daily_prices(r.ticker)
+        except db_adapter.PriceUnavailable:
+            logger.warning("screener: dropped %s, price unavailable (emerging board)", r.ticker)
+            continue
         ps = filter_prices(prices, as_of)
         qs = filter_quarterly(quarterly_by_ticker.get(r.ticker, []), as_of)
         method = select_valuation_method(qs)

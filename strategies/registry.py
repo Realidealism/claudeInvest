@@ -2,11 +2,15 @@
 
 import importlib
 import json
+import logging
 import pkgutil
 from datetime import date
 from pathlib import Path
 
+from db.price_availability import unavailable_codes
 from strategies.base import BaseStrategy
+
+logger = logging.getLogger(__name__)
 
 _registry: list[type[BaseStrategy]] = []
 
@@ -65,9 +69,18 @@ def _json_serial(obj):
 
 
 def save_signals(signals: list[dict], cur) -> int:
-    """Upsert signals into tw.signals. Returns number of rows upserted."""
+    """Upsert signals into tw.signals. Returns number of rows upserted.
+
+    Signals on emerging-board codes are dropped: their prices are unavailable,
+    and the share-change filters skip themselves when a price is missing."""
+    unavailable = unavailable_codes(cur, {s["ticker"] for s in signals})
+    if unavailable:
+        logger.warning("save_signals: dropped signals on price-unavailable (emerging board) tickers %s",
+                       sorted(unavailable))
     n = 0
     for s in signals:
+        if s["ticker"] in unavailable:
+            continue
         evidence_json = json.dumps(s["evidence"], default=_json_serial,
                                    ensure_ascii=False)
         # trigger_date is preserved on conflict so the first-seen date is not
