@@ -1052,6 +1052,9 @@ def buy_condition(data: "StockData") -> BoolArray:
     pre_sma8 = sma[8] + (close - _shift(close, 7)) / 8.0
     pre_sma21 = sma[21] + (close - _shift(close, 20)) / 21.0
     ma_strict = (close > sma[8]) & (sma[3] > sma[13])
+    # v367: 漲停 overrides vol_strong for the pre path (mirror v249 rule_vol)
+    _ref_pre = data.ref_price
+    vol_strong = vol_strong | ((_ref_pre > 0) & (close >= _ref_pre * 1.095))
     ma_pre = (close > sma[8]) & vol_strong & (pre_sma8 > pre_sma21)
     rule_ma = ma_strict | ma_pre
 
@@ -1219,6 +1222,9 @@ def sell_condition(data: "StockData") -> BoolArray:
     pre_sma8_s = sma[8] + (close - _shift(close, 7)) / 8.0
     pre_sma21_s = sma[21] + (close - _shift(close, 20)) / 21.0
     ma_strict_short = (close < sma[8]) & (sma[3] < sma[13])
+    # v367: 跌停 overrides vol_strong for the pre path (mirror v250 rule_vol)
+    _ref_pre_s = data.ref_price
+    vol_strong_s = vol_strong_s | ((_ref_pre_s > 0) & (close <= _ref_pre_s * 0.905))
     ma_pre_short = (close < sma[8]) & vol_strong_s & (pre_sma8_s < pre_sma21_s)
     rule_ma = ma_strict_short | ma_pre_short
 
