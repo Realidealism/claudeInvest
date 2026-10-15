@@ -1,9 +1,9 @@
 {
   "periods": [
-    "202605",
     "202606",
     "202607",
-    "202608"
+    "202608",
+    "202609"
   ],
   "fund_columns": [
     {
@@ -60,40 +60,72 @@
     }
   ],
   "changes": {
+    "1303": {
+      "ticker_name": "南亞",
+      "market": "TWSE",
+      "monthly_net": [
+        0,
+        0,
+        12413000
+      ],
+      "total_net": 12413000,
+      "funds": {
+        "fhtrust-highgrowth": {
+          "curr": 5.05,
+          "prev": null,
+          "diff": 4000000
+        },
+        "nomura-hightech": {
+          "curr": 4.52,
+          "prev": null,
+          "diff": 4063000
+        },
+        "unitec-allweather": {
+          "curr": 4.93,
+          "prev": null,
+          "diff": 4000000
+        },
+        "unitec-gc-smid": {
+          "curr": 3.48,
+          "prev": null,
+          "diff": 350000
+        }
+      }
+    },
     "2059": {
       "ticker_name": "川湖",
       "market": "TWSE",
       "monthly_net": [
-        -124000,
         21000,
-        270000
+        270000,
+        -126000
       ],
-      "total_net": 167000,
+      "total_net": 165000,
       "funds": {
         "fhtrust-allround": {
-          "curr": 4.65,
-          "prev": null,
-          "diff": 48000
+          "curr": null,
+          "prev": 4.65,
+          "diff": -48000
         },
         "fhtrust-highgrowth": {
-          "curr": 8.58,
-          "prev": null,
-          "diff": 120000
+          "curr": 7.15,
+          "prev": 8.58,
+          "diff": 0
         },
         "nomura-hightech": {
-          "curr": 8.9,
-          "prev": 7.41,
-          "diff": -13000
+          "curr": 6.51,
+          "prev": 8.9,
+          "diff": -22000
         },
         "nomura-quality": {
-          "curr": 15.19,
-          "prev": 11.39,
-          "diff": -39000
+          "curr": 12.57,
+          "prev": 15.19,
+          "diff": 0
         },
         "yuanta-newmain": {
-          "curr": 8.18,
-          "prev": null,
-          "diff": 154000
+          "curr": 5.36,
+          "prev": 8.18,
+          "diff": -56000
         }
       }
     },
@@ -101,26 +133,46 @@
       "ticker_name": "聯電",
       "market": "TWSE",
       "monthly_net": [
-        127216000,
         -36654000,
-        -9823000
+        -9823000,
+        96021000
       ],
-      "total_net": 80739000,
+      "total_net": 49544000,
       "funds": {
-        "allianz-tech": {
-          "curr": 3.97,
-          "prev": 4.17,
-          "diff": 8000000
+        "allianz-dam": {
+          "curr": 3.92,
+          "prev": null,
+          "diff": 27943000
         },
-        "fhtrust-allround": {
-          "curr": null,
-          "prev": 3.92,
-          "diff": -3566000
+        "allianz-tech": {
+          "curr": 5.7,
+          "prev": 3.97,
+          "diff": 25000000
+        },
+        "unitec-allweather": {
+          "curr": 4.47,
+          "prev": null,
+          "diff": 6000000
+        },
+        "unitec-gallop": {
+          "curr": 4.74,
+          "prev": null,
+          "diff": 23778000
+        },
+        "unitec-gc-smid": {
+          "curr": 4.09,
+          "prev": null,
+          "diff": 680000
+        },
+        "unitec-smid": {
+          "curr": 6.78,
+          "prev": null,
+          "diff": 3664000
         },
         "yuanta-newmain": {
-          "curr": null,
-          "prev": 7.85,
-          "diff": -14257000
+          "curr": 6.28,
+          "prev": null,
+          "diff": 8956000
         }
       }
     },
@@ -128,41 +180,41 @@
       "ticker_name": "台達電",
       "market": "TWSE",
       "monthly_net": [
-        -9340000,
         1325000,
-        349000
+        349000,
+        -1238000
       ],
-      "total_net": -7666000,
+      "total_net": 436000,
       "funds": {
-        "allianz-dam": {
-          "curr": null,
-          "prev": 3.51,
-          "diff": -1768000
-        },
         "fhtrust-allround": {
-          "curr": 5.63,
-          "prev": 4.61,
-          "diff": 138000
+          "curr": 6.18,
+          "prev": 5.63,
+          "diff": 76000
         },
         "nomura-quality": {
           "curr": 5.36,
-          "prev": 6.18,
+          "prev": 5.36,
           "diff": 0
         },
+        "taishin-mainstream": {
+          "curr": 3.61,
+          "prev": null,
+          "diff": 69000
+        },
         "unitec-allweather": {
-          "curr": 5.3,
-          "prev": 4.05,
-          "diff": 160000
+          "curr": null,
+          "prev": 5.3,
+          "diff": -590000
         },
         "unitec-darkhorse": {
-          "curr": 3.43,
-          "prev": 4.31,
-          "diff": -106000
+          "curr": null,
+          "prev": 3.43,
+          "diff": -821000
         },
         "unitec-gallop": {
-          "curr": 4.79,
-          "prev": null,
-          "diff": 1925000
+          "curr": 4.77,
+          "prev": 4.79,
+          "diff": 28000
         }
       }
     },
@@ -170,36 +222,31 @@
       "ticker_name": "國巨*",
       "market": "TWSE",
       "monthly_net": [
-        20409000,
         -3077000,
-        -21440000
+        -21440000,
+        4323000
       ],
-      "total_net": -4108000,
+      "total_net": -20194000,
       "funds": {
-        "allianz-tech": {
-          "curr": null,
-          "prev": 3.38,
-          "diff": -17000000
-        },
         "fhtrust-highgrowth": {
-          "curr": 5.22,
-          "prev": 7.17,
-          "diff": -300000
+          "curr": null,
+          "prev": 5.22,
+          "diff": -1900000
         },
         "nomura-hightech": {
-          "curr": 4.76,
-          "prev": 4.42,
-          "diff": 547000
+          "curr": 4.84,
+          "prev": 4.76,
+          "diff": 0
         },
         "unitec-allweather": {
-          "curr": 3.49,
-          "prev": null,
-          "diff": 1310000
+          "curr": 3.9,
+          "prev": 3.49,
+          "diff": 165000
         },
         "unitec-gallop": {
-          "curr": null,
-          "prev": 4.81,
-          "diff": -5997000
+          "curr": 4.29,
+          "prev": null,
+          "diff": 6058000
         }
       }
     },
@@ -207,66 +254,66 @@
       "ticker_name": "台積電",
       "market": "TWSE",
       "monthly_net": [
-        -474000,
         1176000,
-        -1823000
+        -1823000,
+        1970000
       ],
-      "total_net": -1121000,
+      "total_net": 1323000,
       "funds": {
         "allianz-dam": {
-          "curr": 4.87,
-          "prev": 6.31,
-          "diff": 0
+          "curr": 7.08,
+          "prev": 4.87,
+          "diff": 995000
         },
         "allianz-tech": {
-          "curr": 5.63,
-          "prev": 8.22,
-          "diff": -1328000
+          "curr": 5.94,
+          "prev": 5.63,
+          "diff": 558000
         },
         "fhtrust-allround": {
-          "curr": 4.29,
-          "prev": 5.74,
-          "diff": 0
+          "curr": 5.29,
+          "prev": 4.29,
+          "diff": 81000
         },
         "fhtrust-highgrowth": {
-          "curr": null,
-          "prev": 6.61,
-          "diff": -420000
+          "curr": 6.38,
+          "prev": null,
+          "diff": 520000
         },
         "nomura-hightech": {
-          "curr": 3.6,
-          "prev": 5.01,
+          "curr": 3.76,
+          "prev": 3.6,
           "diff": 0
         },
         "nomura-quality": {
-          "curr": 7.63,
-          "prev": 9.97,
+          "curr": 7.66,
+          "prev": 7.63,
           "diff": 0
         },
         "taishin-mainstream": {
-          "curr": 6.17,
-          "prev": 9.23,
-          "diff": -15000
+          "curr": 5.97,
+          "prev": 6.17,
+          "diff": 0
         },
         "unitec-allweather": {
-          "curr": 7.99,
-          "prev": 9.47,
-          "diff": 0
+          "curr": 6.7,
+          "prev": 7.99,
+          "diff": -120000
         },
         "unitec-darkhorse": {
-          "curr": 5.93,
-          "prev": 8.15,
-          "diff": -100000
+          "curr": 6.0,
+          "prev": 5.93,
+          "diff": 0
         },
         "unitec-gallop": {
-          "curr": 7.97,
-          "prev": 9.34,
-          "diff": 40000
+          "curr": 8.33,
+          "prev": 7.97,
+          "diff": 151000
         },
         "yuanta-newmain": {
-          "curr": 6.76,
-          "prev": 8.27,
-          "diff": 0
+          "curr": 6.02,
+          "prev": 6.76,
+          "diff": -215000
         }
       }
     },
@@ -274,57 +321,32 @@
       "ticker_name": "華邦電",
       "market": "TWSE",
       "monthly_net": [
-        4561000,
         -111684000,
+        0,
         0
       ],
-      "total_net": -107123000,
+      "total_net": -111684000,
       "funds": {}
     },
     "2345": {
       "ticker_name": "智邦",
       "market": "TWSE",
       "monthly_net": [
-        -2062000,
         1795000,
-        -2277000
+        -2277000,
+        -2107000
       ],
-      "total_net": -2544000,
+      "total_net": -2589000,
       "funds": {
-        "allianz-dam": {
-          "curr": null,
-          "prev": 3.27,
-          "diff": -1271000
-        },
-        "fhtrust-allround": {
-          "curr": null,
-          "prev": 5.69,
-          "diff": -295000
-        },
-        "fhtrust-highgrowth": {
-          "curr": null,
-          "prev": 6.07,
-          "diff": -440000
-        },
         "unitec-allweather": {
-          "curr": 3.41,
-          "prev": 4.19,
-          "diff": 0
+          "curr": null,
+          "prev": 3.41,
+          "diff": -343000
         },
         "unitec-gallop": {
-          "curr": 4.86,
-          "prev": 5.99,
-          "diff": 0
-        },
-        "unitec-gc-smid": {
           "curr": null,
-          "prev": 4.29,
-          "diff": -45000
-        },
-        "unitec-smid": {
-          "curr": null,
-          "prev": 7.09,
-          "diff": -226000
+          "prev": 4.86,
+          "diff": -1764000
         }
       }
     },
@@ -332,43 +354,37 @@
       "ticker_name": "致茂",
       "market": "TWSE",
       "monthly_net": [
-        -420000,
         710000,
-        -710000
+        -710000,
+        0
       ],
-      "total_net": -420000,
-      "funds": {
-        "unitec-smid": {
-          "curr": null,
-          "prev": 7.13,
-          "diff": -230000
-        },
-        "yuanta-newmain": {
-          "curr": null,
-          "prev": 4.58,
-          "diff": -480000
-        }
-      }
+      "total_net": 0,
+      "funds": {}
     },
     "2368": {
       "ticker_name": "金像電",
       "market": "TWSE",
       "monthly_net": [
-        -7061000,
         0,
-        15792000
+        15792000,
+        1770000
       ],
-      "total_net": 8731000,
+      "total_net": 17562000,
       "funds": {
         "allianz-tech": {
           "curr": 4.93,
-          "prev": null,
-          "diff": 13088000
+          "prev": 4.93,
+          "diff": 1207000
         },
         "nomura-quality": {
-          "curr": 3.95,
+          "curr": 3.69,
+          "prev": 3.95,
+          "diff": 0
+        },
+        "unitec-smid": {
+          "curr": 7.55,
           "prev": null,
-          "diff": 2704000
+          "diff": 563000
         }
       }
     },
@@ -376,88 +392,77 @@
       "ticker_name": "技嘉",
       "market": "TWSE",
       "monthly_net": [
-        0,
         2450000,
-        -2450000
+        -2450000,
+        0
       ],
       "total_net": 0,
-      "funds": {
-        "nomura-hightech": {
-          "curr": null,
-          "prev": 4.89,
-          "diff": -2450000
-        }
-      }
+      "funds": {}
     },
     "2383": {
       "ticker_name": "台光電",
       "market": "TWSE",
       "monthly_net": [
-        -108000,
         -24000,
-        -1428000
+        -1428000,
+        -1633000
       ],
-      "total_net": -1560000,
+      "total_net": -3085000,
       "funds": {
-        "allianz-dam": {
-          "curr": null,
-          "prev": 7.07,
-          "diff": -1231000
-        },
         "allianz-tech": {
-          "curr": 5.32,
-          "prev": 5.64,
-          "diff": 0
+          "curr": 3.15,
+          "prev": 5.32,
+          "diff": -924000
         },
         "fhtrust-allround": {
-          "curr": 6.74,
-          "prev": 7.75,
-          "diff": 0
+          "curr": 4.62,
+          "prev": 6.74,
+          "diff": -30000
         },
         "fhtrust-highgrowth": {
-          "curr": 11.75,
-          "prev": 13.09,
+          "curr": 10.37,
+          "prev": 11.75,
           "diff": 0
         },
         "nomura-quality": {
-          "curr": 8.3,
-          "prev": 9.29,
+          "curr": 7.26,
+          "prev": 8.3,
           "diff": 0
         },
         "taishin-mainstream": {
-          "curr": 7.76,
-          "prev": 9.56,
-          "diff": -6000
+          "curr": 6.55,
+          "prev": 7.76,
+          "diff": 0
         },
         "unitec-allweather": {
-          "curr": 8.04,
-          "prev": 9.95,
-          "diff": -65000
-        },
-        "unitec-darkhorse": {
-          "curr": 6.04,
-          "prev": 7.87,
+          "curr": 4.76,
+          "prev": 8.04,
           "diff": -100000
         },
+        "unitec-darkhorse": {
+          "curr": 4.26,
+          "prev": 6.04,
+          "diff": -97000
+        },
         "unitec-gallop": {
-          "curr": 9.07,
-          "prev": 9.65,
-          "diff": -48000
+          "curr": 7.64,
+          "prev": 9.07,
+          "diff": -25000
         },
         "unitec-gc-smid": {
-          "curr": 6.56,
-          "prev": 8.09,
-          "diff": -8000
+          "curr": 3.84,
+          "prev": 6.56,
+          "diff": -10000
         },
         "unitec-smid": {
-          "curr": 7.2,
-          "prev": 8.61,
-          "diff": -13000
+          "curr": null,
+          "prev": 7.2,
+          "diff": -110000
         },
         "yuanta-newmain": {
-          "curr": 6.92,
-          "prev": 6.34,
-          "diff": 43000
+          "curr": null,
+          "prev": 6.92,
+          "diff": -337000
         }
       }
     },
@@ -465,41 +470,41 @@
       "ticker_name": "南亞科",
       "market": "TWSE",
       "monthly_net": [
-        570000,
         2975000,
-        5511000
+        5511000,
+        -6008000
       ],
-      "total_net": 9056000,
+      "total_net": 2478000,
       "funds": {
         "fhtrust-allround": {
-          "curr": 3.73,
-          "prev": null,
-          "diff": 1007000
+          "curr": null,
+          "prev": 3.73,
+          "diff": -1007000
         },
         "fhtrust-highgrowth": {
-          "curr": 9.85,
-          "prev": 8.42,
+          "curr": 9.24,
+          "prev": 9.85,
           "diff": 0
         },
         "nomura-hightech": {
-          "curr": 8.35,
-          "prev": 6.73,
-          "diff": 434000
+          "curr": 5.98,
+          "prev": 8.35,
+          "diff": -931000
         },
         "taishin-mainstream": {
-          "curr": 4.32,
-          "prev": null,
-          "diff": 270000
+          "curr": null,
+          "prev": 4.32,
+          "diff": -270000
         },
         "unitec-darkhorse": {
-          "curr": 3.51,
-          "prev": null,
-          "diff": 2844000
+          "curr": null,
+          "prev": 3.51,
+          "diff": -2844000
         },
         "unitec-smid": {
-          "curr": 6.19,
-          "prev": null,
-          "diff": 956000
+          "curr": null,
+          "prev": 6.19,
+          "diff": -956000
         }
       }
     },
@@ -507,46 +512,56 @@
       "ticker_name": "聯發科",
       "market": "TWSE",
       "monthly_net": [
-        421000,
         57000,
-        -1254000
+        -1254000,
+        1559000
       ],
-      "total_net": -776000,
+      "total_net": 362000,
       "funds": {
         "fhtrust-allround": {
-          "curr": null,
-          "prev": 3.78,
-          "diff": -117000
+          "curr": 4.79,
+          "prev": null,
+          "diff": 156000
         },
         "fhtrust-highgrowth": {
-          "curr": null,
-          "prev": 7.61,
-          "diff": -330000
+          "curr": 7.3,
+          "prev": null,
+          "diff": 300000
         },
         "nomura-quality": {
-          "curr": 5.47,
-          "prev": 6.42,
+          "curr": 6.68,
+          "prev": 5.47,
           "diff": 0
         },
         "taishin-mainstream": {
-          "curr": 4.97,
-          "prev": 5.71,
+          "curr": 5.85,
+          "prev": 4.97,
           "diff": 0
         },
         "unitec-allweather": {
-          "curr": null,
-          "prev": 5.92,
-          "diff": -290000
+          "curr": 5.69,
+          "prev": null,
+          "diff": 240000
         },
         "unitec-darkhorse": {
-          "curr": null,
-          "prev": 4.39,
-          "diff": -436000
+          "curr": 3.94,
+          "prev": null,
+          "diff": 360000
         },
         "unitec-gallop": {
-          "curr": 5.87,
-          "prev": 6.74,
-          "diff": -81000
+          "curr": 7.85,
+          "prev": 5.87,
+          "diff": 131000
+        },
+        "unitec-smid": {
+          "curr": 5.19,
+          "prev": null,
+          "diff": 88000
+        },
+        "yuanta-newmain": {
+          "curr": 6.34,
+          "prev": null,
+          "diff": 284000
         }
       }
     },
@@ -555,20 +570,25 @@
       "market": "TWSE",
       "monthly_net": [
         0,
-        0,
-        246000
+        246000,
+        582000
       ],
-      "total_net": 246000,
+      "total_net": 828000,
       "funds": {
-        "nomura-hightech": {
-          "curr": 5.89,
+        "allianz-dam": {
+          "curr": 3.5,
           "prev": null,
-          "diff": 179000
+          "diff": 649000
+        },
+        "nomura-hightech": {
+          "curr": 4.63,
+          "prev": 5.89,
+          "diff": 0
         },
         "unitec-smid": {
-          "curr": 6.12,
-          "prev": null,
-          "diff": 67000
+          "curr": null,
+          "prev": 6.12,
+          "diff": -67000
         }
       }
     },
@@ -576,61 +596,61 @@
       "ticker_name": "奇鋐",
       "market": "TWSE",
       "monthly_net": [
-        -659000,
         910000,
-        2789000
+        2789000,
+        -374000
       ],
-      "total_net": 3040000,
+      "total_net": 3325000,
       "funds": {
         "allianz-dam": {
-          "curr": 6.44,
-          "prev": null,
-          "diff": 1998000
+          "curr": 6.67,
+          "prev": 6.44,
+          "diff": 142000
         },
         "allianz-tech": {
-          "curr": 4.99,
-          "prev": 3.89,
-          "diff": 272000
+          "curr": 4.76,
+          "prev": 4.99,
+          "diff": 0
         },
         "fhtrust-allround": {
-          "curr": 5.33,
-          "prev": 5.07,
-          "diff": -13000
+          "curr": 3.94,
+          "prev": 5.33,
+          "diff": -44000
         },
         "fhtrust-highgrowth": {
-          "curr": 4.66,
-          "prev": null,
-          "diff": 270000
+          "curr": null,
+          "prev": 4.66,
+          "diff": -270000
         },
         "taishin-mainstream": {
-          "curr": 5.55,
-          "prev": 4.59,
-          "diff": 2000
+          "curr": 5.23,
+          "prev": 5.55,
+          "diff": 0
         },
         "unitec-allweather": {
-          "curr": 7.86,
-          "prev": 6.26,
+          "curr": 7.78,
+          "prev": 7.86,
           "diff": 0
         },
         "unitec-darkhorse": {
-          "curr": 4.84,
-          "prev": 6.51,
-          "diff": -368000
-        },
-        "unitec-gallop": {
-          "curr": 7.67,
-          "prev": 6.02,
-          "diff": 34000
-        },
-        "unitec-smid": {
-          "curr": 9.28,
-          "prev": 7.77,
+          "curr": 4.76,
+          "prev": 4.84,
           "diff": 0
         },
+        "unitec-gallop": {
+          "curr": 7.35,
+          "prev": 7.67,
+          "diff": 0
+        },
+        "unitec-smid": {
+          "curr": 7.7,
+          "prev": 9.28,
+          "diff": -40000
+        },
         "yuanta-newmain": {
-          "curr": 7.62,
-          "prev": null,
-          "diff": 594000
+          "curr": 6.73,
+          "prev": 7.62,
+          "diff": -162000
         }
       }
     },
@@ -638,21 +658,26 @@
       "ticker_name": "禾伸堂",
       "market": "TWSE",
       "monthly_net": [
-        -106000,
         1104000,
-        1245000
+        1245000,
+        -366000
       ],
-      "total_net": 2243000,
+      "total_net": 1983000,
       "funds": {
-        "fhtrust-highgrowth": {
-          "curr": 4.3,
+        "fhtrust-allround": {
+          "curr": 3.87,
           "prev": null,
-          "diff": 1150000
+          "diff": 784000
+        },
+        "fhtrust-highgrowth": {
+          "curr": null,
+          "prev": 4.3,
+          "diff": -1150000
         },
         "nomura-hightech": {
-          "curr": 5.29,
-          "prev": 4.18,
-          "diff": 95000
+          "curr": 5.71,
+          "prev": 5.29,
+          "diff": 0
         }
       }
     },
@@ -667,8 +692,8 @@
       "total_net": 0,
       "funds": {
         "nomura-hightech": {
-          "curr": 4.17,
-          "prev": 5.78,
+          "curr": 4.43,
+          "prev": 4.17,
           "diff": 0
         }
       }
@@ -677,71 +702,71 @@
       "ticker_name": "欣興",
       "market": "TWSE",
       "monthly_net": [
-        -2134000,
         17238000,
-        2205000
+        2205000,
+        -4272000
       ],
-      "total_net": 17309000,
+      "total_net": 15171000,
       "funds": {
         "allianz-dam": {
-          "curr": 4.62,
-          "prev": 4.69,
-          "diff": 0
+          "curr": null,
+          "prev": 4.62,
+          "diff": -4916000
         },
         "allianz-tech": {
-          "curr": 5.16,
-          "prev": 4.52,
-          "diff": 1452000
+          "curr": 6.28,
+          "prev": 5.16,
+          "diff": 1411000
         },
         "fhtrust-allround": {
-          "curr": 6.14,
-          "prev": 6.44,
+          "curr": 6.61,
+          "prev": 6.14,
           "diff": 0
         },
         "fhtrust-highgrowth": {
-          "curr": 9.57,
-          "prev": 9.7,
+          "curr": 11.04,
+          "prev": 9.57,
           "diff": 0
         },
         "nomura-quality": {
-          "curr": 7.48,
-          "prev": 6.7,
-          "diff": 727000
+          "curr": 8.56,
+          "prev": 7.48,
+          "diff": 0
         },
         "taishin-mainstream": {
-          "curr": 7.71,
-          "prev": 7.69,
+          "curr": 8.51,
+          "prev": 7.71,
           "diff": 0
         },
         "unitec-allweather": {
-          "curr": 8.78,
-          "prev": 8.14,
-          "diff": 0
+          "curr": 9.91,
+          "prev": 8.78,
+          "diff": -50000
         },
         "unitec-darkhorse": {
-          "curr": 5.02,
-          "prev": 4.93,
+          "curr": 5.79,
+          "prev": 5.02,
           "diff": 0
         },
         "unitec-gallop": {
-          "curr": 7.59,
-          "prev": 7.02,
-          "diff": 43000
+          "curr": 8.53,
+          "prev": 7.59,
+          "diff": 0
         },
         "unitec-gc-smid": {
-          "curr": 3.78,
-          "prev": 3.35,
+          "curr": 4.35,
+          "prev": 3.78,
           "diff": 0
         },
         "unitec-smid": {
-          "curr": 6.97,
-          "prev": 6.99,
-          "diff": -17000
+          "curr": 8.92,
+          "prev": 6.97,
+          "diff": 49000
         },
         "yuanta-newmain": {
-          "curr": 7.68,
-          "prev": 7.34,
-          "diff": 0
+          "curr": 6.85,
+          "prev": 7.68,
+          "diff": -766000
         }
       }
     },
@@ -749,36 +774,41 @@
       "ticker_name": "聯亞",
       "market": "TPEx",
       "monthly_net": [
-        -227000,
         -577000,
-        2922560
+        2922560,
+        -2374560
       ],
-      "total_net": 2118560,
+      "total_net": -29000,
       "funds": {
         "fhtrust-highgrowth": {
-          "curr": 5.87,
-          "prev": null,
-          "diff": 330000
+          "curr": 4.66,
+          "prev": 5.87,
+          "diff": 20000
         },
         "nomura-quality": {
-          "curr": 4.91,
-          "prev": null,
-          "diff": 1110560
+          "curr": null,
+          "prev": 4.91,
+          "diff": -1110560
         },
         "unitec-allweather": {
-          "curr": 4.91,
-          "prev": null,
-          "diff": 285000
+          "curr": null,
+          "prev": 4.91,
+          "diff": -285000
         },
         "unitec-darkhorse": {
-          "curr": 4.18,
+          "curr": null,
+          "prev": 4.18,
+          "diff": -521000
+        },
+        "unitec-smid": {
+          "curr": 6.39,
           "prev": null,
-          "diff": 521000
+          "diff": 198000
         },
         "yuanta-newmain": {
-          "curr": 8.94,
-          "prev": null,
-          "diff": 676000
+          "curr": null,
+          "prev": 8.94,
+          "diff": -676000
         }
       }
     },
@@ -786,16 +816,21 @@
       "ticker_name": "景碩",
       "market": "TWSE",
       "monthly_net": [
-        515000,
         -6792043,
-        4566043
+        4566043,
+        1200000
       ],
-      "total_net": -1711000,
+      "total_net": -1026000,
       "funds": {
         "allianz-dam": {
-          "curr": 3.52,
+          "curr": 4.02,
+          "prev": 3.52,
+          "diff": 0
+        },
+        "fhtrust-highgrowth": {
+          "curr": 5.76,
           "prev": null,
-          "diff": 4566043
+          "diff": 1200000
         }
       }
     },
@@ -803,38 +838,44 @@
       "ticker_name": "緯創",
       "market": "TWSE",
       "monthly_net": [
-        0,
         5020000,
-        -5020000
+        -5020000,
+        0
       ],
       "total_net": 0,
-      "funds": {
-        "nomura-hightech": {
-          "curr": null,
-          "prev": 4.59,
-          "diff": -4390000
-        },
-        "taishin-mainstream": {
-          "curr": null,
-          "prev": 4.14,
-          "diff": -630000
-        }
-      }
+      "funds": {}
     },
     "3363": {
       "ticker_name": "上詮",
       "market": "TPEx",
       "monthly_net": [
-        -201604,
         0,
-        201604
+        201604,
+        0
       ],
-      "total_net": 0,
+      "total_net": 201604,
       "funds": {
         "taishin-mainstream": {
-          "curr": 4.44,
+          "curr": 3.62,
+          "prev": 4.44,
+          "diff": 0
+        }
+      }
+    },
+    "3406": {
+      "ticker_name": "玉晶光",
+      "market": "TWSE",
+      "monthly_net": [
+        0,
+        0,
+        4446000
+      ],
+      "total_net": 4446000,
+      "funds": {
+        "allianz-dam": {
+          "curr": 3.59,
           "prev": null,
-          "diff": 201604
+          "diff": 4446000
         }
       }
     },
@@ -842,36 +883,46 @@
       "ticker_name": "創意",
       "market": "TWSE",
       "monthly_net": [
-        203000,
         44000,
-        765000
+        765000,
+        838000
       ],
-      "total_net": 1012000,
+      "total_net": 1647000,
       "funds": {
         "allianz-dam": {
-          "curr": 3.56,
-          "prev": null,
-          "diff": 620000
+          "curr": 6.41,
+          "prev": 3.56,
+          "diff": 258000
         },
         "allianz-tech": {
-          "curr": 5.52,
-          "prev": 4.22,
-          "diff": 0
+          "curr": 7.65,
+          "prev": 5.52,
+          "diff": 295000
         },
         "taishin-mainstream": {
-          "curr": 7.91,
-          "prev": 6.25,
-          "diff": 0
+          "curr": 8.9,
+          "prev": 7.91,
+          "diff": -4000
         },
         "unitec-darkhorse": {
-          "curr": 5.0,
-          "prev": 3.63,
-          "diff": 24000
+          "curr": 7.34,
+          "prev": 5.0,
+          "diff": 49000
+        },
+        "unitec-gc-smid": {
+          "curr": 4.7,
+          "prev": null,
+          "diff": 15000
         },
         "unitec-smid": {
-          "curr": 8.81,
+          "curr": 8.19,
+          "prev": 8.81,
+          "diff": -36000
+        },
+        "yuanta-newmain": {
+          "curr": 9.52,
           "prev": null,
-          "diff": 121000
+          "diff": 261000
         }
       }
     },
@@ -880,15 +931,37 @@
       "market": "TWSE",
       "monthly_net": [
         0,
-        0,
-        1920000
+        1920000,
+        -1920000
       ],
-      "total_net": 1920000,
+      "total_net": 0,
       "funds": {
         "yuanta-newmain": {
-          "curr": 4.65,
+          "curr": null,
+          "prev": 4.65,
+          "diff": -1920000
+        }
+      }
+    },
+    "3529": {
+      "ticker_name": "力旺",
+      "market": "TPEx",
+      "monthly_net": [
+        0,
+        0,
+        1242000
+      ],
+      "total_net": 1242000,
+      "funds": {
+        "nomura-quality": {
+          "curr": 3.72,
           "prev": null,
-          "diff": 1920000
+          "diff": 924000
+        },
+        "yuanta-newmain": {
+          "curr": 4.77,
+          "prev": null,
+          "diff": 318000
         }
       }
     },
@@ -896,41 +969,41 @@
       "ticker_name": "健策",
       "market": "TWSE",
       "monthly_net": [
-        379000,
         100000,
-        514000
+        514000,
+        -67000
       ],
-      "total_net": 993000,
+      "total_net": 547000,
       "funds": {
         "fhtrust-allround": {
-          "curr": 5.64,
-          "prev": null,
-          "diff": 138000
+          "curr": 6.32,
+          "prev": 5.64,
+          "diff": 11000
         },
         "nomura-quality": {
-          "curr": 10.61,
-          "prev": 8.45,
-          "diff": -98000
+          "curr": 11.72,
+          "prev": 10.61,
+          "diff": 0
         },
         "taishin-mainstream": {
-          "curr": 5.3,
-          "prev": null,
-          "diff": 30000
+          "curr": 5.64,
+          "prev": 5.3,
+          "diff": 0
         },
         "unitec-gallop": {
-          "curr": 8.08,
-          "prev": 5.39,
-          "diff": 18000
+          "curr": 9.05,
+          "prev": 8.08,
+          "diff": 33000
         },
         "unitec-smid": {
-          "curr": 6.86,
-          "prev": null,
-          "diff": 96000
+          "curr": 6.76,
+          "prev": 6.86,
+          "diff": -13000
         },
         "yuanta-newmain": {
-          "curr": 7.41,
-          "prev": null,
-          "diff": 330000
+          "curr": 7.16,
+          "prev": 7.41,
+          "diff": -98000
         }
       }
     },
@@ -938,43 +1011,27 @@
       "ticker_name": "貿聯-KY",
       "market": "TWSE",
       "monthly_net": [
-        0,
         2104506,
-        -2104506
+        -2104506,
+        0
       ],
       "total_net": 0,
-      "funds": {
-        "unitec-allweather": {
-          "curr": null,
-          "prev": 4.53,
-          "diff": -375424
-        },
-        "unitec-gallop": {
-          "curr": null,
-          "prev": 5.11,
-          "diff": -1522082
-        },
-        "unitec-smid": {
-          "curr": null,
-          "prev": 6.42,
-          "diff": -207000
-        }
-      }
+      "funds": {}
     },
     "3711": {
       "ticker_name": "日月光投控",
       "market": "TWSE",
       "monthly_net": [
-        0,
         1250000,
-        -1250000
+        -1250000,
+        2509000
       ],
-      "total_net": 0,
+      "total_net": 2509000,
       "funds": {
-        "unitec-allweather": {
-          "curr": null,
-          "prev": 3.99,
-          "diff": -1250000
+        "unitec-darkhorse": {
+          "curr": 3.93,
+          "prev": null,
+          "diff": 2509000
         }
       }
     },
@@ -982,32 +1039,38 @@
       "ticker_name": "臻鼎-KY",
       "market": "TWSE",
       "monthly_net": [
-        2496000,
         -6177000,
-        0
+        0,
+        9184000
       ],
-      "total_net": -3681000,
-      "funds": {}
+      "total_net": 3007000,
+      "funds": {
+        "allianz-dam": {
+          "curr": 4.23,
+          "prev": null,
+          "diff": 9184000
+        }
+      }
     },
     "4979": {
       "ticker_name": "華星光",
       "market": "TPEx",
       "monthly_net": [
         0,
-        0,
-        -369000
+        -369000,
+        -2019000
       ],
-      "total_net": -369000,
+      "total_net": -2388000,
       "funds": {
         "nomura-hightech": {
-          "curr": 4.87,
-          "prev": 5.25,
-          "diff": -529000
+          "curr": null,
+          "prev": 4.87,
+          "diff": -1859000
         },
         "unitec-gc-smid": {
-          "curr": 3.88,
-          "prev": null,
-          "diff": 160000
+          "curr": null,
+          "prev": 3.88,
+          "diff": -160000
         }
       }
     },
@@ -1015,26 +1078,41 @@
       "ticker_name": "信驊",
       "market": "TPEx",
       "monthly_net": [
-        -579000,
         29300,
-        88200
+        88200,
+        646800
       ],
-      "total_net": -461500,
+      "total_net": 764300,
       "funds": {
         "allianz-dam": {
-          "curr": 4.77,
-          "prev": 5.55,
+          "curr": 5.37,
+          "prev": 4.77,
           "diff": 0
+        },
+        "allianz-tech": {
+          "curr": 3.27,
+          "prev": null,
+          "diff": 566500
+        },
+        "unitec-allweather": {
+          "curr": 4.03,
+          "prev": null,
+          "diff": 44600
         },
         "unitec-gc-smid": {
-          "curr": 4.22,
-          "prev": 4.3,
+          "curr": 4.82,
+          "prev": 4.22,
           "diff": 0
         },
-        "yuanta-newmain": {
-          "curr": 5.31,
+        "unitec-smid": {
+          "curr": 5.32,
           "prev": null,
-          "diff": 88200
+          "diff": 23700
+        },
+        "yuanta-newmain": {
+          "curr": 8.52,
+          "prev": 5.31,
+          "diff": 12000
         }
       }
     },
@@ -1042,89 +1120,66 @@
       "ticker_name": "世界",
       "market": "TPEx",
       "monthly_net": [
-        8295000,
         2493000,
-        -10788000
+        -10788000,
+        0
       ],
-      "total_net": 0,
-      "funds": {
-        "yuanta-newmain": {
-          "curr": null,
-          "prev": 7.43,
-          "diff": -10788000
-        }
-      }
+      "total_net": -8295000,
+      "funds": {}
     },
     "5483": {
       "ticker_name": "中美晶",
       "market": "TPEx",
       "monthly_net": [
-        0,
         5658000,
-        -5658000
+        -5658000,
+        0
       ],
       "total_net": 0,
-      "funds": {
-        "yuanta-newmain": {
-          "curr": null,
-          "prev": 4.04,
-          "diff": -5658000
-        }
-      }
+      "funds": {}
     },
     "6139": {
       "ticker_name": "亞翔",
       "market": "TWSE",
       "monthly_net": [
-        0,
         100000,
-        -100000
+        -100000,
+        0
       ],
       "total_net": 0,
-      "funds": {
-        "unitec-gc-smid": {
-          "curr": null,
-          "prev": 3.17,
-          "diff": -100000
-        }
-      }
+      "funds": {}
     },
     "6147": {
       "ticker_name": "頎邦",
       "market": "TPEx",
       "monthly_net": [
-        -6313000,
         0,
-        0
-      ],
-      "total_net": -6313000,
-      "funds": {}
-    },
-    "6187": {
-      "ticker_name": "萬潤",
-      "market": "TPEx",
-      "monthly_net": [
-        -153000,
         0,
-        0
+        2126000
       ],
-      "total_net": -153000,
-      "funds": {}
+      "total_net": 2126000,
+      "funds": {
+        "unitec-smid": {
+          "curr": 5.34,
+          "prev": null,
+          "diff": 2126000
+        }
+      }
     },
     "6213": {
       "ticker_name": "聯茂",
       "market": "TWSE",
       "monthly_net": [
         0,
-        0,
-        2211687
+        2211687,
+        380000
       ],
-      "total_net": 2211687,
+      "total_net": 2591687,
       "funds": {
         "nomura-hightech": {
-          "curr": 5.21,
-          "prev": null,
-          "diff": 2211687
+          "curr": 7.03,
+          "prev": 5.21,
+          "diff": 380000
         }
       }
     },
@@ -1132,71 +1187,31 @@
       "ticker_name": "旺矽",
       "market": "TPEx",
       "monthly_net": [
-        583000,
         233000,
-        -1845000
+        -1845000,
+        -485000
       ],
-      "total_net": -1029000,
+      "total_net": -2097000,
       "funds": {
         "allianz-dam": {
-          "curr": 8.65,
-          "prev": 12.74,
-          "diff": -201000
+          "curr": 6.82,
+          "prev": 8.65,
+          "diff": -325000
         },
         "allianz-tech": {
-          "curr": 6.04,
-          "prev": 7.61,
+          "curr": 5.74,
+          "prev": 6.04,
           "diff": 0
-        },
-        "fhtrust-allround": {
-          "curr": null,
-          "prev": 4.6,
-          "diff": -96000
-        },
-        "fhtrust-highgrowth": {
-          "curr": null,
-          "prev": 7.71,
-          "diff": -225000
-        },
-        "nomura-quality": {
-          "curr": null,
-          "prev": 4.91,
-          "diff": -573000
-        },
-        "taishin-mainstream": {
-          "curr": null,
-          "prev": 7.29,
-          "diff": -37000
         },
         "unitec-allweather": {
-          "curr": 4.01,
-          "prev": 4.85,
-          "diff": 0
-        },
-        "unitec-darkhorse": {
           "curr": null,
-          "prev": 4.19,
-          "diff": -280000
+          "prev": 4.01,
+          "diff": -160000
         },
         "unitec-gallop": {
-          "curr": 5.7,
-          "prev": 7.19,
-          "diff": -30000
-        },
-        "unitec-gc-smid": {
-          "curr": null,
-          "prev": 4.74,
-          "diff": -20000
-        },
-        "unitec-smid": {
-          "curr": null,
-          "prev": 6.16,
-          "diff": -79000
-        },
-        "yuanta-newmain": {
-          "curr": null,
-          "prev": 7.3,
-          "diff": -304000
+          "curr": 5.43,
+          "prev": 5.7,
+          "diff": 0
         }
       }
     },
@@ -1204,41 +1219,53 @@
       "ticker_name": "台燿",
       "market": "TPEx",
       "monthly_net": [
-        743000,
         -2378000,
-        -997000
+        -997000,
+        -13913000
       ],
-      "total_net": -2632000,
+      "total_net": -17288000,
       "funds": {
         "allianz-dam": {
-          "curr": 3.55,
-          "prev": 5.74,
-          "diff": -1639000
+          "curr": null,
+          "prev": 3.55,
+          "diff": -2631000
         },
         "allianz-tech": {
-          "curr": 4.5,
-          "prev": 4.26,
-          "diff": 0
+          "curr": null,
+          "prev": 4.5,
+          "diff": -9700000
         },
         "nomura-hightech": {
-          "curr": 3.98,
-          "prev": 4.25,
-          "diff": 0
+          "curr": null,
+          "prev": 3.98,
+          "diff": -645000
         },
         "taishin-mainstream": {
-          "curr": 6.94,
-          "prev": 6.8,
+          "curr": 6.9,
+          "prev": 6.94,
           "diff": 0
         },
-        "unitec-smid": {
-          "curr": null,
-          "prev": 4.83,
-          "diff": -295000
-        },
         "yuanta-newmain": {
-          "curr": 5.04,
+          "curr": null,
+          "prev": 5.04,
+          "diff": -937000
+        }
+      }
+    },
+    "6442": {
+      "ticker_name": "光聖",
+      "market": "TWSE",
+      "monthly_net": [
+        0,
+        0,
+        529000
+      ],
+      "total_net": 529000,
+      "funds": {
+        "nomura-hightech": {
+          "curr": 3.43,
           "prev": null,
-          "diff": 937000
+          "diff": 529000
         }
       }
     },
@@ -1246,80 +1273,58 @@
       "ticker_name": "環球晶",
       "market": "TPEx",
       "monthly_net": [
-        1410000,
         454000,
-        -1864000
+        -1864000,
+        0
       ],
-      "total_net": 0,
-      "funds": {
-        "yuanta-newmain": {
-          "curr": null,
-          "prev": 7.25,
-          "diff": -1864000
-        }
-      }
+      "total_net": -1410000,
+      "funds": {}
     },
     "6515": {
       "ticker_name": "穎崴",
       "market": "TWSE",
       "monthly_net": [
-        -98000,
         0,
-        -3012000
+        -3012000,
+        0
       ],
-      "total_net": -3110000,
-      "funds": {
-        "allianz-dam": {
-          "curr": null,
-          "prev": 6.18,
-          "diff": -877000
-        },
-        "allianz-tech": {
-          "curr": null,
-          "prev": 3.87,
-          "diff": -1680000
-        },
-        "nomura-quality": {
-          "curr": null,
-          "prev": 4.29,
-          "diff": -455000
-        }
-      }
+      "total_net": -3012000,
+      "funds": {}
     },
     "6669": {
       "ticker_name": "緯穎",
       "market": "TWSE",
       "monthly_net": [
-        0,
         484000,
-        1210000
+        1210000,
+        -511622
       ],
-      "total_net": 1694000,
+      "total_net": 1182378,
       "funds": {
         "allianz-dam": {
-          "curr": 3.71,
-          "prev": null,
-          "diff": 555000
+          "curr": null,
+          "prev": 3.71,
+          "diff": -555000
         },
         "fhtrust-highgrowth": {
-          "curr": 4.29,
-          "prev": null,
-          "diff": 120000
+          "curr": null,
+          "prev": 4.29,
+          "diff": -120000
         },
         "unitec-darkhorse": {
-          "curr": 7.14,
-          "prev": 5.77,
-          "diff": 65000
+          "curr": 5.5,
+          "prev": 7.14,
+          "diff": 739378
         },
         "unitec-gallop": {
-          "curr": 4.95,
-          "prev": null,
-          "diff": 516000
+          "curr": null,
+          "prev": 4.95,
+          "diff": -516000
         },
         "unitec-smid": {
-          "curr": 5.08,
-          "prev": 8.43,
-          "diff": -46000
+          "curr": null,
+          "prev": 5.08,
+          "diff": -60000
         }
       }
     },
@@ -1327,11 +1332,11 @@
       "ticker_name": "雍智科技",
       "market": "TPEx",
       "monthly_net": [
-        88000,
         -88000,
+        0,
         0
       ],
-      "total_net": 0,
+      "total_net": -88000,
       "funds": {}
     },
     "6805": {
@@ -1339,25 +1344,25 @@
       "market": "TWSE",
       "monthly_net": [
         0,
-        0,
-        1567000
+        1567000,
+        -492000
       ],
-      "total_net": 1567000,
+      "total_net": 1075000,
       "funds": {
         "fhtrust-allround": {
-          "curr": 3.49,
-          "prev": null,
-          "diff": 222000
+          "curr": 3.74,
+          "prev": 3.49,
+          "diff": 22000
         },
         "unitec-darkhorse": {
-          "curr": 5.7,
-          "prev": null,
-          "diff": 1089000
+          "curr": 4.54,
+          "prev": 5.7,
+          "diff": -258000
         },
         "unitec-smid": {
-          "curr": 7.04,
-          "prev": null,
-          "diff": 256000
+          "curr": null,
+          "prev": 7.04,
+          "diff": -256000
         }
       }
     },
@@ -1365,26 +1370,16 @@
       "ticker_name": "鴻勁",
       "market": "TWSE",
       "monthly_net": [
-        -425000,
         148000,
-        -148000
+        -148000,
+        0
       ],
-      "total_net": -425000,
+      "total_net": 0,
       "funds": {
-        "fhtrust-highgrowth": {
-          "curr": null,
-          "prev": 5.21,
-          "diff": -130000
-        },
         "nomura-quality": {
-          "curr": 5.83,
-          "prev": 7.96,
+          "curr": 5.33,
+          "prev": 5.83,
           "diff": 0
-        },
-        "taishin-mainstream": {
-          "curr": null,
-          "prev": 4.15,
-          "diff": -18000
         }
       }
     },
@@ -1393,15 +1388,15 @@
       "market": "TWSE",
       "monthly_net": [
         0,
-        0,
-        232000
+        232000,
+        -232000
       ],
-      "total_net": 232000,
+      "total_net": 0,
       "funds": {
         "unitec-gc-smid": {
-          "curr": 3.02,
-          "prev": null,
-          "diff": 232000
+          "curr": null,
+          "prev": 3.02,
+          "diff": -232000
         }
       }
     },
@@ -1409,51 +1404,46 @@
       "ticker_name": "南電",
       "market": "TWSE",
       "monthly_net": [
-        4966000,
         261000,
-        9368000
+        9368000,
+        -2410000
       ],
-      "total_net": 14595000,
+      "total_net": 7219000,
       "funds": {
         "allianz-dam": {
-          "curr": 4.11,
-          "prev": 3.71,
-          "diff": 223000
+          "curr": null,
+          "prev": 4.11,
+          "diff": -3549000
         },
         "allianz-tech": {
-          "curr": 4.28,
-          "prev": null,
-          "diff": 10749000
+          "curr": 4.43,
+          "prev": 4.28,
+          "diff": 0
         },
         "fhtrust-allround": {
-          "curr": 5.89,
-          "prev": 5.86,
+          "curr": 5.87,
+          "prev": 5.89,
           "diff": 0
         },
         "fhtrust-highgrowth": {
-          "curr": 7.13,
-          "prev": 6.87,
+          "curr": 7.62,
+          "prev": 7.13,
           "diff": 0
         },
         "unitec-allweather": {
-          "curr": 4.37,
-          "prev": null,
-          "diff": 728000
+          "curr": 4.45,
+          "prev": 4.37,
+          "diff": -39000
         },
         "unitec-darkhorse": {
-          "curr": null,
-          "prev": 3.03,
-          "diff": -1164000
+          "curr": 4.47,
+          "prev": null,
+          "diff": 1497000
         },
         "unitec-smid": {
-          "curr": 4.68,
-          "prev": 5.25,
-          "diff": -68000
-        },
-        "yuanta-newmain": {
           "curr": null,
-          "prev": 4.6,
-          "diff": -1100000
+          "prev": 4.68,
+          "diff": -319000
         }
       }
     },
@@ -1461,19 +1451,19 @@
       "ticker_name": "群聯",
       "market": "TPEx",
       "monthly_net": [
-        10000,
         -510000,
+        0,
         0
       ],
-      "total_net": -500000,
+      "total_net": -510000,
       "funds": {}
     },
     "8358": {
       "ticker_name": "金居",
       "market": "TPEx",
       "monthly_net": [
-        0,
         -250000,
+        0,
         0
       ],
       "total_net": -250000,
