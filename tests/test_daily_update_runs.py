@@ -423,3 +423,49 @@ def test_main_dispatches_on_the_arguments(monkeypatch, main):
     assert du._main(["a", "b", "c"]) == 1
     assert calls == [("date", date(2026, 10, 14)),
                      ("range", date(2026, 10, 12), date(2026, 10, 14))]
+
+
+# ── monthly revenue verdict ────────────────────────────────────────────────
+
+OK2 = {"sii": ("ok", 987), "otc": ("ok", 864)}
+FULL = {"sii": 980, "otc": 850}
+
+
+@pytest.mark.parametrize("trade_date, fetched, base", [
+    (date(2026, 10, 14), "2026-09", "2026-08"),
+    (date(2026, 1, 5), "2025-12", "2025-11"),
+    (date(2026, 2, 5), "2026-01", "2025-12"),
+])
+def test_revenue_months(trade_date, fetched, base):
+    assert du._revenue_months(trade_date) == (fetched, base)
+
+
+@pytest.mark.parametrize("by_market, day, have, status, reason", [
+    # Before the deadline: what answered is enough.
+    (OK2, 3, {}, "ok", None),
+    ({"sii": ("ok", 120), "otc": ("unpublished", 0)}, 3, {}, "ok", None),
+    ({"sii": ("unpublished", 0), "otc": ("unpublished", 0)}, 1, {}, "skip", "尚未公布"),
+    ({"sii": ("ok", 120), "otc": ("no_response", 0)}, 10, {}, "failed", "上櫃沒有回應或 HTTP 錯誤"),
+    ({"sii": ("unreadable", 0), "otc": ("unpublished", 0)}, 2, {}, "failed", "上市頁面讀不出資料"),
+    # From the 11th: the companies on record decide.
+    (OK2, 11, FULL, "ok", None),
+    (OK2, 15, {"sii": 882, "otc": 765}, "ok", None),                     # exactly 90%
+    ({"sii": ("ok", 500), "otc": ("ok", 864)}, 11, {"sii": 500, "otc": 850}, "failed",
+     "上市 2026-09 只有 500 家（2026-08 有 980 家；這次：有資料）"),
+    ({"sii": ("unpublished", 0), "otc": ("ok", 864)}, 12, {"sii": 0, "otc": 850}, "failed",
+     "上市 2026-09 只有 0 家（2026-08 有 980 家；這次：尚未公布）"),
+    ({"sii": ("no_response", 0), "otc": ("ok", 864)}, 13, FULL, "ok", None),  # got earlier
+    ({"sii": ("unreadable", 0), "otc": ("ok", 864)}, 13, FULL, "failed", "上市頁面讀不出資料"),
+])
+def test_revenue_verdict(by_market, day, have, status, reason):
+    assert du._revenue_verdict(by_market, day, have, FULL, "2026-09", "2026-08") == (status, reason)
+
+
+def test_revenue_verdict_without_a_base_month_only_needs_rows():
+    empty = {"sii": 0, "otc": 0}
+    assert du._revenue_verdict(OK2, 12, {"sii": 5, "otc": 3}, empty)[0] == "ok"
+    assert du._revenue_verdict(OK2, 12, {"sii": 5, "otc": 0}, empty)[0] == "failed"
+
+
+def test_revenue_verdict_just_under_the_ratio_fails():
+    assert du._revenue_verdict(OK2, 11, {"sii": 881, "otc": 850}, FULL)[0] == "failed"

@@ -337,6 +337,16 @@ def _save_monthly(cur, fund_db_id: int, period: str, holdings: list[dict]):
               h.get("rank"), h.get("weight"), h.get("amount")))
 
 
+def _funds_on_record(cur, table: str, period: str) -> set[str]:
+    """Fund codes that already have rows for this period in `table`."""
+    cur.execute(
+        f"SELECT DISTINCT f.code FROM {table} h JOIN tw.funds f ON f.id = h.fund_id "
+        f"WHERE h.period = %s",
+        (period,),
+    )
+    return {r["code"] for r in cur.fetchall()}
+
+
 def _save_quarterly(cur, fund_db_id: int, period: str, holdings: list[dict]):
     for h in holdings:
         if not h.get("is_domestic"):
@@ -416,88 +426,94 @@ def _query_company(session: requests.Session, url: str,
     return resp.text
 
 
-def scrape_monthly(period: str):
-    """
-    Scrape monthly Top 10 holdings from SITCA IN2629.
+def _scrape(period: str, url: str, kind: str, parse, save, table: str) -> list[str]:
+    """Query every registered company for one period and save what parses.
 
-    Args:
-        period: 'YYYYMM' format, e.g. '202603'
+    Returns the registered funds still missing for the period, one line each
+    with the reason; an empty list means the period is complete. A fund counts
+    as got when it parsed at least one holding and is in tw.funds -- not by
+    rows written, since only domestic holdings are kept and a fund can hold
+    none in a month. A fund the table already has for this period is not
+    missing: the window re-runs every night, and one failed request on a
+    period that is already complete is not a failure.
     """
     import time
 
     session = requests.Session()
 
-    print(f"  Setting up SITCA period {period} ...")
-    base_form = _setup_period(session, SITCA_URL, period)
+    print(f"  Setting up SITCA {kind} period {period} ...")
+    base_form = _setup_period(session, url, period)
 
+    got: set[str] = set()
+    why: dict[str, str] = {}
     with get_cursor() as cur:
         fund_id_map = _get_fund_id_map(cur)
 
-        for company_code in list(FUND_REGISTRY.keys()):
-            fund_list = FUND_REGISTRY[company_code]
-            print(f"  Fetching SITCA monthly {period} for {company_code} ...")
+        for company_code, fund_list in FUND_REGISTRY.items():
+            codes = [code for code, _ in fund_list]
+            print(f"  Fetching SITCA {kind} {period} for {company_code} ...")
 
             try:
                 time.sleep(3)
-                html = _query_company(session, SITCA_URL, base_form,
-                                      company_code, period)
+                html = _query_company(session, url, base_form, company_code, period)
             except Exception as e:
-                print(f"  [ERROR] SITCA request failed for {company_code}: {e}")
+                print(f"  [ERROR] SITCA {kind} request failed for {company_code}: {e}")
+                why.update({c: f"{company_code} 查詢失敗：{type(e).__name__}: {str(e)[:60]}"
+                            for c in codes})
                 continue
 
-            parsed = _parse_monthly_holdings(html, fund_list)
+            # The parsers only return funds with at least one holding, so a
+            # fund absent here may be on the page with nothing parsed.
+            parsed = parse(html, fund_list)
             if not parsed:
                 print(f"  [WARN] No matching funds found for {company_code}")
-                continue
+            for code in codes:
+                why.setdefault(code, f"{company_code} 頁面找不到這檔基金或解析不到持股")
 
             for fund_code, holdings in parsed.items():
                 fund_db_id = fund_id_map.get(fund_code)
                 if not fund_db_id:
                     print(f"  [WARN] Fund {fund_code} not in DB, skipping")
+                    why[fund_code] = "不在 tw.funds"
                     continue
-                _save_monthly(cur, fund_db_id, period, holdings)
+                save(cur, fund_db_id, period, holdings)
                 print(f"  {fund_code}: {len(holdings)} holdings saved")
+                got.add(fund_code)
+
+        on_record = _funds_on_record(cur, table, period)
+
+    registered = [code for fund_list in FUND_REGISTRY.values() for code, _ in fund_list]
+    missing = [f"{code}：{why.get(code, '未取得')}" for code in registered
+               if code not in got and code not in on_record]
+    if missing:
+        print(f"  [WARN] SITCA {kind} {period}: {len(missing)} fund(s) missing")
+        for line in missing:
+            print(f"    {line}")
+    return missing
 
 
-def scrape_quarterly(period: str):
+def scrape_monthly(period: str) -> list[str]:
+    """
+    Scrape monthly Top 10 holdings from SITCA IN2629.
+
+    Args:
+        period: 'YYYYMM' format, e.g. '202603'
+
+    Returns the registered funds still missing for the period (see _scrape).
+    """
+    return _scrape(period, SITCA_URL, "monthly", _parse_monthly_holdings,
+                   _save_monthly, "tw.fund_holdings_monthly")
+
+
+def scrape_quarterly(period: str) -> list[str]:
     """
     Scrape quarterly holdings from SITCA IN2630.
 
     Args:
         period: 'YYYYMM' format using quarter-end months (03/06/09/12),
                 e.g. '202603' for Q1 2026
+
+    Returns the registered funds still missing for the period (see _scrape).
     """
-    import time
-
-    session = requests.Session()
-
-    print(f"  Setting up SITCA quarterly period {period} ...")
-    base_form = _setup_period(session, SITCA_Q_URL, period)
-
-    with get_cursor() as cur:
-        fund_id_map = _get_fund_id_map(cur)
-
-        for company_code in list(FUND_REGISTRY.keys()):
-            fund_list = FUND_REGISTRY[company_code]
-            print(f"  Fetching SITCA quarterly {period} for {company_code} ...")
-
-            try:
-                time.sleep(3)
-                html = _query_company(session, SITCA_Q_URL, base_form,
-                                      company_code, period)
-            except Exception as e:
-                print(f"  [ERROR] SITCA quarterly request failed for {company_code}: {e}")
-                continue
-
-            parsed = _parse_quarterly_holdings(html, fund_list)
-            if not parsed:
-                print(f"  [WARN] No matching funds for {company_code}")
-                continue
-
-            for fund_code, holdings in parsed.items():
-                fund_db_id = fund_id_map.get(fund_code)
-                if not fund_db_id:
-                    print(f"  [WARN] Fund {fund_code} not in DB, skipping")
-                    continue
-                _save_quarterly(cur, fund_db_id, period, holdings)
-                print(f"  {fund_code}: {len(holdings)} holdings saved")
+    return _scrape(period, SITCA_Q_URL, "quarterly", _parse_quarterly_holdings,
+                   _save_quarterly, "tw.fund_holdings_quarterly")

@@ -11,6 +11,8 @@ Companies must publish previous month's revenue by the 10th of each month.
 import re
 from datetime import date
 
+import requests
+
 from db.connection import get_cursor
 from utils.http_client import fetch
 
@@ -39,10 +41,22 @@ def _parse_num(val: str):
         return None
 
 
-def _fetch_revenue(roc_year: int, month: int, market: str) -> list[dict]:
+# What one market's page turned out to be. The caller judges the night on
+# these; an empty list alone cannot tell them apart.
+NO_RESPONSE = "no_response"   # no answer after retries, or an HTTP error
+UNPUBLISHED = "unpublished"   # MOPS's own placeholder page: 查無資料
+UNREADABLE = "unreadable"     # a page, but not one we can read rows from
+OK = "ok"
+
+# MOPS pre-generates the page for a month nobody has filed yet; it answers 200
+# with this text and no table (checked 2026-10-15 against 115/10).
+_NOT_PUBLISHED_TEXT = "查無資料"
+
+
+def _fetch_revenue(roc_year: int, month: int, market: str) -> tuple[list[dict], str]:
     """
     Fetch monthly revenue for one market (sii or otc) from MOPS.
-    Returns list of parsed records.
+    Returns (parsed records, state), state being one of the four above.
     """
     if roc_year <= OLD_FORMAT_CUTOFF:
         url = MOPS_URL_OLD.format(market=market, year=roc_year, month=month)
@@ -50,18 +64,27 @@ def _fetch_revenue(roc_year: int, month: int, market: str) -> list[dict]:
         url = MOPS_URL_NEW.format(market=market, year=roc_year, month=month)
     print(f"Fetching {MARKET_MAP[market]} revenue for {roc_year + 1911}-{month:02d} ...")
 
-    resp = fetch(url, timeout=30)
+    try:
+        resp = fetch(url, timeout=30)
+    except requests.RequestException as e:
+        # fetch() only absorbs HTTP, connection and timeout errors. Anything
+        # else must not take the other market's records down with it.
+        print(f"  Request failed: {type(e).__name__}: {e}")
+        return [], NO_RESPONSE
     if resp is None:
-        print("  No response from MOPS.")
-        return []
+        print("  No response from MOPS (or an HTTP error).")
+        return [], NO_RESPONSE
 
     text = resp.content.decode("big5", errors="replace")
 
     # Extract all <tr>...</tr> blocks
     trs = re.findall(r"<tr[^>]*>(.*?)</tr>", text, re.DOTALL)
     if not trs:
-        print("  No table rows found.")
-        return []
+        if _NOT_PUBLISHED_TEXT in text:
+            print("  Not published yet (查無資料).")
+            return [], UNPUBLISHED
+        print(f"  No table rows found ({len(resp.content)} bytes).")
+        return [], UNREADABLE
 
     records = []
     for tr_html in trs:
@@ -104,23 +127,29 @@ def _fetch_revenue(roc_year: int, month: int, market: str) -> list[dict]:
         })
 
     print(f"  Parsed {len(records)} records.")
-    return records
+    if not records:
+        print(f"  Table rows but no company rows ({len(trs)} rows, "
+              f"{len(resp.content)} bytes) - the layout may have changed.")
+        return [], UNREADABLE
+    return records, OK
 
 
-def fetch_monthly_revenue(year: int, month: int) -> tuple[list[dict], int]:
+def fetch_monthly_revenue(year: int, month: int) -> tuple[list[dict], dict[str, tuple[str, int]]]:
     """
     Fetch monthly revenue for all markets (TWSE + TPEx).
     year/month are in Western calendar (e.g. 2026, 3).
-    Returns (records, total_api_rows).
+    Returns (records, {market slug: (state, record count)}).
     """
     roc_year = year - 1911
     all_records = []
+    by_market = {}
 
     for market in ("sii", "otc"):
-        records = _fetch_revenue(roc_year, month, market)
+        records, state = _fetch_revenue(roc_year, month, market)
         all_records.extend(records)
+        by_market[market] = (state, len(records))
 
-    return all_records, len(all_records)
+    return all_records, by_market
 
 
 def save_monthly_revenue(records: list[dict], year: int, month: int):
@@ -149,11 +178,12 @@ def save_monthly_revenue(records: list[dict], year: int, month: int):
     print(f"Saved {len(records)} revenue records for {year_month}.")
 
 
-def scrape_month(year: int, month: int):
-    """Fetch and save monthly revenue for a given year/month."""
-    records, _ = fetch_monthly_revenue(year, month)
+def scrape_month(year: int, month: int) -> dict[str, tuple[str, int]]:
+    """Fetch and save monthly revenue for a given year/month.
+    Returns {market slug: (state, record count)}."""
+    records, by_market = fetch_monthly_revenue(year, month)
     save_monthly_revenue(records, year, month)
-    return len(records)
+    return by_market
 
 
 def scrape_range(start_year: int, start_month: int,
@@ -163,8 +193,7 @@ def scrape_range(start_year: int, start_month: int,
     total = 0
 
     while (y, m) <= (end_year, end_month):
-        count = scrape_month(y, m)
-        total += count
+        total += sum(n for _, n in scrape_month(y, m).values())
         # Advance to next month
         m += 1
         if m > 12:

@@ -51,9 +51,10 @@ STAND_INS = {
 STDLIB_IMPORTS = {"os", "subprocess"}
 # Module-level functions of daily_update the body calls and this file replaces ...
 REPLACED_CALLS = {"_trading_day_gate", "run_scraper", "get_cursor", "detect_delisted",
-                  "_git_push_frontend", "send_sync"}
+                  "_git_push_frontend", "send_sync", "_revenue_counts"}
 # ... and the ones that are safe to run as they are.
-PURE_CALLS = {"_capture_trace", "_build_daily_update_message", "_run_outcome", "Path"}
+PURE_CALLS = {"_capture_trace", "_build_daily_update_message", "_run_outcome", "Path",
+              "_revenue_months", "_revenue_verdict", "_missing_funds_text"}
 
 RETURNS = {
     "strategies.registry.scan_daily": [],
@@ -63,6 +64,14 @@ RETURNS = {
     "analysis.market_breadth.calculate_market_breadth": [],
     "analysis.market_breadth.save_market_breadth": 0,
     "analysis.daily_liquidity.compute_daily_liquidity": 0,
+    # A normal night: both markets published, every fund got, messages sent.
+    "scrapers.revenue.scrape_month": {"sii": ("ok", 987), "otc": ("ok", 864)},
+    "scrapers.sitca.scrape_monthly": [],
+    "scrapers.sitca.scrape_quarterly": [],
+    "telegram_bot.push_daily_signals.push_daily_signals": 0,
+    "telegram_bot.push_conference_calendar.push_conference_calendar": 0,
+    # Companies on record per market, for both months the revenue step reads.
+    "_revenue_counts": {"sii": 980, "otc": 850},
 }
 
 
@@ -83,18 +92,21 @@ class _Night:
     """One run of the body. fail: stand-in names ("analysis.daily_snapshot.run")
     or scraper labels that fail."""
 
-    def __init__(self, monkeypatch, fail=(), send=True, through_update_date=False):
+    def __init__(self, monkeypatch, fail=(), send=True, through_update_date=False,
+                 returns=None, day=DAY):
         self.calls = []
         self.sent = []
         self.subprocesses = []
         fail = set(fail)
+        values = {**RETURNS, **(returns or {})}
 
         def stand_in(name):
             def _call(*args, **kwargs):
                 self.calls.append(name)
                 if name in fail:
                     raise RuntimeError(f"{name} failed")
-                return RETURNS.get(name)
+                value = values.get(name)
+                return value(*args) if callable(value) else value
             return _call
 
         for module, names in STAND_INS.items():
@@ -122,6 +134,7 @@ class _Night:
         monkeypatch.setattr(du, "get_cursor", get_cursor)
         monkeypatch.setattr(du, "detect_delisted", stand_in("detect_delisted"))
         monkeypatch.setattr(du, "_git_push_frontend", stand_in("_git_push_frontend"))
+        monkeypatch.setattr(du, "_revenue_counts", stand_in("_revenue_counts"))
         monkeypatch.setattr(du, "send_sync", send_sync)
         def subprocess_run(argv, **kwargs):
             self.subprocesses.append(argv)
@@ -134,12 +147,12 @@ class _Night:
             finished = []
             monkeypatch.setattr(du, "_run_start", lambda d: 1)
             monkeypatch.setattr(du, "_run_finish", lambda *args: finished.append(args))
-            self.outcome = du.update_date(DAY)
+            self.outcome = du.update_date(day)
             (_, _, self.recorded_outcome, self.results, self.traces, self.summary_sent), = finished
         else:
             self.results = []
             self.traces = {}
-            self.outcome, self.summary_sent = du._update_trading_day(DAY, self.results, self.traces)
+            self.outcome, self.summary_sent = du._update_trading_day(day, self.results, self.traces)
         self.status = dict(self.results)
         # The only subprocess of the night is the hermit snapshot.
         assert [argv[:2] for argv in self.subprocesses] == [["uv", "run"]]
@@ -285,6 +298,83 @@ def test_non_core_failure_is_a_partial_night(monkeypatch, broken, label):
     assert night.with_status("blocked") == set()
     assert night.outcome == "partial"
     assert "export.generate.export_all" in night.calls
+
+
+# ── steps judged on what they returned ─────────────────────────────────────
+
+def test_revenue_market_without_an_answer_fails_the_step(monkeypatch):
+    # DAY is the 14th: past the filing deadline, the companies on record decide.
+    night = _Night(monkeypatch, returns={
+        "scrapers.revenue.scrape_month": {"sii": ("ok", 987), "otc": ("no_response", 0)},
+        "_revenue_counts": lambda ym: {"sii": 980, "otc": 0 if ym == "2026-09" else 850},
+    })
+    assert night.status["月營收"] == "failed"
+    assert night.traces["月營收"] == (
+        "上櫃 2026-09 只有 0 家（2026-08 有 850 家；這次：沒有回應或 HTTP 錯誤）")
+    assert night.outcome == "partial"
+
+
+def test_revenue_market_without_an_answer_is_fine_once_on_record(monkeypatch):
+    night = _Night(monkeypatch, returns={
+        "scrapers.revenue.scrape_month": {"sii": ("ok", 987), "otc": ("no_response", 0)},
+    })
+    assert night.status["月營收"] == "ok" and night.outcome == "success"
+
+
+def test_revenue_reads_the_fetched_month_and_the_one_before(monkeypatch):
+    asked = []
+    _Night(monkeypatch, returns={
+        "_revenue_counts": lambda ym: asked.append(ym) or {"sii": 980, "otc": 850}})
+    assert asked == ["2026-09", "2026-08"]
+
+
+def test_unreadable_revenue_page_fails_the_step(monkeypatch):
+    night = _Night(monkeypatch, returns={
+        "scrapers.revenue.scrape_month": {"sii": ("unreadable", 0), "otc": ("ok", 864)}})
+    assert night.status["月營收"] == "failed"
+    assert night.traces["月營收"] == "上市頁面讀不出資料"
+
+
+@pytest.mark.parametrize("name, label", [
+    ("scrapers.sitca.scrape_monthly", "SITCA 月持股"),
+    ("scrapers.sitca.scrape_quarterly", "SITCA 季持股"),
+])
+def test_sitca_with_missing_funds_fails_the_step(monkeypatch, name, label):
+    missing = ["nomura-quality：A0032 查詢失敗：ReadTimeout",
+               "nomura-hightech：A0032 查詢失敗：ReadTimeout"]
+    night = _Night(monkeypatch, returns={name: missing})
+    assert night.status[label] == "failed"
+    assert night.traces[label] == "\n".join(missing)
+    assert night.outcome == "partial"
+
+
+def test_long_sitca_reason_is_kept_to_three_lines(monkeypatch):
+    # The summary is not split; past 4096 characters Telegram drops it whole.
+    missing = [f"fund{i}：A00{i} 查詢失敗：ReadTimeout: read timed out" for i in range(13)]
+    night = _Night(monkeypatch, returns={"scrapers.sitca.scrape_monthly": missing})
+    assert night.traces["SITCA 月持股"].splitlines() == [
+        "13 檔缺：" + ", ".join(f"fund{i}" for i in range(13)),
+        missing[0],
+        "（完整原因見 log）",
+    ]
+
+
+def test_revenue_before_the_deadline_does_not_query_the_counts(monkeypatch):
+    asked = []
+    night = _Night(monkeypatch, day=date(2026, 10, 5), returns={
+        "_revenue_counts": lambda ym: asked.append(ym) or {"sii": 980, "otc": 850}})
+    assert asked == [] and night.status["月營收"] == "ok"
+
+
+@pytest.mark.parametrize("name, label", [
+    ("telegram_bot.push_daily_signals.push_daily_signals", "日線訊號推播"),
+    ("telegram_bot.push_conference_calendar.push_conference_calendar", "法說會預告推播"),
+])
+def test_push_that_was_not_delivered_fails_the_step(monkeypatch, name, label):
+    night = _Night(monkeypatch, returns={name: 2})
+    assert night.status[label] == "failed"
+    assert night.traces[label] == "Telegram 傳送失敗"
+    assert night.outcome == "partial"
 
 
 # ── the summary's delivery ─────────────────────────────────────────────────

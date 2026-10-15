@@ -836,6 +836,99 @@ def update_chip_only(trade_date: date):
         traceback.print_exc()
 
 
+# ---------------------------------------------------------------------------
+# Monthly revenue: was the publication window's fetch good enough?
+# ---------------------------------------------------------------------------
+# Filing deadline is the 10th. Until then a market MOPS has not published, or
+# one with few companies in it, is normal; from the 11th each market has to
+# hold at least this share of the month before's companies.
+_REVENUE_DEADLINE_DAY = 10
+_REVENUE_MIN_RATIO = 0.9
+_REVENUE_MARKETS = {"sii": ("上市", "TWSE"), "otc": ("上櫃", "TPEx")}
+_REVENUE_STATE_TEXT = {
+    "no_response": "沒有回應或 HTTP 錯誤",
+    "unpublished": "尚未公布",
+    "unreadable": "頁面讀不出資料",
+    "ok": "有資料",
+}
+
+
+def _month_before(year: int, month: int) -> tuple[int, int]:
+    return (year, month - 1) if month > 1 else (year - 1, 12)
+
+
+def _revenue_months(trade_date: date) -> tuple[str, str]:
+    """(month fetched, month compared against) as 'YYYY-MM'."""
+    fetched = _month_before(trade_date.year, trade_date.month)
+    base = _month_before(*fetched)
+    return f"{fetched[0]}-{fetched[1]:02d}", f"{base[0]}-{base[1]:02d}"
+
+
+def _revenue_counts(year_month: str) -> dict[str, int]:
+    """Companies with revenue for year_month in the database, per market slug."""
+    with get_cursor(commit=False) as cur:
+        cur.execute(
+            """
+            SELECT s.market, COUNT(*) AS n
+            FROM tw.monthly_revenue r JOIN tw.stocks s USING (stock_id)
+            WHERE r.year_month = %s AND s.market IN ('TWSE', 'TPEx')
+            GROUP BY s.market
+            """,
+            (year_month,),
+        )
+        by_label = {r["market"]: r["n"] for r in cur.fetchall()}
+    return {slug: by_label.get(label, 0) for slug, (_, label) in _REVENUE_MARKETS.items()}
+
+
+def _revenue_verdict(by_market: dict[str, tuple[str, int]], day: int,
+                     have: dict[str, int], base: dict[str, int],
+                     fetched: str = "", base_month: str = "") -> tuple[str, str | None]:
+    """(status, reason) for the monthly revenue step.
+
+    by_market: what each market's page was this run (scrapers.revenue states).
+    have / base: companies on record for the fetched month (after this run's
+    save) and for the month before it, counted the same way.
+    """
+    problems = []
+    for slug, (name, _) in _REVENUE_MARKETS.items():
+        state, _n = by_market.get(slug, ("no_response", 0))
+        if state == "unreadable":
+            problems.append(f"{name}{_REVENUE_STATE_TEXT[state]}")
+    if day <= _REVENUE_DEADLINE_DAY:
+        for slug, (name, _) in _REVENUE_MARKETS.items():
+            if by_market.get(slug, ("no_response", 0))[0] == "no_response":
+                problems.append(f"{name}{_REVENUE_STATE_TEXT['no_response']}")
+        if problems:
+            return "failed", "；".join(problems)
+        if all(by_market.get(slug, ("", 0))[0] == "unpublished" for slug in _REVENUE_MARKETS):
+            return "skip", "尚未公布"
+        return "ok", None
+
+    # From the 11th the companies on record decide. A market that did not
+    # answer tonight is fine if an earlier night already got it.
+    for slug, (name, _) in _REVENUE_MARKETS.items():
+        need = base.get(slug, 0)
+        got = have.get(slug, 0)
+        short = got < _REVENUE_MIN_RATIO * need if need else got == 0
+        if short:
+            state = by_market.get(slug, ("no_response", 0))[0]
+            problems.append(f"{name} {fetched} 只有 {got} 家（{base_month} 有 {need} 家；"
+                            f"這次：{_REVENUE_STATE_TEXT.get(state, state)}）")
+    if problems:
+        return "failed", "；".join(problems)
+    return "ok", None
+
+
+def _missing_funds_text(missing: list[str]) -> str:
+    """The SITCA reason for the summary, kept to three lines like any trace:
+    the summary has no splitting, and past 4096 characters Telegram drops it
+    whole. The full list is in the log."""
+    if len(missing) <= 3:
+        return "\n".join(missing)
+    codes = ", ".join(line.split("：", 1)[0] for line in missing)
+    return f"{len(missing)} 檔缺：{codes}\n{missing[0]}\n（完整原因見 log）"
+
+
 def update_date(trade_date: date) -> str:
     """Run the pipeline for one date and return what it amounted to (one of
     _OUTCOME_EXIT_CODES). A weekday run is recorded in tw.daily_update_runs."""
@@ -899,18 +992,30 @@ def _update_trading_day(trade_date: date, results: list[tuple[str, str]],
         if not success and trace:
             failure_traces[label] = trace
 
-    # Monthly revenue: fetch during the publication window (1st–12th)
+    # Monthly revenue: fetch during the publication window (1st–15th); from
+    # the 11th the companies on record decide (see _revenue_verdict).
     if trade_date.day <= 15:
         print(f"\n--- Monthly revenue ---")
         try:
             from scrapers.revenue import scrape_month
-            m = trade_date.month - 1
-            y = trade_date.year
-            if m == 0:
-                m = 12
-                y -= 1
-            scrape_month(y, m)
-            results.append(("月營收", "ok"))
+            fetched, base_month = _revenue_months(trade_date)
+            y, m = (int(part) for part in fetched.split("-"))
+            by_market = scrape_month(y, m)
+            have = base = {}
+            if trade_date.day > _REVENUE_DEADLINE_DAY:
+                have, base = _revenue_counts(fetched), _revenue_counts(base_month)
+            print(f"  pages: {by_market}; on record {fetched}: {have}, "
+                  f"{base_month}: {base}")
+            status, reason = _revenue_verdict(by_market, trade_date.day, have, base,
+                                              fetched, base_month)
+            if reason:
+                print(f"  [{status.upper()}] 月營收: {reason}")
+            elif status == "ok" and any(s != "ok" for s, _ in by_market.values()):
+                print(f"  [NOTE] 月營收: this run's pages {by_market}, "
+                      f"but {fetched} is already on record: {have}")
+            if status == "failed":
+                failure_traces["月營收"] = reason
+            results.append(("月營收", status))
         except Exception:
             print("  [ERROR] Monthly revenue scraper failed:")
             _capture_trace(failure_traces, "月營收")
@@ -937,8 +1042,10 @@ def _update_trading_day(trade_date: date, results: list[tuple[str, str]],
                 if m == 0:
                     m = 12
                     y -= 1
-                scrape_monthly(f"{y}{m:02d}")
-                results.append(("SITCA 月持股", "ok"))
+                missing = scrape_monthly(f"{y}{m:02d}")
+                if missing:
+                    failure_traces["SITCA 月持股"] = _missing_funds_text(missing)
+                results.append(("SITCA 月持股", "failed" if missing else "ok"))
             except PeriodNotAvailable as e:
                 print(f"  [SKIP] {e}")
                 results.append(("SITCA 月持股", "skip"))
@@ -963,8 +1070,10 @@ def _update_trading_day(trade_date: date, results: list[tuple[str, str]],
             try:
                 qm = quarter_end_months[trade_date.month]
                 qy = trade_date.year if qm < trade_date.month else trade_date.year - 1
-                scrape_quarterly(f"{qy}{qm:02d}")
-                results.append(("SITCA 季持股", "ok"))
+                missing = scrape_quarterly(f"{qy}{qm:02d}")
+                if missing:
+                    failure_traces["SITCA 季持股"] = _missing_funds_text(missing)
+                results.append(("SITCA 季持股", "failed" if missing else "ok"))
             except PeriodNotAvailable as e:
                 print(f"  [SKIP] {e}")
                 results.append(("SITCA 季持股", "skip"))
@@ -1276,8 +1385,11 @@ def _update_trading_day(trade_date: date, results: list[tuple[str, str]],
     else:
         try:
             from telegram_bot.push_daily_signals import push_daily_signals
-            push_daily_signals(trade_date)
-            results.append(("日線訊號推播", "ok"))
+            if push_daily_signals(trade_date) == 2:
+                failure_traces["日線訊號推播"] = "Telegram 傳送失敗"
+                results.append(("日線訊號推播", "failed"))
+            else:
+                results.append(("日線訊號推播", "ok"))
         except Exception:
             print("  [ERROR] Daily signal push failed:")
             _capture_trace(failure_traces, "日線訊號推播")
@@ -1290,8 +1402,11 @@ def _update_trading_day(trade_date: date, results: list[tuple[str, str]],
     print(f"\n--- 法說會預告推播 ---")
     try:
         from telegram_bot.push_conference_calendar import push_conference_calendar
-        push_conference_calendar()
-        results.append(("法說會預告推播", "ok"))
+        if push_conference_calendar() == 2:
+            failure_traces["法說會預告推播"] = "Telegram 傳送失敗"
+            results.append(("法說會預告推播", "failed"))
+        else:
+            results.append(("法說會預告推播", "ok"))
     except Exception:
         print("  [ERROR] Conference calendar push failed:")
         _capture_trace(failure_traces, "法說會預告推播")
