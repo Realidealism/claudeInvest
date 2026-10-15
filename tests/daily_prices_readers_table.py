@@ -50,7 +50,7 @@ READERS = {
     "chip_model/db_access.py": ("2", "excludes-U", "load_common_universe excludes U"),
     "daily_update.py": ("3", "unchanged", ":658 only subtracts; :705 codes come from the TWSE/TPEx universe"),
     "db/price_availability.py": ("X", "n/a", "the shared definition of U itself"),
-    "export/generate.py": ("3", "excludes-U", "_month_prices excludes U; streaks drop unavailable codes"),
+    "export/generate.py": ("3", "excludes-U", "_month_prices and export_signals exclude U; streaks drop unavailable codes"),
     "hermit_stock/scripts/batch_analyze_top20.py": ("5", "n/a", "research script"),
     "hermit_stock/scripts/compare_elite.py": ("5", "n/a", "research script"),
     "hermit_stock/scripts/compare_gate_variants.py": ("5", "n/a", "research script"),

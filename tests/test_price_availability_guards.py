@@ -126,6 +126,7 @@ def test_batch_fetch_checks_before_reading_prices():
 EXCLUDES_U = [
     ("chip_model/db_access.py", "load_common_universe"),
     ("export/generate.py", "_month_prices"),
+    ("export/generate.py", "export_signals"),
     ("signals/etf_abnormal_exit.py", "scan"),
     ("signals/etf_consecutive_reduction.py", "scan"),
     ("signals/etf_multi_exit.py", "scan"),

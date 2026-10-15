@@ -557,3 +557,58 @@ def test_exception_survives_process_boundary():
     e = pickle.loads(pickle.dumps(PriceUnavailable(ESB[0])))
     assert type(e).__name__ == "PriceUnavailable"
     assert e.code == ESB[0] and str(e) == str(PriceUnavailable(ESB[0]))
+
+
+def test_signals_export_drops_stored_unavailable_signals(tmp_path):
+    """A signal already stored on an emerging-board code (injected into the
+    query as an extra row; nothing is written) must not reach signals.json,
+    and every stored listed signal still must."""
+    from collections import Counter
+
+    import psycopg2
+    from psycopg2.extras import RealDictCursor
+
+    from config.settings import DB_CONFIG
+    from export.generate import export_signals
+
+    cols = ("id, signal_type, ticker, ticker_name, funds, trigger_date, trigger_period, "
+            "weight_change, evidence, created_at")
+    fake = (f"(SELECT {cols} FROM tw.signals UNION ALL SELECT -1, 'etf_multi_consensus', "
+            f"'{ESB[0]}', 'x', ARRAY['x']::text[], DATE '2026-10-14', '202610', 0::numeric, "
+            f"'{{}}'::jsonb, now())")
+
+    class InjectCursor:
+        def __init__(self, cur):
+            self._cur = cur
+
+        def execute(self, sql, args=None):
+            assert sql.count("FROM tw.signals s") == 1
+            return self._cur.execute(sql.replace("FROM tw.signals s", f"FROM {fake} s"), args)
+
+        def __getattr__(self, name):
+            return getattr(self._cur, name)
+
+    # One snapshot for the expected rows and the export.
+    conn = psycopg2.connect(**DB_CONFIG)
+    conn.set_session(isolation_level="REPEATABLE READ", readonly=True)
+    try:
+        cur = conn.cursor(cursor_factory=RealDictCursor)
+        cur.execute("""
+            SELECT ticker FROM tw.signals
+            WHERE ticker NOT IN (
+                SELECT stock_id FROM tw.stocks WHERE market = 'ESB'
+                UNION
+                SELECT stock_id FROM tw.daily_prices
+                WHERE open_price IS NULL AND turnover IS NULL
+                  AND COALESCE(close_price, high_price, low_price, volume) IS NOT NULL)
+        """)
+        expected = Counter(r["ticker"] for r in cur.fetchall())
+        export_signals(InjectCursor(cur), tmp_path)
+    finally:
+        conn.rollback()
+        conn.close()
+    data = json.loads((tmp_path / "signals.json").read_text(encoding="utf-8"))
+    published = Counter(e["ticker"] for entries in data["by_type"].values() for e in entries)
+    assert ESB[0] not in published
+    assert sum(expected.values()) > 0
+    assert published == expected

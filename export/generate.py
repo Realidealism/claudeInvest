@@ -95,12 +95,15 @@ def _write(data, path: Path):
 # -----------------------------------------------------------------------
 
 def export_signals(cur, out: Path):
-    cur.execute("""
+    # Second line of defence: save_signals stops new signals on emerging-board
+    # codes, and this keeps any already stored out of the published file.
+    cur.execute(f"""
         SELECT s.signal_type, s.ticker, s.ticker_name, st.market,
                s.funds, s.trigger_date, s.trigger_period,
                s.weight_change, s.evidence
         FROM tw.signals s
         LEFT JOIN tw.stocks st ON st.stock_id = s.ticker
+        WHERE s.ticker NOT IN ({UNAVAILABLE_CODES_SQL})
         ORDER BY s.trigger_period DESC, s.ticker
     """)
     rows = cur.fetchall()
