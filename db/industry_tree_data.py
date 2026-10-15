@@ -469,7 +469,8 @@ NODES = [
     ('C3', 'C', 2, 'Server Motherboard', None),
     ('C3-01', 'C3', 3, '伺服器主機板', None),
     ('C4', 'C', 2, 'Server Chassis', None),
-    ('C4-01', 'C4', 3, '機殼', None),
+    ('C4-01', 'C4', 3, '機殼',
+     '伺服器、儲存與網通機房設備用機殼／機箱（Rackmount Chassis、Storage Chassis／JBOD 機箱、Tower Server Chassis）及其機構配件之製造。個人電腦、筆電與消費性電子之機殼與機構件屬 F4-01。★只有年報明確限定為伺服器／儲存機殼的營收線才掛本節點；混合伺服器與 PC 機殼且未拆分者，整條掛一般機構件 F4-01，不推測比例拆列。'),
     ('C5', 'C', 2, 'Server Power', None),
     ('C5-01', 'C5', 3, '伺服器電源', 'PSU、CRPS、BBU、Power Shelf、AI Data Center Power'),
     ('C6', 'C', 2, 'Server Cooling', None),
@@ -492,6 +493,10 @@ NODES = [
     ('C14-01', 'C14', 3, '電源分配', 'PDU、Busbar、匯流排'),
     ('C15', 'C', 2, 'Data Center Infrastructure', None),
     ('C15-01', 'C15', 3, '機房基礎設施', '機電、消防、監控、機房建置'),
+    # C16 added 2026-10-15 (classification draft pilot): POS and payment terminals had no home.
+    ('C16', 'C', 2, 'POS / Payment Terminal', None),
+    ('C16-01', 'C16', 3, '銷售點與支付終端',
+     'POS 終端機、電子金融交易（支付）終端機、電子收銀機、自助點餐／自助服務終端（Kiosk）、彩券投注機之設計與製造。不含 POS 軟體與支付處理服務；工業控制用運算平台屬 G2；博弈機台見 TAXONOMY_GAPS G10。'),
     ('D', None, 1, '網通 / 光通訊', None),
     ('D1', 'D', 2, 'Ethernet', None),
     ('D1-01', 'D1', 3, '乙太網路 (Ethernet)', 'Switch、Router、NIC、PHY、Ethernet Controller'),
@@ -700,8 +705,12 @@ NODES = [
     ('F2-01', 'F2', 3, '連接器', 'Board-to-Board、Wire-to-Board、FPC、RF、High Speed、Automotive、Server'),
     ('F3', 'F', 2, '線材', None),
     ('F3-01', 'F3', 3, '線纜', 'Cable、Coaxial、Fiber、High Speed Cable'),
-    ('F4', 'F', 2, '機構件', None),
+    ('F4', 'F', 2, '機構件',
+     '機構件。子節點依**產品類別**切分（產品類別軸）：F4-02 為樞紐／轉軸與顯示器底座等提供開合、旋轉或支撐調整功能的機構組件，不論以沖壓、MIM 或 CNC 製造皆屬 F4-02；其餘以製程界定的一般機構件屬 F4-01。'),
     ('F4-01', 'F4', 3, '機構', '金屬沖壓、CNC、壓鑄、塑膠射出、組裝'),
+    # F4-02 added 2026-10-15 (classification draft pilot): hinges had no leaf of their own.
+    ('F4-02', 'F4', 3, '樞紐／轉軸',
+     '筆記型電腦、平板、顯示器、AIO、折疊式手機與穿戴裝置用樞紐（Hinge）、轉軸及顯示器底座（Stand）之製造。伺服器滑軌與抽屜式鋼珠導軌不屬本節點。'),
     ('F5', 'F', 2, 'PCB零件', None),
     ('F5-01', 'F5', 3, '板上零件', 'Switch、Relay、Fuse、Sensor'),
     ('F6', 'F', 2, '電池相關零件', None),
@@ -1401,7 +1410,7 @@ NODES = [
     ('L2', 'L', 2, '鋼鐵加工', '螺絲、扣件、鋼管、鍛造'),
     ('L3', 'L', 2, '金屬加工', 'CNC、沖壓、壓鑄'),
     ('L4', 'L', 2, '銅（非鐵）', '銅箔、銅材、電解銅、銅加工'),
-    ('L5', 'L', 2, '鋁（非鐵）', '鋁錠、鋁擠型、鋁板、鋁合金'),
+    ('L5', 'L', 2, '鋁（非鐵）', '鋁錠、鋁擠型、鋁板、鋁合金、電容用鋁箔（電蝕鋁箔、化成鋁箔、陰極箔）'),
     ('L6', 'L', 2, '鎳',
      '鎳及鎳合金之冶煉、加工與銷售：電解鎳、鎳錠與鎳粉、鎳合金與鎳基超合金、'
      '鎳帶與鎳片、電鍍與電池用鎳材。'
