@@ -57,8 +57,10 @@ UNHANDLED_STEP = "未處理的例外"
 # Fourth field is expect_rows: True when the source must yield rows on every
 # trading day, so records==0 means the scraper failed silently (HTTP 200 with
 # an empty body, or a swallowed request error) rather than "nothing happened
-# today". False sources legitimately return 0 rows and are exempt — each one
-# carries the reason inline. Keep the flag in the tuple rather than a separate
+# today". False sources legitimately return 0 rows and are exempt from that
+# check — each one carries the reason inline — but any of them that reports
+# failed_sources (a leg that did not answer or could not be read) is still
+# judged on those for recent dates. Keep the flag in the tuple rather than a separate
 # label set: a set silently stops matching when a label is renamed, and a new
 # scraper would default to unmonitored.
 SCRAPERS = [
@@ -85,13 +87,21 @@ SCRAPERS = [
     ("SBL (借券賣出)",           "scrapers.securities_lending", "scrape_date", True),
     # Day trading
     ("Day trading (當沖)",       "scrapers.day_trading",        "scrape_date", True),
-    # TAIFEX futures/options (期貨/選擇權) — non-critical; after-hours session
-    # for the same day may be incomplete and self-corrects on the next run.
-    # Exempt for that same reason: a same-day 0 is a timing artifact.
-    ("TAIFEX futures",          "scrapers.taifex_futures",       "scrape_date", False),
-    ("TAIFEX institutional",    "scrapers.taifex_institutional", "scrape_date", False),
+    # TAIFEX futures/options (期貨/選擇權) — non-critical; the after-hours
+    # session for the same day may be incomplete and self-corrects on the next
+    # run. Futures and institutional are monitored all the same: the day
+    # session is always there by 21:30 (77-104 futures rows; institutional
+    # 69 futures + 30 options rows on every night logged and every trading day
+    # in the table), and both feed the thermometer's stance. Run by hand
+    # before TAIFEX publishes, they will report a failure.
+    ("TAIFEX futures",          "scrapers.taifex_futures",       "scrape_date", True),
+    ("TAIFEX institutional",    "scrapers.taifex_institutional", "scrape_date", True),
+    # P/C ratio has no reader yet; judged in a later batch.
     ("TAIFEX P/C ratio",        "scrapers.taifex_pc_ratio",      "scrape_date", False),
-    # Alerts — event-driven; exempt (no alert issued today => 0 rows)
+    # Alerts — event-driven; exempt from the 0-row check (a quiet disposal
+    # list is normal). The scraper itself reports a leg that did not answer,
+    # and an empty attention list for a day that has traded (never seen in
+    # 120 days) -- so a run by hand before TWSE/TPEx publish will report it.
     ("Stock alerts (注意/處置)", "scrapers.stock_alerts",       "scrape_date", False),
     # Forward-looking board (除權除息預告) — feeds the morning-brief ex-dividend alert
     # Event-driven; exempt (no upcoming ex-dividend => 0 rows)
@@ -161,26 +171,42 @@ def _capture_trace(failure_traces: dict[str, str], label: str) -> None:
         failure_traces[label] = "\n".join(lines[-3:])
 
 
-def _result_problem(result, expect_rows: bool) -> str | None:
+_FAILED_SOURCES_SHOWN = 8  # a per-stock source can fail dozens at once
+
+
+def _result_problem(result, expect_rows: bool, recent: bool | None = None) -> str | None:
     """Judge a scraper's ScrapeResult, returning a reason string when it
     represents a silent failure, or None when it looks healthy.
 
-    Catches the two failure modes that never raise: an empty response (HTTP
-    200 with no data, or a request error swallowed into an empty list) and a
-    format shift (the API still answers but most rows no longer parse).
+    Catches the failure modes that never raise: an empty response (HTTP 200
+    with no data, or a request error swallowed into an empty list), a failed
+    leg or item (failed_sources), and a format shift (the API still answers
+    but most rows no longer parse).
+
+    expect_rows: the source has rows every trading day, so 0 is a failure.
+    recent: the date is recent enough to judge failed_sources at all (an old
+    backfill hits legs that did not exist yet). Event-driven sources put in
+    failed_sources only what they know failed (a leg that did not answer or
+    could not be read, an item the source never returned), so they are judged
+    even though 0 rows is fine for them. None means "same as expect_rows".
     """
     if not isinstance(result, ScrapeResult):
         # No return contract to judge (e.g. ETF holdings returns None).
         return None
+    if recent is None:
+        recent = expect_rows
 
     if expect_rows and result.records == 0:
         return f"抓到 0 筆資料（此來源每個交易日應有資料）：{result}"
 
     # A multi-leg scraper sums every leg into records, so one dead leg still
     # leaves records far above zero. Judge the legs individually.
-    if expect_rows and result.failed_sources:
-        return (f"以下資料來源沒有回傳資料："
-                f"{'、'.join(result.failed_sources)}（其餘來源共 {result.records} 筆）")
+    if recent and result.failed_sources:
+        shown = result.failed_sources[:_FAILED_SOURCES_SHOWN]
+        more = len(result.failed_sources) - len(shown)
+        return (f"以下資料來源失敗：{'、'.join(shown)}"
+                f"{f' 等 {len(result.failed_sources)} 項' if more else ''}"
+                f"（其餘共 {result.records} 筆）")
 
     # Same criteria as historical_update._check_shift, shared thresholds.
     if result.api_rows >= SHIFT_MIN_ROWS and result.error_rate > SHIFT_ERROR_RATE:
@@ -194,7 +220,7 @@ def _result_problem(result, expect_rows: bool) -> str | None:
 
 def run_scraper(
     label: str, module_path: str, func_name: str, trade_date: date,
-    expect_rows: bool = False,
+    expect_rows: bool = False, recent: bool | None = None,
 ) -> tuple[bool, str | None]:
     """Import and run a single scraper. Retries up to SCRAPER_MAX_RETRIES
     times on an exception. Returns (success, last_trace) where last_trace is
@@ -218,7 +244,7 @@ def run_scraper(
     last_trace: str | None = None
     for attempt in range(1, SCRAPER_MAX_RETRIES + 1):
         try:
-            problem = _result_problem(fn(trade_date), expect_rows)
+            problem = _result_problem(fn(trade_date), expect_rows, recent)
             if problem is None:
                 return True, None
             print(f"\n  [SOFT-FAIL] {label}: {problem}")
@@ -399,6 +425,10 @@ def _trading_day_gate(trade_date: date) -> tuple[str, bool, str | None]:
     return "abort", gate_ok, gate_trace
 
 
+_TRACE_MAX_CHARS = 500     # one step's reason in the summary
+_SUMMARY_MAX_CHARS = 3800  # the whole summary; Telegram's hard limit is 4096
+
+
 def _build_daily_update_message(
     trade_date: date,
     results: list[tuple[str, str]],
@@ -433,13 +463,22 @@ def _build_daily_update_message(
                 f"【關鍵抓檔失敗】{', '.join(critical_failed)}，"
                 f"下游已跳過，前端未更新"
             )
+        reasons = []
         for label in failed:
             tr = failure_traces.get(label)
             if tr:
-                lines.append(f"── {label} ──")
-                lines.append(tr)
-        lines.append(f"重跑指令：daily_update.exe {trade_date}")
-        return "\n".join(lines)
+                if len(tr) > _TRACE_MAX_CHARS:
+                    tr = tr[:_TRACE_MAX_CHARS] + "…（完整見 log）"
+                reasons.append(f"── {label} ──\n{tr}")
+        rerun = f"重跑指令：daily_update.exe {trade_date}"
+        # Telegram refuses a message over 4096 characters outright, so a night
+        # with many failing sources would lose the whole summary. Drop reasons
+        # from the end until it fits; the log has all of them.
+        msg = "\n".join(lines + reasons + [rerun])
+        while len(msg) > _SUMMARY_MAX_CHARS and reasons:
+            reasons.pop()
+            msg = "\n".join(lines + reasons + ["（其餘失敗原因見 log）", rerun])
+        return msg
     return f"[每日更新] {trade_date} 全部成功（{counts}）"
 
 
@@ -986,7 +1025,7 @@ def _update_trading_day(trade_date: date, results: list[tuple[str, str]],
         print(f"\n--- {label} ---")
         success, trace = run_scraper(
             label, module_path, func_name, trade_date,
-            expect_rows=expect_rows and judge_rows,
+            expect_rows=expect_rows and judge_rows, recent=judge_rows,
         )
         results.append((label, "ok" if success else "failed"))
         if not success and trace:
@@ -1258,7 +1297,13 @@ def _update_trading_day(trade_date: date, results: list[tuple[str, str]],
             from analysis.daily_liquidity import compute_daily_liquidity
             n = compute_daily_liquidity(trade_date)
             print(f"  Stored liquidity rows: {n}")
-            results.append(("每日流動性", "ok"))
+            # About 2,200 rows on every trading day; none means the prices it
+            # reads were not there, and the snapshot's universe would be empty.
+            if n == 0 and judge_rows:
+                failure_traces["每日流動性"] = "流動性 0 筆"
+                results.append(("每日流動性", "failed"))
+            else:
+                results.append(("每日流動性", "ok"))
         except Exception:
             print("  [ERROR] Daily liquidity computation failed:")
             _capture_trace(failure_traces, "每日流動性")
@@ -1320,8 +1365,14 @@ def _update_trading_day(trade_date: date, results: list[tuple[str, str]],
     try:
         from scrapers.stock_alerts import scrape_date as _scrape_alerts
         from telegram_bot.handlers.score import _next_trading_day
-        _scrape_alerts(_next_trading_day(date.today()))
-        results.append(("明日處置名單抓取", "ok"))
+        problem = _result_problem(_scrape_alerts(_next_trading_day(date.today())),
+                                  expect_rows=False, recent=True)
+        if problem:
+            print(f"  [SOFT-FAIL] 明日處置名單抓取: {problem}")
+            failure_traces["明日處置名單抓取"] = problem
+            results.append(("明日處置名單抓取", "failed"))
+        else:
+            results.append(("明日處置名單抓取", "ok"))
     except Exception:
         print("  [ERROR] next-day disposal scrape failed:")
         _capture_trace(failure_traces, "明日處置名單抓取")

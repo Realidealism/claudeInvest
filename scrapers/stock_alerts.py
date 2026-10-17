@@ -18,7 +18,8 @@ import re
 from datetime import date
 
 from db.connection import get_cursor
-from utils.format_shift import ScrapeResult
+from utils.format_shift import (EMPTY, NO_RESPONSE, OK, UNREADABLE, ScrapeResult,
+                                failed_legs, parsed_state, twse_rwd_rows)
 from utils.http_client import fetch_json_retry, post_json_retry
 
 TWSE_NOTICE_URL = "https://www.twse.com.tw/rwd/zh/announcement/notice"
@@ -69,11 +70,24 @@ def _parse_period(period_str: str) -> tuple[date | None, date | None]:
     return start, end
 
 
+def _tpex_rows(data) -> tuple[list, str]:
+    """Data rows of a TPEx bulletin answer and the request's state. A quiet
+    day still carries tables[0] with an empty data list ("證券個數:0")."""
+    if data is None:
+        return [], NO_RESPONSE
+    tables = data.get("tables") if isinstance(data, dict) else None
+    if not tables or not isinstance(tables[0], dict) \
+            or not isinstance(tables[0].get("data"), list):
+        return [], UNREADABLE
+    rows = tables[0]["data"]
+    return rows, OK if rows else EMPTY
+
+
 # ---------------------------------------------------------------------------
 # TWSE
 # ---------------------------------------------------------------------------
 
-def _fetch_twse_notice(start: date, end: date) -> list[dict]:
+def _fetch_twse_notice(start: date, end: date) -> tuple[list[dict], str]:
     start_str = start.strftime("%Y%m%d")
     end_str = end.strftime("%Y%m%d")
     data = fetch_json_retry(
@@ -85,11 +99,10 @@ def _fetch_twse_notice(start: date, end: date) -> list[dict]:
         },
         validate=lambda d: d.get("stat") == "OK",
     )
-    if not data or data.get("stat") != "OK":
-        return []
+    rows, state = twse_rwd_rows(data)
 
     results = []
-    for row in data.get("data", []):
+    for row in rows:
         try:
             stock_id = str(row[1]).strip()
             if not stock_id or not stock_id[0].isdigit():
@@ -109,10 +122,10 @@ def _fetch_twse_notice(start: date, end: date) -> list[dict]:
             })
         except (IndexError, ValueError, TypeError):
             continue
-    return results
+    return results, parsed_state(state, results)
 
 
-def _fetch_twse_punish(start: date, end: date) -> list[dict]:
+def _fetch_twse_punish(start: date, end: date) -> tuple[list[dict], str]:
     start_str = start.strftime("%Y%m%d")
     end_str = end.strftime("%Y%m%d")
     data = fetch_json_retry(
@@ -125,11 +138,10 @@ def _fetch_twse_punish(start: date, end: date) -> list[dict]:
         },
         validate=lambda d: d.get("stat") == "OK",
     )
-    if not data or data.get("stat") != "OK":
-        return []
+    rows, state = twse_rwd_rows(data)
 
     results = []
-    for row in data.get("data", []):
+    for row in rows:
         try:
             stock_id = str(row[2]).strip()
             if not stock_id or not stock_id[0].isdigit():
@@ -150,7 +162,7 @@ def _fetch_twse_punish(start: date, end: date) -> list[dict]:
             })
         except (IndexError, ValueError, TypeError):
             continue
-    return results
+    return results, parsed_state(state, results)
 
 
 # ---------------------------------------------------------------------------
@@ -161,7 +173,7 @@ def _tpex_date(d: date) -> str:
     return d.strftime("%Y/%m/%d")
 
 
-def _fetch_tpex_attention(start: date, end: date) -> list[dict]:
+def _fetch_tpex_attention(start: date, end: date) -> tuple[list[dict], str]:
     data = post_json_retry(
         TPEX_ATTENTION_URL,
         data={
@@ -171,11 +183,9 @@ def _fetch_tpex_attention(start: date, end: date) -> list[dict]:
         },
         validate=lambda d: d.get("tables") is not None,
     )
-    if not data or not data.get("tables"):
-        return []
+    rows, state = _tpex_rows(data)
 
     results = []
-    rows = data["tables"][0].get("data", []) if data["tables"] else []
     for row in rows:
         try:
             stock_id = str(row[1]).strip()
@@ -196,10 +206,10 @@ def _fetch_tpex_attention(start: date, end: date) -> list[dict]:
             })
         except (IndexError, ValueError, TypeError):
             continue
-    return results
+    return results, parsed_state(state, results)
 
 
-def _fetch_tpex_disposal(start: date, end: date) -> list[dict]:
+def _fetch_tpex_disposal(start: date, end: date) -> tuple[list[dict], str]:
     data = post_json_retry(
         TPEX_DISPOSAL_URL,
         data={
@@ -210,11 +220,9 @@ def _fetch_tpex_disposal(start: date, end: date) -> list[dict]:
         },
         validate=lambda d: d.get("tables") is not None,
     )
-    if not data or not data.get("tables"):
-        return []
+    rows, state = _tpex_rows(data)
 
     results = []
-    rows = data["tables"][0].get("data", []) if data["tables"] else []
     for row in rows:
         try:
             stock_id = str(row[2]).strip()
@@ -236,7 +244,7 @@ def _fetch_tpex_disposal(start: date, end: date) -> list[dict]:
             })
         except (IndexError, ValueError, TypeError):
             continue
-    return results
+    return results, parsed_state(state, results)
 
 
 # ---------------------------------------------------------------------------
@@ -286,18 +294,32 @@ def scrape_date(trade_date: date) -> ScrapeResult:
     """Fetch attention + disposal alerts for a single date from TWSE and TPEx."""
     print(f"Fetching stock alerts for {trade_date} ...")
 
-    twse_att = _fetch_twse_notice(trade_date, trade_date)
-    twse_dis = _fetch_twse_punish(trade_date, trade_date)
-    tpex_att = _fetch_tpex_attention(trade_date, trade_date)
-    tpex_dis = _fetch_tpex_disposal(trade_date, trade_date)
+    twse_att, twse_att_state = _fetch_twse_notice(trade_date, trade_date)
+    twse_dis, twse_dis_state = _fetch_twse_punish(trade_date, trade_date)
+    tpex_att, tpex_att_state = _fetch_tpex_attention(trade_date, trade_date)
+    tpex_dis, tpex_dis_state = _fetch_tpex_disposal(trade_date, trade_date)
 
     all_records = twse_att + twse_dis + tpex_att + tpex_dis
     saved = _save(all_records)
 
-    print(f"  Alerts: TWSE att={len(twse_att)} dis={len(twse_dis)}, "
-          f"TPEx att={len(tpex_att)} dis={len(tpex_dis)}, saved={saved}")
+    legs = {"上市注意股": twse_att_state, "上市處置股": twse_dis_state,
+            "上櫃注意股": tpex_att_state, "上櫃處置股": tpex_dis_state}
+    failed = list(failed_legs(legs))
+    # Each market has had attention stocks on every trading day measured
+    # (min 8 a day over 120 days), so an empty list for a day that has
+    # happened is a missed query. A future date -- the next-day disposal
+    # pull in daily_update -- legitimately has none yet. Disposal lists are
+    # empty on quiet days and are judged only on whether the query went through.
+    if trade_date <= date.today():
+        failed += [f"{name}（0 筆）" for name in ("上市注意股", "上櫃注意股")
+                   if legs[name] == EMPTY]
 
-    return ScrapeResult(records=saved, api_rows=len(all_records), parse_errors=0)
+    print(f"  Alerts: TWSE att={len(twse_att)} dis={len(twse_dis)}, "
+          f"TPEx att={len(tpex_att)} dis={len(tpex_dis)}, saved={saved}; "
+          f"legs {legs}")
+
+    return ScrapeResult(records=saved, api_rows=len(all_records), parse_errors=0,
+                        failed_sources=tuple(failed))
 
 
 # ---------------------------------------------------------------------------
@@ -308,10 +330,10 @@ def scrape_range(start: date, end: date) -> int:
     """Fetch all alerts in a date range (bulk, not per-day)."""
     print(f"Fetching stock alerts {start} ~ {end} ...")
 
-    twse_att = _fetch_twse_notice(start, end)
-    twse_dis = _fetch_twse_punish(start, end)
-    tpex_att = _fetch_tpex_attention(start, end)
-    tpex_dis = _fetch_tpex_disposal(start, end)
+    twse_att, _ = _fetch_twse_notice(start, end)
+    twse_dis, _ = _fetch_twse_punish(start, end)
+    tpex_att, _ = _fetch_tpex_attention(start, end)
+    tpex_dis, _ = _fetch_tpex_disposal(start, end)
 
     all_records = twse_att + twse_dis + tpex_att + tpex_dis
     saved = _save(all_records)

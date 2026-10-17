@@ -231,8 +231,11 @@ def scrape_date(trade_date: date) -> ScrapeResult:
         return ScrapeResult(records=0, api_rows=0, parse_errors=0)
     data_date, records = fetch_opendata()
     if data_date is None:
+        # The CSV always carries the latest week; a 200 with no dated row is
+        # an empty or reshaped file, not a quiet week.
         print("  [shareholder] OpenData returned no data.")
-        return ScrapeResult(records=0, api_rows=0, parse_errors=0)
+        return ScrapeResult(records=0, api_rows=0, parse_errors=0,
+                            failed_sources=("集保 OpenData CSV（讀不到資料日期）",))
 
     with get_cursor(commit=False) as cur:
         cur.execute(

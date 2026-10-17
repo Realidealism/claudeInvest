@@ -149,9 +149,16 @@ def scrape_range(start: date, end: date) -> ScrapeResult:
     o = _run(OPT_URL, _OPT_SQL, _parse_opt, start, end)
     print(f"  TAIFEX inst {start}~{end}: fut={f.records} opt={o.records} "
           f"(errors fut={f.parse_errors} opt={o.parse_errors})")
+    # Both legs carry rows on every trading day (69 and 30 on every night
+    # measured), so an empty leg -- no answer or nothing parsed -- is a miss
+    # the other leg's rows would otherwise hide. daily_update only judges this
+    # for recent dates; options data starts 2023-06, so old ranges are empty.
+    dead = tuple(name for name, leg in (("期交所法人期貨", f), ("期交所法人選擇權", o))
+                 if leg.records == 0)
     return ScrapeResult(records=f.records + o.records,
                         api_rows=f.api_rows + o.api_rows,
-                        parse_errors=f.parse_errors + o.parse_errors)
+                        parse_errors=f.parse_errors + o.parse_errors,
+                        failed_sources=dead)
 
 
 def scrape_date(trade_date: date) -> ScrapeResult:

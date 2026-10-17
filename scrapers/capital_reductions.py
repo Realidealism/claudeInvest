@@ -140,19 +140,23 @@ def scrape_date(trade_date: date) -> ScrapeResult:
     candidates = _candidates(trade_date)
     print(f"Fetching capital reductions ({trade_date}), "
           f"{len(candidates)} recent resumptions ...")
-    parsed, api_rows, errors = [], 0, 0
+    parsed, api_rows, failed = [], 0, []
     start = str(date(trade_date.year - 1, 1, 1))
     for stock_id in candidates:
         rows = _fetch(DATASET, stock_id, start, str(trade_date))
         if rows is None:
-            errors += 1
+            failed.append(stock_id)
             continue
         api_rows += len(rows)
         parsed.extend(_parse(stock_id, rows))
     saved = _save(parsed)
     print(f"  Capital reductions: {len(parsed)} events found, {saved} new, "
-          f"{errors} fetch errors")
-    return ScrapeResult(records=saved, api_rows=api_rows, parse_errors=errors)
+          f"{len(failed)} fetch errors{': ' + ', '.join(failed) if failed else ''}")
+    # Any candidate could be the reduction post_break_blackout needs, so every
+    # unanswered one is reported. Failures used to go into parse_errors, whose
+    # denominator (api_rows) counts rows, not stocks.
+    return ScrapeResult(records=saved, api_rows=api_rows, parse_errors=0,
+                        failed_sources=tuple(f"FinMind {s}" for s in failed))
 
 
 if __name__ == "__main__":

@@ -18,7 +18,7 @@ from datetime import date
 
 from db.connection import get_cursor
 from scrapers.insider_holdings import _get_mops_session, _mops_rate_limit, _parse_int
-from utils.format_shift import ScrapeResult
+from utils.format_shift import EMPTY, NO_RESPONSE, OK, UNREADABLE, ScrapeResult, failed_legs
 
 MOPS_URL = "https://mopsov.twse.com.tw/mops/web/ajax_t56sb21"
 _REFERER = "https://mopsov.twse.com.tw/mops/web/t56sb21_q1"
@@ -41,6 +41,16 @@ def _clean(c: str) -> str:
 
 def fetch(market: str, roc_year: int, month: int) -> list[dict]:
     """Market-wide filings for one ROC year/month. market = 'sii' | 'otc'."""
+    return fetch_state(market, roc_year, month)[0]
+
+
+# What MOPS answers for a month nobody filed in (probed 2026-10-17).
+_NO_FILINGS_TEXT = "無持股轉讓之情形"
+
+
+def fetch_state(market: str, roc_year: int, month: int) -> tuple[list[dict], str]:
+    """fetch() plus how the request went: NO_RESPONSE, UNREADABLE, EMPTY (MOPS
+    said nobody filed) or OK."""
     payload = {
         "step": "1", "TYPEK": market, "co_id": "", "year": str(roc_year),
         "smonth": f"{month:02d}", "emonth": f"{month:02d}",
@@ -53,7 +63,7 @@ def fetch(market: str, roc_year: int, month: int) -> list[dict]:
         r.raise_for_status()
     except Exception as e:
         print(f"  [transfers] {market} {roc_year}/{month} request error: {e}")
-        return []
+        return [], NO_RESPONSE
 
     html = r.content.decode("utf-8", "replace")
     rows: list[dict] = []
@@ -74,7 +84,13 @@ def fetch(market: str, roc_year: int, month: int) -> list[dict]:
             "planned_shares":  _parse_int(cells[10]) if len(cells) > 10 else 0,
             "transfer_period": cells[16] if len(cells) > 16 else "",
         })
-    return rows
+    if rows:
+        return rows, OK
+    if _NO_FILINGS_TEXT in html:
+        return rows, EMPTY
+    print(f"  [transfers] {market} {roc_year}/{month}: no rows and no "
+          f"'{_NO_FILINGS_TEXT}' ({len(r.content)} bytes)")
+    return rows, UNREADABLE
 
 
 _UPSERT = """
@@ -112,11 +128,16 @@ def scrape_date(trade_date: date) -> ScrapeResult:
     months.append((pm_y, pm_m))
 
     total = 0
+    legs = {}
     for cy, cm in months:
         for market in ("sii", "otc"):
-            total += save_transfers(fetch(market, cy - 1911, cm))
-    print(f"  [transfers] {len(months)*2} queries, {total} filings upserted.")
-    return ScrapeResult(records=total, api_rows=total, parse_errors=0)
+            rows, state = fetch_state(market, cy - 1911, cm)
+            legs[f"{'上市' if market == 'sii' else '上櫃'} {cy}-{cm:02d}"] = state
+            total += save_transfers(rows)
+    print(f"  [transfers] {len(months)*2} queries, {total} filings upserted; legs {legs}")
+    return ScrapeResult(records=total, api_rows=total, parse_errors=0,
+                        failed_sources=failed_legs(
+                            {f"內部人轉讓 {k}": v for k, v in legs.items()}))
 
 
 if __name__ == "__main__":

@@ -14,6 +14,7 @@ insider_holdings.py; does NOT touch that module or tw.insider_holdings.
 """
 
 import re
+import time
 from datetime import date, timedelta
 
 import requests
@@ -24,7 +25,8 @@ from scrapers.insider_holdings import (
     _mops_rate_limit,
     _parse_int,
 )
-from utils.format_shift import ScrapeResult
+from utils.format_shift import (EMPTY, NO_RESPONSE, OK, UNREADABLE, ScrapeResult,
+                                failed_legs, parsed_state)
 from utils.http_client import DEFAULT_HEADERS
 
 MOPS_URL = "https://mopsov.twse.com.tw/mops/web/ajax_STAMAK03_1"
@@ -66,6 +68,32 @@ def fetch_events(stock_id: str, roc_b_date: str, roc_e_date: str) -> list[dict]:
     Returns a list of event dicts (raw role/name preserved, no aggregation).
     Returns [] on no-data / request failure.
     """
+    return fetch_events_state(stock_id, roc_b_date, roc_e_date)[0]
+
+
+# What MOPS answers for a stock with no pledge change in the range (probed
+# 2026-10-17).
+_NO_EVENTS_TEXT = "資料庫中查無需求資料"
+_RETRY_WAIT = 10  # seconds before the one retry of a 5xx / dropped request
+
+
+def _post_once(stock_id: str, payload: dict):
+    """One MOPS request; returns the response, or the exception it raised."""
+    _mops_rate_limit()
+    s = _get_mops_session()
+    try:
+        r = s.post(MOPS_URL, data=payload, timeout=30)
+        r.raise_for_status()
+        return r
+    except Exception as e:  # requests.RequestException + any transport issue
+        print(f"  [{stock_id}] request error: {e}")
+        return e
+
+
+def fetch_events_state(stock_id: str, roc_b_date: str,
+                       roc_e_date: str) -> tuple[list[dict], str]:
+    """fetch_events() plus how the request went: NO_RESPONSE, UNREADABLE,
+    EMPTY (MOPS said there is nothing in the range) or OK."""
     payload = {
         "encodeURIComponent": "1",
         "step": "1",
@@ -78,19 +106,23 @@ def fetch_events(stock_id: str, roc_b_date: str, roc_e_date: str) -> list[dict]:
         "b_date": roc_b_date,
         "e_date": roc_e_date,
     }
-    _mops_rate_limit()
-    s = _get_mops_session()
-    try:
-        r = s.post(MOPS_URL, data=payload, timeout=30)
-        r.raise_for_status()
-    except Exception as e:  # requests.RequestException + any transport issue
-        print(f"  [{stock_id}] request error: {e}")
-        return []
+    r = _post_once(stock_id, payload)
+    # MOPS throws the odd 502 under load (2 of 66 stocks on 2026-10-14). One
+    # retry for server errors and dropped connections; a 4xx will not change.
+    status = getattr(getattr(r, "response", None), "status_code", None)
+    if isinstance(r, Exception) and not (status is not None and status < 500):
+        time.sleep(_RETRY_WAIT)
+        r = _post_once(stock_id, payload)
+    if isinstance(r, Exception):
+        return [], NO_RESPONSE
 
     html = r.text
     rows = re.findall(r"<tr class='(?:odd|even)'>(.*?)</tr>", html, re.S | re.I)
     if not rows:
-        return []
+        if _NO_EVENTS_TEXT in html:
+            return [], EMPTY
+        print(f"  [{stock_id}] no rows and no '{_NO_EVENTS_TEXT}' ({len(r.content)} bytes)")
+        return [], UNREADABLE
 
     events: list[dict] = []
     for row in rows:
@@ -111,7 +143,7 @@ def fetch_events(stock_id: str, roc_b_date: str, roc_e_date: str) -> list[dict]:
             "remark":             _clean_text(cells[9]),
             "report_date":        _roc_to_ad_date(cells[10]),
         })
-    return events
+    return events, parsed_state(OK, events)
 
 
 _UPSERT_SQL = """
@@ -157,7 +189,8 @@ def _roc(d: date) -> str:
 def fetch_zeu_codes() -> list[str]:
     """Fetch MoneyDJ ZEU and return the unique stock codes with recent pledge/
     release activity, in page order. Codes are embedded as GenLink2stk('AS<code>',
-    '<name>'). Returns [] on any fetch failure (caller treats as no-op)."""
+    '<name>'). Returns [] on any fetch failure, which scrape_date reports as a
+    failed source (the page always lists the trailing ~2 weeks)."""
     try:
         r = requests.get(ZEU_URL, headers=DEFAULT_HEADERS, timeout=30)
         r.raise_for_status()
@@ -175,6 +208,10 @@ def fetch_zeu_codes() -> list[str]:
 
 
 _run_completed = False
+# The failures of the one real run, handed back on every guarded call: the
+# run always asks about today, so in a range backfill that starts with an old
+# date (not judged) its failures would otherwise never reach a judged date.
+_run_failed: tuple[str, ...] = ()
 
 
 def scrape_date(trade_date: date) -> ScrapeResult:
@@ -183,28 +220,37 @@ def scrape_date(trade_date: date) -> ScrapeResult:
 
     trade_date is ignored (ZEU always shows the latest ~2 weeks). Idempotent:
     per-stock upserts dedupe. Guarded so a date-range run only fetches once."""
-    global _run_completed
+    global _run_completed, _run_failed
     if _run_completed:
-        return ScrapeResult(records=0, api_rows=0, parse_errors=0)
+        return ScrapeResult(records=0, api_rows=0, parse_errors=0,
+                            failed_sources=_run_failed)
 
     codes = fetch_zeu_codes()
     if not codes:
-        print("  [pledge-events] ZEU returned no codes; nothing to do.")
-        _run_completed = True
-        return ScrapeResult(records=0, api_rows=0, parse_errors=0)
+        # ZEU lists every filing of the trailing ~2 weeks (66 stocks on
+        # 2026-10-16); an empty list is a failed or reshaped page. The guard
+        # stays unset so a later call in the same process tries again.
+        print("  [pledge-events] ZEU returned no codes.")
+        return ScrapeResult(records=0, api_rows=0, parse_errors=0,
+                            failed_sources=("MoneyDJ 質設異動清單（沒有回應或沒有代號）",))
 
     today = date.today()
     b_date = _roc(today - timedelta(days=ZEU_LOOKBACK_DAYS))
     e_date = _roc(today)
 
     total = 0
+    states = {}
     for sid in codes:
-        total += save_events(fetch_events(sid, b_date, e_date))
+        events, states[sid] = fetch_events_state(sid, b_date, e_date)
+        total += save_events(events)
 
+    failed = failed_legs({f"MOPS {sid}": s for sid, s in states.items()})
     print(f"  [pledge-events] {len(codes)} active stocks from ZEU, "
-          f"{total} events upserted.")
-    _run_completed = True
-    return ScrapeResult(records=total, api_rows=len(codes), parse_errors=0)
+          f"{total} events upserted, {len(failed)} failed"
+          f"{': ' + ', '.join(failed) if failed else ''}.")
+    _run_completed, _run_failed = True, failed
+    return ScrapeResult(records=total, api_rows=len(codes), parse_errors=0,
+                        failed_sources=failed)
 
 
 if __name__ == "__main__":

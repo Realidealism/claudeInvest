@@ -32,11 +32,13 @@ class ScrapeResult:
     records      : rows successfully saved to DB
     api_rows     : raw rows returned by API before parsing or security filtering
     parse_errors : rows that raised an exception during parsing
-    failed_sources: names of the source legs that came back empty, for scrapers
-                   that pull from more than one endpoint (TWSE + TPEx, the four
-                   odd-lot sessions, ...). Summing every leg into `records`
-                   hides a half-dead run: one leg dying still leaves records
-                   well above zero. Left empty by single-leg scrapers.
+    failed_sources: the source legs (or per-item requests) that failed, each
+                   entry naming the leg and, where known, why. Summing every
+                   leg into `records` hides a half-dead run: one leg dying
+                   still leaves records well above zero. For daily sources an
+                   empty leg is a failure; for event-driven ones only a leg
+                   that did not answer or could not be read is (see
+                   failed_legs). Left empty by single-leg daily scrapers.
     """
 
     records: int
@@ -54,3 +56,47 @@ class ScrapeResult:
             f"records={self.records}, api_rows={self.api_rows}, "
             f"errors={self.parse_errors} ({self.error_rate:.0%})"
         )
+
+
+# Outcome of one request to a source that can legitimately have nothing to
+# report (an event board, a month with no filings). EMPTY is the source saying
+# so in its own words; NO_RESPONSE and UNREADABLE are failures.
+NO_RESPONSE = "no_response"   # request failed, timed out, or answered an HTTP error
+UNREADABLE = "unreadable"     # answered, but not in the shape that carries data
+EMPTY = "empty"               # answered: nothing to report
+OK = "ok"                     # answered with rows
+
+_FAILED_STATE_TEXT = {NO_RESPONSE: "沒有回應", UNREADABLE: "回應讀不懂"}
+
+
+def twse_rwd_rows(data) -> tuple[list, str]:
+    """Data rows of a TWSE /rwd/ JSON answer and the request's state. A quiet
+    query is stat OK with an empty data list (probed 2026-10-17); any other
+    stat means the query did not go through."""
+    if data is None:
+        return [], NO_RESPONSE
+    if not isinstance(data, dict) or data.get("stat") != "OK" \
+            or not isinstance(data.get("data"), list):
+        return [], UNREADABLE
+    return data["data"], OK if data["data"] else EMPTY
+
+
+def openapi_rows(data) -> tuple[list, str]:
+    """Rows of a TPEx OpenAPI answer, which is a bare JSON list ([] when
+    there is nothing to report)."""
+    if data is None:
+        return [], NO_RESPONSE
+    if not isinstance(data, list):
+        return [], UNREADABLE
+    return data, OK if data else EMPTY
+
+
+def parsed_state(state: str, parsed: list) -> str:
+    """Rows came back but none parsed: the layout changed under us."""
+    return UNREADABLE if state == OK and not parsed else state
+
+
+def failed_legs(legs: dict[str, str]) -> tuple[str, ...]:
+    """failed_sources entries for the legs whose request did not succeed."""
+    return tuple(f"{name}（{_FAILED_STATE_TEXT[state]}）"
+                 for name, state in legs.items() if state in _FAILED_STATE_TEXT)

@@ -71,6 +71,28 @@ def test_dead_leg_ignored_while_backfilling():
     assert du._result_problem(
         ScrapeResult(1000, 1000, 0, ("TPEx",)), expect_rows=False
     ) is None
+    assert du._result_problem(
+        ScrapeResult(1000, 1000, 0, ("TPEx",)), expect_rows=False, recent=False
+    ) is None
+
+
+def test_failed_leg_of_an_event_source_is_caught_on_a_recent_date():
+    """0 rows is fine for an event board, a leg that did not answer is not."""
+    problem = du._result_problem(
+        ScrapeResult(0, 0, 0, ("上櫃處置股（沒有回應）",)), expect_rows=False, recent=True)
+    assert problem is not None
+    assert "上櫃處置股（沒有回應）" in problem
+
+
+def test_event_source_with_every_leg_answered_is_fine():
+    assert du._result_problem(ScrapeResult(0, 0, 0), expect_rows=False, recent=True) is None
+
+
+def test_long_list_of_failed_items_is_cut_to_eight():
+    failed = tuple(f"MOPS {1000 + i}（沒有回應）" for i in range(20))
+    problem = du._result_problem(ScrapeResult(5, 66, 0, failed), expect_rows=False, recent=True)
+    assert "MOPS 1007" in problem and "MOPS 1008" not in problem
+    assert "等 20 項" in problem
 
 
 def test_format_shift_is_caught_regardless_of_row_count():
@@ -125,6 +147,7 @@ def test_critical_labels_all_exist_in_the_registry():
 @pytest.mark.parametrize("label", [
     "TWSE daily prices", "TPEx daily prices", "Margin trading",
     "Institutional investors", "Private placements",
+    "TAIFEX futures", "TAIFEX institutional",
 ])
 def test_core_sources_are_monitored(label):
     """These carry a value every trading day; 0 rows means a broken scrape."""
@@ -253,6 +276,18 @@ def test_summary_does_not_flag_a_non_critical_failure_as_blocking():
     assert "關鍵抓檔失敗" not in msg
 
 
+def test_summary_of_a_night_with_many_failures_still_fits_telegram():
+    """Telegram rejects a message over 4096 characters outright."""
+    labels = [f"步驟 {i}" for i in range(20)]
+    msg = du._build_daily_update_message(
+        TRADE_DATE, [(label, "failed") for label in labels],
+        {label: "原因" * 400 for label in labels})
+    assert len(msg) <= du._SUMMARY_MAX_CHARS
+    assert "完整見 log" in msg and "其餘失敗原因見 log" in msg
+    assert msg.endswith(f"重跑指令：daily_update.exe {TRADE_DATE}")
+    assert all(label in msg for label in labels)   # the failed list stays whole
+
+
 # ── the two paths that used to fail quietly ────────────────────────────────
 
 class _EmptyCursor:
@@ -290,15 +325,6 @@ def test_delist_detection_stays_quiet_for_an_old_backfill_date(monkeypatch):
     du.detect_delisted(old)   # returns, does not raise
 
 
-def test_next_day_disposal_failure_reaches_the_summary():
-    """Used to print [WARN] and never touch results or failure_traces.
-
-    A silent failure here reverts positions.json's disposal_status to the
-    prediction, which looks exactly like a day with no disposals.
-    """
-    import inspect
-    src = inspect.getsource(du._update_trading_day)
-    block = src[src.index("明日處置名單抓取"):][:800]
-    assert 'results.append(("明日處置名單抓取", "ok")' in block
-    assert '_capture_trace(failure_traces, "明日處置名單抓取")' in block
-    assert 'results.append(("明日處置名單抓取", "failed")' in block
+# The next-day disposal pull, which used to print [WARN] and never touch
+# results, is now driven end to end in test_daily_update_pipeline.py
+# (test_next_day_disposal_*).

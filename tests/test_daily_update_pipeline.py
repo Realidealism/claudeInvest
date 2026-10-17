@@ -21,6 +21,7 @@ import pytest
 
 import daily_update as du
 from daily_update_guards import no_side_effects  # noqa: F401
+from utils.format_shift import ScrapeResult
 
 # A Wednesday inside every monthly and quarterly window, so no step is skipped.
 DAY = date(2026, 10, 14)
@@ -54,7 +55,8 @@ REPLACED_CALLS = {"_trading_day_gate", "run_scraper", "get_cursor", "detect_deli
                   "_git_push_frontend", "send_sync", "_revenue_counts"}
 # ... and the ones that are safe to run as they are.
 PURE_CALLS = {"_capture_trace", "_build_daily_update_message", "_run_outcome", "Path",
-              "_revenue_months", "_revenue_verdict", "_missing_funds_text"}
+              "_revenue_months", "_revenue_verdict", "_missing_funds_text",
+              "_result_problem"}
 
 RETURNS = {
     "strategies.registry.scan_daily": [],
@@ -63,7 +65,9 @@ RETURNS = {
     "signals.etf_abnormal_exit.scan": [],
     "analysis.market_breadth.calculate_market_breadth": [],
     "analysis.market_breadth.save_market_breadth": 0,
-    "analysis.daily_liquidity.compute_daily_liquidity": 0,
+    "analysis.daily_liquidity.compute_daily_liquidity": 2200,
+    # The next-day disposal pull: all four legs answered.
+    "scrapers.stock_alerts.scrape_date": ScrapeResult(24, 24, 0),
     # A normal night: both markets published, every fund got, messages sent.
     "scrapers.revenue.scrape_month": {"sii": ("ok", 987), "otc": ("ok", 864)},
     "scrapers.sitca.scrape_monthly": [],
@@ -115,8 +119,12 @@ class _Night:
                 attrs["PeriodNotAvailable"] = type("PeriodNotAvailable", (Exception,), {})
             monkeypatch.setitem(sys.modules, module, types.SimpleNamespace(**attrs))
 
-        def run_scraper(label, module_path, func_name, trade_date, expect_rows=False):
+        self.scraper_flags = {}
+
+        def run_scraper(label, module_path, func_name, trade_date, expect_rows=False,
+                        recent=None):
             self.calls.append(f"scraper:{label}")
+            self.scraper_flags[label] = (expect_rows, recent)
             return (False, f"{label} failed") if label in fail else (True, None)
 
         def send_sync(text):
@@ -129,6 +137,14 @@ class _Night:
         def get_cursor(commit=True):
             yield _Cursor()
 
+        # The night runs on its own trade date, as the 21:30 task does, so the
+        # checks reserved for recent dates apply however old DAY gets.
+        class _Date(date):
+            @classmethod
+            def today(cls):
+                return day
+
+        monkeypatch.setattr(du, "date", _Date)
         monkeypatch.setattr(du, "_trading_day_gate", lambda d: ("run", True, None))
         monkeypatch.setattr(du, "run_scraper", run_scraper)
         monkeypatch.setattr(du, "get_cursor", get_cursor)
@@ -375,6 +391,38 @@ def test_push_that_was_not_delivered_fails_the_step(monkeypatch, name, label):
     assert night.status[label] == "failed"
     assert night.traces[label] == "Telegram 傳送失敗"
     assert night.outcome == "partial"
+
+
+def test_every_scraper_is_judged_on_its_failed_legs_on_a_recent_night(monkeypatch):
+    # Event sources expect no rows but are still judged on legs that did not
+    # answer; that only happens if the loop passes recent through.
+    night = _Night(monkeypatch)
+    assert night.scraper_flags == {label: (expect, True)
+                                   for label, _, _, expect in du.SCRAPERS}
+
+
+def test_liquidity_without_rows_fails_the_step(monkeypatch):
+    night = _Night(monkeypatch, returns={"analysis.daily_liquidity.compute_daily_liquidity": 0})
+    assert night.status["每日流動性"] == "failed"
+    assert night.traces["每日流動性"] == "流動性 0 筆"
+    # A core step since step 4a: the snapshot reads it.
+    assert "每日流動性" in du.CORE_STEP_LABELS and night.outcome == "failed"
+
+
+def test_next_day_disposal_leg_that_did_not_answer_fails_the_step(monkeypatch):
+    # Used to be recorded "ok" whatever came back: a dead leg quietly reverts
+    # positions.json's disposal_status to the prediction.
+    night = _Night(monkeypatch, returns={"scrapers.stock_alerts.scrape_date":
+                                         ScrapeResult(9, 9, 0, ("上櫃處置股（沒有回應）",))})
+    assert night.status["明日處置名單抓取"] == "failed"
+    assert "上櫃處置股（沒有回應）" in night.traces["明日處置名單抓取"]
+    assert night.outcome == "partial"
+
+
+def test_next_day_disposal_that_raises_fails_the_step(monkeypatch):
+    night = _Night(monkeypatch, fail={"scrapers.stock_alerts.scrape_date"})
+    assert night.status["明日處置名單抓取"] == "failed"
+    assert "明日處置名單抓取" in night.traces
 
 
 # ── the summary's delivery ─────────────────────────────────────────────────

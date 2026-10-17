@@ -57,7 +57,8 @@ class _Gate:
         self.rows = rows
         index_result = (True, None) if gate_ok else (False, "INDEX TRACE")
 
-        def run_scraper(label, module_path, func_name, trade_date, expect_rows=False):
+        def run_scraper(label, module_path, func_name, trade_date, expect_rows=False,
+                        recent=None):
             self.scraped.append(label)
             return index_result if label == du.INDEX_SCRAPER[0] else (True, None)
 

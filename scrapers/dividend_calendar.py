@@ -23,7 +23,8 @@ import re
 from datetime import date
 
 from db.connection import get_cursor
-from utils.format_shift import ScrapeResult
+from utils.format_shift import (ScrapeResult, failed_legs, openapi_rows, parsed_state,
+                                twse_rwd_rows)
 from utils.http_client import fetch_json_retry
 
 TWSE_URL = "https://www.twse.com.tw/rwd/zh/exRight/TWT48U"
@@ -61,17 +62,16 @@ def _norm_kind(val) -> str | None:
     return s or None
 
 
-def _fetch_twse() -> list[dict]:
+def _fetch_twse() -> tuple[list[dict], str]:
     data = fetch_json_retry(
         TWSE_URL,
         params={"response": "json"},
         validate=lambda d: isinstance(d, dict) and d.get("stat") == "OK",
     )
-    if not isinstance(data, dict) or data.get("stat") != "OK":
-        return []
+    rows, state = twse_rwd_rows(data)
 
     results = []
-    for row in data.get("data", []):
+    for row in rows:
         try:
             stock_id = str(row[1]).strip()
             if not stock_id or not stock_id[0].isdigit():
@@ -87,16 +87,15 @@ def _fetch_twse() -> list[dict]:
             })
         except (IndexError, ValueError, TypeError):
             continue
-    return results
+    return results, parsed_state(state, results)
 
 
-def _fetch_tpex() -> list[dict]:
+def _fetch_tpex() -> tuple[list[dict], str]:
     data = fetch_json_retry(TPEX_URL, validate=lambda d: isinstance(d, list))
-    if not isinstance(data, list):
-        return []
+    rows, state = openapi_rows(data)
 
     results = []
-    for row in data:
+    for row in rows:
         try:
             stock_id = str(row.get("SecuritiesCompanyCode", "")).strip()
             if not stock_id or not stock_id[0].isdigit():
@@ -112,7 +111,7 @@ def _fetch_tpex() -> list[dict]:
             })
         except (AttributeError, ValueError, TypeError):
             continue
-    return results
+    return results, parsed_state(state, results)
 
 
 # ---------------------------------------------------------------------------
@@ -160,13 +159,17 @@ def scrape_date(trade_date: date) -> ScrapeResult:
     daily_update registry's uniform scrape_date(date) signature."""
     print(f"Fetching dividend calendar ({trade_date}) ...")
 
-    twse = _fetch_twse()
-    tpex = _fetch_tpex()
+    twse, twse_state = _fetch_twse()
+    tpex, tpex_state = _fetch_tpex()
     records = twse + tpex
     saved = _save(records)
 
-    print(f"  Dividend calendar: TWSE={len(twse)} TPEx={len(tpex)}, saved={saved}")
-    return ScrapeResult(records=saved, api_rows=len(records), parse_errors=0)
+    # An empty board is possible (no ex-dividend announced in the window), so
+    # only a leg that did not answer or could not be read fails.
+    legs = {"上市除權息預告": twse_state, "上櫃除權息預告": tpex_state}
+    print(f"  Dividend calendar: TWSE={len(twse)} TPEx={len(tpex)}, saved={saved}; legs {legs}")
+    return ScrapeResult(records=saved, api_rows=len(records), parse_errors=0,
+                        failed_sources=failed_legs(legs))
 
 
 if __name__ == "__main__":
