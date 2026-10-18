@@ -19,6 +19,8 @@ from contextlib import contextmanager
 from datetime import datetime
 from pathlib import Path
 
+import pytest
+
 import intraday_snapshot as m
 
 REPO = Path(__file__).resolve().parents[1]
@@ -261,3 +263,139 @@ def test_alert_success_adds_no_warning(monkeypatch, capsys):
     _fake_push(monkeypatch, lambda argv: 0)
     m._push_final()
     assert "git-push alert" not in capsys.readouterr().out
+
+
+# -- a pass thrown away for per-stock errors is alerted once a day --------
+
+from analysis.snapshot_errors import PerStockErrors  # noqa: E402
+import telegram_bot.cron_alert as cron_alert  # noqa: E402
+
+ERRS = PerStockErrors([("signal buy", "2330", "ValueError: x")])
+
+
+def _fake_alert(monkeypatch, rec, rc=0):
+    sent = []
+    cron = types.ModuleType("telegram_bot.cron_alert")
+
+    def main(argv):
+        rec.note("alert")
+        sent.append(argv)
+        return rc
+    cron.main = main
+    monkeypatch.setitem(sys.modules, "telegram_bot.cron_alert", cron)
+    monkeypatch.setattr(m, "_per_stock_alerted_on", None)
+    return sent
+
+
+def test_per_stock_errors_alert_once_a_day_under_the_step_deadline(monkeypatch):
+    rec = _Recorder()
+    monkeypatch.setattr(m, "_deadline", rec.deadline)
+    sent = _fake_alert(monkeypatch, rec)
+    m._alert_per_stock_errors(ERRS)
+    m._alert_per_stock_errors(ERRS)
+    assert rec.calls == [("alert", [450])]
+    assert sent == [["snapshot_exceptions", str(ERRS)]]
+    # The next day it goes out again.
+    monkeypatch.setattr(m, "_per_stock_alerted_on", datetime(2000, 1, 1).date())
+    m._alert_per_stock_errors(ERRS)
+    assert len(sent) == 2
+
+
+def test_undelivered_per_stock_alert_is_tried_again(monkeypatch, capsys):
+    rec = _Recorder()
+    monkeypatch.setattr(m, "_deadline", rec.deadline)
+    sent = _fake_alert(monkeypatch, rec, rc=1)
+    m._alert_per_stock_errors(ERRS)
+    m._alert_per_stock_errors(ERRS)
+    assert len(sent) == 2 and "alert returned 1" in capsys.readouterr().out
+
+
+@pytest.mark.parametrize("in_session", [True, False])
+def test_pass_with_per_stock_errors_alerts_outside_the_pass_deadline(monkeypatch, in_session):
+    rec = _Recorder()
+    stop = _Stop(rec)
+    _fake_intraday(monkeypatch, rec, in_session=in_session)
+    monkeypatch.setattr(m, "_deadline", rec.deadline)
+    _fake_alert(monkeypatch, rec)
+
+    def run_pass(final_pass=False):
+        rec.note("pass")
+        raise ERRS
+
+    def wait(timeout=None):
+        rec.note("sleep")
+        stop.set()
+        return True
+
+    monkeypatch.setattr(m, "_run_pass", run_pass)
+    monkeypatch.setattr(stop, "wait", wait)
+    m._run_loop(stop)
+    calls = [c for c in rec.calls if c[0] != "bucket_poll"]
+    assert calls == [("pass", []), ("alert", [450]), ("sleep", [])]
+
+
+def test_pass_deadline_is_cancelled_before_the_alert(monkeypatch):
+    # The real _run_pass: the error leaves its pass deadline before the
+    # alert arms the step deadline (there is only one faulthandler timer).
+    rec = _Recorder()
+    stop = _Stop(rec)
+    _fake_intraday(monkeypatch, rec, in_session=True)
+    monkeypatch.setattr(m, "_deadline", rec.deadline)
+    monkeypatch.setattr(m, "_maybe_scrape_vix", lambda: rec.note("vix"))
+    _fake_alert(monkeypatch, rec)
+    snap = types.ModuleType("analysis.intraday_snapshot")
+
+    def run(final_pass=False):
+        rec.note("snapshot")
+        raise ERRS
+    snap.run = run
+    gen = types.ModuleType("export.generate")
+    gen.export_intraday = lambda: rec.note("export")
+    monkeypatch.setitem(sys.modules, "analysis.intraday_snapshot", snap)
+    monkeypatch.setitem(sys.modules, "export.generate", gen)
+
+    def wait(timeout=None):
+        rec.note("sleep")
+        stop.set()
+        return True
+    monkeypatch.setattr(stop, "wait", wait)
+    m._run_loop(stop)
+    assert rec.calls == [("vix", [1200]), ("snapshot", [1200]), ("alert", [450]), ("sleep", [])]
+
+
+def test_alert_that_raises_is_logged_and_tried_again(monkeypatch, capsys):
+    rec = _Recorder()
+    monkeypatch.setattr(m, "_deadline", rec.deadline)
+    _fake_alert(monkeypatch, rec)
+
+    def boom(argv):
+        raise RuntimeError("telegram down")
+    sys.modules["telegram_bot.cron_alert"].main = boom
+    m._alert_per_stock_errors(ERRS)
+    assert m._per_stock_alerted_on is None
+    assert "per-stock-errors alert failed" in capsys.readouterr().out
+
+
+def test_other_pass_failures_do_not_send_the_per_stock_alert(monkeypatch):
+    rec = _Recorder()
+    stop = _Stop(rec)
+    _fake_intraday(monkeypatch, rec, in_session=True)
+    monkeypatch.setattr(m, "_deadline", rec.deadline)
+    sent = _fake_alert(monkeypatch, rec)
+
+    def run_pass(final_pass=False):
+        raise RuntimeError("db down")
+
+    def wait(timeout=None):
+        stop.set()
+        return True
+
+    monkeypatch.setattr(m, "_run_pass", run_pass)
+    monkeypatch.setattr(stop, "wait", wait)
+    m._run_loop(stop)
+    assert sent == []
+
+
+def test_cron_alert_composes_the_per_stock_message():
+    assert cron_alert._EVENTS["snapshot_exceptions"]("逐檔例外 1 處") == \
+        "盤中快照逐檔例外，這一輪沒有寫入：逐檔例外 1 處"

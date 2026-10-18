@@ -53,6 +53,8 @@ import time
 import traceback
 from contextlib import contextmanager
 
+from analysis.snapshot_errors import PerStockErrors
+
 # Line-buffer stdout/stderr so NSSM-redirected log files get every print
 # immediately instead of waiting for a 4 KB block to fill (the daemon
 # spends most of its time sleeping and never hits that block size).
@@ -164,6 +166,38 @@ def _push_final() -> None:
             traceback.print_exc()
 
 
+# The day a per-stock-errors alert last went out. Every pass fails the same
+# way until the code is fixed, so one alert a day is enough; the log has
+# each pass. Kept in memory: a restarted daemon may alert once more.
+_per_stock_alerted_on = None
+
+
+def _alert_per_stock_errors(err) -> None:
+    """Alert, at most once a day, that a pass threw away its result because
+    some stock's evaluation raised (analysis.snapshot_errors). Without it the
+    only signal is the health check's "daemon stalled" line 15-25 minutes
+    later, which names the wrong cause. Runs under its own step deadline,
+    outside the pass deadline (there is only one faulthandler timer)."""
+    global _per_stock_alerted_on
+    from intraday.session import now_tpe
+    today = now_tpe().date()   # the loop's own clock, not the host's
+    if _per_stock_alerted_on == today:
+        return
+    try:
+        with _deadline(STEP_WATCHDOG_SECONDS):
+            # In-process call: in the PyInstaller exe sys.executable is this
+            # daemon itself (see _push_final).
+            from telegram_bot.cron_alert import main as cron_alert_main
+            arc = cron_alert_main(["snapshot_exceptions", str(err)])
+        if arc != 0:
+            print(f"[LOOP] [WARN] per-stock-errors alert returned {arc}")
+        else:
+            _per_stock_alerted_on = today
+    except Exception:
+        print("[LOOP] [WARN] per-stock-errors alert failed:")
+        traceback.print_exc()
+
+
 def _push_signals() -> None:
     """Push any new watchlist signal fires right after a pass instead of
     waiting up to 10 minutes for the next intraday_publish tick. Exactly-once
@@ -258,9 +292,11 @@ def _run_loop(stop_event: threading.Event) -> None:
                 with _deadline(STEP_WATCHDOG_SECONDS):
                     _push_signals()
                     _push_final()
-            except Exception:
+            except Exception as e:
                 print("[LOOP] [ERROR] final pass failed:")
                 traceback.print_exc()
+                if isinstance(e, PerStockErrors):
+                    _alert_per_stock_errors(e)
                 # Retry the final pass after a delay rather than letting
                 # today slip without a close-aligned snapshot.
                 if stop_event.wait(30):
@@ -276,9 +312,11 @@ def _run_loop(stop_event: threading.Event) -> None:
             if stop_event.wait(30):
                 break
             continue
-        except Exception:
+        except Exception as e:
             print("[LOOP] [ERROR] snapshot pass crashed:")
             traceback.print_exc()
+            if isinstance(e, PerStockErrors):
+                _alert_per_stock_errors(e)
             if stop_event.wait(10):
                 break
             continue

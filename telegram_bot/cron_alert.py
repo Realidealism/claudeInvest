@@ -27,6 +27,12 @@ def _msg_git_push_failed(_extra: str) -> str:
     return "盤中快照後 git push 失敗"
 
 
+def _msg_snapshot_exceptions(extra: str) -> str:
+    # Called in-process by the intraday daemon with the summary line of
+    # analysis.snapshot_errors (it may be Chinese; no .bat in between).
+    return f"盤中快照逐檔例外，這一輪沒有寫入：{extra or '?'}"
+
+
 def _msg_backfill_financials_failed(extra: str) -> str:
     exit_code = extra or "?"
     return f"財報 backfill 失敗（exit {exit_code}）"
@@ -50,6 +56,7 @@ def _msg_microtaiex_report_failed(extra: str) -> str:
 _EVENTS = {
     "snapshot_failed": _msg_snapshot_failed,
     "git_push_failed": _msg_git_push_failed,
+    "snapshot_exceptions": _msg_snapshot_exceptions,
     "backfill_financials_failed": _msg_backfill_financials_failed,
     "backfill_hermit_failed": _msg_backfill_hermit_failed,
     "microtaiex_report_failed": _msg_microtaiex_report_failed,

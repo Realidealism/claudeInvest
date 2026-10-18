@@ -29,6 +29,7 @@ from db.connection import get_cursor, get_connection
 from analysis.realtime_data import load_stock_data_intraday
 from analysis.market_breadth import compute_live_breadth
 from analysis.score import build_scoreboard
+from analysis.snapshot_errors import PerStockErrors, describe, log_lines
 from intraday.estimate import (
     HCurveNotReadyError,
     get_h_curve,
@@ -85,12 +86,14 @@ def _init_worker(volume_scale: float) -> None:
     _VOLUME_SCALE = volume_scale
 
 
-def _eval_pct(data, idx: int) -> tuple[float | None, float | None]:
+def _eval_pct(data, idx: int, on_error=None) -> tuple[float | None, float | None]:
     if idx < 0:
         return (None, None)
     try:
         r = _BOARD.evaluate(data, idx)
-    except Exception:
+    except Exception as e:
+        if on_error is not None:
+            on_error(e)
         return (None, None)
     return (r.total.long.pct, r.total.short.pct)
 
@@ -145,24 +148,32 @@ def _extract_position(result, side: str, last_trade_date) -> dict | None:
     }
 
 
-def _eval_stock(stock_id: str) -> dict | None:
-    """Per-stock worker. Returns flat dict (cheap pickle) or None."""
+def _eval_stock(stock_id: str) -> tuple[dict | None, list]:
+    """Per-stock worker. Returns (flat dict (cheap pickle) or None, the
+    exceptions it swallowed as (site, stock_id, message)). A stock with under
+    60 bars is unusable, not an error."""
+    errors: list[tuple[str, str, str]] = []
+
+    def note(site):
+        return lambda e: errors.append((site, stock_id, describe(e)))
+
     try:
         data = load_stock_data_intraday(stock_id, _VOLUME_SCALE)
-    except Exception:
-        return None
+    except Exception as e:
+        note("load")(e)
+        return None, errors
     if data.n < 60:
-        return None
+        return None, errors
 
     idx = data.n - 1
     last_date = data.dates[-1]
 
-    lp, sp = _eval_pct(data, idx)
+    lp, sp = _eval_pct(data, idx, note("score"))
     if lp is None:
-        return None
-    lp_d1, sp_d1 = _eval_pct(data, idx - 1)
-    lp_d2, sp_d2 = _eval_pct(data, idx - 2)
-    lp_d3, sp_d3 = _eval_pct(data, idx - 3)
+        return None, errors
+    lp_d1, sp_d1 = _eval_pct(data, idx - 1, note("score_d1"))
+    lp_d2, sp_d2 = _eval_pct(data, idx - 2, note("score_d2"))
+    lp_d3, sp_d3 = _eval_pct(data, idx - 3, note("score_d3"))
 
     # The unified factories AND their entries with ~post_break_blackout; these
     # raw conditions bypass that wrapper, so apply the same seam filter here or
@@ -173,7 +184,8 @@ def _eval_stock(stock_id: str) -> dict | None:
         for name, fn in SIGNALS:
             try:
                 arr = fn(data)
-            except Exception:
+            except Exception as e:
+                note(f"signal {name}")(e)
                 continue
             if bool(arr[idx]):
                 fires.append(name)
@@ -186,7 +198,8 @@ def _eval_stock(stock_id: str) -> dict | None:
     ):
         try:
             spec = factory(data)
-        except Exception:
+        except Exception as e:
+            note(f"unified {side}")(e)
             continue
         tiers = spec.long_tiers if side == "long" else spec.short_tiers
         exit_arr = spec.signals.long_exit if side == "long" else spec.signals.short_exit
@@ -199,7 +212,8 @@ def _eval_stock(stock_id: str) -> dict | None:
                 floor_period=spec.long_floor_period if side == "long"
                               else spec.short_floor_period,
             )
-        except Exception:
+        except Exception as e:
+            note(f"backtest {side}")(e)
             continue
         pos = _extract_position(result, side, last_date)
         if pos is not None:
@@ -219,7 +233,7 @@ def _eval_stock(stock_id: str) -> dict | None:
         # Classified here rather than at export time: the pipeline already
         # ran, and re-deriving it downstream would cost a second pass.
         "vol_status": int(data.volume_result.volume_status[idx]),
-    }
+    }, errors
 
 
 # ── Main side ──────────────────────────────────────────────────────────────
@@ -491,8 +505,10 @@ def run(*, final_pass: bool = False) -> dict:
 
     t0 = time.time()
     results: list[dict] = []
+    errors: list[tuple[str, str, str]] = []
     with Pool(N_WORKERS, initializer=_init_worker, initargs=(scale,)) as pool:
-        for r in pool.imap_unordered(_eval_stock, stock_ids, chunksize=20):
+        for r, errs in pool.imap_unordered(_eval_stock, stock_ids, chunksize=20):
+            errors.extend(errs)
             if r is not None:
                 results.append(r)
                 if len(results) % 200 == 0:
@@ -502,8 +518,16 @@ def run(*, final_pass: bool = False) -> dict:
         # Breadth runs on the close's universe (all active stocks minus
         # dead_fish), which is wider than the money_level >= 4 scoring
         # universe above — hence its own lean pass over the same Pool.
-        t_br = time.time()
-        breadth_counts = compute_live_breadth(scale, snapshot_date, mapper=pool.imap_unordered)
+        if not errors:
+            t_br = time.time()
+            breadth_counts = compute_live_breadth(scale, snapshot_date, mapper=pool.imap_unordered)
+    # Nothing of this pass is written when any stock's evaluation raised: a
+    # step broken for every stock would otherwise publish "no signal, no
+    # position". The previous pass stays in place; the daemon alerts.
+    if errors:
+        for line in log_lines(errors):
+            print(line)
+        raise PerStockErrors(errors)
     print(f"  breadth {breadth_counts['total']} alive in {time.time() - t_br:.1f}s")
 
     prev_long  = _load_prev_score_ranks(snapshot_date, "long")

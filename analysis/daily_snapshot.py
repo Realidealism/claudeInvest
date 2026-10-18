@@ -36,6 +36,7 @@ from psycopg2.extras import execute_batch
 from db.connection import get_cursor, get_connection
 from backtest.data import load_stock_data
 from analysis.score import build_scoreboard
+from analysis.snapshot_errors import PerStockErrors, describe, log_lines
 from signal_backtest.factories._conditions import (
     pick_condition, touch_condition,
     buy_condition, sell_condition,
@@ -94,12 +95,14 @@ def _init_worker() -> None:
     _BOARD = build_scoreboard()
 
 
-def _eval_pct(data, idx: int) -> tuple[float | None, float | None]:
+def _eval_pct(data, idx: int, on_error=None) -> tuple[float | None, float | None]:
     if idx < 0:
         return (None, None)
     try:
         r = _BOARD.evaluate(data, idx)
-    except Exception:
+    except Exception as e:
+        if on_error is not None:
+            on_error(e)
         return (None, None)
     return (r.total.long.pct, r.total.short.pct)
 
@@ -152,31 +155,38 @@ def _extract_open_position(result, side: str, last_trade_date) -> dict | None:
     }
 
 
-def _eval_stock(args: tuple[str, date, date]) -> dict | None:
+def _eval_stock(args: tuple[str, date, date]) -> tuple[dict | None, list]:
     """Worker-process entry. One load_stock_data per stock (windowed by
     start_date and end_date so signals evaluate as-of snapshot_date even on
     backfill); produces score pcts at 4 bars, signal-factory fires on the
     last bar within the window, and unified-strategy open-position info.
-    Returns flat dict so result pickles cheaply, or None when the stock is
-    unusable."""
+    Returns (flat dict so result pickles cheaply, or None when the stock is
+    unusable; the exceptions it swallowed as (site, stock_id, message)).
+    A stock with under 60 bars is unusable, not an error."""
     sid, start_date, end_date = args
+    errors: list[tuple[str, str, str]] = []
+
+    def note(site):
+        return lambda e: errors.append((site, sid, describe(e)))
+
     try:
         data = load_stock_data(sid, start_date=start_date, end_date=end_date)
-    except Exception:
-        return None
+    except Exception as e:
+        note("load")(e)
+        return None, errors
     if data.n < 60:
-        return None
+        return None, errors
 
     idx = data.n - 1
     last_date = data.dates[-1]
 
     # 1. ScoreBoard at 4 bars.
-    lp, sp = _eval_pct(data, idx)
+    lp, sp = _eval_pct(data, idx, note("score"))
     if lp is None:
-        return None
-    lp_d1, sp_d1 = _eval_pct(data, idx - 1)
-    lp_d2, sp_d2 = _eval_pct(data, idx - 2)
-    lp_d3, sp_d3 = _eval_pct(data, idx - 3)
+        return None, errors
+    lp_d1, sp_d1 = _eval_pct(data, idx - 1, note("score_d1"))
+    lp_d2, sp_d2 = _eval_pct(data, idx - 2, note("score_d2"))
+    lp_d3, sp_d3 = _eval_pct(data, idx - 3, note("score_d3"))
 
     # 2. Signal conditions on the latest bar.
     # The unified factories AND their entries with ~post_break_blackout; these
@@ -188,7 +198,8 @@ def _eval_stock(args: tuple[str, date, date]) -> dict | None:
         for name, fn in SIGNALS:
             try:
                 arr = fn(data)
-            except Exception:
+            except Exception as e:
+                note(f"signal {name}")(e)
                 continue
             if bool(arr[idx]):
                 fires.append(name)
@@ -201,7 +212,8 @@ def _eval_stock(args: tuple[str, date, date]) -> dict | None:
     ):
         try:
             spec = factory(data)
-        except Exception:
+        except Exception as e:
+            note(f"unified {side}")(e)
             continue
         tiers = spec.long_tiers if side == "long" else spec.short_tiers
         exit_arr = spec.signals.long_exit if side == "long" else spec.signals.short_exit
@@ -214,7 +226,8 @@ def _eval_stock(args: tuple[str, date, date]) -> dict | None:
                 floor_period=spec.long_floor_period if side == "long"
                               else spec.short_floor_period,
             )
-        except Exception:
+        except Exception as e:
+            note(f"backtest {side}")(e)
             continue
         pos = _extract_open_position(result, side, last_date)
         if pos is not None:
@@ -234,7 +247,7 @@ def _eval_stock(args: tuple[str, date, date]) -> dict | None:
         # Classified here rather than at export time: the pipeline already
         # ran, and re-deriving it downstream would cost a second pass.
         "vol_status": int(data.volume_result.volume_status[idx]),
-    }
+    }, errors
 
 
 # ── Main side ──────────────────────────────────────────────────────────────
@@ -512,14 +525,22 @@ def run(snapshot_date: date) -> dict:
     work_items = [(sid, start_date, snapshot_date) for sid in stock_ids]
 
     results: list[dict] = []
+    errors: list[tuple[str, str, str]] = []
     with Pool(N_WORKERS, initializer=_init_worker) as pool:
-        for r in pool.imap_unordered(_eval_stock, work_items, chunksize=20):
+        for r, errs in pool.imap_unordered(_eval_stock, work_items, chunksize=20):
+            errors.extend(errs)
             if r is not None:
                 results.append(r)
                 if len(results) % 200 == 0:
                     print(f"  evaluated {len(results)} ...", file=sys.stderr)
 
     print(f"  scored {len(results)} stocks in {time.time() - t0:.1f}s")
+    # Nothing is written when any stock's evaluation raised: a step broken
+    # for every stock would otherwise publish "no signal, no position".
+    if errors:
+        for line in log_lines(errors):
+            print(line)
+        raise PerStockErrors(errors)
 
     prev_long  = _load_prev_score_ranks(snapshot_date, "long")
     prev_short = _load_prev_score_ranks(snapshot_date, "short")
