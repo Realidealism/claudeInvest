@@ -24,6 +24,8 @@ REM Usage:
 REM   rebuild_and_restart.bat               rebuild + restart
 REM   rebuild_and_restart.bat --no-restart  rebuild only (daemon stays down)
 REM   rebuild_and_restart.bat --no-build    restart only (skip PyInstaller)
+REM   rebuild_and_restart.bat --allow-older build even though the deployed
+REM                                         build is not in HEAD's history
 
 set PY=C:\Users\Real\AppData\Local\Programs\Python\Python312\python.exe
 set REPO=C:\Claude\Invest
@@ -41,6 +43,19 @@ REM OpenService(): Access denied" and the script sails on regardless, leaving
 REM the service unrestarted (or, on a trading day, the .exe locked).
 net session >nul 2>&1
 if errorlevel 1 goto :not_admin
+
+REM ===== 0b. Refuse to build from a tree that lacks the deployed build =====
+REM tools\build_info.py check compares dist\BUILD_INFO.json (written by the
+REM last build) with HEAD, and lists uncommitted sources as a warning. Run
+REM before the service is stopped, so a refusal leaves everything running.
+if "%1"=="--no-build" goto :checked
+if "%2"=="--no-build" goto :checked
+"%PY%" tools\build_info.py check %* > logs\build_info_last.txt 2>&1
+set BI_RC=%errorlevel%
+type logs\build_info_last.txt
+type logs\build_info_last.txt >> logs\rebuild_and_restart.log
+if not "%BI_RC%"=="0" goto :check_refused
+:checked
 
 REM ===== 1. Stop the InvestIntradaySnapshot service =====
 echo [1/4] stopping InvestIntradaySnapshot service...
@@ -69,6 +84,9 @@ echo [3/4] rebuilding intraday_snapshot.exe...
 echo [%DATE% %TIME%] build intraday_snapshot >> logs\rebuild_and_restart.log
 "%PY%" -m PyInstaller --noconfirm --clean intraday_snapshot.spec >> logs\rebuild_and_restart.log 2>&1
 if errorlevel 1 goto :build_failed
+
+"%PY%" tools\build_info.py record >> logs\rebuild_and_restart.log 2>&1
+if errorlevel 1 echo [WARN] could not write dist\BUILD_INFO.json; see logs\rebuild_and_restart.log
 
 goto :after_build
 
@@ -115,6 +133,12 @@ echo [ERROR] Not elevated. nssm stop/start needs Administrator, and without it
 echo [ERROR] the service is never restarted. Reopen the shell as Administrator.
 echo [%DATE% %TIME%] FAILED - not admin  >> logs\rebuild_and_restart.log
 exit /b 4
+
+:check_refused
+echo [ERROR] Build refused by tools\build_info.py check (reason above).
+echo [ERROR] Nothing was stopped or rebuilt.
+echo [%DATE% %TIME%] FAILED - build source check >> logs\rebuild_and_restart.log
+exit /b 5
 
 :still_running
 echo [ERROR] intraday_snapshot.exe still running after nssm stop + taskkill.
