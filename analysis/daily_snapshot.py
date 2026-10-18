@@ -2,7 +2,12 @@
 
   1. Top-300 long/short ScoreBoard (tw.score_snapshot)
   2. Signal-factory fires for the 6 conditions (tw.signal_snapshot)
-  3. Currently-open unified-strategy positions (tw.open_positions)
+  3. Currently-open unified-strategy positions (tw.open_positions), and the
+     previous night's positions this run no longer holds (tw.position_revisions)
+
+Each stock is evaluated on every bar on record, as the backtest and the
+intraday snapshot do. Stocks held the previous night are evaluated even when
+their money_level has dropped below the cutoff, for their positions only.
 
 Each worker loads a stock once, runs the 4-bar scoreboard evaluations,
 the 6 condition functions on the latest bar, and the unified long/short
@@ -16,10 +21,6 @@ load_stock_data calls and a redundant active-stock query per snapshot.
 Env vars:
   DAILY_SNAPSHOT_WORKERS      — worker count (default 8, tuned for 8 P-cores)
   DAILY_SNAPSHOT_MIN_LEVEL    — money_level cutoff (default 4)
-  DAILY_SNAPSHOT_HISTORY_DAYS — calendar days of history per stock
-                                (default 900 ≈ 2.5y; covers all but the
-                                very-long-held unified positions while
-                                cutting load_stock_data + indicator cost)
 """
 
 from __future__ import annotations
@@ -28,7 +29,7 @@ import os
 import re
 import sys
 import time
-from datetime import date, timedelta
+from datetime import date
 from multiprocessing import Pool, cpu_count
 
 from psycopg2.extras import execute_batch
@@ -37,7 +38,7 @@ from db.connection import get_cursor, get_connection
 from db.price_availability import PriceUnavailable
 from backtest.data import load_stock_data
 from analysis.score import build_scoreboard
-from analysis.snapshot_runs import save_run
+from analysis.snapshot_runs import build_commit, save_run
 from analysis.snapshot_errors import PerStockErrors, describe, log_lines
 from signal_backtest.factories._conditions import (
     pick_condition, touch_condition,
@@ -63,12 +64,10 @@ N_WORKERS = int(os.environ.get("DAILY_SNAPSHOT_WORKERS", str(DEFAULT_WORKERS)))
 # (8-day SMA turnover < 27M TWD; one tier above the 'dead fish' cutoff).
 MIN_MONEY_LEVEL = int(os.environ.get("DAILY_SNAPSHOT_MIN_LEVEL", "4"))
 
-# Calendar-day window of history loaded per stock. ~2.5 years — long enough
-# to cover SMA-377 warmup AND past the unified-backtest equilibrium point
-# (open-position count converges by ~700 calendar days; longer windows
-# don't change the result). Tunable via env var if data growth makes
-# this too tight in the future.
-HISTORY_DAYS = int(os.environ.get("DAILY_SNAPSHOT_HISTORY_DAYS", "900"))
+# How far back a worker reports closed trades (bars), for telling an exit on a
+# night without a snapshot from a position the rerun dropped. Snapshots have
+# been missing two days at most (2026-04-29/30).
+RECENT_EXIT_BARS = 20
 
 # (signal_name, condition_fn) — kept in display order; CHECK constraint in
 # tw.signal_snapshot enforces the same set of names.
@@ -158,9 +157,9 @@ def _extract_open_position(result, side: str, last_trade_date) -> dict | None:
 
 
 def _eval_stock(args: tuple[str, date, date]) -> tuple[dict | None, list]:
-    """Worker-process entry. One load_stock_data per stock (windowed by
-    start_date and end_date so signals evaluate as-of snapshot_date even on
-    backfill); produces score pcts at 4 bars, signal-factory fires on the
+    """Worker-process entry. One load_stock_data per stock (ending at
+    end_date so signals evaluate as-of snapshot_date even on backfill;
+    start_date None reads every earlier bar); produces score pcts at 4 bars, signal-factory fires on the
     last bar within the window, and unified-strategy open-position info.
     Returns (flat dict so result pickles cheaply, or None when the stock is
     unusable, or {"_unavailable": sid} when its price is unavailable (emerging
@@ -213,6 +212,11 @@ def _eval_stock(args: tuple[str, date, date]) -> tuple[dict | None, list]:
 
     # 3. Unified-strategy open positions (full backtest each side).
     open_positions: list[dict] = []
+    # Exits before the last bar, entry_date -> exit_date, back to RECENT_EXIT_BARS
+    # bars: a position held at the previous snapshot that exited on a night
+    # with no snapshot is told apart from one the rerun dropped.
+    recent_exits: dict[str, dict] = {"long": {}, "short": {}}
+    since = data.dates[max(0, data.n - 1 - RECENT_EXIT_BARS)]
     for side, factory in (
         ("long",  unified_long_factory),
         ("short", unified_short_factory),
@@ -239,6 +243,8 @@ def _eval_stock(args: tuple[str, date, date]) -> tuple[dict | None, list]:
         pos = _extract_open_position(result, side, last_date)
         if pos is not None:
             open_positions.append(pos)
+        recent_exits[side] = {t.entry_date: t.exit_date for t in result.trades
+                              if since <= t.exit_date < last_date}
 
     tv_raw = float(data.turnover[idx])
     tv = tv_raw if tv_raw == tv_raw else 0.0
@@ -251,6 +257,9 @@ def _eval_stock(args: tuple[str, date, date]) -> tuple[dict | None, list]:
         "lp_d3": lp_d3, "sp_d3": sp_d3,
         "fires": fires,
         "open_positions": open_positions,
+        "recent_exits": recent_exits,
+        # Before snapshot_date when the stock did not trade that day.
+        "last_date": last_date,
         # Classified here rather than at export time: the pipeline already
         # ran, and re-deriving it downstream would cost a second pass.
         "vol_status": int(data.volume_result.volume_status[idx]),
@@ -342,6 +351,77 @@ def _load_active_stock_ids(snapshot_date: date) -> list[str]:
             ORDER BY s.stock_id
         """, (snapshot_date, MIN_MONEY_LEVEL))
         return [r["stock_id"] for r in cur.fetchall()]
+
+
+# The latest nightly snapshot before a date. Its open (not exited) positions
+# are what that date's run is expected to carry on or exit.
+_PREV_HELD = """
+    FROM tw.open_positions p
+    WHERE p.snapshot_date = (SELECT MAX(snapshot_date) FROM tw.open_positions
+                             WHERE snapshot_date < %s)
+      AND NOT p.is_exited
+"""
+
+
+def load_held_stock_ids(snapshot_date: date) -> list[str]:
+    """Stocks with an open position in the latest nightly snapshot before
+    snapshot_date, among the active TWSE/TPEx stocks. Evaluated whatever
+    their money_level, so a position whose stock turned illiquid is still
+    followed to its exit instead of dropping out of the table unrecorded.
+    The intraday snapshot uses the same set."""
+    with get_cursor(commit=False) as cur:
+        cur.execute(f"""
+            SELECT DISTINCT p.stock_id
+            {_PREV_HELD}
+              AND p.stock_id IN (SELECT stock_id FROM tw.stocks
+                                 WHERE is_active = TRUE AND security_type = 'STOCK'
+                                   AND market IN ('TWSE', 'TPEx'))
+            ORDER BY p.stock_id
+        """, (snapshot_date,))
+        return [r["stock_id"] for r in cur.fetchall()]
+
+
+def _classify_revisions(prev_rows: list[dict], results: list[dict]) -> tuple[list[dict], dict]:
+    """Each position held in the previous nightly snapshot ends this run as
+    exactly one of:
+      kept           the same (stock, side, entry_date) is still held
+      exited         the same key carries an exit row today
+      exited_unseen  it exited after the previous snapshot and before today,
+                     on a night with no snapshot (a real exit no row showed)
+      redated        the stock is held, or exited today, on that side from
+                     another entry date
+      gone           the stock was evaluated and has nothing on that side
+      not_run        the stock was not evaluated (inactive, price unavailable,
+                     too short a history)
+    Returns the rows of the last four, which tw.position_revisions keeps,
+    and the count of each."""
+    evaluated = {r["sid"]: r for r in results}
+    today = {(r["sid"], p["side"]): p for r in results for p in r["open_positions"]}
+    counts = {k: 0 for k in ("kept", "exited", "exited_unseen", "redated", "gone", "not_run")}
+    revisions = []
+    for row in prev_rows:
+        now = today.get((row["stock_id"], row["side"]))
+        if now is not None and now["entry_date"] == row["entry_date"]:
+            counts["exited" if now["is_exited"] else "kept"] += 1
+            continue
+        extra = {"new_entry_date": None, "new_is_exited": None, "exit_date": None}
+        r = evaluated.get(row["stock_id"])
+        exit_date = r and r["recent_exits"][row["side"]].get(row["entry_date"])
+        if r is None:
+            cause = "not_run"
+        elif exit_date is not None and exit_date > row["snapshot_date"]:
+            cause = "exited_unseen"
+            extra["exit_date"] = exit_date
+        elif now is not None:
+            cause = "redated"
+            extra["new_entry_date"] = now["entry_date"]
+            extra["new_is_exited"] = now["is_exited"]
+        else:
+            cause = "gone"
+        counts[cause] += 1
+        revisions.append({**row, "cause": cause, **extra})
+    assert sum(counts.values()) == len(prev_rows), (counts, len(prev_rows))
+    return revisions, counts
 
 
 def _load_prev_score_ranks(snapshot_date: date, side: str) -> dict[str, int]:
@@ -466,17 +546,42 @@ def _save_open_positions(snapshot_date: date, results: list[dict]) -> dict[str, 
          volume_status)
         VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
     """
+    # The previous night's positions this run drops are written with the
+    # positions, in one transaction: a rerun of the date replaces both.
+    commit = build_commit()
     conn = get_connection()
     try:
         cur = conn.cursor()
+        cur.execute(f"SELECT p.snapshot_date, p.stock_id, p.side, p.entry_date, "
+                    f"p.entry_price, p.entry_tier {_PREV_HELD}", (snapshot_date,))
+        cols = [c[0] for c in cur.description]
+        prev_rows = [dict(zip(cols, r)) for r in cur.fetchall()]
+        revisions, revision_counts = _classify_revisions(prev_rows, results)
         cur.execute(
             "DELETE FROM tw.open_positions WHERE snapshot_date = %s",
             (snapshot_date,),
         )
         execute_batch(cur, sql, rows)
+        cur.execute("DELETE FROM tw.position_revisions WHERE snapshot_date = %s",
+                    (snapshot_date,))
+        if revisions:
+            execute_batch(cur, """
+                INSERT INTO tw.position_revisions
+                (snapshot_date, prev_snapshot_date, stock_id, side, entry_date,
+                 entry_price, entry_tier, cause, new_entry_date, new_is_exited,
+                 exit_date, build_commit)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            """, [(snapshot_date, v["snapshot_date"], v["stock_id"], v["side"],
+                   v["entry_date"], v["entry_price"], v["entry_tier"], v["cause"],
+                   v["new_entry_date"], v["new_is_exited"], v["exit_date"], commit)
+                  for v in revisions])
         conn.commit()
     finally:
         conn.close()
+    # Revisions proper, and the exits only a night without a snapshot hid.
+    counts["revisions"] = len(revisions) - revision_counts["exited_unseen"]
+    counts["exited_unseen"] = revision_counts["exited_unseen"]
+    counts["revision_counts"] = revision_counts
     return counts
 
 
@@ -524,12 +629,21 @@ def run(snapshot_date: date) -> dict:
     _check_liquidity_fresh(snapshot_date)
 
     t0 = time.time()
-    print(f"  Daily snapshot @ {snapshot_date} (workers={N_WORKERS}, min_level={MIN_MONEY_LEVEL}, history={HISTORY_DAYS}d) ...")
-    stock_ids = _load_active_stock_ids(snapshot_date)
-    print(f"  Loaded {len(stock_ids)} active stocks (after dead-fish filter)", file=sys.stderr)
+    print(f"  Daily snapshot @ {snapshot_date} (workers={N_WORKERS}, min_level={MIN_MONEY_LEVEL}, all history) ...")
+    active_ids = _load_active_stock_ids(snapshot_date)
+    print(f"  Loaded {len(active_ids)} active stocks (after dead-fish filter)", file=sys.stderr)
+    # Held last night but below the cutoff today: positions only, kept out of
+    # the score ranking and the signal cards.
+    active = set(active_ids)
+    held_only = sorted(set(load_held_stock_ids(snapshot_date)) - active)
+    if held_only:
+        print(f"  {len(held_only)} held stocks below the cutoff, positions only: "
+              f"{', '.join(held_only)}")
+    stock_ids = active_ids + held_only
 
-    start_date = snapshot_date - timedelta(days=HISTORY_DAYS)
-    work_items = [(sid, start_date, snapshot_date) for sid in stock_ids]
+    # No start date: every bar on record, as the backtest and the intraday
+    # snapshot see it. A rolling window changed which positions were open.
+    work_items = [(sid, None, snapshot_date) for sid in stock_ids]
 
     results: list[dict] = []
     errors: list[tuple[str, str, str]] = []
@@ -560,21 +674,30 @@ def run(snapshot_date: date) -> dict:
 
     # The run record goes first: if it cannot be written nothing is, and a
     # rerun that fails later cannot leave the date's record naming an older build.
-    save_run("daily", snapshot_date, None, HISTORY_DAYS, len(stock_ids), len(results))
+    ranked = [r for r in results if r["sid"] in active]
+    save_run("daily", snapshot_date, None, None, len(stock_ids), len(ranked))
 
     prev_long  = _load_prev_score_ranks(snapshot_date, "long")
     prev_short = _load_prev_score_ranks(snapshot_date, "short")
-    long_n  = _save_score_side(snapshot_date, "long",  results, prev_long)
-    short_n = _save_score_side(snapshot_date, "short", results, prev_short)
+    long_n  = _save_score_side(snapshot_date, "long",  ranked, prev_long)
+    short_n = _save_score_side(snapshot_date, "short", ranked, prev_short)
     print(f"  Score top-{TOP_N} long: {long_n} / short: {short_n}")
 
-    counts = _save_signal_fires(snapshot_date, results)
+    counts = _save_signal_fires(snapshot_date, ranked)
     for name, _ in SIGNALS:
         print(f"  signal {name}: {counts[name]}")
 
     pos_counts = _save_open_positions(snapshot_date, results)
     print(f"  Open positions long: {pos_counts['long']} / short: {pos_counts['short']}")
     print(f"  Exited today    long: {pos_counts['exited_long']} / short: {pos_counts['exited_short']}")
+    rc = pos_counts["revision_counts"]
+    print(f"  Previous night's positions: kept {rc['kept']}, exited {rc['exited']}, "
+          f"exited unseen {rc['exited_unseen']}, redated {rc['redated']}, "
+          f"gone {rc['gone']}, not run {rc['not_run']}")
+    stale = sorted(r["sid"] for r in results if r["last_date"] < snapshot_date)
+    if stale:
+        print(f"  {len(stale)} stocks without a bar on {snapshot_date}, positions as of "
+              f"their last bar: {', '.join(stale)}")
 
     # 大台期貨統一狀態 (EOD, pure DB history). Non-fatal.
     from analysis.tx_status import compute_and_save_tx_status

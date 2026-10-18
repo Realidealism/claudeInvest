@@ -151,10 +151,14 @@ def _run_stand_ins(monkeypatch, mod, worker):
     monkeypatch.setattr(multiprocessing, "Pool", _SyncPool)
     monkeypatch.setattr(mod, "_eval_stock", worker)
     monkeypatch.setattr(mod, "_load_active_stock_ids", lambda d: ["1101", "2330"])
+    monkeypatch.setattr(mod, "load_held_stock_ids", lambda d: [])
     monkeypatch.setattr(mod, "_load_prev_score_ranks", lambda *a: {})
     for name in ("_save_score_side", "_save_signal_fires", "_save_open_positions"):
         monkeypatch.setattr(mod, name, lambda *a, name=name: saves.append(name) or (
-            {"long": 0, "short": 0, "exited_long": 0, "exited_short": 0}
+            {"long": 0, "short": 0, "exited_long": 0, "exited_short": 0, "revisions": 0,
+             "exited_unseen": 0,
+             "revision_counts": dict.fromkeys(("kept", "exited", "exited_unseen", "redated",
+                                               "gone", "not_run"), 0)}
             if name == "_save_open_positions" else {s: 0 for s, _ in mod.SIGNALS}
             if name == "_save_signal_fires" else 0))
     monkeypatch.setitem(sys.modules, "analysis.tx_status", types.SimpleNamespace(
@@ -175,7 +179,8 @@ def _run_stand_ins(monkeypatch, mod, worker):
 def _result(sid):
     return {"sid": sid, "lp": 1.0, "sp": 1.0, "tv": 1.0, "fires": [], "open_positions": [],
             "lp_d1": None, "sp_d1": None, "lp_d2": None, "sp_d2": None,
-            "lp_d3": None, "sp_d3": None, "vol_status": 0}
+            "lp_d3": None, "sp_d3": None, "vol_status": 0,
+            "recent_exits": {"long": {}, "short": {}}, "last_date": DAY}
 
 
 def _call_run(mod):
@@ -227,8 +232,9 @@ def test_daily_run_without_errors_writes(monkeypatch):
     assert ds.run(DAY)["stocks_evaluated"] == 2
     assert saves == ["save_run", "_save_score_side", "_save_score_side", "_save_signal_fires",
                      "_save_open_positions"]
-    # The run record: the date's rows, the 900-day window, universe and scored counts.
-    assert saves.runs == [("daily", DAY, None, ds.HISTORY_DAYS, 2, 2)]
+    # The run record: the date's rows, every bar on record (no window),
+    # universe and scored counts.
+    assert saves.runs == [("daily", DAY, None, None, 2, 2)]
 
 
 @pytest.mark.parametrize("mod", [ds, isn], ids=["daily", "intraday"])

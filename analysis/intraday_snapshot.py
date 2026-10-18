@@ -9,6 +9,8 @@ Mirrors analysis.daily_snapshot.py but:
   * prev_rank is taken from yesterday's tw.score_snapshot daily row so
     the 變動 column is anchored to the most recent close, matching the
     daily view's convention.
+  * Stocks held in the latest nightly snapshot are evaluated whatever
+    their money_level, for their positions only, as the nightly run does.
 
 Env vars (same defaults as daily_snapshot):
   INTRADAY_SNAPSHOT_WORKERS    — default 8
@@ -31,6 +33,7 @@ from analysis.realtime_data import load_stock_data_intraday
 from analysis.market_breadth import compute_live_breadth
 from analysis.score import build_scoreboard
 from analysis.snapshot_runs import save_run
+from analysis.daily_snapshot import load_held_stock_ids
 from analysis.snapshot_errors import PerStockErrors, describe, log_lines
 from intraday.estimate import (
     HCurveNotReadyError,
@@ -505,9 +508,17 @@ def run(*, final_pass: bool = False) -> dict:
     scale = _compute_volume_scale(now, final_pass=final_pass)
     print(f"  volume scale = {scale:.4f} (h(t) = {1.0 / scale:.4f})")
 
-    stock_ids = _load_active_stock_ids(snapshot_date)
-    print(f"  Loaded {len(stock_ids)} active stocks (after dead-fish filter)",
+    active_ids = _load_active_stock_ids(snapshot_date)
+    print(f"  Loaded {len(active_ids)} active stocks (after dead-fish filter)",
           file=sys.stderr)
+    # Held in the latest nightly snapshot but below the cutoff: positions
+    # only, kept out of the score list and the signal cards.
+    active = set(active_ids)
+    held_only = sorted(set(load_held_stock_ids(snapshot_date)) - active)
+    if held_only:
+        print(f"  {len(held_only)} held stocks below the cutoff, positions only: "
+              f"{', '.join(held_only)}")
+    stock_ids = active_ids + held_only
 
     t0 = time.time()
     results: list[dict] = []
@@ -546,16 +557,17 @@ def run(*, final_pass: bool = False) -> dict:
     # The run record goes first: if it cannot be written nothing of the pass
     # is, and the stale-snapshot health check sees it. No history window: the
     # intraday loader reads every bar on record.
-    save_run("intraday", snapshot_date, now, None, len(stock_ids), len(results))
+    ranked = [r for r in results if r["sid"] in active]
+    save_run("intraday", snapshot_date, now, None, len(stock_ids), len(ranked))
 
     prev_long  = _load_prev_score_ranks(snapshot_date, "long")
     prev_short = _load_prev_score_ranks(snapshot_date, "short")
-    long_n  = _save_score_side(snapshot_date, now, "long",  results, prev_long)
-    short_n = _save_score_side(snapshot_date, now, "short", results, prev_short)
+    long_n  = _save_score_side(snapshot_date, now, "long",  ranked, prev_long)
+    short_n = _save_score_side(snapshot_date, now, "short", ranked, prev_short)
     print(f"  Score all alive  long: {long_n} / short: {short_n} "
           f"(JSON exposes top-{TOP_N})")
 
-    counts = _save_signal_fires(snapshot_date, now, results)
+    counts = _save_signal_fires(snapshot_date, now, ranked)
     for name, _ in SIGNALS:
         print(f"  signal {name}: {counts[name]}")
 

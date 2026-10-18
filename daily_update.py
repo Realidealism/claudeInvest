@@ -437,6 +437,7 @@ def _build_daily_update_message(
     trade_date: date,
     results: list[tuple[str, str]],
     failure_traces: dict[str, str] | None = None,
+    notes: list[str] | tuple[str, ...] = (),
 ) -> str:
     """Compose the Telegram summary for one update_date() run.
 
@@ -444,7 +445,8 @@ def _build_daily_update_message(
     receive the same view they would see in the terminal. When
     failure_traces is supplied, each failed label gets its last-3-line
     traceback appended so the user can see the underlying exception from
-    the telegram message without re-opening the terminal.
+    the telegram message without re-opening the terminal. notes are extra
+    lines placed after the counts (e.g. positions the snapshot revised).
     """
     failure_traces = failure_traces or {}
     ok_n = sum(1 for _, s in results if s == "ok")
@@ -462,6 +464,7 @@ def _build_daily_update_message(
         if blocked:
             lines.append(f"因上游失敗未執行：{', '.join(blocked)}")
         lines.append(counts)
+        lines.extend(notes)
         if critical_failed:
             lines.append(
                 f"【關鍵抓檔失敗】{', '.join(critical_failed)}，"
@@ -483,7 +486,7 @@ def _build_daily_update_message(
             reasons.pop()
             msg = "\n".join(lines + reasons + ["（其餘失敗原因見 log）", rerun])
         return msg
-    return f"[每日更新] {trade_date} 全部成功（{counts}）"
+    return "\n".join([f"[每日更新] {trade_date} 全部成功（{counts}）", *notes])
 
 
 # ---------------------------------------------------------------------------
@@ -1470,6 +1473,8 @@ def _update_trading_day(trade_date: date, results: list[tuple[str, str]],
     # tw.market_breadth, and stale rows would silently degrade every output.
     # Same for market_vol, which the 波動 cell divides by.
     print(f"\n--- Daily snapshot (score + signal + positions) ---")
+    # Lines for the Telegram summary beyond the step outcomes.
+    summary_notes: list[str] = []
     if critical_failed:
         print(f"  [SKIP] critical scraper(s) failed: {', '.join(critical_failed)}.")
         results.append(("多空評比 + 操作訊號 + 策略持倉快照", "blocked"))
@@ -1482,7 +1487,13 @@ def _update_trading_day(trade_date: date, results: list[tuple[str, str]],
     else:
         try:
             from analysis.daily_snapshot import run as run_daily_snapshot
-            run_daily_snapshot(trade_date)
+            positions = run_daily_snapshot(trade_date)["position_counts"]
+            if positions["revisions"]:
+                summary_notes.append(
+                    f"持倉重算改寫 {positions['revisions']} 筆（見 tw.position_revisions）")
+            if positions["exited_unseen"]:
+                summary_notes.append(
+                    f"快照缺日內出場 {positions['exited_unseen']} 筆（見 tw.position_revisions）")
             results.append(("多空評比 + 操作訊號 + 策略持倉快照", "ok"))
             snapshot_ok = True
         except Exception:
@@ -1639,7 +1650,8 @@ def _update_trading_day(trade_date: date, results: list[tuple[str, str]],
     # Telegram summary: silent if TELEGRAM_BOT_TOKEN is not configured.
     try:
         summary_sent = bool(send_sync(
-            _build_daily_update_message(trade_date, results, failure_traces)))
+            _build_daily_update_message(trade_date, results, failure_traces,
+                                        summary_notes)))
     except Exception:
         traceback.print_exc()
         summary_sent = False
