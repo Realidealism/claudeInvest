@@ -1080,12 +1080,19 @@ def _buy_stance_blocked(cur, snap_date) -> bool:
     try:
         from analysis.market_thermometer import daily_stance_frame
         m = daily_stance_frame(cur)
-        prior = [(bool(v), s) for d, v, s
+        prior = [(d.date(), bool(v), s) for d, v, s
                  in zip(m["d"], m["defensive"], m["mode"].fillna(""))
                  if d.date() < snap_date]
         if not prior:
             return False
-        defensive, mode = prior[-1]
+        # The gate reads the previous TAIEX day's stance only. When that row is
+        # missing it blocks nothing at the close, so neither does this flag --
+        # an older row's state would mark entries the gate will let through.
+        cur.execute("SELECT MAX(trade_date) AS d FROM tw.index_prices "
+                    "WHERE index_id = 'TAIEX' AND trade_date < %s", (snap_date,))
+        row_date, defensive, mode = prior[-1]
+        if row_date != cur.fetchone()["d"]:
+            return False
         return defensive and mode in ("top", "trend")
     except Exception as e:
         print(f"  [WARN] buy stance flag skipped: {e}")

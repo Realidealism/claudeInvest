@@ -48,6 +48,9 @@ CORE_STEP_LABELS = CRITICAL_SCRAPER_LABELS | {
     "市場廣度",
     "每日流動性",
     "市場波動基準",
+    # Not read by the frontend, but buy and sell gate on it; a gap left
+    # unfilled silently changes their signals (see _stance_gaps).
+    "攻防資料",
     "多空評比 + 操作訊號 + 策略持倉快照",
     "前端匯出部署",
 }
@@ -999,6 +1002,96 @@ def update_date(trade_date: date) -> str:
     return outcome
 
 
+# ---------------------------------------------------------------------------
+# 攻防 inputs
+# ---------------------------------------------------------------------------
+_STANCE_LOOKBACK = 10   # trading days re-checked each night, up to tonight
+# Frame columns each stance input fills; NaN there means the row exists but
+# the latch voted on a hole (inner merge keeps rows with NULL values).
+_STANCE_VALUE_COLUMNS = ("mgn", "noi", "tx", "st", "c", "v")
+_OPTIONS_SINCE = date(2023, 6, 26)   # first day of tw.taifex_inst_options
+# Where each input comes from, to name what a gap day is missing. The filters
+# copy analysis.market_thermometer._load_merged_frame; they only name the
+# source -- whether a day is a gap is read off the stance frame itself.
+_STANCE_SOURCES = (
+    ("融資餘額", "SELECT 1 FROM tw.margin_summary WHERE trade_date = %s "
+                "AND margin_balance_value IS NOT NULL"),
+    ("期交所外資期貨", "SELECT 1 FROM tw.taifex_inst_futures WHERE trade_date = %s "
+                    "AND product = '臺股期貨' AND investor = '外資及陸資' AND net_oi IS NOT NULL"),
+    ("加權指數", "SELECT 1 FROM tw.index_prices WHERE trade_date = %s "
+                "AND index_id = 'TAIEX' AND close_price IS NOT NULL"),
+    ("市場廣度", "SELECT 1 FROM tw.market_breadth WHERE trade_date = %s "
+                "AND short_trend_total IS NOT NULL"),
+    ("期交所台指期", "SELECT 1 FROM tw.taifex_futures_daily WHERE trade_date = %s "
+                  "AND contract = 'TX' AND session = '一般' AND contract_month NOT LIKE '%%/%%' "
+                  "AND volume IS NOT NULL AND close_price IS NOT NULL"),
+)
+_OPTIONS_SOURCE = ("期交所外資選擇權",
+                   "SELECT DISTINCT call_put FROM tw.taifex_inst_options WHERE trade_date = %s "
+                   "AND product LIKE '臺指%%' AND investor LIKE '外資%%' AND net_oi IS NOT NULL")
+
+
+def _stance_gaps(trade_date: date) -> list[str]:
+    """One line per recent trading day the 攻防 stance is short of an input.
+
+    A day is short when the stance frame has no row for it (one of the five
+    inner-merged tables missed it), when the row holds a NaN input, or, from
+    the day the options table starts, when the options vote has nothing to
+    read. Each line names the missing sources and the trading day whose
+    buy/sell gate had (or will have) nothing to go on. Read-only.
+    """
+    import math
+    from analysis.market_thermometer import daily_stance_frame
+    with get_cursor(commit=False) as cur:
+        m = daily_stance_frame(cur)
+        cur.execute("SELECT trade_date FROM tw.index_prices WHERE index_id = 'TAIEX' "
+                    "AND trade_date <= %s ORDER BY trade_date DESC LIMIT %s",
+                    (trade_date, _STANCE_LOOKBACK))
+        days = sorted(r["trade_date"] for r in cur.fetchall())
+        rows = {d.date(): i for i, d in enumerate(m["d"])}
+        spine_start = min(rows) if rows else None
+
+        def short(day):
+            i = rows.get(day)
+            if i is None:
+                return True
+            if any(math.isnan(float(m[col].iloc[i])) for col in _STANCE_VALUE_COLUMNS):
+                return True
+            return day >= _OPTIONS_SINCE and math.isnan(float(m["opt_bull"].iloc[i]))
+
+        def missing_sources(day):
+            missing = []
+            for label, sql in _STANCE_SOURCES:
+                cur.execute(sql, (day,))
+                if cur.fetchone() is None:
+                    missing.append(label)
+            if day >= _OPTIONS_SINCE:
+                label, sql = _OPTIONS_SOURCE
+                cur.execute(sql, (day,))
+                if not {"C", "P"} <= {r["call_put"] for r in cur.fetchall()}:
+                    missing.append(label)
+            return missing
+
+        # The trading day after trade_date, when a backfill makes it known.
+        cur.execute("SELECT MIN(trade_date) AS d FROM tw.index_prices "
+                    "WHERE index_id = 'TAIEX' AND trade_date > %s", (trade_date,))
+        after = cur.fetchone()["d"]
+
+        lines = []
+        for k, day in enumerate(days):
+            if spine_start is None or day < spine_start or not short(day):
+                continue
+            sources = "、".join(missing_sources(day)) or \
+                "無法判定（見 analysis.market_thermometer._load_merged_frame）"
+            affected = days[k + 1] if k + 1 < len(days) else after
+            effect = (f"{affected:%m-%d} 的 buy／sell 攻防閘門沒有依據" if affected
+                      else "明晚 buy／sell 的攻防閘門會沒有依據")
+            lines.append(f"{day:%m-%d} 缺：{sources}；{effect}。補跑：daily_update.exe {day}")
+    # Newest first: the summary cuts a long reason from the end, and tonight's
+    # gap is the one still to be acted on.
+    return lines[::-1]
+
+
 def _update_trading_day(trade_date: date, results: list[tuple[str, str]],
                         failure_traces: dict[str, str]) -> tuple[str, bool | None]:
     """Run all scrapers and derived steps for a weekday, appending each step's
@@ -1327,6 +1420,34 @@ def _update_trading_day(trade_date: date, results: list[tuple[str, str]],
             print("  [ERROR] Market volatility computation failed:")
             _capture_trace(failure_traces, "市場波動基準")
             results.append(("市場波動基準", "failed"))
+
+    # 攻防 inputs. buy and sell gate on the previous TAIEX day's stance; a day
+    # one of its inputs missed has no stance row, or votes on a hole, and
+    # nothing else says so. Re-checked over the last few trading days, so a
+    # gap nobody filled is reported every night. Holds nothing back: tonight's
+    # signals read T-1, and no later step reads the stance inputs.
+    print(f"\n--- 攻防資料 ---")
+    if critical_failed or not breadth_ok:
+        print("  [SKIP] prices or market breadth failed; the stance is short for "
+              "that reason, already reported.")
+        results.append(("攻防資料", "blocked"))
+    elif not judge_rows:
+        print(f"  [SKIP] {trade_date} is a backfill date; gaps are judged on recent nights.")
+        results.append(("攻防資料", "skip"))
+    else:
+        try:
+            gaps = _stance_gaps(trade_date)
+            for gap in gaps:
+                print(f"  [GAP] {gap}")
+            if gaps:
+                failure_traces["攻防資料"] = "\n".join(gaps)
+                results.append(("攻防資料", "failed"))
+            else:
+                results.append(("攻防資料", "ok"))
+        except Exception:
+            print("  [ERROR] stance input check failed:")
+            _capture_trace(failure_traces, "攻防資料")
+            results.append(("攻防資料", "failed"))
 
     # Combined daily snapshot — score top-300 long/short + 6 signal-factory
     # fires + unified-strategy open positions, all in one per-stock pass.

@@ -361,6 +361,12 @@ _RUN_STUCK_AFTER = timedelta(hours=2)
 # daily_update's label for the export step (kept equal by
 # tests/test_health_check_runs.py).
 _EXPORT_STEP = "前端匯出部署"
+# daily_update's 攻防 input check. It re-reads the last ten trading days each
+# night, so a later run that passed it has seen the earlier night's gap filled.
+_STANCE_STEP = "攻防資料"
+# Core steps a later run makes up for: once a later run's step passed, an
+# earlier night that failed only on these no longer needs attention.
+_MADE_UP_BY_A_LATER_RUN = {_EXPORT_STEP, _STANCE_STEP}
 
 
 def _run_rows(first: date) -> list[dict]:
@@ -423,17 +429,16 @@ def _nightly_run_problems(today: date, now: datetime | None = None) -> list[str]
             bad = [s for s in row["steps"] or []
                    if s["status"] in ("failed", "blocked")]
             if outcome == "failed":
-                # The export publishes everything current, so a later run
-                # whose export went through has already made up for this one.
-                # What is left of the night is then its non-core failures.
-                core_bad = [s["label"] for s in bad if s.get("core")]
-                if core_bad == [_EXPORT_STEP] and any(
-                    r["started_at"] > row["started_at"]
-                    and any(s["label"] == _EXPORT_STEP and s["status"] == "ok"
-                            for s in r["steps"] or [])
-                    for r in rows
-                ):
-                    bad = [s for s in bad if s["label"] != _EXPORT_STEP]
+                # The export publishes everything current, and the stance
+                # check re-reads the days before it, so a later run in which
+                # they passed has already made up for this one. What is left
+                # of the night is then its non-core failures.
+                core_bad = {s["label"] for s in bad if s.get("core")}
+                passed_later = {s["label"] for r in rows
+                                if r["started_at"] > row["started_at"]
+                                for s in r["steps"] or [] if s["status"] == "ok"}
+                if core_bad and core_bad <= (_MADE_UP_BY_A_LATER_RUN & passed_later):
+                    bad = [s for s in bad if s["label"] not in core_bad]
                     outcome = "partial" if bad else "success"
             named = "、".join(s["label"] for s in bad) or "紀錄裡沒有步驟"
             if outcome == "failed":

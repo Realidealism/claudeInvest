@@ -52,7 +52,7 @@ STAND_INS = {
 STDLIB_IMPORTS = {"os", "subprocess"}
 # Module-level functions of daily_update the body calls and this file replaces ...
 REPLACED_CALLS = {"_trading_day_gate", "run_scraper", "get_cursor", "detect_delisted",
-                  "_git_push_frontend", "send_sync", "_revenue_counts"}
+                  "_git_push_frontend", "send_sync", "_revenue_counts", "_stance_gaps"}
 # ... and the ones that are safe to run as they are.
 PURE_CALLS = {"_capture_trace", "_build_daily_update_message", "_run_outcome", "Path",
               "_revenue_months", "_revenue_verdict", "_missing_funds_text",
@@ -76,6 +76,8 @@ RETURNS = {
     "telegram_bot.push_conference_calendar.push_conference_calendar": 0,
     # Companies on record per market, for both months the revenue step reads.
     "_revenue_counts": {"sii": 980, "otc": 850},
+    # Every stance input there for the last ten trading days.
+    "_stance_gaps": [],
 }
 
 
@@ -97,7 +99,7 @@ class _Night:
     or scraper labels that fail."""
 
     def __init__(self, monkeypatch, fail=(), send=True, through_update_date=False,
-                 returns=None, day=DAY):
+                 returns=None, day=DAY, today=None):
         self.calls = []
         self.sent = []
         self.subprocesses = []
@@ -138,11 +140,12 @@ class _Night:
             yield _Cursor()
 
         # The night runs on its own trade date, as the 21:30 task does, so the
-        # checks reserved for recent dates apply however old DAY gets.
+        # checks reserved for recent dates apply however old DAY gets; a later
+        # today= makes it a backfill.
         class _Date(date):
             @classmethod
             def today(cls):
-                return day
+                return today or day
 
         monkeypatch.setattr(du, "date", _Date)
         monkeypatch.setattr(du, "_trading_day_gate", lambda d: ("run", True, None))
@@ -151,6 +154,7 @@ class _Night:
         monkeypatch.setattr(du, "detect_delisted", stand_in("detect_delisted"))
         monkeypatch.setattr(du, "_git_push_frontend", stand_in("_git_push_frontend"))
         monkeypatch.setattr(du, "_revenue_counts", stand_in("_revenue_counts"))
+        monkeypatch.setattr(du, "_stance_gaps", stand_in("_stance_gaps"))
         monkeypatch.setattr(du, "send_sync", send_sync)
         def subprocess_run(argv, **kwargs):
             self.subprocesses.append(argv)
@@ -277,21 +281,26 @@ def test_failed_price_scraper_blocks_the_whole_tail(monkeypatch):
     night = _Night(monkeypatch, fail={"TWSE daily prices"})
     assert night.with_status("failed") == {"TWSE daily prices"}
     assert night.with_status("blocked") == {
-        "市場廣度", "每日流動性", "市場波動基準", SNAPSHOT, "前端匯出部署", "日線訊號推播"}
+        "市場廣度", "每日流動性", "市場波動基準", "攻防資料", SNAPSHOT, "前端匯出部署",
+        "日線訊號推播"}
+    assert "_stance_gaps" not in night.calls
     assert "analysis.daily_snapshot.run" not in night.calls
     assert "export.generate.export_all" not in night.calls
     assert night.outcome == "failed"
     assert night.with_status("skip") == set()
 
 
-@pytest.mark.parametrize("broken, label", [
-    ("analysis.market_breadth.calculate_market_breadth", "市場廣度"),
-    ("analysis.build_market_vol.main", "市場波動基準"),
+@pytest.mark.parametrize("broken, label, also_blocked", [
+    # A night without breadth has no stance row for that reason alone; the
+    # stance check stands down rather than report it a second time.
+    ("analysis.market_breadth.calculate_market_breadth", "市場廣度", {"攻防資料"}),
+    ("analysis.build_market_vol.main", "市場波動基準", set()),
 ])
-def test_failed_snapshot_input_blocks_snapshot_and_export(monkeypatch, broken, label):
+def test_failed_snapshot_input_blocks_snapshot_and_export(monkeypatch, broken, label,
+                                                          also_blocked):
     night = _Night(monkeypatch, fail={broken})
     assert night.with_status("failed") == {label}
-    assert night.with_status("blocked") == {SNAPSHOT, "前端匯出部署", "日線訊號推播"}
+    assert night.with_status("blocked") == {SNAPSHOT, "前端匯出部署", "日線訊號推播"} | also_blocked
     assert "analysis.daily_snapshot.run" not in night.calls
     assert night.outcome == "failed"
 
@@ -391,6 +400,31 @@ def test_push_that_was_not_delivered_fails_the_step(monkeypatch, name, label):
     assert night.status[label] == "failed"
     assert night.traces[label] == "Telegram 傳送失敗"
     assert night.outcome == "partial"
+
+
+GAP = "10-13 缺：期交所外資期貨；10-14 的 buy／sell 攻防閘門沒有依據。補跑：daily_update.exe 2026-10-13"
+
+
+def test_stance_gap_fails_the_night_and_holds_nothing_back(monkeypatch):
+    night = _Night(monkeypatch, returns={"_stance_gaps": [GAP]})
+    assert night.status["攻防資料"] == "failed"
+    assert night.traces["攻防資料"] == GAP
+    assert "攻防資料" in du.CORE_STEP_LABELS and night.outcome == "failed"
+    # Tonight's signals read T-1's stance; the rest of the night runs.
+    assert night.status[SNAPSHOT] == "ok" and night.status["前端匯出部署"] == "ok"
+    assert night.status["日線訊號推播"] == "ok"
+
+
+def test_stance_check_that_raises_fails_the_step(monkeypatch):
+    night = _Night(monkeypatch, fail={"_stance_gaps"})
+    assert night.status["攻防資料"] == "failed" and "攻防資料" in night.traces
+
+
+def test_stance_check_is_left_to_recent_nights(monkeypatch):
+    # A backfilled date's ten-day window is history, not tonight's problem.
+    night = _Night(monkeypatch, returns={"_stance_gaps": [GAP]},
+                   today=DAY.replace(year=DAY.year + 1))
+    assert night.status["攻防資料"] == "skip" and "_stance_gaps" not in night.calls
 
 
 def test_every_scraper_is_judged_on_its_failed_legs_on_a_recent_night(monkeypatch):

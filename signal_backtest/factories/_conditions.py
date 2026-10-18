@@ -269,26 +269,54 @@ def _transient_giveback_exit(
 
 
 @lru_cache(maxsize=1)
+def _stance_rows() -> tuple:
+    """The daily stance frame and, for each of its rows, the TAIEX trading day
+    its state governs: the first TAIEX day strictly after the row's own date,
+    or None when there is none yet.
+
+    Aligned on the TAIEX calendar rather than on the next stance row: the
+    stance spine is an inner merge of five tables, so a day one of them misses
+    has no row. Shifting by row then let T-1's state skip a missing T and land
+    on T+1, and a missing last row (tonight's) meant T-1's state blocked
+    nothing. On a spine with no gaps -- every trading day since 2018-06 -- the
+    two are identical. Intraday there is no TAIEX row for today yet, so the
+    last row still maps to None and the gate stays off until the close, as
+    before (export.generate marks those entries as pending).
+    """
+    import bisect
+    from analysis.market_thermometer import daily_stance_frame
+    from db.connection import get_cursor
+    with get_cursor(commit=False) as cur:
+        m = daily_stance_frame(cur)
+        cur.execute("SELECT trade_date FROM tw.index_prices WHERE index_id = 'TAIEX' "
+                    "ORDER BY trade_date")
+        taiex = [r["trade_date"] for r in cur.fetchall()]
+    days = [d.date() for d in m["d"]]
+    governs = []
+    for d in days:
+        i = bisect.bisect_right(taiex, d)
+        governs.append(taiex[i] if i < len(taiex) else None)
+    return m, governs
+
+
+@lru_cache(maxsize=1)
 def _stance_block_dates() -> frozenset:
     """(T-1) 溫度計攻防為「高點防守」或「趨勢防守」的日子 → buy 不進場。
 
     Computed from analysis.market_thermometer.daily_stance_frame() — the same code
     path (and therefore the same parameters) that produces the live thermometer, so
     there is no snapshot to keep in sync. Cached once per process; the frame costs a
-    few DB queries plus one OBV pass.
+    few DB queries plus one OBV pass. A day's state blocks the next TAIEX trading
+    day (see _stance_rows).
 
     The 波段層 (swing) is deliberately excluded: on its own it was worth -0.011 PF
     while 高點防守 was +0.066 and 趨勢 +0.038 (sweep 15). Days before the stance
     spine begins (2018-09) are simply absent, so 2016-2018 entries are unfiltered.
     """
-    from analysis.market_thermometer import daily_stance_frame
-    from db.connection import get_cursor
-    with get_cursor(commit=False) as cur:
-        m = daily_stance_frame(cur)
-    days = [d.date() for d in m["d"]]
+    m, governs = _stance_rows()
     on = [bool(v) and s in ("top", "trend")
           for v, s in zip(m["defensive"], m["mode"].fillna(""))]
-    return frozenset(days[i + 1] for i in range(len(days) - 1) if on[i])
+    return frozenset(g for g, o in zip(governs, on) if o and g is not None)
 
 
 def _stance_blocked(data: "StockData") -> BoolArray:
@@ -313,16 +341,13 @@ def _stance_long_held_dates(min_held: int = 8) -> frozenset:
     ~6 days: P(DD <= -5%) is 14.3% off-latch, 22.4% at age 1-2, 24.0% at 3-5,
     then 35.3% at 6-10 (tmp/_stance_held_vs_crash.py).
 
-    Same live source as _stance_block_dates — no snapshot to keep in sync.
+    Same live source and the same TAIEX-day alignment as _stance_block_dates —
+    no snapshot to keep in sync.
     """
-    from analysis.market_thermometer import daily_stance_frame
-    from db.connection import get_cursor
-    with get_cursor(commit=False) as cur:
-        m = daily_stance_frame(cur)
-    days = [d.date() for d in m["d"]]
+    m, governs = _stance_rows()
     on = [bool(v) and int(h) >= min_held
           for v, h in zip(m["defensive"], m["held"])]
-    return frozenset(days[i + 1] for i in range(len(days) - 1) if on[i])
+    return frozenset(g for g, o in zip(governs, on) if o and g is not None)
 
 
 def _stance_long_held(data: "StockData", min_held: int = 8) -> BoolArray:

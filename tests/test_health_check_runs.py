@@ -58,6 +58,7 @@ def clean_week():
 
 def test_constants_match_daily_update():
     assert hc._EXPORT_STEP in du.CORE_STEP_LABELS
+    assert hc._STANCE_STEP in du.CORE_STEP_LABELS
     assert hc.TPE_TZ.utcoffset(None) == timedelta(hours=8)
 
 
@@ -200,6 +201,27 @@ def test_made_up_export_failure_leaves_the_nights_other_failures(monkeypatch, su
         ("CNN Fear & Greed", "failed"), ("前端匯出部署", "failed")])
     rows[2] = run(date(2026, 10, 16), steps=[("前端匯出部署", "ok")])
     assert check(monkeypatch, rows)[0] == expected
+
+
+def test_stance_gap_is_dropped_once_a_later_check_passed(monkeypatch):
+    # 10-14's check found 10-13 short. Re-running 10-13 fills it but leaves
+    # 10-14's record failed; the next night's check, which reads the ten days
+    # before it, passing is what says the gap is gone.
+    rows = clean_week()
+    rows[0] = run(date(2026, 10, 14), "failed", steps=[("攻防資料", "failed")])
+    assert check(monkeypatch, rows)[0] == ["10-14 盤後流程失敗：攻防資料"]
+    rows[1] = run(date(2026, 10, 15), steps=[("攻防資料", "ok")])
+    assert check(monkeypatch, rows)[0] == []
+
+
+def test_later_stance_check_does_not_excuse_a_failed_export(monkeypatch):
+    rows = clean_week()
+    rows[0] = run(date(2026, 10, 14), "failed", steps=[
+        ("攻防資料", "failed"), ("前端匯出部署", "failed")])
+    rows[1] = run(date(2026, 10, 15), steps=[("攻防資料", "ok")])
+    assert check(monkeypatch, rows)[0] == ["10-14 盤後流程失敗：攻防資料、前端匯出部署"]
+    rows[2] = run(date(2026, 10, 16), steps=[("前端匯出部署", "ok")])
+    assert check(monkeypatch, rows)[0] == []
 
 
 def test_failed_night_without_steps_still_reads_as_a_sentence(monkeypatch):
