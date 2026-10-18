@@ -442,3 +442,228 @@ def test_conference_index_query_without_an_answer_is_reported(monkeypatch):
 def test_next_trading_day(monkeypatch, day, closed, expected):
     monkeypatch.setattr(ic, "get_cursor", _cursor_with([{"holiday_date": d} for d in closed]))
     assert ic._next_trading_day(day) == expected
+
+
+# ── shareholder meetings ───────────────────────────────────────────────────
+
+import scrapers.insider_holdings as ih  # noqa: E402
+import scrapers.shareholder_meetings as sm  # noqa: E402
+import scrapers.treasury_stock as ts  # noqa: E402
+
+AGM_ROW = {"公司代號": "2330", "開會日期": "1150604", "股東常(臨時)會": "常會"}
+
+
+@pytest.mark.parametrize("twse, tpex, failed", [
+    ([AGM_ROW], [AGM_ROW], ()),
+    ([], [AGM_ROW], ()),                                   # nothing announced yet
+    (None, [AGM_ROW], ("上市股東會（沒有回應）",)),
+    ([AGM_ROW], {"message": "error"}, ("上櫃股東會（回應讀不懂）",)),
+    # Rows came back and none parsed: a renamed column.
+    ([{"公司代號": "2330", "會議日期": "1150604"}], [AGM_ROW], ("上市股東會（回應讀不懂）",)),
+])
+def test_shareholder_meeting_legs(monkeypatch, twse, tpex, failed):
+    answers = {sm.TWSE_OPENAPI: twse, sm.TPEX_OPENAPI: tpex}
+    monkeypatch.setattr(sm, "fetch_json_retry", lambda url, **kw: answers[url])
+    monkeypatch.setattr(sm, "_save", lambda records: len(records))
+    assert sm.scrape_date(PAST).failed_sources == failed
+
+
+# ── insider holdings ───────────────────────────────────────────────────────
+
+def person(sid, ym="11509", title="董事", shares="1,000"):
+    return {"公司代號": sid, "職稱": title, "目前持股": shares, "設質股數": "0", "資料年月": ym}
+
+
+class _Board:
+    def __init__(self, rows):
+        self.rows = rows
+
+    def raise_for_status(self):
+        pass
+
+    def json(self):
+        return self.rows
+
+
+@pytest.fixture
+def insider(monkeypatch):
+    """Serve the three boards; returns (serve, saved) with saved collecting
+    (year_month, {stock_id: aggregate}) per save_bulk call."""
+    saved = []
+    monkeypatch.setattr(ih, "_run_completed", False)
+    monkeypatch.setattr(ih, "_run_failed", ())
+    monkeypatch.setattr(ih, "save_bulk", lambda by_stock, ym: saved.append((ym, by_stock))
+                        or len(by_stock))
+
+    def serve(l, o, r):
+        boards = {ih.TWSE_OPENAPI_L: l, ih.TPEX_OPENAPI_O: o, ih.TPEX_OPENAPI_R: r}
+        monkeypatch.setattr(ih, "requests", types.SimpleNamespace(
+            get=lambda url, **kw: _Board(boards[url])))
+    return serve, saved
+
+
+def test_insider_every_board_there(insider):
+    serve, saved = insider
+    serve([person("2330")], [person("6488")], [person("7799")])
+    result = ih.scrape_date(PAST)
+    assert result.failed_sources == () and result.records == 3
+    assert [(ym, sorted(b)) for ym, b in saved] == [("11509", ["2330", "6488", "7799"])]
+
+
+@pytest.mark.parametrize("o, entry", [
+    ([], "內部人持股 上櫃（沒有資料）"),
+    ({"error": "x"}, "內部人持股 上櫃（回應讀不懂）"),
+    ([{"公司代號": "6488", "職稱": "董事"}], "內部人持股 上櫃（沒有資料年月）"),
+])
+def test_insider_board_that_came_back_without_data(insider, o, entry):
+    serve, saved = insider
+    serve([person("2330")], o, [person("7799")])
+    result = ih.scrape_date(PAST)
+    assert result.failed_sources == (entry,)
+    assert sorted(sid for _, b in saved for sid in b) == ["2330", "7799"]   # the rest still saved
+
+
+def test_insider_each_row_filed_under_its_own_month(insider):
+    # The boards roll to a new month on their own schedule.
+    serve, saved = insider
+    serve([person("2330", "11510")], [person("6488", "11509"), person("6489", "11510")],
+          [person("7799", "11509")])
+    ih.scrape_date(PAST)
+    by_month = {}
+    for ym, b in saved:
+        by_month.setdefault(ym, set()).update(b)
+    assert by_month == {"11509": {"6488", "7799"}, "11510": {"2330", "6489"}}
+
+
+def test_insider_company_on_two_boards_keeps_the_first(insider):
+    serve, saved = insider
+    serve([person("2330", shares="5,000")], [person("6488")], [person("2330", shares="1")])
+    ih.scrape_date(PAST)
+    rows = {sid: agg for _, b in saved for sid, agg in b.items()}
+    assert rows["2330"]["director_shares"] == 5000
+
+
+def test_insider_month_already_on_record_is_saved_again(insider, monkeypatch):
+    # The old guard skipped any month with a row; a board missing on the
+    # first night then stayed missing. A database that already holds the
+    # month must not stop the save.
+    serve, saved = insider
+
+    class _OnRecord:
+        def execute(self, *a):
+            pass
+
+        def fetchone(self):
+            return {"?column?": 1}
+
+    @contextmanager
+    def get_cursor(commit=True):
+        yield _OnRecord()
+    monkeypatch.setattr(ih, "get_cursor", get_cursor)
+    serve([person("2330")], [person("6488")], [person("7799")])
+    assert ih.scrape_date(PAST).records == 3 and len(saved) == 1
+
+
+def test_insider_board_whose_rows_do_not_aggregate_is_unreadable(insider):
+    serve, _ = insider
+    serve([person("2330")], [{"公司代號": "6488", "資料年月": "11509", "職務": "董事"}],
+          [person("7799")])
+    assert ih.scrape_date(PAST).failed_sources == ("內部人持股 上櫃（回應讀不懂）",)
+
+
+def test_insider_same_company_in_different_months_is_not_a_duplicate(insider):
+    serve, saved = insider
+    serve([person("2330", "11510")], [person("2330", "11509")], [person("7799")])
+    ih.scrape_date(PAST)
+    assert sorted((ym, sid) for ym, b in saved for sid in b) == [
+        ("11509", "2330"), ("11509", "7799"), ("11510", "2330")]
+
+
+def test_insider_http_error_still_raises(insider, monkeypatch):
+    class _Down:
+        def raise_for_status(self):
+            raise requests.HTTPError("503")
+    monkeypatch.setattr(ih, "requests", types.SimpleNamespace(get=lambda url, **kw: _Down()))
+    with pytest.raises(requests.HTTPError):
+        ih.scrape_date(PAST)
+
+
+def test_insider_guarded_call_carries_this_runs_failures(insider, monkeypatch):
+    serve, _ = insider
+    serve([person("2330")], [], [person("7799")])
+    ih.scrape_date(date(2020, 1, 2))        # a range starting on an old date
+    assert ih.scrape_date(PAST).failed_sources == ("內部人持股 上櫃（沒有資料）",)
+    # A later process whose run succeeds carries nothing over.
+    monkeypatch.setattr(ih, "_run_completed", False)
+    serve([person("2330")], [person("6488")], [person("7799")])
+    assert ih.scrape_date(PAST).failed_sources == ()
+    assert ih.scrape_date(PAST).failed_sources == ()
+
+
+# ── treasury stock ─────────────────────────────────────────────────────────
+
+TREASURY_ROW = ("<tr>" + "".join(f"<td>{c}</td>" for c in [
+    "1", "2330", "台積電", "115/03/01", "1", "100", "10", "500", "700", "115/03/02",
+    "115/05/01", "N", "", "5", "0", "50", "3000", "600", "0.01", ""]) + "</tr>")
+
+
+@pytest.fixture
+def treasury(monkeypatch):
+    monkeypatch.setattr(ts, "_run_completed", False)
+    monkeypatch.setattr(ts, "_run_failed", ())
+    monkeypatch.setattr(ts, "_RETRY_WAIT", 0)
+    monkeypatch.setattr(ts.time, "sleep", lambda s: None)
+    monkeypatch.setattr(ts, "save_programs", lambda programs: len(programs))
+
+    def serve(answers):
+        """answers: per request in order, _Resp or Exception."""
+        answers = list(answers)
+
+        def post(url, **kwargs):
+            answer = answers.pop(0)
+            if isinstance(answer, Exception):
+                raise answer
+            return answer
+        monkeypatch.setattr(ts, "_get_session", lambda: types.SimpleNamespace(post=post))
+        return answers
+    return serve
+
+
+EMPTY_TREASURY = _Resp(fixture_bytes("mops_treasury_empty.html"))
+TREASURY_PAGE = _Resp(f"<table>{TREASURY_ROW}</table>".encode())
+BUSY = _Resp("<html>系統忙碌中</html>".encode())
+
+
+@pytest.mark.parametrize("answers, state, left", [
+    ([TREASURY_PAGE], OK, 0),
+    ([EMPTY_TREASURY], EMPTY, 0),
+    ([BUSY, TREASURY_PAGE], OK, 0),         # asked once more after a page we could not read
+    ([BUSY, BUSY], UNREADABLE, 0),
+])
+def test_treasury_range_state(treasury, answers, state, left):
+    remaining = treasury(answers)
+    programs, got = ts.fetch_range("1150101", "1151016", "sii")
+    assert got == state and len(remaining) == left
+
+
+def test_treasury_empty_page_without_a_charset_is_still_empty(treasury):
+    # requests decodes a response without a charset as ISO-8859-1; the
+    # Chinese marker must be looked for in the bytes decoded as UTF-8.
+    page = _Resp(fixture_bytes("mops_treasury_empty.html"))
+    page.text = page.content.decode("iso-8859-1")
+    treasury([page])
+    assert ts.fetch_range("1150101", "1150102", "pub")[1] == EMPTY
+
+
+def test_treasury_names_the_board_that_could_not_be_read(treasury):
+    treasury([TREASURY_PAGE, EMPTY_TREASURY, BUSY, BUSY, EMPTY_TREASURY])
+    result = ts.scrape_date(PAST)
+    assert result.failed_sources == ("庫藏股 rotc（回應讀不懂）",) and result.records == 1
+    # Guarded calls in the same process carry it.
+    assert ts.scrape_date(PAST).failed_sources == ("庫藏股 rotc（回應讀不懂）",)
+
+
+def test_treasury_http_error_still_raises(treasury):
+    treasury([_Resp(b"", 502)])
+    with pytest.raises(requests.HTTPError):
+        ts.scrape_date(PAST)

@@ -23,7 +23,7 @@ import requests
 
 from db.connection import get_cursor
 from scrapers.insider_holdings import _get_mops_session, _mops_rate_limit
-from utils.format_shift import ScrapeResult
+from utils.format_shift import ScrapeResult, failed_legs, openapi_rows, parsed_state
 from utils.http_client import fetch_json_retry
 
 TWSE_OPENAPI = "https://openapi.twse.com.tw/v1/opendata/t187ap41_L"
@@ -53,19 +53,24 @@ def _norm_type(val) -> str | None:
 
 # ── Daily: OpenAPI current-year board ────────────────────────────────────────
 
-def _fetch_openapi() -> list[dict]:
+def _fetch_openapi() -> tuple[list[dict], dict[str, str]]:
+    """Both markets' boards, and each leg's state: NO_RESPONSE, UNREADABLE
+    (not a list, or rows none of which parse), EMPTY ([] -- nothing announced
+    yet) or OK."""
     out: list[dict] = []
-    for url, market in ((TWSE_OPENAPI, "TWSE"), (TPEX_OPENAPI, "TPEx")):
+    legs: dict[str, str] = {}
+    for url, market, name in ((TWSE_OPENAPI, "TWSE", "上市股東會"),
+                              (TPEX_OPENAPI, "TPEx", "上櫃股東會")):
         data = fetch_json_retry(url, validate=lambda d: isinstance(d, list))
-        if not isinstance(data, list):
-            continue
-        for row in data:
+        rows, state = openapi_rows(data)
+        parsed = []
+        for row in rows:
             try:
                 sid = str(row.get("公司代號", "")).strip()
                 mdate = _roc_to_date(row.get("開會日期"))
                 if not sid or not sid[0].isdigit() or mdate is None:
                     continue
-                out.append({
+                parsed.append({
                     "stock_id": sid,
                     "meeting_date": mdate,
                     "meeting_type": _norm_type(row.get("股東常(臨時)會")),
@@ -74,7 +79,9 @@ def _fetch_openapi() -> list[dict]:
                 })
             except (AttributeError, ValueError, TypeError):
                 continue
-    return out
+        legs[name] = parsed_state(state, parsed)
+        out.extend(parsed)
+    return out, legs
 
 
 # ── Backfill: MOPS historical per year × market ──────────────────────────────
@@ -141,10 +148,11 @@ def _save(records: list[dict]) -> int:
 def scrape_date(trade_date: date) -> ScrapeResult:
     """Daily hook: refresh current-year AGM board from OpenAPI."""
     print(f"Fetching shareholder meetings ({trade_date}) ...")
-    records = _fetch_openapi()
+    records, legs = _fetch_openapi()
     saved = _save(records)
-    print(f"  Shareholder meetings (OpenAPI): {len(records)} rows, saved={saved}")
-    return ScrapeResult(records=saved, api_rows=len(records), parse_errors=0)
+    print(f"  Shareholder meetings (OpenAPI): {len(records)} rows, saved={saved}; legs {legs}")
+    return ScrapeResult(records=saved, api_rows=len(records), parse_errors=0,
+                        failed_sources=failed_legs(legs))
 
 
 def backfill(start_roc: int, end_roc: int) -> int:

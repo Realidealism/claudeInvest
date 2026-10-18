@@ -99,8 +99,9 @@ SCRAPERS = [
     # before TAIFEX publishes, they will report a failure.
     ("TAIFEX futures",          "scrapers.taifex_futures",       "scrape_date", True),
     ("TAIFEX institutional",    "scrapers.taifex_institutional", "scrape_date", True),
-    # P/C ratio has no reader yet; judged in a later batch.
-    ("TAIFEX P/C ratio",        "scrapers.taifex_pc_ratio",      "scrape_date", False),
+    # P/C ratio: one row on every trading day in the table (120 of 120), so
+    # it is monitored too; a run by hand before TAIFEX publishes will report.
+    ("TAIFEX P/C ratio",        "scrapers.taifex_pc_ratio",      "scrape_date", True),
     # Alerts — event-driven; exempt from the 0-row check (a quiet disposal
     # list is normal). The scraper itself reports a leg that did not answer,
     # and an empty attention list for a day that has traded (never seen in
@@ -123,9 +124,9 @@ SCRAPERS = [
     # future date, so the index is refreshed daily and decks are archived once
     # their conference has passed; exempt (quiet weeks are normal)
     ("Investor conferences (法說會)", "scrapers.investor_conferences", "scrape_date", False),
-    # Weekly/monthly (idempotent, run once per period) — all exempt: the
-    # _run_completed guard makes 0 rows the norm on every day except the first
-    # run of each period.
+    # Weekly/monthly — exempt from the 0-row check: shareholder dist. saves
+    # once per week, and the _run_completed guards make a range run fetch only
+    # once. Each still reports a source that did not answer (failed_sources).
     ("Shareholder dist.",       "scrapers.shareholder_distribution", "scrape_date", False),
     ("Insider holdings",        "scrapers.insider_holdings",  "scrape_date", False),
     ("Insider pledge events",   "scrapers.insider_pledge_events", "scrape_date", False),
@@ -1226,7 +1227,12 @@ def _update_trading_day(trade_date: date, results: list[tuple[str, str]],
                 latest = list(cur.fetchone().values())[0]
             if latest:
                 scan_period(latest, trade_date)
-            results.append(("基金信號掃描", "ok"))
+                results.append(("基金信號掃描", "ok"))
+            else:
+                # Nothing was scanned; used to be recorded "ok" all the same.
+                print("  [ERROR] tw.fund_holdings_monthly has no period; nothing to scan.")
+                failure_traces["基金信號掃描"] = "基金持股表沒有任何期別"
+                results.append(("基金信號掃描", "failed"))
         except Exception:
             print("  [ERROR] Signal scanning failed:")
             _capture_trace(failure_traces, "基金信號掃描")
@@ -1537,8 +1543,18 @@ def _update_trading_day(trade_date: date, results: list[tuple[str, str]],
         # (predict_disposal_trigger / intraday) is unaffected — this only
         # changes when the backward-looking accuracy check is scored.
         audit_target = trade_date
-        run_audit(audit_target, push=True)
-        results.append(("處置預測 audit", "ok"))
+        audited, _, _ = run_audit(audit_target, push=True)
+        # Every night since it went live (2026-05-22) audited 427-760 stocks:
+        # those with an attention notice in the last 60 days plus that day's
+        # disposals. Zero means there was no previous trading day or no alert
+        # data at all. It cannot see tonight's alerts missing (the window is
+        # 60 days); the Stock alerts step reports that.
+        if audited == 0 and judge_rows:
+            failure_traces["處置預測 audit"] = (
+                "稽核 0 檔：沒有前一交易日，或近 60 天沒有注意股、當天處置股資料")
+            results.append(("處置預測 audit", "failed"))
+        else:
+            results.append(("處置預測 audit", "ok"))
     except Exception:
         print("  [ERROR] Audit failed:")
         _capture_trace(failure_traces, "處置預測 audit")

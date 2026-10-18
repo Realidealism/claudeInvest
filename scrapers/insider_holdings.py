@@ -3,8 +3,8 @@ Monthly director / supervisor / manager shareholding scraper (董監經理人持
 
 Two modes:
   scrape_date(trade_date)   — daily hook. Fetches the latest month's bulk CSV
-                              from TWSE OpenAPI (one shot for all companies).
-                              Skips if DB already has that year_month.
+                              from the TWSE / TPEx OpenAPI boards (one shot for
+                              all companies) and upserts it every night.
   fetch_mops_one(stock_id, year, month) — per-stock POST to MOPS.
                               Used for historical backfill (see scripts/backfill/backfill_insider_holdings.py).
 
@@ -103,29 +103,62 @@ def _aggregate(rows: list) -> dict:
 # Mode 1: TWSE OpenAPI (current month, full market)
 # ---------------------------------------------------------------------------
 
-def fetch_openapi() -> tuple[str | None, dict]:
-    """
-    Fetch current month from TWSE (上市) + TPEx (上櫃) + TPEx (興櫃).
-    Returns (year_month, {stock_id: aggregate_dict}).
-    """
-    all_rows = []
-    year_month = None
+_OPENAPI_LEGS = [(TWSE_OPENAPI_L, "TWSE 上市", "內部人持股 上市"),
+                 (TPEX_OPENAPI_O, "TPEx 上櫃", "內部人持股 上櫃"),
+                 (TPEX_OPENAPI_R, "ESB 興櫃", "內部人持股 興櫃")]
 
-    for url, label in [(TWSE_OPENAPI_L, "TWSE 上市"),
-                       (TPEX_OPENAPI_O, "TPEx 上櫃"),
-                       (TPEX_OPENAPI_R, "ESB 興櫃")]:
+
+def fetch_openapi() -> tuple[dict[str, dict], tuple[str, ...]]:
+    """
+    Fetch the latest month from TWSE (上市) + TPEx (上櫃) + TPEx (興櫃).
+    Returns ({year_month: {stock_id: aggregate_dict}}, failed boards).
+
+    Every board has filings every month (about 1,070 / 880 / 380 companies),
+    so a board that answers with no rows, or with no 資料年月, is a failure.
+    Each row is filed under its own 資料年月: the boards roll to a new month
+    on their own schedule. A company on more than one board (moving from 興櫃
+    to a listing) keeps the rows of the first board in the order above.
+    An HTTP error raises.
+    """
+    by_month: dict[str, dict] = {}
+    failed: list[str] = []
+    taken: set[str] = set()
+
+    for url, label, name in _OPENAPI_LEGS:
         print(f"  Fetching {label} OpenAPI ...")
         r = requests.get(url, headers=DEFAULT_HEADERS, timeout=60)
         r.raise_for_status()
         rows = r.json()
-        if rows and year_month is None:
-            year_month = _pick(rows[0], _YM_KEYS)
-        print(f"    {label}: {len(rows)} person-rows")
-        all_rows.extend(rows)
+        if not isinstance(rows, list) or not rows:
+            failed.append(f"{name}（{'沒有資料' if isinstance(rows, list) else '回應讀不懂'}）")
+            continue
+        by_ym: dict[str, list] = {}
+        for row in rows:
+            ym = _pick(row, _YM_KEYS)
+            if ym:
+                by_ym.setdefault(ym, []).append(row)
+        if not by_ym:
+            failed.append(f"{name}（沒有資料年月）")
+            continue
+        board = set()
+        for ym, ym_rows in by_ym.items():
+            agg = _aggregate(ym_rows)
+            board |= {(ym, sid) for sid in agg}
+            dup = sorted(sid for sid in agg if (ym, sid) in taken)
+            for sid in dup:
+                del agg[sid]
+            if dup:
+                print(f"    {label}: {len(dup)} companies already on an earlier board "
+                      f"for {ym}, kept there: {', '.join(dup[:10])}")
+            by_month.setdefault(ym, {}).update(agg)
+        taken |= board
+        print(f"    {label}: {len(rows)} person-rows, {len(board)} companies, "
+              f"months {sorted(by_ym)}")
+        if not board:
+            # Rows with a month but none that aggregate: a renamed column.
+            failed.append(f"{name}（回應讀不懂）")
 
-    by_stock = _aggregate(all_rows)
-    print(f"  Aggregated to {len(by_stock)} companies")
-    return year_month, by_stock
+    return by_month, tuple(failed)
 
 
 # ---------------------------------------------------------------------------
@@ -276,42 +309,41 @@ def save_bulk(by_stock: dict, year_month: str) -> int:
 
 
 # ---------------------------------------------------------------------------
-# Daily hook (uses OpenAPI, idempotent per-month)
+# Daily hook (uses OpenAPI, upserted every night)
 # ---------------------------------------------------------------------------
 
+# Guards a range run (historical_update) against fetching the boards once per
+# date: they only ever serve the latest month. The one real run's failures are
+# handed back on every guarded call, so a range that starts on an old date
+# (not judged) still reports them on the recent dates that are.
 _run_completed = False
+_run_failed: tuple[str, ...] = ()
 
 
 def scrape_date(trade_date: date) -> ScrapeResult:
     """
-    Daily hook. Fetches the latest month's full market via TWSE OpenAPI.
-    trade_date is ignored (data is published monthly, only current available).
-    Skips if the OpenAPI's year_month is already in DB.
+    Daily hook. Fetches the latest month's full market via the OpenAPI boards
+    and upserts it every night. trade_date is ignored (data is published
+    monthly, only current available).
+
+    There used to be a once-a-month guard (skip when the month had any row);
+    a board missing on the first night of a month then stayed missing all
+    month. Upserting nightly fills it the next night and picks up corrections.
     """
-    global _run_completed
+    global _run_completed, _run_failed
     if _run_completed:
-        return ScrapeResult(records=0, api_rows=0, parse_errors=0)
+        return ScrapeResult(records=0, api_rows=0, parse_errors=0, failed_sources=_run_failed)
 
-    year_month, by_stock = fetch_openapi()
-    if not year_month:
-        print("  [insider] OpenAPI returned no data.")
-        return ScrapeResult(records=0, api_rows=0, parse_errors=0)
-
-    with get_cursor(commit=False) as cur:
-        cur.execute(
-            "SELECT 1 FROM tw.insider_holdings WHERE year_month = %s LIMIT 1",
-            (year_month,),
-        )
-        if cur.fetchone():
-            print(f"  [insider] {year_month} already in DB, skipping.")
-            _run_completed = True
-            return ScrapeResult(records=0, api_rows=len(by_stock), parse_errors=0)
-
-    print(f"  [insider] Saving {len(by_stock)} companies for {year_month} ...")
-    saved = save_bulk(by_stock, year_month)
-    print(f"  [insider] Saved {saved} rows.")
-    _run_completed = True
-    return ScrapeResult(records=saved, api_rows=len(by_stock), parse_errors=0)
+    by_month, failed = fetch_openapi()
+    saved = 0
+    for year_month, by_stock in sorted(by_month.items()):
+        print(f"  [insider] Saving {len(by_stock)} companies for {year_month} ...")
+        saved += save_bulk(by_stock, year_month)
+    print(f"  [insider] Saved {saved} rows"
+          f"{'; failed: ' + ', '.join(failed) if failed else ''}.")
+    _run_completed, _run_failed = True, failed
+    return ScrapeResult(records=saved, api_rows=sum(len(b) for b in by_month.values()),
+                        parse_errors=0, failed_sources=failed)
 
 
 if __name__ == "__main__":

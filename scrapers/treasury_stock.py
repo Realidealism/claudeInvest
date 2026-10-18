@@ -14,7 +14,7 @@ from datetime import date
 import requests
 
 from db.connection import get_cursor
-from utils.format_shift import ScrapeResult
+from utils.format_shift import EMPTY, OK, UNREADABLE, ScrapeResult, failed_legs
 from utils.http_client import DEFAULT_HEADERS
 
 MOPS_URL = "https://mopsov.twse.com.tw/mops/web/ajax_t35sc09"
@@ -127,8 +127,17 @@ def fetch_year(ad_year: int, market: str = "sii") -> list[dict]:
     return _parse_rows(r.text)
 
 
-def fetch_range(start_roc: str, end_roc: str, market: str = "sii") -> list[dict]:
-    """Fetch programs for arbitrary ROC date range."""
+# What MOPS answers for a range with no programs (probed 2026-10-18).
+_NO_PROGRAMS_TEXT = "查無所需資料"
+_RETRY_WAIT = 10  # seconds before the one retry of a page we could not read
+
+
+def fetch_range(start_roc: str, end_roc: str, market: str = "sii") -> tuple[list[dict], str]:
+    """Fetch programs for arbitrary ROC date range, and how the request went:
+    OK, EMPTY (MOPS said there is nothing in the range) or UNREADABLE (any
+    other page without rows -- a busy or throttled page, or a new layout).
+    An unreadable page is asked for once more: this runs after the night's
+    long run of MOPS requests. An HTTP error raises."""
     s = _get_session()
     payload = {
         "encodeURIComponent": "1",
@@ -140,10 +149,24 @@ def fetch_range(start_roc: str, end_roc: str, market: str = "sii") -> list[dict]
         "d2": end_roc,
         "RD": "1",
     }
-    time.sleep(1.5 + random.uniform(0, 1))
-    r = s.post(MOPS_URL, data=payload, timeout=60)
-    r.raise_for_status()
-    return _parse_rows(r.text)
+    for attempt in (1, 2):
+        time.sleep(1.5 + random.uniform(0, 1))
+        r = s.post(MOPS_URL, data=payload, timeout=60)
+        r.raise_for_status()
+        # Decoded here rather than via r.text, which falls back to ISO-8859-1
+        # when a response omits its charset -- the Chinese text below would
+        # then never match and every empty board would read as unreadable.
+        html = r.content.decode("utf-8", "replace")
+        programs = _parse_rows(html)
+        if programs:
+            return programs, OK
+        if _NO_PROGRAMS_TEXT in html:
+            return programs, EMPTY
+        print(f"  [treasury] {market} {start_roc}-{end_roc}: no rows and no "
+              f"'{_NO_PROGRAMS_TEXT}' ({len(r.content)} bytes, try {attempt})")
+        if attempt == 1:
+            time.sleep(_RETRY_WAIT)
+    return programs, UNREADABLE
 
 
 # ---------------------------------------------------------------------------
@@ -203,7 +226,11 @@ def save_programs(programs: list[dict]) -> int:
 # Daily hook
 # ---------------------------------------------------------------------------
 
+# The one real run's failures are handed back on every guarded call, so a
+# range run that starts on an old date (not judged) still reports them on the
+# recent dates that are.
 _run_completed = False
+_run_failed: tuple[str, ...] = ()
 
 
 def scrape_date(trade_date: date) -> ScrapeResult:
@@ -211,23 +238,26 @@ def scrape_date(trade_date: date) -> ScrapeResult:
     Daily hook. Fetches the current year's treasury stock programs
     for all markets. Idempotent via UPSERT.
     """
-    global _run_completed
+    global _run_completed, _run_failed
     if _run_completed:
-        return ScrapeResult(records=0, api_rows=0, parse_errors=0)
+        return ScrapeResult(records=0, api_rows=0, parse_errors=0, failed_sources=_run_failed)
 
     roc = trade_date.year - 1911
     total = 0
     api_rows = 0
+    legs = {}
     for market in MARKETS:
-        programs = fetch_range(f"{roc}0101", trade_date.strftime(f"{roc}%m%d"), market)
+        programs, legs[f"庫藏股 {market}"] = fetch_range(
+            f"{roc}0101", trade_date.strftime(f"{roc}%m%d"), market)
         api_rows += len(programs)
         saved = save_programs(programs)
         if saved:
             print(f"  [treasury] {market}: {saved} programs")
         total += saved
 
-    _run_completed = True
-    return ScrapeResult(records=total, api_rows=api_rows, parse_errors=0)
+    _run_completed, _run_failed = True, failed_legs(legs)
+    return ScrapeResult(records=total, api_rows=api_rows, parse_errors=0,
+                        failed_sources=_run_failed)
 
 
 if __name__ == "__main__":

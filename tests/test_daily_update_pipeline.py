@@ -78,17 +78,27 @@ RETURNS = {
     "_revenue_counts": {"sii": 980, "otc": 850},
     # Every stance input there for the last ten trading days.
     "_stance_gaps": [],
+    # Stocks audited, false positives, false negatives.
+    "analysis.disposal_audit.run_audit": (500, 0, 0),
+    # What the body reads as the latest tw.fund_holdings_monthly period.
+    "fund_latest_period": "202609",
 }
 
 
 class _Cursor:
+    """The body's one read: the latest fund-holdings period."""
+
+    def __init__(self, latest_period):
+        self.latest_period = latest_period
+
     def execute(self, sql, params=None):
         # The body only reads through its own cursors; a write added there
         # must not pass unnoticed.
         assert sql.lstrip().upper().startswith("SELECT"), sql
+        assert "fund_holdings_monthly" in sql, sql
 
     def fetchone(self):
-        return {"max": None}
+        return {"max": self.latest_period}
 
     def fetchall(self):
         return []
@@ -137,7 +147,7 @@ class _Night:
 
         @contextmanager
         def get_cursor(commit=True):
-            yield _Cursor()
+            yield _Cursor(values["fund_latest_period"])
 
         # The night runs on its own trade date, as the 21:30 task does, so the
         # checks reserved for recent dates apply however old DAY gets; a later
@@ -400,6 +410,38 @@ def test_push_that_was_not_delivered_fails_the_step(monkeypatch, name, label):
     assert night.status[label] == "failed"
     assert night.traces[label] == "Telegram 傳送失敗"
     assert night.outcome == "partial"
+
+
+def test_audit_of_no_stock_fails_the_step(monkeypatch):
+    night = _Night(monkeypatch, returns={"analysis.disposal_audit.run_audit": (0, 0, 0)})
+    assert night.status["處置預測 audit"] == "failed"
+    assert night.traces["處置預測 audit"].startswith("稽核 0 檔")
+    assert night.outcome == "partial"
+
+
+def test_audit_of_no_stock_is_not_judged_on_a_backfill_date(monkeypatch):
+    night = _Night(monkeypatch, returns={"analysis.disposal_audit.run_audit": (0, 0, 0)},
+                   today=DAY.replace(year=DAY.year + 1))
+    assert night.status["處置預測 audit"] == "ok"
+
+
+def test_fund_scan_without_any_period_fails_the_step(monkeypatch):
+    # Used to skip the scan and record "ok".
+    night = _Night(monkeypatch, returns={"fund_latest_period": None})
+    assert night.status["基金信號掃描"] == "failed"
+    assert night.traces["基金信號掃描"] == "基金持股表沒有任何期別"
+    assert "scan_signals.scan_period" not in night.calls
+    assert night.outcome == "partial"
+
+
+def test_fund_scan_runs_on_the_latest_period(monkeypatch):
+    assert _Night(monkeypatch).status["基金信號掃描"] == "ok"
+
+
+def test_fund_scan_after_the_20th_is_a_skip(monkeypatch):
+    night = _Night(monkeypatch, returns={"fund_latest_period": None},
+                   day=date(2026, 10, 21))
+    assert night.status["基金信號掃描"] == "skip"
 
 
 GAP = "10-13 缺：期交所外資期貨；10-14 的 buy／sell 攻防閘門沒有依據。補跑：daily_update.exe 2026-10-13"
