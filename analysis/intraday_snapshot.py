@@ -26,6 +26,7 @@ from datetime import date, datetime, timezone, timedelta
 from psycopg2.extras import execute_batch
 
 from db.connection import get_cursor, get_connection
+from db.price_availability import PriceUnavailable
 from analysis.realtime_data import load_stock_data_intraday
 from analysis.market_breadth import compute_live_breadth
 from analysis.score import build_scoreboard
@@ -149,9 +150,10 @@ def _extract_position(result, side: str, last_trade_date) -> dict | None:
 
 
 def _eval_stock(stock_id: str) -> tuple[dict | None, list]:
-    """Per-stock worker. Returns (flat dict (cheap pickle) or None, the
-    exceptions it swallowed as (site, stock_id, message)). A stock with under
-    60 bars is unusable, not an error."""
+    """Per-stock worker. Returns (flat dict (cheap pickle) or None, or
+    {"_unavailable": stock_id} when the price is unavailable (emerging board);
+    the exceptions it swallowed as (site, stock_id, message)). A stock with
+    under 60 bars, or an unavailable price, is skipped, not an error."""
     errors: list[tuple[str, str, str]] = []
 
     def note(site):
@@ -159,6 +161,9 @@ def _eval_stock(stock_id: str) -> tuple[dict | None, list]:
 
     try:
         data = load_stock_data_intraday(stock_id, _VOLUME_SCALE)
+    except PriceUnavailable:
+        print(f"  [WARN] {stock_id} skipped: price unavailable (emerging board)", file=sys.stderr)
+        return {"_unavailable": stock_id}, errors
     except Exception as e:
         note("load")(e)
         return None, errors
@@ -506,14 +511,20 @@ def run(*, final_pass: bool = False) -> dict:
     t0 = time.time()
     results: list[dict] = []
     errors: list[tuple[str, str, str]] = []
+    unavailable = 0
     with Pool(N_WORKERS, initializer=_init_worker, initargs=(scale,)) as pool:
         for r, errs in pool.imap_unordered(_eval_stock, stock_ids, chunksize=20):
             errors.extend(errs)
-            if r is not None:
+            if r is not None and "_unavailable" in r:
+                unavailable += 1
+            elif r is not None:
                 results.append(r)
                 if len(results) % 200 == 0:
                     print(f"  evaluated {len(results)} ...", file=sys.stderr)
         print(f"  scored {len(results)} stocks in {time.time() - t0:.1f}s")
+        if unavailable:
+            print(f"  [WARN] {unavailable} stocks skipped: price unavailable (emerging board)",
+                  file=sys.stderr)
 
         # Breadth runs on the close's universe (all active stocks minus
         # dead_fish), which is wider than the money_level >= 4 scoring

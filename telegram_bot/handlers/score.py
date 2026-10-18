@@ -22,6 +22,9 @@ from telegram import Update
 from telegram.ext import CommandHandler, ContextTypes
 
 from db.connection import get_cursor
+from db.price_availability import (
+    UNAVAILABLE_MESSAGE, PriceUnavailable, require_available, unavailable_codes,
+)
 from telegram_bot.auth import restricted
 from telegram_bot.handlers._attention_predict_intraday import (
     closest_untriggered_threshold,
@@ -951,6 +954,13 @@ def _format_etf(holders: list[tuple[str, float | None]], diffs: list[dict]) -> s
 
 
 def _build_reply(ticker: str) -> str:
+    """The /score reply. Emerging-board codes get only the unavailable notice;
+    both /score and the social-monitor inline replies come through here."""
+    try:
+        with get_cursor(commit=False) as cur:
+            require_available(cur, ticker)
+    except PriceUnavailable as e:
+        return str(e)
     try:
         freshness = detect_state()
     except Exception:
@@ -1061,6 +1071,8 @@ def _batch_fetch_sides_and_quotes(tickers: list[str]) -> dict[str, dict]:
     """One-shot DB read of (long/short ranking row + last_price) for many
     tickers. Returns {ticker: {"long": entry|None, "short": entry|None,
     "last_price": float|None, "name": str, "market": str}}.
+    Emerging-board tickers get "unavailable": True and no ranking, quote or
+    price fields.
 
     Built around the same "most recent (snapshot_date, snapshot_time)" anchor
     as the single-ticker path so /watch score stays consistent with /score."""
@@ -1071,6 +1083,11 @@ def _batch_fetch_sides_and_quotes(tickers: list[str]) -> dict[str, dict]:
     if not tickers:
         return out
     with get_cursor(commit=False) as cur:
+        unavailable = unavailable_codes(cur, tickers)
+        for t in unavailable:
+            out[t]["unavailable"] = True
+        priced = [t for t in tickers if t not in unavailable]
+
         # Watchlist tickers can sit outside the scoring universe (money_level
         # below the snapshot's floor), so the join below returns no row and
         # the line would render the ticker twice. Seed name/market from
@@ -1094,7 +1111,7 @@ def _batch_fetch_sides_and_quotes(tickers: list[str]) -> dict[str, dict]:
                   SELECT snapshot_date, snapshot_time FROM tw.score_snapshot_intraday
                   ORDER BY snapshot_date DESC, snapshot_time DESC LIMIT 1
               )
-        """, (list(tickers),))
+        """, (priced,))
         for r in cur.fetchall():
             sid = r["stock_id"]
             entry = {
@@ -1128,7 +1145,7 @@ def _batch_fetch_sides_and_quotes(tickers: list[str]) -> dict[str, dict]:
                     ORDER BY snapshot_date DESC, snapshot_time DESC LIMIT 1
                 ) AND side = 'long'
             ) x WHERE stock_id = ANY(%s)
-        """, (list(tickers),))
+        """, (priced,))
         for r in cur.fetchall():
             out[r["stock_id"]]["tv_rank"] = int(r["rk"])
             out[r["stock_id"]]["tv_total"] = int(r["total"])
@@ -1139,7 +1156,7 @@ def _batch_fetch_sides_and_quotes(tickers: list[str]) -> dict[str, dict]:
             FROM tw.intraday_quotes
             WHERE stock_id = ANY(%s)
             ORDER BY stock_id, updated_at DESC
-        """, (list(tickers),))
+        """, (priced,))
         for r in cur.fetchall():
             if r["last_price"] is not None:
                 out[r["stock_id"]]["last_price"] = float(r["last_price"])
@@ -1151,7 +1168,7 @@ def _batch_fetch_sides_and_quotes(tickers: list[str]) -> dict[str, dict]:
             FROM tw.daily_prices
             WHERE stock_id = ANY(%s)
             ORDER BY stock_id, trade_date DESC
-        """, (list(tickers),))
+        """, (priced,))
         for r in cur.fetchall():
             if r["close_price"] is not None:
                 out[r["stock_id"]]["ref_close"] = float(r["close_price"])
@@ -1244,6 +1261,8 @@ def _load_volume_status(tickers: list[str]) -> dict[str, str]:
                 idx = -2
             code = int(data.volume_result.volume_status[idx])
             out[t] = VOLUME_STATUS_LABEL.get(code, "")
+        except PriceUnavailable:
+            out[t] = "不可用"
         except Exception:
             logger.debug("volume status failed for %s", t, exc_info=True)
     return out
@@ -1252,6 +1271,9 @@ def _load_volume_status(tickers: list[str]) -> dict[str, str]:
 def _format_one_line(ticker: str, ctx: dict, side_pos: dict[str, dict | None]) -> str:
     """One-line summary per stock. Segments separated by ' ｜ ';
     leading emoji indicates position state."""
+    if ctx.get("unavailable"):
+        name = ctx.get("name") or ticker
+        return f"⛔ {ticker} {name}  ｜{UNAVAILABLE_MESSAGE}"
     long_e = ctx.get("long")
     short_e = ctx.get("short")
     name = ctx.get("name") or ticker
@@ -1345,7 +1367,7 @@ def build_watchlist_summary(tickers: list[str]) -> str:
         for side in ("long", "short"):
             for e in scores.get(side, []):
                 t = e.get("ticker")
-                if t in ctx_map:
+                if t in ctx_map and not ctx_map[t].get("unavailable"):
                     ctx_map[t][side] = {**e, "off_ranking": False}
                     ctx_map[t]["name"] = e.get("name", "") or ctx_map[t]["name"]
                     ctx_map[t]["market"] = e.get("market", "") or ctx_map[t]["market"]
@@ -1358,7 +1380,8 @@ def build_watchlist_summary(tickers: list[str]) -> str:
         for p in entries:
             pos_map[t][p["_side"]] = p
 
-    for t, status in _load_volume_status(tickers).items():
+    priced = [t for t in tickers if not ctx_map[t].get("unavailable")]
+    for t, status in _load_volume_status(priced).items():
         ctx_map[t]["vol_status"] = status
 
     ordered = sorted(tickers, key=lambda t: _watchlist_sort_key(t, pos_map[t]))

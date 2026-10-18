@@ -107,6 +107,17 @@ def test_short_history_is_unusable_not_an_error(monkeypatch, mod, loader, call):
     assert call("4169") == (None, [])
 
 
+@pytest.mark.parametrize("mod, loader, call", MODULES)
+def test_unavailable_price_is_skipped_not_an_error(monkeypatch, mod, loader, call):
+    # Emerging-board stocks (db.price_availability) are left out by design.
+    from db.price_availability import PriceUnavailable
+
+    def load(*a, **k):
+        raise PriceUnavailable("1260")
+    setup(monkeypatch, mod, loader, load=load)
+    assert call("1260") == ({"_unavailable": "1260"}, [])
+
+
 # ── run(): nothing is written once any stock raised ────────────────────────
 
 class _SyncPool:
@@ -173,6 +184,26 @@ def test_run_with_a_failed_stock_writes_nothing(monkeypatch, mod):
     assert saves == []
     assert raised.value.errors == [("signal buy", "2330", "ValueError: boom")]
     assert "signal buy 1 檔" in str(raised.value)
+
+
+@pytest.mark.parametrize("mod", [ds, isn], ids=["daily", "intraday"])
+def test_run_with_unavailable_stocks_still_writes_the_rest(monkeypatch, mod):
+    from contextlib import contextmanager
+    import analysis.market_thermometer as mt
+
+    def worker(item):
+        sid = item[0] if isinstance(item, tuple) else item
+        return ({"_unavailable": sid}, []) if sid == "2330" else (_result(sid), [])
+
+    saves = _run_stand_ins(monkeypatch, mod, worker)
+    if mod is isn:
+        @contextmanager
+        def get_cursor(commit=True):
+            yield object()
+        monkeypatch.setattr(isn, "get_cursor", get_cursor)
+        monkeypatch.setattr(mt, "build_intraday_stance", lambda cur, scale, now: None)
+    assert _call_run(mod)["stocks_evaluated"] == 1
+    assert "_save_open_positions" in saves
 
 
 def test_daily_run_without_errors_writes(monkeypatch):

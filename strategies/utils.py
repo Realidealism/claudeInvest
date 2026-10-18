@@ -1,6 +1,11 @@
 """Shared utilities for strategy signal detection."""
 
+import logging
 from decimal import Decimal
+
+from db.price_availability import unavailable_codes
+
+logger = logging.getLogger(__name__)
 
 
 def prev_period(period: str) -> str:
@@ -13,9 +18,16 @@ def prev_period(period: str) -> str:
 
 
 def month_end_prices(cur, period: str, tickers: list[str]) -> dict[str, float]:
-    """Get the last closing price in *period* (YYYYMM) for each ticker."""
+    """Get the last closing price in *period* (YYYYMM) for each ticker.
+
+    Emerging-board tickers get no price (and are logged)."""
     if not tickers:
         return {}
+    unavailable = unavailable_codes(cur, tickers)
+    if unavailable:
+        logger.warning("month_end_prices: dropped price-unavailable (emerging board) tickers %s",
+                       sorted(unavailable))
+        tickers = [t for t in tickers if t not in unavailable]
     y, m = int(period[:4]), int(period[4:])
     start = f"{y}-{m:02d}-01"
     if m == 12:

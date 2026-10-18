@@ -17,6 +17,7 @@ from pathlib import Path
 
 from analysis.volume import VOLUME_STATUS_LABEL
 from db.connection import get_cursor, init_db
+from db.price_availability import UNAVAILABLE_CODES_SQL
 from utils.tz import now as tpe_now
 
 
@@ -94,12 +95,15 @@ def _write(data, path: Path):
 # -----------------------------------------------------------------------
 
 def export_signals(cur, out: Path):
-    cur.execute("""
+    # Second line of defence: save_signals stops new signals on emerging-board
+    # codes, and this keeps any already stored out of the published file.
+    cur.execute(f"""
         SELECT s.signal_type, s.ticker, s.ticker_name, st.market,
                s.funds, s.trigger_date, s.trigger_period,
                s.weight_change, s.evidence
         FROM tw.signals s
         LEFT JOIN tw.stocks st ON st.stock_id = s.ticker
+        WHERE s.ticker NOT IN ({UNAVAILABLE_CODES_SQL})
         ORDER BY s.trigger_period DESC, s.ticker
     """)
     rows = cur.fetchall()
@@ -303,11 +307,12 @@ def export_flow(cur, out: Path):
         y, m = int(period[:4]), int(period[4:])
         start = f"{y}-{m:02d}-01"
         end = f"{y + 1}-01-01" if m == 12 else f"{y}-{m + 1:02d}-01"
-        cur.execute("""
+        cur.execute(f"""
             SELECT DISTINCT ON (stock_id) stock_id, close_price
             FROM tw.daily_prices
             WHERE trade_date >= %s AND trade_date < %s
               AND close_price IS NOT NULL
+              AND stock_id NOT IN ({UNAVAILABLE_CODES_SQL})
             ORDER BY stock_id, trade_date DESC
         """, (start, end))
         return {r["stock_id"]: float(r["close_price"]) for r in cur.fetchall()}
@@ -857,10 +862,12 @@ def _compute_signal_streaks(
         if (and only if) the historical streak extends through the bar
         immediately before snapshot_date.
 
-    Returns: {(signal_name, stock_id): streak_int}
+    Returns: {(signal_name, stock_id): streak_int}. Codes whose prices are
+    unavailable (emerging board) are left out, and callers drop their rows.
     """
     from datetime import timedelta
     from backtest.data import load_stock_data
+    from db.price_availability import PriceUnavailable
 
     fns = _get_streak_signal_fns()
     start = snapshot_date - timedelta(days=_STREAK_HISTORY_DAYS)
@@ -869,6 +876,9 @@ def _compute_signal_streaks(
     for sid, signals_today in stock_signals.items():
         try:
             data = load_stock_data(sid, start_date=start, end_date=snapshot_date)
+        except PriceUnavailable:
+            print(f"  [WARN] {sid} dropped from operations: price unavailable (emerging board)", file=sys.stderr)
+            continue
         except Exception:
             for sig in signals_today:
                 out[(sig, sid)] = 1
@@ -937,6 +947,8 @@ def export_operations(cur, out: Path):
         sig = r["signal"]
         if sig not in grouped:
             continue  # safety; CHECK constraint should prevent this
+        if (sig, r["stock_id"]) not in streak_map:
+            continue  # price unavailable
         grouped[sig].append({
             "ticker": r["stock_id"],
             "name": r["name"],
@@ -1053,6 +1065,8 @@ def export_operations_intraday(cur, out: Path):
         sig = r["signal"]
         if sig not in grouped:
             continue
+        if (sig, r["stock_id"]) not in streak_map:
+            continue  # price unavailable
         grouped[sig].append({
             "ticker": r["stock_id"],
             "name": r["name"],

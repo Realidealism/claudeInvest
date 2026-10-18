@@ -5,6 +5,8 @@ Pure ETF short signal — weekly granularity.
 
 from datetime import date, timedelta
 
+from db.price_availability import UNAVAILABLE_CODES_SQL
+
 
 SIGNAL_TYPE = "etf_consecutive_reduction"
 MIN_STREAK = 2
@@ -58,10 +60,11 @@ def scan(trade_date: date, cur) -> list[dict]:
     etf_names = {r["code"]: r["name"] for r in cur.fetchall()}
 
     # Latest close price per stock for amount calculation
-    cur.execute("""
+    cur.execute(f"""
         SELECT DISTINCT ON (stock_id) stock_id, close_price
         FROM tw.daily_prices
         WHERE close_price IS NOT NULL
+          AND stock_id NOT IN ({UNAVAILABLE_CODES_SQL})
         ORDER BY stock_id, trade_date DESC
     """)
     prices = {r["stock_id"]: float(r["close_price"]) for r in cur.fetchall()}

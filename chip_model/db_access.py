@@ -12,6 +12,7 @@ import psycopg2
 from psycopg2.extras import RealDictCursor
 
 from config.settings import DB_CONFIG
+from db.price_availability import UNAVAILABLE_CODES_SQL
 
 COMMON_STOCK_TYPE = "STOCK"   # tw.stocks.security_type for 普通股 (vs EQUITY_ETF / BOND_ETF)
 BENCHMARK_INDEX_ID = "TAIEX"  # 加權指數, tw.index_prices
@@ -49,12 +50,14 @@ def load_distribution() -> pd.DataFrame:
 
 
 def load_common_universe() -> set[str]:
-    """Common stocks only (security_type='STOCK'), excluding delisted."""
+    """Common stocks only (security_type='STOCK'), excluding delisted and
+    emerging-board codes (whose prices are unavailable)."""
     with get_ro_cursor() as cur:
         cur.execute(
-            """
+            f"""
             SELECT stock_id FROM tw.stocks
             WHERE security_type = %s AND delisted_date IS NULL
+              AND stock_id NOT IN ({UNAVAILABLE_CODES_SQL})
             """,
             (COMMON_STOCK_TYPE,),
         )
