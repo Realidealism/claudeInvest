@@ -82,9 +82,9 @@ SCRAPERS = [
     ("Hog prices (毛豬)",        "scrapers.market_hog",       "scrape_date", True),
     ("Price limits",            "scrapers.price_limits",     "scrape_date", True),
     ("Institutional investors", "scrapers.institutional",    "scrape_date", True),
-    # ETF holdings — exempt: scrape_date() returns None (no ScrapeResult), so
-    # there is no row count to judge. Needs a return contract before it can be
-    # monitored.
+    # ETF holdings — scrape_date() returns None (no ScrapeResult); it raises
+    # instead when any fund failed, parsed no holdings, or served a file for
+    # another day.
     ("ETF holdings",            "scrapers.etf_holdings",     "scrape_date", False),
     # Securities lending
     ("SBL (借券賣出)",           "scrapers.securities_lending", "scrape_date", True),
@@ -1249,24 +1249,33 @@ def _update_trading_day(trade_date: date, results: list[tuple[str, str]],
         from signals.etf_consecutive_reduction import scan as scan_etf_consecutive_reduction
         from signals.etf_abnormal_exit import scan as scan_etf_abnormal_exit
         with get_cursor() as cur:
-            signals = scan_daily(trade_date, cur)
-            # Append standalone short ETF signals
-            signals.extend(scan_etf_multi_exit(trade_date, cur))
-            signals.extend(scan_etf_consecutive_reduction(trade_date, cur))
-            signals.extend(scan_etf_abnormal_exit(trade_date, cur))
-            if signals:
-                n = save_signals(signals, cur)
-                etf_signal_count = len(signals)
-                by_type = {}
-                for s in signals:
-                    by_type.setdefault(s["signal_type"], []).append(s)
-                for stype, items in sorted(by_type.items()):
-                    tickers = ", ".join(s["ticker"] for s in items[:5])
-                    suffix = f" +{len(items)-5}" if len(items) > 5 else ""
-                    print(f"  {stype}: {len(items)} ({tickers}{suffix})")
+            # The scans read only the diffs; a day with none would have the
+            # windowed scans re-issue the last days' signals under this date.
+            # The holdings failure behind it is reported by its own step.
+            cur.execute("SELECT 1 FROM tw.etf_holdings_diff WHERE trade_date = %s LIMIT 1",
+                        (trade_date,))
+            stored = cur.fetchone() is not None
+            if not stored:
+                print(f"  [SKIP] no ETF holdings diff stored for {trade_date}.")
             else:
-                print("  No ETF signals.")
-        results.append(("ETF 信號掃描", "ok"))
+                signals = scan_daily(trade_date, cur)
+                # Append standalone short ETF signals
+                signals.extend(scan_etf_multi_exit(trade_date, cur))
+                signals.extend(scan_etf_consecutive_reduction(trade_date, cur))
+                signals.extend(scan_etf_abnormal_exit(trade_date, cur))
+                if signals:
+                    n = save_signals(signals, cur)
+                    etf_signal_count = len(signals)
+                    by_type = {}
+                    for s in signals:
+                        by_type.setdefault(s["signal_type"], []).append(s)
+                    for stype, items in sorted(by_type.items()):
+                        tickers = ", ".join(s["ticker"] for s in items[:5])
+                        suffix = f" +{len(items)-5}" if len(items) > 5 else ""
+                        print(f"  {stype}: {len(items)} ({tickers}{suffix})")
+                else:
+                    print("  No ETF signals.")
+        results.append(("ETF 信號掃描", "ok" if stored else "blocked"))
     except Exception:
         print("  [ERROR] ETF signal scan failed:")
         _capture_trace(failure_traces, "ETF 信號掃描")

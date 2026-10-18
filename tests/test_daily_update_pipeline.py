@@ -82,22 +82,34 @@ RETURNS = {
     "analysis.disposal_audit.run_audit": (500, 0, 0),
     # What the body reads as the latest tw.fund_holdings_monthly period.
     "fund_latest_period": "202609",
+    # Whether any ETF holdings diff is stored in tw.etf_holdings_diff for the night.
+    "etf_diff_stored": True,
 }
 
 
 class _Cursor:
-    """The body's one read: the latest fund-holdings period."""
+    """The body's reads: the latest fund-holdings period, and whether any ETF
+    holdings diff is stored for the night."""
 
-    def __init__(self, latest_period):
+    def __init__(self, latest_period, etf_stored, day):
         self.latest_period = latest_period
+        self.etf_stored = etf_stored
+        self.day = day
+        self.sql = ""
 
     def execute(self, sql, params=None):
         # The body only reads through its own cursors; a write added there
         # must not pass unnoticed.
         assert sql.lstrip().upper().startswith("SELECT"), sql
-        assert "fund_holdings_monthly" in sql, sql
+        assert "fund_holdings_monthly" in sql or "tw.etf_holdings_diff " in sql, sql
+        if "tw.etf_holdings_diff " in sql:
+            # The night's own date, not the latest stored one.
+            assert "trade_date = %s" in sql and params == (self.day,), (sql, params)
+        self.sql = sql
 
     def fetchone(self):
+        if "tw.etf_holdings_diff " in self.sql:
+            return {"?column?": 1} if self.etf_stored else None
         return {"max": self.latest_period}
 
     def fetchall(self):
@@ -147,7 +159,7 @@ class _Night:
 
         @contextmanager
         def get_cursor(commit=True):
-            yield _Cursor(values["fund_latest_period"])
+            yield _Cursor(values["fund_latest_period"], values["etf_diff_stored"], day)
 
         # The night runs on its own trade date, as the 21:30 task does, so the
         # checks reserved for recent dates apply however old DAY gets; a later
@@ -442,6 +454,33 @@ def test_fund_scan_after_the_20th_is_a_skip(monkeypatch):
     night = _Night(monkeypatch, returns={"fund_latest_period": None},
                    day=date(2026, 10, 21))
     assert night.status["基金信號掃描"] == "skip"
+
+
+ETF_SCANS = ("strategies.registry.scan_daily", "signals.etf_multi_exit.scan",
+             "signals.etf_consecutive_reduction.scan", "signals.etf_abnormal_exit.scan")
+
+
+def test_etf_scan_without_a_diff_for_the_day_is_blocked(monkeypatch):
+    # Used to rescan the last diff days and record "ok".
+    night = _Night(monkeypatch, returns={"etf_diff_stored": False})
+    assert night.status["ETF 信號掃描"] == "blocked"
+    assert not set(ETF_SCANS) & set(night.calls)
+    assert night.outcome == "partial"
+
+
+def test_etf_scan_runs_when_any_fund_has_a_diff(monkeypatch):
+    night = _Night(monkeypatch)
+    assert night.status["ETF 信號掃描"] == "ok"
+    assert set(ETF_SCANS) <= set(night.calls)
+
+
+def test_etf_scan_runs_when_only_some_funds_failed(monkeypatch):
+    # Ruling: only a day with nothing stored is blocked; the holdings step
+    # reports the funds that failed.
+    night = _Night(monkeypatch, fail={"ETF holdings"})
+    assert night.status["ETF holdings"] == "failed"
+    assert night.status["ETF 信號掃描"] == "ok"
+    assert set(ETF_SCANS) <= set(night.calls)
 
 
 GAP = "10-13 缺：期交所外資期貨；10-14 的 buy／sell 攻防閘門沒有依據。補跑：daily_update.exe 2026-10-13"

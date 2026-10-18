@@ -30,8 +30,27 @@ from utils.http_client import fetch, get_session, _get_domain, _wait_for_rate_li
 
 
 class ScrapeError(Exception):
-    """Fetch/parse failure that must surface as a failed task — distinct
-    from a source legitimately returning zero holdings."""
+    """Fetch/parse failure, or a file for another day, that must surface as
+    a failed task."""
+
+
+_SOURCE_DATE = re.compile(r"(\d{4})[-/](\d{1,2})[-/](\d{1,2})")
+
+
+def _check_data_date(source: str, fund: str, found, expect: date) -> None:
+    """Raise unless the date the source gives for its data is expect.
+
+    Most sources take no date in the request and serve their latest file, so
+    a file not yet updated, or a backfill of a past day, would otherwise be
+    stored under the wrong day and diff as unchanged."""
+    m = _SOURCE_DATE.match(str(found or "").strip())
+    if m is None:
+        raise ScrapeError(
+            f"{source} {fund}: no data date in the response (got {found!r}; layout changed?)"
+        )
+    found_date = date(*map(int, m.groups()))
+    if found_date != expect:
+        raise ScrapeError(f"{source} {fund} data is for {found_date}, expected {expect}")
 
 
 # ---------------------------------------------------------------------------
@@ -48,6 +67,10 @@ ETF_REGISTRY = [
         "etf_id": "00988A",
         "source": "ezmoney",
         "fund_code": "61YTW",
+        # Global fund: at night the page still holds the previous Taiwan
+        # trading day's file (TranDate); like 00409A, it is stored under
+        # trade date T.
+        "lagged": True,
     },
     {
         "etf_id": "00403A",
@@ -107,7 +130,7 @@ ETF_REGISTRY = [
 EZMONEY_URL = "https://www.ezmoney.com.tw/ETF/Fund/Info"
 
 
-def _fetch_ezmoney(fund_code: str) -> list[dict]:
+def _fetch_ezmoney(fund_code: str, expect: date) -> list[dict]:
     """
     Fetch holdings from ezmoney HTML page.
     Returns list of {stock_id, stock_name, shares, weight}.
@@ -131,6 +154,7 @@ def _fetch_ezmoney(fund_code: str) -> list[dict]:
 
     # Find stock (ST) asset type
     holdings = []
+    tran_dates = set()
     for asset in assets:
         if asset.get("AssetCode") != "ST":
             continue
@@ -141,6 +165,7 @@ def _fetch_ezmoney(fund_code: str) -> list[dict]:
             shares = d.get("Share")
             weight = d.get("NavRate")
             if stock_id and shares is not None:
+                tran_dates.add(d.get("TranDate"))
                 holdings.append({
                     "stock_id": stock_id,
                     "stock_name": stock_name,
@@ -148,6 +173,12 @@ def _fetch_ezmoney(fund_code: str) -> list[dict]:
                     "weight": float(weight) if weight is not None else None,
                 })
 
+    if holdings:
+        if len(tran_dates) != 1:
+            raise ScrapeError(
+                f"ezmoney {fund_code}: holdings rows carry dates {sorted(map(str, tran_dates))}"
+            )
+        _check_data_date("ezmoney", fund_code, tran_dates.pop(), expect)
     return holdings
 
 # ---------------------------------------------------------------------------
@@ -157,7 +188,7 @@ def _fetch_ezmoney(fund_code: str) -> list[dict]:
 CAPITALFUND_URL = "https://www.capitalfund.com.tw/CFWeb/api/etf/buyback"
 
 
-def _fetch_capitalfund(fund_id: str) -> list[dict]:
+def _fetch_capitalfund(fund_id: str, expect: date) -> list[dict]:
     """
     Fetch holdings from capitalfund API (POST with JSON body).
     Returns list of {stock_id, stock_name, shares, weight}.
@@ -182,6 +213,8 @@ def _fetch_capitalfund(fund_id: str) -> list[dict]:
             f"capitalfund response has no 'stocks' key for fundId={fund_id} "
             "(API shape changed?)"
         )
+    # pcf.date2 is the day the holdings are for; date1 is the next trading day
+    _check_data_date("capitalfund", fund_id, (data.get("data", data).get("pcf") or {}).get("date2"), expect)
     holdings = []
     for s in stocks:
         stock_id = (s.get("stocNo") or "").strip()
@@ -312,6 +345,8 @@ def _fetch_nomura(fund_no: str, trade_date: date) -> list[dict]:
         raise ScrapeError(
             f"Nomura response has no 'Entries' for {fund_no} (API shape changed?)"
         )
+    fund_asset = (entries.get("Data") or {}).get("FundAsset") or {}
+    _check_data_date("nomura", fund_no, fund_asset.get("NavDate"), trade_date)
     table_data = (entries.get("Data") or {}).get("Table") or []
 
     holdings = []
@@ -351,7 +386,7 @@ def _fetch_nomura(fund_no: str, trade_date: date) -> list[dict]:
 ALLIANZ_API_BASE = "https://etf.allianzgi.com.tw/webapi/api"
 
 
-def _fetch_allianz(fund_id: str) -> list[dict]:
+def _fetch_allianz(fund_id: str, expect: date) -> list[dict]:
     """
     Fetch holdings from Allianz ETF API (requires XSRF token).
     Returns list of {stock_id, stock_name, shares, weight}.
@@ -395,6 +430,8 @@ def _fetch_allianz(fund_id: str) -> list[dict]:
         raise ScrapeError(
             f"Allianz response has no 'Entries' for {fund_id} (API shape changed?)"
         )
+    fund_asset = (entries.get("Data") or {}).get("FundAsset") or {}
+    _check_data_date("allianz", fund_id, fund_asset.get("NavDate"), expect)
     table_data = (entries.get("Data") or {}).get("Table") or []
 
     holdings = []
@@ -435,7 +472,7 @@ KGI_DETAIL_URL = "https://www.kgifund.com.tw/Fund/Detail"
 _KGI_STOCK_CODE = re.compile(r"[0-9]{4,6}[A-Z]?")
 
 
-def _fetch_kgi(fund_id: str) -> list[dict]:
+def _fetch_kgi(fund_id: str, expect: date) -> list[dict]:
     """
     Fetch holdings from the KGI fund detail page.
     Returns list of {stock_id, stock_name, shares, weight}.
@@ -447,6 +484,9 @@ def _fetch_kgi(fund_id: str) -> list[dict]:
     # The page is entity-encoded and carries the stock table twice
     # (desktop and mobile); take the first.
     page = html_mod.unescape(resp.text)
+    # The page dates only the NAV; the holdings table is taken to be that day's
+    m = re.search(r'id="LatestNAVDate"[^>]*value="([^"]*)"', page)
+    _check_data_date("kgi", fund_id, m.group(1) if m else None, expect)
     tables = [t for t in re.findall(r"<table.*?</table>", page, re.S)
               if "股票代號" in t]
     if not tables:
@@ -486,8 +526,7 @@ def _fetch_kgi(fund_id: str) -> list[dict]:
     if skipped:
         print(f"  [WARN] KGI {fund_id}: skipped non-stock rows {skipped}")
     if not holdings:
-        # An empty result is reported as a skip, not a failure, by scrape_date;
-        # a page with no stock row at all means the layout changed.
+        # A page with no stock row at all means the layout changed.
         raise ScrapeError(f"no stock rows in KGI page for {fund_id}; skipped {skipped}")
     return holdings
 
@@ -498,23 +537,24 @@ def _fetch_kgi(fund_id: str) -> list[dict]:
 
 
 def _fetch_holdings(etf: dict, trade_date: date = None) -> list[dict]:
+    if trade_date is None:
+        trade_date = date.today()
     source = etf["source"]
+    lagged = etf.get("lagged", False)
+    if source == "fhtrust":
+        return _fetch_fhtrust(etf["etf_code"], trade_date, lagged)
+    # The day the file must be for: a lagged fund's is the previous trading day.
+    expect = _prev_trading_day(trade_date) if lagged else trade_date
     if source == "ezmoney":
-        return _fetch_ezmoney(etf["fund_code"])
+        return _fetch_ezmoney(etf["fund_code"], expect)
     elif source == "capitalfund":
-        return _fetch_capitalfund(etf["fund_id"])
-    elif source == "fhtrust":
-        if trade_date is None:
-            trade_date = date.today()
-        return _fetch_fhtrust(etf["etf_code"], trade_date, etf.get("lagged", False))
+        return _fetch_capitalfund(etf["fund_id"], expect)
     elif source == "nomura":
-        if trade_date is None:
-            trade_date = date.today()
-        return _fetch_nomura(etf["fund_no"], trade_date)
+        return _fetch_nomura(etf["fund_no"], expect)
     elif source == "allianz":
-        return _fetch_allianz(etf["fund_id"])
+        return _fetch_allianz(etf["fund_id"], expect)
     elif source == "kgi":
-        return _fetch_kgi(etf["fund_id"])
+        return _fetch_kgi(etf["fund_id"], expect)
     else:
         raise ScrapeError(f"Unknown source: {source}")
 
@@ -813,6 +853,15 @@ def export_recent_diffs_excel(trade_date: date, days: int = 5):
     print(f"  Excel exported: {out_path} ({len(dates)} sheets)")
 
 
+def _already_stored(etf_id: str, trade_date: date) -> bool:
+    with get_cursor(commit=False) as cur:
+        cur.execute(
+            "SELECT 1 FROM tw.etf_holdings WHERE etf_id = %s AND trade_date = %s LIMIT 1",
+            (etf_id, trade_date),
+        )
+        return cur.fetchone() is not None
+
+
 def scrape_date(trade_date: date):
     """Scrape ETF holdings for all tracked ETFs and compute diffs.
 
@@ -825,10 +874,16 @@ def scrape_date(trade_date: date):
         print(f"  Fetching holdings for {etf_id} ...")
 
         try:
+            if _already_stored(etf_id, trade_date):
+                # A rerun or backfill: an undated source would now serve a
+                # later file and fail the date check on a day already stored.
+                print(f"  {etf_id}: already stored for {trade_date}, skipping.")
+                continue
             holdings = _fetch_holdings(etf, trade_date)
             if not holdings:
-                print(f"  [WARN] No holdings data for {etf_id}, skipping.")
-                continue
+                # Every tracked fund holds stocks; none parsed means no file
+                # for the day, not an empty portfolio.
+                raise ScrapeError(f"no holdings parsed for {etf_id}")
 
             print(f"  {etf_id}: {len(holdings)} stocks")
 
