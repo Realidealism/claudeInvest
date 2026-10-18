@@ -26,6 +26,9 @@ REM   rebuild_and_restart.bat --no-restart  rebuild only (daemon stays down)
 REM   rebuild_and_restart.bat --no-build    restart only (skip PyInstaller)
 REM   rebuild_and_restart.bat --allow-older build even though the deployed
 REM                                         build is not in HEAD's history
+REM                                         (or dist\ has no BUILD_INFO.json)
+REM   rebuild_and_restart.bat --allow-migrations  build with an uncommitted
+REM                                         migration (exes apply it on start)
 
 set PY=C:\Users\Real\AppData\Local\Programs\Python\Python312\python.exe
 set REPO=C:\Claude\Invest
@@ -74,6 +77,10 @@ if not errorlevel 1 goto :still_running
 REM ===== 2. Rebuild exes (unless --no-build) =====
 if "%1"=="--no-build" goto :skip_build
 if "%2"=="--no-build" goto :skip_build
+
+REM The record describes the exes in dist\; drop it before replacing them, so
+REM a build that fails half way leaves none (the next check then refuses).
+if exist dist\BUILD_INFO.json del dist\BUILD_INFO.json
 
 echo [2/4] rebuilding daily_update.exe...
 echo [%DATE% %TIME%] build daily_update >> logs\rebuild_and_restart.log

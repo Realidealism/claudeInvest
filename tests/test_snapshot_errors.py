@@ -202,7 +202,11 @@ def test_run_with_unavailable_stocks_still_writes_the_rest(monkeypatch, mod):
             yield object()
         monkeypatch.setattr(isn, "get_cursor", get_cursor)
         monkeypatch.setattr(mt, "build_intraday_stance", lambda cur, scale, now: None)
-    assert _call_run(mod)["stocks_evaluated"] == 1
+    summary = _call_run(mod)
+    assert summary["stocks_evaluated"] == 1
+    # The skip is by design but kept visible: a listed code here is a stock
+    # that picked up an unpriced row.
+    assert summary["stocks_unavailable"] == ["2330"]
     assert "_save_open_positions" in saves
 
 

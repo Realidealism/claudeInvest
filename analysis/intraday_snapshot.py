@@ -511,20 +511,21 @@ def run(*, final_pass: bool = False) -> dict:
     t0 = time.time()
     results: list[dict] = []
     errors: list[tuple[str, str, str]] = []
-    unavailable = 0
+    # Codes skipped for an unavailable price; see daily_snapshot.run.
+    unavailable: list[str] = []
     with Pool(N_WORKERS, initializer=_init_worker, initargs=(scale,)) as pool:
         for r, errs in pool.imap_unordered(_eval_stock, stock_ids, chunksize=20):
             errors.extend(errs)
             if r is not None and "_unavailable" in r:
-                unavailable += 1
+                unavailable.append(r["_unavailable"])
             elif r is not None:
                 results.append(r)
                 if len(results) % 200 == 0:
                     print(f"  evaluated {len(results)} ...", file=sys.stderr)
         print(f"  scored {len(results)} stocks in {time.time() - t0:.1f}s")
         if unavailable:
-            print(f"  [WARN] {unavailable} stocks skipped: price unavailable (emerging board)",
-                  file=sys.stderr)
+            print(f"  [WARN] {len(unavailable)} stocks skipped: price unavailable "
+                  f"(emerging board): {', '.join(sorted(unavailable))}")
 
         # Breadth runs on the close's universe (all active stocks minus
         # dead_fish), which is wider than the money_level >= 4 scoring
@@ -587,6 +588,7 @@ def run(*, final_pass: bool = False) -> dict:
         "snapshot_date": snapshot_date,
         "snapshot_time": now,
         "stocks_evaluated": len(results),
+        "stocks_unavailable": sorted(unavailable),
         "score_long": long_n,
         "score_short": short_n,
         "signal_counts": counts,

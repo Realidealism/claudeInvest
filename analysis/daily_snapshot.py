@@ -532,12 +532,15 @@ def run(snapshot_date: date) -> dict:
 
     results: list[dict] = []
     errors: list[tuple[str, str, str]] = []
-    unavailable = 0
+    # Codes skipped for an unavailable price. Skipping is by design (emerging
+    # board), but the universe only holds TWSE/TPEx codes, so any name here
+    # is a listed stock that picked up an unpriced row -- keep them visible.
+    unavailable: list[str] = []
     with Pool(N_WORKERS, initializer=_init_worker) as pool:
         for r, errs in pool.imap_unordered(_eval_stock, work_items, chunksize=20):
             errors.extend(errs)
             if r is not None and "_unavailable" in r:
-                unavailable += 1
+                unavailable.append(r["_unavailable"])
             elif r is not None:
                 results.append(r)
                 if len(results) % 200 == 0:
@@ -545,7 +548,8 @@ def run(snapshot_date: date) -> dict:
 
     print(f"  scored {len(results)} stocks in {time.time() - t0:.1f}s")
     if unavailable:
-        print(f"  [WARN] {unavailable} stocks skipped: price unavailable (emerging board)", file=sys.stderr)
+        print(f"  [WARN] {len(unavailable)} stocks skipped: price unavailable (emerging board): "
+              f"{', '.join(sorted(unavailable))}")
     # Nothing is written when any stock's evaluation raised: a step broken
     # for every stock would otherwise publish "no signal, no position".
     if errors:
@@ -576,6 +580,7 @@ def run(snapshot_date: date) -> dict:
     print(f"  Total wall time: {time.time() - t0:.1f}s")
     return {
         "stocks_evaluated": len(results),
+        "stocks_unavailable": sorted(unavailable),
         "score_long": long_n,
         "score_short": short_n,
         "signal_counts": counts,
