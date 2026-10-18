@@ -60,6 +60,15 @@ ETF_REGISTRY = [
         "etf_code": "ETF23",
     },
     {
+        "etf_id": "00409A",
+        "source": "fhtrust",
+        "etf_code": "ETF26",
+        # Global fund: day T's file is published on T+1, so the row stored for
+        # trade date T holds the previous Taiwan trading day's file, one day
+        # behind the other ETFs.
+        "lagged": True,
+    },
+    {
         "etf_id": "00980A",
         "source": "nomura",
         "fund_no": "00980A",
@@ -83,6 +92,11 @@ ETF_REGISTRY = [
         "etf_id": "00992A",
         "source": "capitalfund",
         "fund_id": "500",
+    },
+    {
+        "etf_id": "00407A",
+        "source": "kgi",
+        "fund_id": "J024",
     },
 ]
 
@@ -190,20 +204,50 @@ def _fetch_capitalfund(fund_id: str) -> list[dict]:
 
 FHTRUST_EXCEL_URL = "https://www.fhtrust.com.tw/api/assetsExcel"
 
+# 4-digit Taiwan code, or a foreign ticker with a 2-letter market suffix ("LITE US", "6976 JP")
+_FHTRUST_STOCK_CODE = re.compile(r"\d{4}|[0-9A-Z./-]+ [A-Z]{2}")
 
-def _fetch_fhtrust(etf_code: str, trade_date: date) -> list[dict]:
+
+def _prev_trading_day(trade_date: date) -> date:
+    """The Taiwan trading day before trade_date, from the TAIEX rows."""
+    with get_cursor(commit=False) as cur:
+        cur.execute(
+            "SELECT MAX(trade_date) AS d FROM tw.index_prices "
+            "WHERE index_id = 'TAIEX' AND trade_date < %s",
+            (trade_date,),
+        )
+        row = cur.fetchone()
+    if row is None or row["d"] is None:
+        raise ScrapeError(f"no trading day before {trade_date} in tw.index_prices")
+    return row["d"]
+
+
+def _fetch_fhtrust(etf_code: str, trade_date: date, lagged: bool = False) -> list[dict]:
     """
     Fetch holdings from fhtrust Excel download.
     Returns list of {stock_id, stock_name, shares, weight}.
+
+    lagged: the fund publishes day T's file on T+1, so take the file of the
+    Taiwan trading day before trade_date instead of trade_date's own. Only
+    that day: walking further back when it is published late would store a
+    file already saved for the day before, and the diff would come out empty
+    with no error.
     """
     from openpyxl import load_workbook
     from io import BytesIO
 
-    date_str = trade_date.strftime("%Y%m%d")
+    file_date = _prev_trading_day(trade_date) if lagged else trade_date
+    date_str = file_date.strftime("%Y%m%d")
     url = f"{FHTRUST_EXCEL_URL}/{etf_code}/{date_str}"
     resp = fetch(url)
     if resp is None or resp.status_code != 200:
         raise ScrapeError(f"fhtrust Excel fetch failed for {etf_code}/{date_str}")
+    # A date with no file answers 200 with a JSON string; xlsx is a zip
+    if resp.content[:2] != b"PK":
+        raise ScrapeError(
+            f"fhtrust has no holdings file for {etf_code} on {date_str}"
+            + (" (not published yet, or not a business day for the fund)" if lagged else "")
+        )
 
     wb = load_workbook(BytesIO(resp.content))
     ws = wb.active
@@ -213,8 +257,7 @@ def _fetch_fhtrust(etf_code: str, trade_date: date) -> list[dict]:
         if not row[0]:
             continue
         cell0 = str(row[0]).strip()
-        # Stock rows: 4-digit numeric code
-        if cell0.isdigit() and len(cell0) == 4:
+        if _FHTRUST_STOCK_CODE.fullmatch(cell0):
             stock_id = cell0
             stock_name = str(row[1] or "").strip()
             shares_str = str(row[2] or "0").replace(",", "")
@@ -385,6 +428,71 @@ def _fetch_allianz(fund_id: str) -> list[dict]:
 
 
 # ---------------------------------------------------------------------------
+# KGI (凱基投信) — holdings table embedded in the fund detail page
+# ---------------------------------------------------------------------------
+
+KGI_DETAIL_URL = "https://www.kgifund.com.tw/Fund/Detail"
+_KGI_STOCK_CODE = re.compile(r"[0-9]{4,6}[A-Z]?")
+
+
+def _fetch_kgi(fund_id: str) -> list[dict]:
+    """
+    Fetch holdings from the KGI fund detail page.
+    Returns list of {stock_id, stock_name, shares, weight}.
+    """
+    resp = fetch(KGI_DETAIL_URL, params={"fundID": fund_id})
+    if resp is None:
+        raise ScrapeError(f"KGI fetch failed for {fund_id}")
+
+    # The page is entity-encoded and carries the stock table twice
+    # (desktop and mobile); take the first.
+    page = html_mod.unescape(resp.text)
+    tables = [t for t in re.findall(r"<table.*?</table>", page, re.S)
+              if "股票代號" in t]
+    if not tables:
+        raise ScrapeError(
+            f"holdings table not found in KGI page for {fund_id} "
+            "(site layout changed?)"
+        )
+
+    holdings = []
+    skipped = []
+    for tr in re.findall(r"<tr.*?</tr>", tables[0], re.S):
+        cells = [re.sub(r"<[^>]+>", "", c).strip()
+                 for c in re.findall(r"<td[^>]*>(.*?)</td>", tr, re.S)]
+        if not cells:
+            continue  # header row uses <th>
+        # Only stock rows are parsed; a total, spacer or "no data" row is not
+        # a holding and must neither be stored nor fail the whole fund.
+        if not _KGI_STOCK_CODE.fullmatch(cells[0]):
+            skipped.append(cells[0])
+            continue
+        try:
+            stock_id, stock_name = cells[0], cells[1]
+            shares = int(cells[2].replace(",", ""))
+            weight = float(cells[3].replace("%", "").replace(",", ""))
+        except (IndexError, ValueError):
+            raise ScrapeError(
+                f"unparseable holdings row in KGI page for {fund_id}: {cells}"
+            )
+        if stock_id and shares > 0:
+            holdings.append({
+                "stock_id": stock_id,
+                "stock_name": stock_name,
+                "shares": shares,
+                "weight": weight,
+            })
+
+    if skipped:
+        print(f"  [WARN] KGI {fund_id}: skipped non-stock rows {skipped}")
+    if not holdings:
+        # An empty result is reported as a skip, not a failure, by scrape_date;
+        # a page with no stock row at all means the layout changed.
+        raise ScrapeError(f"no stock rows in KGI page for {fund_id}; skipped {skipped}")
+    return holdings
+
+
+# ---------------------------------------------------------------------------
 # Fetch dispatcher
 # ---------------------------------------------------------------------------
 
@@ -398,13 +506,15 @@ def _fetch_holdings(etf: dict, trade_date: date = None) -> list[dict]:
     elif source == "fhtrust":
         if trade_date is None:
             trade_date = date.today()
-        return _fetch_fhtrust(etf["etf_code"], trade_date)
+        return _fetch_fhtrust(etf["etf_code"], trade_date, etf.get("lagged", False))
     elif source == "nomura":
         if trade_date is None:
             trade_date = date.today()
         return _fetch_nomura(etf["fund_no"], trade_date)
     elif source == "allianz":
         return _fetch_allianz(etf["fund_id"])
+    elif source == "kgi":
+        return _fetch_kgi(etf["fund_id"])
     else:
         raise ScrapeError(f"Unknown source: {source}")
 
