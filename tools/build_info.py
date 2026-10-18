@@ -15,6 +15,11 @@
             branch, exes covered, the uncommitted source files that went in,
             time). The .bat deletes the record before building, so a build
             that fails half way leaves none.
+  stamp  -- before the build, writes _build_stamp.py (gitignored) holding
+            the commit, "+dirty" when uncommitted sources go in. The exes
+            bundle it, and each snapshot run records it (tw.snapshot_runs).
+  unstamp -- after the build, or when it fails, removes _build_stamp.py, so
+            programs run from source read git instead of a stale stamp.
 
 Output is ASCII: the .bat appends it to an ASCII log.
 """
@@ -28,6 +33,7 @@ from pathlib import Path
 
 REPO = Path(__file__).resolve().parents[1]
 INFO = REPO / "dist" / "BUILD_INFO.json"
+STAMP = REPO / "_build_stamp.py"
 EXES = ("daily_update.exe", "intraday_snapshot.exe")   # what rebuild_and_restart.bat builds
 REFUSED = 5
 
@@ -114,13 +120,37 @@ def record() -> int:
     return 0
 
 
+def stamp() -> int:
+    head = _head()
+    if not head:
+        print("[build_info] nothing stamped: no HEAD commit")
+        return 1
+    commit = head + ("+dirty" if _uncommitted("*.py", "*.spec") else "")
+    STAMP.write_text("# Written by tools/build_info.py stamp for the build in progress;\n"
+                     "# removed by unstamp after it.\n"
+                     f'COMMIT = "{commit}"\n', encoding="ascii")
+    print(f"[build_info] stamped {commit}")
+    return 0
+
+
+def unstamp() -> int:
+    STAMP.unlink(missing_ok=True)
+    print("[build_info] stamp removed")
+    return 0
+
+
 def main(argv: list[str]) -> int:
     if argv[:1] == ["check"]:
         return check(allow_older="--allow-older" in argv,
                      allow_migrations="--allow-migrations" in argv)
     if argv[:1] == ["record"]:
         return record()
-    print("usage: build_info.py check [--allow-older] [--allow-migrations] | record")
+    if argv[:1] == ["stamp"]:
+        return stamp()
+    if argv[:1] == ["unstamp"]:
+        return unstamp()
+    print("usage: build_info.py check [--allow-older] [--allow-migrations] | record"
+          " | stamp | unstamp")
     return 2
 
 

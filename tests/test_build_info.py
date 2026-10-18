@@ -152,3 +152,66 @@ def test_output_is_ascii(dist, monkeypatch, capsys):
 
 def test_unknown_command_is_an_error():
     assert bi.main(["deploy"]) == 2
+
+
+# ── the commit stamp bundled into the exes ─────────────────────────────────
+
+@pytest.fixture
+def stamp_file(tmp_path, monkeypatch):
+    path = tmp_path / "_build_stamp.py"
+    monkeypatch.setattr(bi, "STAMP", path)
+    return path
+
+
+def _stamped(path):
+    ns = {}
+    exec(path.read_text(encoding="ascii"), ns)
+    return ns["COMMIT"]
+
+
+def test_stamp_writes_the_head_commit(stamp_file, monkeypatch):
+    monkeypatch.setattr(bi, "_git", _Git())
+    assert bi.main(["stamp"]) == 0
+    assert _stamped(stamp_file) == HEAD
+
+
+def test_stamp_marks_uncommitted_sources_dirty(stamp_file, monkeypatch):
+    monkeypatch.setattr(bi, "_git", _Git(dirty=" M db/industry_data.py\n"))
+    assert bi.main(["stamp"]) == 0
+    assert _stamped(stamp_file) == HEAD + "+dirty"
+
+
+def test_stamp_without_a_head_writes_nothing_and_fails(stamp_file, monkeypatch):
+    monkeypatch.setattr(bi, "_git", _Git(head=""))
+    assert bi.main(["stamp"]) == 1
+    assert not stamp_file.exists()
+
+
+def test_unstamp_removes_the_stamp_and_tolerates_none(stamp_file, monkeypatch, capsys):
+    monkeypatch.setattr(bi, "_git", _Git())
+    bi.main(["stamp"])
+    assert bi.main(["unstamp"]) == 0 and not stamp_file.exists()
+    assert bi.main(["unstamp"]) == 0
+    capsys.readouterr().out.encode("ascii")
+
+
+def test_stamp_file_is_ignored_by_git():
+    # A stamp left behind must never be committed.
+    r = subprocess.run(["git", "check-ignore", "-q", "_build_stamp.py"], cwd=bi.REPO)
+    assert r.returncode == 0
+
+
+def test_rebuild_script_unstamps_on_every_path_that_stamped():
+    bat = (bi.REPO / "rebuild_and_restart.bat").read_text(encoding="ascii")
+    stamp_at = bat.index('"%PY%" tools\\build_info.py stamp')
+    # Stamped after the check, before the record is dropped and the builds run:
+    # a stamp that fails leaves dist\ and its record as they were.
+    assert (bat.index('"%PY%" tools\\build_info.py check') < stamp_at
+            < bat.index("del dist\\BUILD_INFO.json") < bat.index("-m PyInstaller"))
+    assert "goto :stamp_failed" in bat[stamp_at:bat.index("del dist\\BUILD_INFO.json")]
+    # Label definitions start a line; "goto :label" does not.
+    after_build = bat[bat.index("build_info.py record"):bat.index("\n:skip_build")]
+    assert "build_info.py unstamp" in after_build
+    for label, end in ((":stamp_failed", ":build_failed"), (":build_failed", ":start_failed")):
+        path = bat[bat.index("\n" + label):bat.index("\n" + end)]
+        assert "build_info.py unstamp" in path and "nssm" in path.lower(), label

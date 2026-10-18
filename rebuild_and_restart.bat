@@ -78,6 +78,12 @@ REM ===== 2. Rebuild exes (unless --no-build) =====
 if "%1"=="--no-build" goto :skip_build
 if "%2"=="--no-build" goto :skip_build
 
+REM _build_stamp.py carries the commit into both exes (tw.snapshot_runs);
+REM unstamp removes it after the builds, or on failure. Stamped before the
+REM record is dropped: a stamp that fails leaves dist\ and its record as they were.
+"%PY%" tools\build_info.py stamp >> logs\rebuild_and_restart.log 2>&1
+if errorlevel 1 goto :stamp_failed
+
 REM The record describes the exes in dist\; drop it before replacing them, so
 REM a build that fails half way leaves none (the next check then refuses).
 if exist dist\BUILD_INFO.json del dist\BUILD_INFO.json
@@ -94,6 +100,7 @@ if errorlevel 1 goto :build_failed
 
 "%PY%" tools\build_info.py record >> logs\rebuild_and_restart.log 2>&1
 if errorlevel 1 echo [WARN] could not write dist\BUILD_INFO.json; see logs\rebuild_and_restart.log
+"%PY%" tools\build_info.py unstamp >> logs\rebuild_and_restart.log 2>&1
 
 goto :after_build
 
@@ -154,12 +161,21 @@ echo   "%NSSM%" stop InvestIntradaySnapshot
 echo [%DATE% %TIME%] FAILED - still running >> logs\rebuild_and_restart.log
 exit /b 1
 
+:stamp_failed
+echo [ERROR] tools\build_info.py stamp failed; see logs\rebuild_and_restart.log
+echo [ERROR] Nothing was rebuilt; restarting the service on the old exe.
+echo [%DATE% %TIME%] FAILED - stamp      >> logs\rebuild_and_restart.log
+"%PY%" tools\build_info.py unstamp >> logs\rebuild_and_restart.log 2>&1
+"%NSSM%" start InvestIntradaySnapshot >> logs\rebuild_and_restart.log 2>&1
+exit /b 6
+
 :build_failed
 echo [ERROR] PyInstaller build failed; see logs\rebuild_and_restart.log
 echo [ERROR] If it is a PermissionError on dist\daily_update.exe, a hung
 echo [ERROR] daily_update.exe is locking it -- kill it then rerun:
 echo   taskkill /IM daily_update.exe /F
 echo [%DATE% %TIME%] FAILED - build      >> logs\rebuild_and_restart.log
+"%PY%" tools\build_info.py unstamp >> logs\rebuild_and_restart.log 2>&1
 "%NSSM%" start InvestIntradaySnapshot >> logs\rebuild_and_restart.log 2>&1
 exit /b 2
 

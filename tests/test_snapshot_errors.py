@@ -134,9 +134,19 @@ class _SyncPool:
         return map(fn, items)
 
 
+class _Saves(list):
+    """Names of the save stand-ins called, in order; runs holds save_run's arguments."""
+
+    def __init__(self):
+        super().__init__()
+        self.runs = []
+
+
 def _run_stand_ins(monkeypatch, mod, worker):
-    saves = []
+    saves = _Saves()
     monkeypatch.setattr(mod, "Pool", _SyncPool, raising=False)
+    # The run record goes to the database too; it must never be the real one here.
+    monkeypatch.setattr(mod, "save_run", lambda *a: saves.append("save_run") or saves.runs.append(a))
     import multiprocessing
     monkeypatch.setattr(multiprocessing, "Pool", _SyncPool)
     monkeypatch.setattr(mod, "_eval_stock", worker)
@@ -208,13 +218,32 @@ def test_run_with_unavailable_stocks_still_writes_the_rest(monkeypatch, mod):
     # that picked up an unpriced row.
     assert summary["stocks_unavailable"] == ["2330"]
     assert "_save_open_positions" in saves
+    # Loaded counts the skipped code, scored does not.
+    assert [r[-2:] for r in saves.runs] == [(2, 1)]
 
 
 def test_daily_run_without_errors_writes(monkeypatch):
     saves = _run_stand_ins(monkeypatch, ds, lambda item: (_result(item[0]), []))
     assert ds.run(DAY)["stocks_evaluated"] == 2
-    assert saves == ["_save_score_side", "_save_score_side", "_save_signal_fires",
+    assert saves == ["save_run", "_save_score_side", "_save_score_side", "_save_signal_fires",
                      "_save_open_positions"]
+    # The run record: the date's rows, the 900-day window, universe and scored counts.
+    assert saves.runs == [("daily", DAY, None, ds.HISTORY_DAYS, 2, 2)]
+
+
+@pytest.mark.parametrize("mod", [ds, isn], ids=["daily", "intraday"])
+def test_run_record_that_cannot_be_written_stops_the_run(monkeypatch, mod):
+    # Written first, so a failed record leaves the previous rows in place
+    # rather than new rows nobody can trace to a build.
+    saves = _run_stand_ins(monkeypatch, mod, lambda item: (
+        _result(item[0] if isinstance(item, tuple) else item), []))
+
+    def broken(*a):
+        raise RuntimeError("relation tw.snapshot_runs does not exist")
+    monkeypatch.setattr(mod, "save_run", broken)
+    with pytest.raises(RuntimeError, match="snapshot_runs"):
+        _call_run(mod)
+    assert [s for s in saves if s.startswith("_save")] == []
 
 
 def test_intraday_run_without_errors_writes(monkeypatch):
@@ -227,9 +256,13 @@ def test_intraday_run_without_errors_writes(monkeypatch):
         yield object()
     monkeypatch.setattr(isn, "get_cursor", get_cursor)
     monkeypatch.setattr(mt, "build_intraday_stance", lambda cur, scale, now: None)
-    assert isn.run()["stocks_evaluated"] == 2
-    assert saves == ["breadth", "_save_score_side", "_save_score_side", "_save_signal_fires",
-                     "_save_open_positions", "sidecar"]
+    summary = isn.run()
+    assert summary["stocks_evaluated"] == 2
+    assert saves == ["breadth", "save_run", "_save_score_side", "_save_score_side",
+                     "_save_signal_fires", "_save_open_positions", "sidecar"]
+    # The pass's own time, and no window: the intraday loader reads every bar.
+    assert saves.runs == [("intraday", summary["snapshot_date"], summary["snapshot_time"],
+                           None, 2, 2)]
 
 
 def test_log_of_a_step_broken_for_every_stock_is_bounded(monkeypatch, capsys):

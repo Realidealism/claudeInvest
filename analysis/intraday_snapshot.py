@@ -30,6 +30,7 @@ from db.price_availability import PriceUnavailable
 from analysis.realtime_data import load_stock_data_intraday
 from analysis.market_breadth import compute_live_breadth
 from analysis.score import build_scoreboard
+from analysis.snapshot_runs import save_run
 from analysis.snapshot_errors import PerStockErrors, describe, log_lines
 from intraday.estimate import (
     HCurveNotReadyError,
@@ -541,6 +542,11 @@ def run(*, final_pass: bool = False) -> dict:
             print(line)
         raise PerStockErrors(errors)
     print(f"  breadth {breadth_counts['total']} alive in {time.time() - t_br:.1f}s")
+
+    # The run record goes first: if it cannot be written nothing of the pass
+    # is, and the stale-snapshot health check sees it. No history window: the
+    # intraday loader reads every bar on record.
+    save_run("intraday", snapshot_date, now, None, len(stock_ids), len(results))
 
     prev_long  = _load_prev_score_ranks(snapshot_date, "long")
     prev_short = _load_prev_score_ranks(snapshot_date, "short")

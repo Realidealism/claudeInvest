@@ -37,6 +37,7 @@ from db.connection import get_cursor, get_connection
 from db.price_availability import PriceUnavailable
 from backtest.data import load_stock_data
 from analysis.score import build_scoreboard
+from analysis.snapshot_runs import save_run
 from analysis.snapshot_errors import PerStockErrors, describe, log_lines
 from signal_backtest.factories._conditions import (
     pick_condition, touch_condition,
@@ -556,6 +557,10 @@ def run(snapshot_date: date) -> dict:
         for line in log_lines(errors):
             print(line)
         raise PerStockErrors(errors)
+
+    # The run record goes first: if it cannot be written nothing is, and a
+    # rerun that fails later cannot leave the date's record naming an older build.
+    save_run("daily", snapshot_date, None, HISTORY_DAYS, len(stock_ids), len(results))
 
     prev_long  = _load_prev_score_ranks(snapshot_date, "long")
     prev_short = _load_prev_score_ranks(snapshot_date, "short")

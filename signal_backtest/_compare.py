@@ -105,6 +105,29 @@ def compute_stats(df: pd.DataFrame) -> dict | None:
     )
 
 
+def compute_pool(base_dir: Path) -> dict | None:
+    """Pooled stats of the six signals: their trades concatenated, judged
+    with compute_stats. None when any signal's trades.parquet is missing --
+    five signals' pool is not the pool."""
+    frames = []
+    for key, _, _ in SIGNALS:
+        path = base_dir / key / "trades.parquet"
+        if not path.exists():
+            return None
+        frames.append(pd.read_parquet(path))
+    df = pd.concat(frames, ignore_index=True)
+    s = compute_stats(df)
+    if s is None:
+        return None
+    return dict(
+        n=s["n"],
+        win_pct=s["win_pct"],
+        pf_net=s["pf_net"],
+        payoff=s["win_avg"] / abs(s["loss_avg"]) if s["loss_avg"] else float("inf"),
+        data_cutoff=str(pd.to_datetime(df["出場日期"]).max().date()),
+    )
+
+
 def compare(base_dir: Path) -> None:
     print(f"成本假設：來回 {COST_PCT*100:.1f}% (TW 手續費+證交稅)")
     print(f"資料來源：{base_dir}\n")

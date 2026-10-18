@@ -6,7 +6,8 @@ iterations without bloating the markdown memory.
 
 Storage: data/signal_versions.db
 Schema:
-    versions(version_id, date, summary, snapshot_path, cost_pct)
+    versions(version_id, date, summary, snapshot_path, cost_pct,
+             pool_n, pool_win_pct, pool_pf_net, pool_payoff, data_cutoff, commit_id)
     metrics(version_id, signal, side, n_trades, win_pct, avg_raw,
             avg_net, median, cum, max_win, max_loss, win_avg, loss_avg,
             pf_raw, pf_net, mdd_raw, mdd_net, avg_hold)
@@ -30,7 +31,7 @@ from pathlib import Path
 
 import pandas as pd
 
-from signal_backtest._compare import compute_stats, SIGNALS, COST_PCT
+from signal_backtest._compare import compute_pool, compute_stats, SIGNALS, COST_PCT
 
 # UTF-8 on Windows console
 if sys.stdout.encoding and sys.stdout.encoding.lower() != "utf-8":
@@ -102,12 +103,36 @@ CREATE TABLE IF NOT EXISTS sweep_points (
 """
 
 
+# Added to versions later: the six signals' pooled stats (the adoption
+# measure) and what the version was run on.
+VERSION_COLUMNS_ADDED = [
+    ("pool_n", "INTEGER"),
+    ("pool_win_pct", "REAL"),
+    ("pool_pf_net", "REAL"),
+    ("pool_payoff", "REAL"),
+    ("data_cutoff", "TEXT"),   # last exit date among the trades
+    ("commit_id", "TEXT"),     # the tree's commit at add time, see _commit_id
+]
+
+
 def _connect() -> sqlite3.Connection:
     DB_PATH.parent.mkdir(parents=True, exist_ok=True)
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
     conn.executescript(SCHEMA)
+    have = {r["name"] for r in conn.execute("PRAGMA table_info(versions)")}
+    for name, kind in VERSION_COLUMNS_ADDED:
+        if name not in have:
+            conn.execute(f"ALTER TABLE versions ADD COLUMN {name} {kind}")
     return conn
+
+
+def _commit_id() -> str | None:
+    """The tree's commit, as tw.snapshot_runs records a build's: "+dirty" when
+    uncommitted .py/.spec files are in it (data files do not count)."""
+    from analysis.snapshot_runs import build_commit
+    commit = build_commit()
+    return None if commit == "unknown" else commit
 
 
 # ── Commands ─────────────────────────────────────────────────────────────────
@@ -128,11 +153,18 @@ def cmd_add(args: argparse.Namespace) -> None:
             print(f"版本 {args.version_id} 已存在，請先 delete 或換 id", file=sys.stderr)
             sys.exit(1)
 
+        pool = compute_pool(scan_dir)
+        if pool is None:
+            print("  六訊號不齊，合池欄位留空", file=sys.stderr)
+            pool = {}
         cur.execute(
-            "INSERT INTO versions (version_id, date, summary, snapshot_path, cost_pct) "
-            "VALUES (?, ?, ?, ?, ?)",
+            "INSERT INTO versions (version_id, date, summary, snapshot_path, cost_pct, "
+            "pool_n, pool_win_pct, pool_pf_net, pool_payoff, data_cutoff, commit_id) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
             (args.version_id, str(date_t.today()), args.summary,
-             args.snapshot or str(scan_dir), COST_PCT),
+             args.snapshot or str(scan_dir), COST_PCT,
+             pool.get("n"), pool.get("win_pct"), pool.get("pf_net"), pool.get("payoff"),
+             pool.get("data_cutoff"), _commit_id()),
         )
 
         rows_inserted = 0
@@ -167,38 +199,43 @@ def cmd_add(args: argparse.Namespace) -> None:
 
 
 def cmd_list(args: argparse.Namespace) -> None:
-    """Chronological list with avg PF_net and delta from previous version."""
+    """Chronological list with the pooled six-signal stats and the pooled
+    PF_net delta from the previous version that has one."""
     conn = _connect()
     try:
         cur = conn.cursor()
         cur.execute("""
-            SELECT v.version_id, v.date, v.summary,
-                   AVG(m.pf_net) AS pf_net_avg,
-                   AVG(m.win_pct) AS win_avg,
-                   SUM(m.n_trades) AS total_trades
-            FROM versions v
-            LEFT JOIN metrics m ON m.version_id = v.version_id
-            GROUP BY v.version_id
-            ORDER BY v.date, v.version_id
+            SELECT version_id, date, summary, pool_pf_net, pool_payoff,
+                   pool_win_pct, pool_n, data_cutoff
+            FROM versions
+            ORDER BY date, version_id
         """)
         rows = cur.fetchall()
         if not rows:
             print("尚無任何版本")
             return
 
-        print(f"{'版本':<8}{'日期':<12}{'PF淨':>7}{'勝率%':>7}{'交易':>7}{'Δ PF':>7}  說明")
-        print("-" * 90)
-        prev_pf = None
+        print(f"合池＝六訊號 trades 串接；PF 扣來回 {COST_PCT * 100:.1f}% 成本，"
+              f"賺賠比與勝率同單訊號口徑")
+        print("Δ 後的 * ＝與上一版資料截止日不同（資料窗不同，Δ 混入資料差異）；"
+              "截止日相同也不保證資料相同")
+        print(f"{'版本':<8}{'日期':<12}{'截止日':<12}{'合池PF淨':>9}{'賺賠比':>7}{'勝率%':>7}"
+              f"{'交易':>8}{'Δ PF':>9}  說明")
+        print("-" * 108)
+        prev_pf = prev_cutoff = None
         for r in rows:
-            pf = r["pf_net_avg"]
-            delta = f"{pf - prev_pf:+.2f}" if prev_pf is not None and pf is not None else ""
-            pf_s = f"{pf:.2f}" if pf is not None else "—"
-            win_s = f"{r['win_avg']:.1f}" if r["win_avg"] is not None else "—"
-            n_s = f"{r['total_trades']:,}" if r["total_trades"] else "—"
-            print(f"{r['version_id']:<8}{r['date']:<12}{pf_s:>7}{win_s:>7}"
-                  f"{n_s:>7}{delta:>7}  {r['summary'] or ''}")
+            pf = r["pool_pf_net"]
+            delta = ""
+            if prev_pf is not None and pf is not None:
+                delta = f"{pf - prev_pf:+.4f}" + ("*" if r["data_cutoff"] != prev_cutoff else " ")
+            pf_s = f"{pf:.4f}" if pf is not None else "—"
+            pay_s = f"{r['pool_payoff']:.2f}" if r["pool_payoff"] is not None else "—"
+            win_s = f"{r['pool_win_pct']:.1f}" if r["pool_win_pct"] is not None else "—"
+            n_s = f"{r['pool_n']:,}" if r["pool_n"] else "—"
+            print(f"{r['version_id']:<8}{r['date']:<12}{r['data_cutoff'] or '—':<12}{pf_s:>9}"
+                  f"{pay_s:>7}{win_s:>7}{n_s:>8}{delta:>9}  {r['summary'] or ''}")
             if pf is not None:
-                prev_pf = pf
+                prev_pf, prev_cutoff = pf, r["data_cutoff"]
     finally:
         conn.close()
 

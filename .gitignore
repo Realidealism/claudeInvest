@@ -8,6 +8,8 @@ venv/
 # PyInstaller outputs
 build/
 dist/
+# Commit stamp written for the build in progress (tools/build_info.py stamp)
+/_build_stamp.py
 
 # Generated reports
 *.xlsx
