@@ -1,5 +1,5 @@
 {
-  "latest_date": "2026-10-15",
+  "latest_date": "2026-10-16",
   "thresholds": {
     "flat": 0.0,
     "normal": 0.5,
@@ -8,28 +8,20 @@
   "spread_2y": {
     "label": "10Y - 2Y",
     "latest": {
-      "spread": 0.33,
+      "spread": 0.35,
       "rating": "flat",
-      "date": "2026-10-15"
+      "date": "2026-10-16"
     }
   },
   "spread_3m": {
     "label": "10Y - 3M",
     "latest": {
-      "spread": 0.82,
+      "spread": 0.83,
       "rating": "normal",
-      "date": "2026-10-15"
+      "date": "2026-10-16"
     }
   },
   "series": [
-    {
-      "date": "2023-10-16",
-      "dgs10": 4.71,
-      "dgs2": 5.09,
-      "dgs3mo": 5.61,
-      "spread_2y": -0.38,
-      "spread_3m": -0.9
-    },
     {
       "date": "2023-10-17",
       "dgs10": 4.83,
@@ -6021,6 +6013,14 @@
       "dgs3mo": 4.28,
       "spread_2y": 0.33,
       "spread_3m": 0.82
+    },
+    {
+      "date": "2026-10-16",
+      "dgs10": 5.09,
+      "dgs2": 4.74,
+      "dgs3mo": 4.26,
+      "spread_2y": 0.35,
+      "spread_3m": 0.83
     }
   ]
 }
