@@ -35,17 +35,25 @@ python -m signal_backtest._versions diff v{N-1} v{N}
 # 逐筆層 diff（五節：概覽/年度歸因/受害股A/受害股B/集中時段，年度佔比>50% 自動標警）
 python -m signal_backtest._versions tdiff v{N-1} v{N} --all-signals
 
-# Step 7: 完整報告（MUST 包含全部 7 項，不可省略）：
+# Step 7: 完整報告（MUST 包含全部 8 項 (a)–(h)，不可省略）：
 #  (a) per-signal 表：python -m signal_backtest._compare tmp/sb_versions/v{N}_{slug}/
 #      MUST 額外列「賺賠比 (贏均 / |輸均|)」欄位 — PF 旁邊。結構診斷用，揭露 scalp vs trend 形態
-#  (b) Unified 完整資訊（_compare 不含，從 unified_long/short trades.parquet 自算，扣 0.4% 成本）
+#  (b) Unified 完整資訊（_compare 前兩段不含，從 unified_long/short trades.parquet 自算，扣 0.4% 成本；(h) 的成交段已含合多／合空）
 #      MUST 同樣列賺賠比
 #  (c) vs 前版 diff（trade Δ / 勝率 Δ / 淨均 Δ / PF 淨 Δ / 最大虧 Δ / 回撤淨 Δ / 賺賠比 Δ）
 #  (d) Portfolio PF 合池（6 訊號 trades 串接後 net PF — 通常是「總體指標」）+ Portfolio 賺賠比
 #  (e) 三大目標對照（見 §3）
 #  (f) 受害股列表（見 §1a）— A. 同 trade 變差 Top 10  +  B. 新進場大虧 Top 10
 #  (g) 關聯記憶 + 明確結論（值不值得保留？下一步方向？）
+#  (h) 成交可行性：貼 (a) 輸出的【成交可行性】段（收在公告漲／跌停價的進場筆數、一字筆數、
+#      PF 淨 全部／剔一字／剔漲跌停、對不到、參考價疑錯、出場鎖價／出場一字；唯讀查 DB 的 limit_up／limit_down；
+#      查價失敗 _compare 會 exit 1，不可略過此段）。
+#      採用 MUST 看「剔一字」有沒有跟著改善；增益若靠漲停收盤進場撐起來（剔漲跌停後消失）MUST 點名；
+#      「參考價疑錯」只會漏判漲跌停（% 偏低、剔漲跌停 PF 偏高；該列參考價／漲跌停價疑似錯位一天，資料另案）；
+#      出場鎖價／出場一字只有筆數、PF 沒反映，改動讓這兩欄上升 MUST 點名
 ```
+
+成交時點：回測以訊號當根收盤成交。2026-10-19 使用者裁定這是可行的，因為實際依盤中即時版當天下單，所以不做 T+1 開盤對照。(h) 只量「收在公告漲跌停價」這一種成交風險：進場鎖價（含 PF 敏感度）與出場鎖價（只有筆數）；一字價確定成交不了。**沒量到**：做空的融券停券、平盤下不得放空等限制。
 
 完成 1-7 後 **MUST NOT 自動 commit / push / 跳下個改動** — 回到等指示狀態。
 

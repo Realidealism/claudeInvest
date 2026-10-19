@@ -79,6 +79,9 @@ READERS = {
     "scrapers/twse_after_hours.py": ("W", "n/a", "writer"),
     "scrapers/vix_cboe.py": ("X", "n/a", "CBOE URL only"),
     "scripts/backfill/backfill_sbl.py": ("5", "n/a", "one-off backfill"),
+    "signal_backtest/_compare.py": ("2", "cli-only",
+                                    "fill section reads the entry bars of backtest trades.parquet; "
+                                    "report only, writes nothing"),
     "signal_backtest/engine.py": ("X", "n/a", "comment only"),
     "signals/etf_abnormal_exit.py": ("3", "excludes-U", "latest-close query excludes U"),
     "signals/etf_consecutive_reduction.py": ("3", "excludes-U", "latest-close query excludes U"),
