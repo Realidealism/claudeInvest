@@ -23,9 +23,14 @@ from signal_backtest.engine import (
     run_side_backtest_tiered,
     InsufficientDataError,
     DEFAULT_START_INDEX,
+    HOLDOUT_START,
 )
 from signal_backtest.signal import SignalSpec, SignalFactory
 from signal_backtest.trade import Trade, SideResult
+
+# Written at the top of an output dir that kept the holdout (--include-holdout);
+# _versions add refuses such a dir.
+HOLDOUT_MARKER = "HOLDOUT_INCLUDED"
 
 
 def fetch_listed_stocks() -> list[tuple[str, str]]:
@@ -163,6 +168,7 @@ def run_batch_multi(
     start_index: int = DEFAULT_START_INDEX,
     workers: int = 1,
     use_cache: bool = False,
+    include_holdout: bool = False,
 ) -> dict[str, tuple[Path, Path]]:
     """Multi-signal batch runner — share one StockData instance across signals.
 
@@ -260,14 +266,14 @@ def run_batch_multi(
         d = sub_dirs[name]
         trades_path = d / "trades.parquet"
         sides_path = d / "sides.parquet"
-        _write_trades(trades_by_sig[name], trades_path)
-        _write_sides(sides_by_sig[name], sides_path)
+        _write_trades(trades_by_sig[name], trades_path, include_holdout)
+        _write_sides(sides_by_sig[name], sides_path, include_holdout)
         if skipped_by_sig[name]:
             (d / "skipped.txt").write_text(
                 "\n".join(f"{sid}\t{reason}" for sid, reason in skipped_by_sig[name]),
                 encoding="utf-8",
             )
-        n_trades = len(trades_by_sig[name])
+        n_trades = len(_kept(trades_by_sig[name], include_holdout))
         n_skipped = len(skipped_by_sig[name])
         print(
             f"  [{name}] trades={n_trades:,}  skipped={n_skipped}",
@@ -283,6 +289,7 @@ def run_batch(
     limit: int | None = None,
     stock_ids: list[str] | None = None,
     start_index: int = DEFAULT_START_INDEX,
+    include_holdout: bool = False,
 ) -> tuple[Path, Path]:
     """
     Run signal backtest across all listed stocks.
@@ -382,15 +389,15 @@ def run_batch(
     elapsed = time.time() - t0
     print(
         f"\n完成：{len(stocks)} 檔，耗時 {elapsed:.0f}s，"
-        f"總交易 {len(all_trades):,}，跳過 {len(skipped)}",
+        f"總交易 {len(_kept(all_trades, include_holdout)):,}，跳過 {len(skipped)}",
         file=sys.stderr,
     )
 
     trades_path = output_dir / "trades.parquet"
     sides_path = output_dir / "sides.parquet"
 
-    _write_trades(all_trades, trades_path)
-    _write_sides(all_sides, sides_path)
+    _write_trades(all_trades, trades_path, include_holdout)
+    _write_sides(all_sides, sides_path, include_holdout)
 
     if skipped:
         skipped_path = output_dir / "skipped.txt"
@@ -402,10 +409,18 @@ def run_batch(
     return trades_path, sides_path
 
 
-def _write_trades(trades: list[Trade], path: Path) -> None:
+def _kept(trades: list[Trade], include_holdout: bool) -> list[Trade]:
+    """The trades an output may show: none entered in the holdout
+    (engine.HOLDOUT_START) unless the monthly reconciliation asks for them."""
+    if include_holdout:
+        return list(trades)
+    return [t for t in trades if t.entry_date < HOLDOUT_START]
+
+
+def _write_trades(trades: list[Trade], path: Path, include_holdout: bool = False) -> None:
     """One row per trade; defense_events serialized as a list of dicts."""
     rows = []
-    for t in trades:
+    for t in _kept(trades, include_holdout):
         rows.append({
             "股票代號": t.stock_id,
             "股票名稱": t.stock_name,
@@ -426,7 +441,7 @@ def _write_trades(trades: list[Trade], path: Path) -> None:
     df.to_parquet(path, index=False)
 
 
-def _write_sides(sides: list[SideResult], path: Path) -> None:
+def _write_sides(sides: list[SideResult], path: Path, include_holdout: bool = False) -> None:
     """One row per (stock, side) — summary header without trade detail."""
     rows = []
     for s in sides:
@@ -436,7 +451,7 @@ def _write_sides(sides: list[SideResult], path: Path) -> None:
             "方向": s.side,
             "起始日": s.start_date,
             "結束日": s.end_date,
-            "交易數": s.n_trades,
+            "交易數": len(_kept(s.trades, include_holdout)),
         })
     df = pd.DataFrame(rows)
     df.to_parquet(path, index=False)

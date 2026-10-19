@@ -48,6 +48,7 @@ from signal_backtest._compare import COST_PCT
 from signal_backtest.batch import fetch_listed_stocks
 from signal_backtest.engine import (
     DEFAULT_START_INDEX,
+    HOLDOUT_START,
     InsufficientDataError,
     run_side_backtest,
 )
@@ -236,7 +237,9 @@ def run_sweep(
     try:
         for k, res in enumerate(results_iter):
             for gi, rows in res.items():
-                rows_by_grid[gi].extend(rows)
+                # The holdout never enters a sweep: dropped before the
+                # half-split midpoint and every per-point figure.
+                rows_by_grid[gi].extend(r for r in rows if r["進場日期"] < HOLDOUT_START)
             done = k + 1
             if done % 200 == 0:
                 elapsed = time.time() - t0

@@ -85,7 +85,7 @@ RETURNS = {
     # Whether any ETF holdings diff is stored in tw.etf_holdings_diff for the night.
     "etf_diff_stored": True,
     # The snapshot carried every position held the night before.
-    "analysis.daily_snapshot.run": {"position_counts": {"revisions": 0, "exited_unseen": 0}},
+    "analysis.daily_snapshot.run": {"position_counts": {"revisions": 0, "unlisted_exits": 0}},
 }
 
 
@@ -264,15 +264,15 @@ def test_clean_night(monkeypatch):
 
 def test_revised_positions_are_reported_in_the_summary(monkeypatch):
     night = _Night(monkeypatch, returns={
-        "analysis.daily_snapshot.run": {"position_counts": {"revisions": 3, "exited_unseen": 0}}})
+        "analysis.daily_snapshot.run": {"position_counts": {"revisions": 3, "unlisted_exits": 0}}})
     assert night.sent[0].splitlines()[1:] == ["持倉重算改寫 3 筆（見 tw.position_revisions）"]
     assert "全部成功" in night.sent[0]
 
 
-def test_exits_a_missing_night_hid_are_reported_apart(monkeypatch):
+def test_exits_no_row_showed_are_reported_apart(monkeypatch):
     night = _Night(monkeypatch, returns={
-        "analysis.daily_snapshot.run": {"position_counts": {"revisions": 0, "exited_unseen": 2}}})
-    assert night.sent[0].splitlines()[1:] == ["快照缺日內出場 2 筆（見 tw.position_revisions）"]
+        "analysis.daily_snapshot.run": {"position_counts": {"revisions": 0, "unlisted_exits": 2}}})
+    assert night.sent[0].splitlines()[1:] == ["快照沒有列出的出場 2 筆（見 tw.position_revisions）"]
 
 
 def test_no_revision_line_when_nothing_was_revised(monkeypatch):

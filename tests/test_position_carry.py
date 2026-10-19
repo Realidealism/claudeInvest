@@ -20,10 +20,12 @@ import analysis.daily_snapshot as ds
 import analysis.intraday_snapshot as isn
 import daily_update as du
 from daily_update_guards import no_side_effects  # noqa: F401
+from signal_backtest.trade import REASON_EXIT_END
 
 DAY = date(2026, 10, 19)
 PREV = date(2026, 10, 16)
-CAUSES = ("kept", "exited", "exited_unseen", "redated", "gone", "not_run")
+CAUSES = ("kept", "exited", "exited_unseen", "exited_hidden", "redated", "gone", "not_run")
+DEF, GAP = "防守價觸發", "異常跳價"
 
 
 class _SyncPool:
@@ -69,7 +71,7 @@ def _stand_ins(monkeypatch, mod, *, active, held):
             got.setdefault(name, []).append(sorted(r["sid"] for r in results))
             if name == "_save_open_positions":
                 return {"long": 0, "short": 0, "exited_long": 0, "exited_short": 0,
-                        "revisions": 0, "exited_unseen": 0,
+                        "revisions": 0, "unlisted_exits": 0,
                         "revision_counts": dict.fromkeys(CAUSES, 0)}
             if name == "_save_signal_fires":
                 return {s: 0 for s, _ in mod.SIGNALS}
@@ -136,8 +138,8 @@ def _pos(side, entry, exited=False):
     return {"side": side, "entry_date": entry, "is_exited": exited}
 
 
-def _ran(sid, *positions, exits=None):
-    return {"sid": sid, "open_positions": list(positions),
+def _ran(sid, *positions, exits=None, last=DAY):
+    return {"sid": sid, "open_positions": list(positions), "last_date": last,
             "recent_exits": {"long": {}, "short": {}, **(exits or {})}}
 
 
@@ -147,22 +149,27 @@ def test_each_held_position_ends_in_exactly_one_class():
             _prev("2603", "long", date(2026, 9, 3)),    # redated
             _prev("3008", "short", date(2026, 9, 4)),   # gone
             _prev("6505", "long", date(2026, 9, 5)),    # not_run
-            _prev("2454", "long", date(2026, 9, 7))]    # exited_unseen
+            _prev("2454", "long", date(2026, 9, 7)),    # exited_unseen
+            _prev("2884", "long", date(2026, 9, 8))]    # exited_hidden
     results = [_ran("1101", _pos("long", date(2026, 9, 1))),
                _ran("2330", _pos("long", date(2026, 9, 2), exited=True)),
                _ran("2603", _pos("long", date(2026, 10, 1))),
                # held on the other side only: still gone on the short side
                _ran("3008", _pos("long", date(2026, 10, 2))),
                # exited on 10-17, a night with no snapshot between 10-16 and 10-19
-               _ran("2454", exits={"long": {date(2026, 9, 7): date(2026, 10, 17)}})]
+               _ran("2454", exits={"long": {date(2026, 9, 7): (date(2026, 10, 17), date(2026, 10, 17))}}),
+               # exited on today's bar and entered again on it: the stock's one
+               # long row is the new position
+               _ran("2884", _pos("long", DAY), exits={"long": {date(2026, 9, 8): (DAY, DAY)}})]
     revisions, counts = ds._classify_revisions(prev, results)
-    assert counts == dict.fromkeys(CAUSES, 1)
+    assert counts == {**dict.fromkeys(CAUSES, 1)}
     assert [(v["stock_id"], v["cause"], v["new_entry_date"], v["new_is_exited"], v["exit_date"])
             for v in revisions] == [
         ("2603", "redated", date(2026, 10, 1), False, None),
         ("3008", "gone", None, None, None),
         ("6505", "not_run", None, None, None),
-        ("2454", "exited_unseen", None, None, date(2026, 10, 17))]
+        ("2454", "exited_unseen", None, None, date(2026, 10, 17)),
+        ("2884", "exited_hidden", None, None, DAY)]
     assert all(v["snapshot_date"] == PREV and v["entry_price"] == 50.0 for v in revisions)
 
 
@@ -179,12 +186,35 @@ def test_a_new_path_that_already_exited_is_a_redate_marked_exited():
 
 def test_an_exit_on_or_before_the_previous_snapshot_is_a_rerun_change():
     # Last night showed it held; an exit the rerun now puts on that night or
-    # earlier rewrites history, it is not an unseen exit.
-    for exit_day in (PREV, date(2026, 10, 1)):
+    # earlier, known by then, rewrites history -- it is not an unseen exit.
+    # (exit_date, known_date): a gap exit known on 10-02 was too.
+    for exit_day, known in ((PREV, PREV), (date(2026, 10, 1), date(2026, 10, 1)),
+                            (date(2026, 10, 1), date(2026, 10, 2))):
         revisions, counts = ds._classify_revisions(
             [_prev("2454", "long", date(2026, 9, 7))],
-            [_ran("2454", exits={"long": {date(2026, 9, 7): exit_day}})])
+            [_ran("2454", exits={"long": {date(2026, 9, 7): (exit_day, known)}})])
         assert counts["gone"] == 1 and revisions[0]["exit_date"] is None, exit_day
+
+
+@pytest.mark.parametrize("exit_day", [PREV, date(2026, 10, 1)],
+                         ids=["onto last night", "back past a suspension"])
+def test_a_gap_exit_known_only_after_last_night_is_hidden(exit_day):
+    # The gap bar is today: the exit is dated on the bar before it, last
+    # night's, or, for a stock that was suspended, an earlier one.
+    revisions, counts = ds._classify_revisions(
+        [_prev("2454", "long", date(2026, 9, 7))],
+        [_ran("2454", exits={"long": {date(2026, 9, 7): (exit_day, DAY)}})])
+    assert counts["exited_hidden"] == 1 and revisions[0]["exit_date"] == exit_day
+
+
+def test_an_exit_on_a_stale_stocks_last_bar_is_hidden_not_unseen():
+    # No bar today: the stock's last bar (10-17) is where its rows stop.
+    last = date(2026, 10, 17)
+    revisions, counts = ds._classify_revisions(
+        [_prev("2454", "long", date(2026, 9, 7))],
+        [_ran("2454", _pos("long", last), last=last,
+              exits={"long": {date(2026, 9, 7): (last, last)}})])
+    assert counts["exited_hidden"] == 1
 
 
 def test_nothing_held_last_night_revises_nothing():
@@ -199,11 +229,14 @@ def test_worker_reports_recent_exits_before_the_last_bar(monkeypatch):
     data = types.SimpleNamespace(
         n=n, dates=days, turnover=np.ones(n),
         volume_result=types.SimpleNamespace(volume_status=np.zeros(n, dtype=int)))
-    def trade(entry, exit_):
-        return types.SimpleNamespace(entry_date=entry, exit_date=exit_, defense_events=[])
+    def trade(entry, exit_, reason=DEF):
+        return types.SimpleNamespace(entry_date=entry, exit_date=exit_, exit_reason=reason,
+                                     defense_events=[])
     trades = [trade(days[50], days[55]),     # older than RECENT_EXIT_BARS
               trade(days[62], days[70]),     # recent
-              trade(days[75], days[79])]     # on the last bar: today's own row
+              trade(days[72], days[74], GAP),   # dated on the bar before the gap
+              trade(days[76], days[79]),     # on the last bar
+              trade(days[79], days[79], REASON_EXIT_END)]   # still open: not an exit
     spec = types.SimpleNamespace(
         long_tiers=[1], short_tiers=[1], long_floor_period=8, short_floor_period=8,
         signals=types.SimpleNamespace(long_exit=None, short_exit=None))
@@ -220,7 +253,10 @@ def test_worker_reports_recent_exits_before_the_last_bar(monkeypatch):
     monkeypatch.setattr(ds, "RECENT_EXIT_BARS", 15)
     r, errors = ds._eval_stock(("2330", None, days[-1]))
     assert errors == [] and r["last_date"] == days[-1]
-    assert r["recent_exits"] == {"long": {days[62]: days[70]}, "short": {days[62]: days[70]}}
+    # (exit_date, the bar the exit is known on): a gap exit's is the gap bar
+    exits = {days[62]: (days[70], days[70]), days[72]: (days[74], days[75]),
+             days[76]: (days[79], days[79])}
+    assert r["recent_exits"] == {"long": exits, "short": exits}
 
 
 # ── the write: positions and revisions in one transaction ──────────────────
@@ -263,7 +299,8 @@ def test_revisions_are_written_with_the_positions(monkeypatch):
     monkeypatch.setattr(ds, "build_commit", lambda: conn.log.append("BUILD_COMMIT") or "abc")
     counts = ds._save_open_positions(DAY, [
         {**_ran("3008"), "tv": 1.0},
-        {**_ran("2454", exits={"long": {date(2026, 9, 7): date(2026, 10, 17)}}), "tv": 1.0}])
+        {**_ran("2454", exits={"long": {date(2026, 9, 7): (date(2026, 10, 17), date(2026, 10, 17))}}),
+         "tv": 1.0}])
     # The commit is read before the transaction opens.
     assert conn.log == ["BUILD_COMMIT", "SELECT p.snapshot_date, p.stock_id,",
                         "DELETE FROM tw.open_positions", "BATCH",
@@ -276,8 +313,20 @@ def test_revisions_are_written_with_the_positions(monkeypatch):
          None, None, None, "abc"),
         (DAY, PREV, "2454", "long", date(2026, 9, 7), 50.0, "buy", "exited_unseen",
          None, None, date(2026, 10, 17), "abc")]
-    assert counts["revisions"] == 1 and counts["exited_unseen"] == 1
+    assert counts["revisions"] == 1 and counts["unlisted_exits"] == 1
     assert counts["revision_counts"]["gone"] == 1
+
+
+def test_hidden_exits_count_as_unlisted_not_as_revisions(monkeypatch):
+    conn = _Conn([_prev("2884", "long", date(2026, 9, 8))])
+    batches = []
+    monkeypatch.setattr(ds, "get_connection", lambda: conn)
+    monkeypatch.setattr(ds, "execute_batch", lambda cur, sql, rows: batches.append(rows))
+    monkeypatch.setattr(ds, "build_commit", lambda: "abc")
+    counts = ds._save_open_positions(DAY, [
+        {**_ran("2884", exits={"long": {date(2026, 9, 8): (DAY, DAY)}}), "tv": 1.0}])
+    assert [r[7] for r in batches[1]] == ["exited_hidden"] and batches[1][0][10] == DAY
+    assert counts["unlisted_exits"] == 1 and counts["revisions"] == 0
 
 
 def test_a_rerun_with_nothing_dropped_clears_the_date(monkeypatch):

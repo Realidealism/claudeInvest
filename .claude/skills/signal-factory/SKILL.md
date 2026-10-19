@@ -124,6 +124,16 @@ python -m signal_backtest --signals {target},unified_long,unified_short \
 
 單訊號 ad-hoc 測試 **MUST NOT** 寫入 `signal_versions.db`（避免污染版本軸）— 等決定後再走完整 1-7 步。
 
+### 1c. Holdout（2026-10-19 使用者裁定）
+
+`signal_backtest/engine.py` 的 `HOLDOUT_START = 2026-11-02`：進場日 ≥ 這天的交易是從未參與調參的樣本外。
+
+- **程式截斷只涵蓋回測與 sweep 的產出**：`batch._write_trades` 與 sweep 寫檔時丟掉這些交易，所以從 trades.parquet 讀的 `_compare`、合池、`diff`／`tdiff`、受害股、sweep 彙總都看不到。起始日前進場、之後才出場的交易仍保留（已知漏洞，使用者接受）。
+- **程式擋不住的**（2026-10-19 使用者裁定：不另寫程式，靠本條規則）：線上快照、前端、Telegram 每天都會顯示 holdout 期的部位；`charts/app.py` 的個股圖直接跑引擎，也照常顯示。看到它們不算違規，**MUST NOT** 據以提出或調整訊號改動。
+- `--include-holdout` 只給月對帳（`analysis/live_reconcile.py`）用。調參、採用、sweep、受害股分析 **MUST NOT** 使用；帶了它的輸出目錄有 `HOLDOUT_INCLUDED` 標記，`_versions add` 會拒絕登錄（沒帶旗標的回測會清掉同目錄的舊標記）。月對帳讀完就刪掉自己的回測產出。
+- holdout 的表現只在每月對帳報告（`logs/reconcile/`）看，**MUST NOT** 拿來回頭調參；看了月報再改訊號，那段 holdout 就不再是樣本外。
+- 起始日要移動或重設，只能由使用者裁定。
+
 ## 2. Hard constraints — MUST / MUST NOT
 
 | 規則 | 來源 |

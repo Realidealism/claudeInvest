@@ -1491,9 +1491,9 @@ def _update_trading_day(trade_date: date, results: list[tuple[str, str]],
             if positions["revisions"]:
                 summary_notes.append(
                     f"持倉重算改寫 {positions['revisions']} 筆（見 tw.position_revisions）")
-            if positions["exited_unseen"]:
+            if positions["unlisted_exits"]:
                 summary_notes.append(
-                    f"快照缺日內出場 {positions['exited_unseen']} 筆（見 tw.position_revisions）")
+                    f"快照沒有列出的出場 {positions['unlisted_exits']} 筆（見 tw.position_revisions）")
             results.append(("多空評比 + 操作訊號 + 策略持倉快照", "ok"))
             snapshot_ok = True
         except Exception:

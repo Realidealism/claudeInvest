@@ -53,6 +53,11 @@ def _msg_microtaiex_report_failed(extra: str) -> str:
     return f"微台當沖{session}結算推播失敗"
 
 
+def _msg_live_reconcile_failed(extra: str) -> str:
+    exit_code = extra or "?"
+    return f"月對帳失敗（exit {exit_code}），見 logs\\live_reconcile.log"
+
+
 _EVENTS = {
     "snapshot_failed": _msg_snapshot_failed,
     "git_push_failed": _msg_git_push_failed,
@@ -61,6 +66,7 @@ _EVENTS = {
     "backfill_hermit_failed": _msg_backfill_hermit_failed,
     "microtaiex_report_failed": _msg_microtaiex_report_failed,
     "financials_sweep_failed": _msg_financials_sweep_failed,
+    "live_reconcile_failed": _msg_live_reconcile_failed,
 }
 
 

@@ -23,7 +23,8 @@ if sys.stdout.encoding and sys.stdout.encoding.lower() != "utf-8":
 import pandas as pd
 
 from signal_backtest.signal import SIGNAL_FACTORIES
-from signal_backtest.batch import run_batch, run_batch_multi
+from signal_backtest.batch import HOLDOUT_MARKER, run_batch, run_batch_multi
+from signal_backtest.engine import HOLDOUT_START
 from signal_backtest.aggregate import aggregate
 from signal_backtest.report import format_report
 
@@ -86,7 +87,29 @@ def parse_args() -> argparse.Namespace:
              "DB latest trade_date. Auto-invalidates after daily_update writes "
              "new bars. Saves ~26%% per stock on cache hit.",
     )
+    p.add_argument(
+        "--include-holdout",
+        action="store_true",
+        help=f"Keep trades entered on or after {HOLDOUT_START} (the holdout). "
+             f"For the monthly reconciliation only, never for tuning; the "
+             f"output dir is marked and _versions add refuses it.",
+    )
     return p.parse_args()
+
+
+def _mark_holdout(output_dir: Path, include: bool) -> None:
+    """Mark a run that keeps the holdout; a run that does not clears a mark
+    an earlier run left in the same dir."""
+    if not include:
+        # --signal marks the signal's own dir, which a later --signals run
+        # into the parent writes again.
+        for mark in [output_dir / HOLDOUT_MARKER, *output_dir.glob(f"*/{HOLDOUT_MARKER}")]:
+            mark.unlink(missing_ok=True)
+        return
+    output_dir.mkdir(parents=True, exist_ok=True)
+    (output_dir / HOLDOUT_MARKER).write_text(
+        f"trades entered on or after {HOLDOUT_START} included\n", encoding="utf-8")
+    print(f"含 holdout（{HOLDOUT_START} 起進場），不得用於調參", file=sys.stderr)
 
 
 def main() -> None:
@@ -114,6 +137,7 @@ def main() -> None:
             sys.exit(1)
         factories = {n: SIGNAL_FACTORIES[n] for n in names}
         output_dir = args.output or Path("tmp/signal_backtest")
+        _mark_holdout(output_dir, args.include_holdout)
 
         results = run_batch_multi(
             factories=factories,
@@ -122,6 +146,7 @@ def main() -> None:
             stock_ids=stock_ids,
             workers=args.workers,
             use_cache=args.cache,
+            include_holdout=args.include_holdout,
         )
         for name, (trades_path, sides_path) in results.items():
             print(f"\n=== [{name}] ===")
@@ -143,12 +168,14 @@ def main() -> None:
 
     factory = SIGNAL_FACTORIES[args.signal]
     output_dir = args.output or Path("tmp/signal_backtest") / args.signal
+    _mark_holdout(output_dir, args.include_holdout)
 
     trades_path, sides_path = run_batch(
         factory=factory,
         output_dir=output_dir,
         limit=args.limit,
         stock_ids=stock_ids,
+        include_holdout=args.include_holdout,
     )
 
     print(f"\n交易紀錄：{trades_path}")

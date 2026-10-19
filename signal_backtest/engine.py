@@ -18,6 +18,7 @@ Long and short are run independently; positions never flip.
 
 from __future__ import annotations
 
+from datetime import date
 from typing import TYPE_CHECKING
 
 import numpy as np
@@ -143,6 +144,13 @@ F32Array = NDArray[np.float32]
 
 # Default skip — same as backtest/engine.py: longest reliable warmup
 DEFAULT_START_INDEX = 55
+
+# The daily factory's holdout (user ruling 2026-10-19): trades entered on or
+# after this date were never seen by any tuning. The batch and sweep outputs
+# leave them out, so comparisons, pooled PF, version diffs, victim lists and
+# sweep tables cannot see them; only the monthly reconciliation reads them
+# (analysis/live_reconcile.py, --include-holdout). Moving it is the user's call.
+HOLDOUT_START = date(2026, 11, 2)
 
 
 class InsufficientDataError(ValueError):

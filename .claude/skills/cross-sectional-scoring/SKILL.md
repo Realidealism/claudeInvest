@@ -65,6 +65,15 @@ python -m analysis._score_reweight "排列_long=1.5,洪量_medium=0"
 - 範本：[analysis/_score_obv_ablation_dead.py](analysis/_score_obv_ablation_dead.py)、[analysis/_score_all_ablation_dead.py](analysis/_score_all_ablation_dead.py)（全 cell 一次跑）
 - 死魚雜訊會偽造 bear regime hedge — bear edge 在 ~dead 下消失的 cell，原本只是死魚下漂 + signal 同向的偽相關
 
+## Holdout：只用 2026-11-02 以前的日期（2026-10-19 使用者裁定）
+
+日線訊號工廠從 2026-11-02 起保留前向 holdout（`signal_backtest/engine.HOLDOUT_START`，見 skill `signal-factory` §1c）。ScoreBoard 的 pct 是工廠的輸入，評分系統調參看了 holdout 期，等於工廠間接看了。程式不強制，靠本條：
+
+- **觸發**：任何 cell／權重／窗口的採用評估、ablation、forward-return proxy、逐年 Δspread 拆解。
+- **動作**：讀 score panel 後先濾 `date < HOLDOUT_START`（從 `signal_backtest.engine` import，不要寫死日期）再算；報告註明已截斷。forward-return 的視窗可以跨過起始日，但樣本日（訊號日）必須在之前。
+- 例：`df = df[df["date"] < pd.Timestamp(HOLDOUT_START)]`，放在 dead-fish merge 之前。
+- 起始日要移動或重設，只能由使用者裁定。
+
 ## Regime split — 預設拆解（2026-07-07 改制：breadth 日級分桶）
 
 forward horizons {5, 20, 60} × regimes {full, bull_L, bear_L, neutral_L, bull_M, bear_M, neutral_M}。regime 來自 `tw.market_breadth` 日級 trend 標籤（`_score_ablation.regime_from_breadth()`：bull={+1,+2,+3}、bear={-1,-2,-3}、neutral={0}，L=long_trend、M=medium_trend）。**採用判準只看 full + bull_L + bear_L**；M 桶與 neutral 標 [ref] 供參考。舊制年份切（BEAR_YEARS={2021,2022}）已廢——2021 實為多頭年（bull_L 136/244 日），年份切曾製造「bear 巨賺」假象差點誤採用排列拔除。

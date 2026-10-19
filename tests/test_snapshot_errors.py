@@ -156,8 +156,9 @@ def _run_stand_ins(monkeypatch, mod, worker):
     for name in ("_save_score_side", "_save_signal_fires", "_save_open_positions"):
         monkeypatch.setattr(mod, name, lambda *a, name=name: saves.append(name) or (
             {"long": 0, "short": 0, "exited_long": 0, "exited_short": 0, "revisions": 0,
-             "exited_unseen": 0,
-             "revision_counts": dict.fromkeys(("kept", "exited", "exited_unseen", "redated",
+             "unlisted_exits": 0,
+             "revision_counts": dict.fromkeys(("kept", "exited", "exited_unseen",
+                                               "exited_hidden", "redated",
                                                "gone", "not_run"), 0)}
             if name == "_save_open_positions" else {s: 0 for s, _ in mod.SIGNALS}
             if name == "_save_signal_fires" else 0))

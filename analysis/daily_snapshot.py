@@ -25,6 +25,7 @@ Env vars:
 
 from __future__ import annotations
 
+import bisect
 import os
 import re
 import sys
@@ -51,7 +52,7 @@ from signal_backtest.factories._conditions import (
 # import with signal_backtest.signal._register_factories.
 from signal_backtest.signal import SIGNAL_FACTORIES
 from signal_backtest.engine import run_side_backtest_tiered
-from signal_backtest.trade import REASON_EXIT_END, REASON_ENTRY_INIT
+from signal_backtest.trade import REASON_EXIT_END, REASON_EXIT_GAP, REASON_ENTRY_INIT
 
 unified_long_factory = SIGNAL_FACTORIES["unified_long"]
 unified_short_factory = SIGNAL_FACTORIES["unified_short"]
@@ -212,11 +213,21 @@ def _eval_stock(args: tuple[str, date, date]) -> tuple[dict | None, list]:
 
     # 3. Unified-strategy open positions (full backtest each side).
     open_positions: list[dict] = []
-    # Exits before the last bar, entry_date -> exit_date, back to RECENT_EXIT_BARS
-    # bars: a position held at the previous snapshot that exited on a night
-    # with no snapshot is told apart from one the rerun dropped.
+    # Exits up to the last bar, entry_date -> (exit_date, known_date), back to
+    # RECENT_EXIT_BARS bars: a position held at the previous snapshot that
+    # exited where no row can show it (a night with no snapshot, the last bar
+    # when a new entry follows on it, a gap exit dated back) is told apart
+    # from one the rerun dropped. A gap exit (異常跳價) is dated on the bar
+    # before the gap and becomes known only on the gap bar, which after a
+    # suspension can be many days later.
     recent_exits: dict[str, dict] = {"long": {}, "short": {}}
     since = data.dates[max(0, data.n - 1 - RECENT_EXIT_BARS)]
+
+    def known(t) -> date:
+        if t.exit_reason != REASON_EXIT_GAP:
+            return t.exit_date
+        i = bisect.bisect_right(data.dates, t.exit_date)
+        return data.dates[i] if i < data.n else t.exit_date
     for side, factory in (
         ("long",  unified_long_factory),
         ("short", unified_short_factory),
@@ -243,8 +254,8 @@ def _eval_stock(args: tuple[str, date, date]) -> tuple[dict | None, list]:
         pos = _extract_open_position(result, side, last_date)
         if pos is not None:
             open_positions.append(pos)
-        recent_exits[side] = {t.entry_date: t.exit_date for t in result.trades
-                              if since <= t.exit_date < last_date}
+        recent_exits[side] = {t.entry_date: (t.exit_date, known(t)) for t in result.trades
+                              if since <= t.exit_date and t.exit_reason != REASON_EXIT_END}
 
     tv_raw = float(data.turnover[idx])
     tv = tv_raw if tv_raw == tv_raw else 0.0
@@ -386,18 +397,25 @@ def _classify_revisions(prev_rows: list[dict], results: list[dict]) -> tuple[lis
     exactly one of:
       kept           the same (stock, side, entry_date) is still held
       exited         the same key carries an exit row today
-      exited_unseen  it exited after the previous snapshot and before today,
-                     on a night with no snapshot (a real exit no row showed)
+      exited_unseen  it exited after the previous snapshot and before its
+                     last bar, on a night with no snapshot (a real exit no
+                     row showed)
+      exited_hidden  a real exit no row can show: on the last bar, where a
+                     new entry on the same bar takes the stock's one row for
+                     that side; or a gap exit (異常跳價) whose gap bar came
+                     after the previous snapshot, dated back onto a bar that
+                     snapshot showed held
       redated        the stock is held, or exited today, on that side from
                      another entry date
       gone           the stock was evaluated and has nothing on that side
       not_run        the stock was not evaluated (inactive, price unavailable,
                      too short a history)
-    Returns the rows of the last four, which tw.position_revisions keeps,
+    Returns the rows of the last five, which tw.position_revisions keeps,
     and the count of each."""
     evaluated = {r["sid"]: r for r in results}
     today = {(r["sid"], p["side"]): p for r in results for p in r["open_positions"]}
-    counts = {k: 0 for k in ("kept", "exited", "exited_unseen", "redated", "gone", "not_run")}
+    counts = {k: 0 for k in ("kept", "exited", "exited_unseen", "exited_hidden",
+                             "redated", "gone", "not_run")}
     revisions = []
     for row in prev_rows:
         now = today.get((row["stock_id"], row["side"]))
@@ -406,11 +424,14 @@ def _classify_revisions(prev_rows: list[dict], results: list[dict]) -> tuple[lis
             continue
         extra = {"new_entry_date": None, "new_is_exited": None, "exit_date": None}
         r = evaluated.get(row["stock_id"])
-        exit_date = r and r["recent_exits"][row["side"]].get(row["entry_date"])
+        exit_date, known = (r and r["recent_exits"][row["side"]].get(row["entry_date"])) or (None, None)
         if r is None:
             cause = "not_run"
         elif exit_date is not None and exit_date > row["snapshot_date"]:
-            cause = "exited_unseen"
+            cause = "exited_unseen" if exit_date < r["last_date"] else "exited_hidden"
+            extra["exit_date"] = exit_date
+        elif known is not None and known > row["snapshot_date"]:
+            cause = "exited_hidden"
             extra["exit_date"] = exit_date
         elif now is not None:
             cause = "redated"
@@ -578,9 +599,10 @@ def _save_open_positions(snapshot_date: date, results: list[dict]) -> dict[str, 
         conn.commit()
     finally:
         conn.close()
-    # Revisions proper, and the exits only a night without a snapshot hid.
-    counts["revisions"] = len(revisions) - revision_counts["exited_unseen"]
-    counts["exited_unseen"] = revision_counts["exited_unseen"]
+    # Revisions proper, and the real exits no row showed.
+    unlisted = revision_counts["exited_unseen"] + revision_counts["exited_hidden"]
+    counts["revisions"] = len(revisions) - unlisted
+    counts["unlisted_exits"] = unlisted
     counts["revision_counts"] = revision_counts
     return counts
 
@@ -692,7 +714,8 @@ def run(snapshot_date: date) -> dict:
     print(f"  Exited today    long: {pos_counts['exited_long']} / short: {pos_counts['exited_short']}")
     rc = pos_counts["revision_counts"]
     print(f"  Previous night's positions: kept {rc['kept']}, exited {rc['exited']}, "
-          f"exited unseen {rc['exited_unseen']}, redated {rc['redated']}, "
+          f"exited unseen {rc['exited_unseen']}, exited hidden {rc['exited_hidden']}, "
+          f"redated {rc['redated']}, "
           f"gone {rc['gone']}, not run {rc['not_run']}")
     stale = sorted(r["sid"] for r in results if r["last_date"] < snapshot_date)
     if stale:

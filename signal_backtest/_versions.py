@@ -32,6 +32,7 @@ from pathlib import Path
 import pandas as pd
 
 from signal_backtest._compare import compute_pool, compute_stats, SIGNALS, COST_PCT
+from signal_backtest.batch import HOLDOUT_MARKER
 
 # UTF-8 on Windows console
 if sys.stdout.encoding and sys.stdout.encoding.lower() != "utf-8":
@@ -135,6 +136,13 @@ def _commit_id() -> str | None:
     return None if commit == "unknown" else commit
 
 
+def _holdout_marked(scan_dir: Path) -> bool:
+    """A run that kept the holdout marks its output dir (--signals) or the
+    signal's own dir (--signal)."""
+    return any((d / HOLDOUT_MARKER).exists()
+               for d in [scan_dir] + [scan_dir / key for key, _, _ in SIGNALS])
+
+
 # ── Commands ─────────────────────────────────────────────────────────────────
 
 
@@ -143,6 +151,9 @@ def cmd_add(args: argparse.Namespace) -> None:
     scan_dir = Path(args.scan_dir or DEFAULT_SCAN_DIR)
     if not scan_dir.exists():
         print(f"目錄不存在：{scan_dir}", file=sys.stderr)
+        sys.exit(1)
+    if _holdout_marked(scan_dir):
+        print(f"{scan_dir} 含 holdout 交易（--include-holdout），不可登錄為版本", file=sys.stderr)
         sys.exit(1)
 
     conn = _connect()
