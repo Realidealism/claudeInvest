@@ -25,6 +25,8 @@ from typing import Callable, TYPE_CHECKING
 import numpy as np
 from numpy.typing import NDArray
 
+from signal_backtest.trade import REASON_EXIT_SIGNAL
+
 if TYPE_CHECKING:
     from backtest.data import StockData
 
@@ -78,8 +80,9 @@ class TierConfig:
       * current_tier_idx — only ratchets UP (toward looser); tracks the
         loosest tier whose entry signal has fired since entry.
       * temp_strict_tier_idx — when a stricter tier's entry fires, that
-        stricter tier's defense rules become active for `temp_strict_days`
-        bars, then revert to current_tier's rules.
+        stricter tier's defense rules become active from that bar through
+        `temp_strict_days` bars after it (temp_strict_days + 1 bars in all),
+        then revert to current_tier's rules.
 
     The global exit -- SignalSet.long_exit/short_exit -- applies whatever
     the active tier. A tier may add its own exit, which counts only while
@@ -87,13 +90,15 @@ class TierConfig:
     same tier whose defense rules apply -- except that for the exit a
     looser tier firing on the entry bar counts as reached (the entry
     itself takes the strictest firing tier, so current_tier_idx starts
-    there). A tier may also set the initial defense of positions it
-    enters; None leaves the engine's argument.
+    there). A tier's exit is recorded as exit_reason, unless the global
+    exit fires on the same bar. A tier may also set the initial defense
+    of positions it enters; None leaves the engine's argument.
     """
     name: str           # "pick", "buy", "sell_flee", etc.
     entry: BoolArray
     defense_rules: list[DefenseRule] | None = None
     exit: BoolArray | None = None
+    exit_reason: str = REASON_EXIT_SIGNAL
     initial_period: int | None = None
     flood_tight_init: bool | None = None
 

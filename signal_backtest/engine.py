@@ -390,7 +390,8 @@ def run_side_backtest_tiered(
       current_tier_idx — only ratchets UP (toward looser idx); set on entry,
         upgraded when a looser tier's entry signal fires during holding.
       temp_strict_tier_idx — when a stricter tier's entry fires, this is set
-        and that tier's defense rules are active for temp_strict_days bars,
+        and that tier's defense rules are active from that bar through
+        temp_strict_days bars after it (temp_strict_days + 1 bars in all),
         then it expires and rules revert to current_tier_idx's rules.
 
     Exit (exit_) is global, applies regardless of active tier. A tier's own
@@ -528,10 +529,11 @@ def run_side_backtest_tiered(
             active_tier = tiers[active_idx]
             exit_tier = tiers[temp_strict_idx if temp_strict_idx >= 0
                               else max(current_tier_idx, entry_loosest_idx)]
-            if exit_reason is None and (
-                    bool(exit_[i])
-                    or (exit_tier.exit is not None and bool(exit_tier.exit[i]))):
-                exit_reason = REASON_EXIT_SIGNAL
+            if exit_reason is None:
+                if bool(exit_[i]):
+                    exit_reason = REASON_EXIT_SIGNAL
+                elif exit_tier.exit is not None and bool(exit_tier.exit[i]):
+                    exit_reason = exit_tier.exit_reason
 
             if exit_reason is not None:
                 trades.append(_make_trade(

@@ -16,6 +16,7 @@ from datetime import date
 REASON_ENTRY_INIT = "進場初始"
 REASON_FLOOR = "保底"
 REASON_EXIT_SIGNAL = "訊號出場"
+REASON_EXIT_GIVEBACK = "漲多回吐出場"
 REASON_EXIT_DEFENSE = "防守價觸發"
 REASON_EXIT_END = "回測結束"
 REASON_EXIT_GAP = "異常跳價"

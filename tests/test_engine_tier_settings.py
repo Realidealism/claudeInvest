@@ -10,7 +10,7 @@ import numpy as np
 
 from signal_backtest.engine import run_side_backtest_tiered
 from signal_backtest.signal import TierConfig
-from signal_backtest.trade import REASON_EXIT_END, REASON_EXIT_SIGNAL
+from signal_backtest.trade import REASON_EXIT_END, REASON_EXIT_GIVEBACK, REASON_EXIT_SIGNAL
 
 N = 30
 
@@ -85,6 +85,18 @@ def test_another_tiers_exit_does_not_count():
 def test_global_exit_still_applies():
     trades = run(_tiers([NONE, NONE, _bars(2)]), exit_=_bars(8))
     assert trades == [(2, 8, REASON_EXIT_SIGNAL)]
+
+
+def test_tier_exit_records_the_tiers_reason():
+    # user ruling 2026-10-20: the push tells a give-back from a flee reversal;
+    # the global exit wins when both fire on the bar
+    def tiers(exit_bar):
+        t = _tiers([_bars(2), NONE, NONE], exits=(_bars(exit_bar), None, None))
+        t[0].exit_reason = REASON_EXIT_GIVEBACK
+        return t
+    assert run(tiers(6)) == [(2, 6, REASON_EXIT_GIVEBACK)]
+    assert run(tiers(6), exit_=_bars(6)) == [(2, 6, REASON_EXIT_SIGNAL)]
+    assert run(tiers(9), exit_=_bars(6)) == [(2, 6, REASON_EXIT_SIGNAL)]
 
 
 def _initial(tiers, **kw):

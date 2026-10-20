@@ -41,6 +41,7 @@ def test_unified_long_tiers(data):
     assert list(tiers) == ["pick", "sell_flee", "buy"]
     assert tiers["pick"].exit is data.giveback and tiers["sell_flee"].exit is data.giveback
     assert tiers["buy"].exit is None
+    assert [tiers[k].exit_reason for k in tiers] == ["漲多回吐出場", "漲多回吐出場", "訊號出場"]
     assert [tiers[k].initial_period for k in tiers] == [None, 3, None]
     assert [tiers[k].flood_tight_init for k in tiers] == [None, None, None]
 

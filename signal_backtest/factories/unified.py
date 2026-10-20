@@ -16,10 +16,12 @@ Tier strictness ordering (list[0] = strictest, list[-1] = loosest):
 State machine while holding (engine.run_side_backtest_tiered):
   - current_tier_idx ratchets toward looser; never downgrades
   - When stricter tier signal fires during holding, temp_strict overrides
-    for 5 bars then expires and reverts to current_tier
+    from that bar through 5 bars after it (6 bars in all), then expires
+    and reverts to current_tier
   - Exit is single signal (long: buy_flee, short: sell_flee), tier-agnostic,
     plus each tier's own exit while that tier is active (temp_strict or
-    current): pick and sell_flee carry the v352 transient give-back
+    current): pick and sell_flee carry the v352 transient give-back,
+    recorded as 漲多回吐出場 (訊號出場 when buy_flee fires on the same bar)
   - Initial defense follows the entering tier: sell_flee 3 bars, buy_flee
     3 bars with flood-day tight init (v201); the others the default 5
   (the tier settings mirror those the signals' own factories adopted;
@@ -48,6 +50,7 @@ from signal_backtest.factories._conditions import (
 from signal_backtest.factories.pick_touch import pick_signal, touch_signal
 from signal_backtest.factories.buy_sell import buy_signal, sell_signal
 from signal_backtest.factories.flee import buy_flee_factory, sell_flee_factory
+from signal_backtest.trade import REASON_EXIT_GIVEBACK
 
 if TYPE_CHECKING:
     from backtest.data import StockData
@@ -72,9 +75,9 @@ def unified_long_factory(data: "StockData") -> SignalSpec:
     # Tier ordering: list[0] = strictest, list[-1] = loosest
     long_tiers = [
         TierConfig(name="pick",       entry=pick,      defense_rules=pick_spec.long_defense,
-                   exit=giveback),
+                   exit=giveback, exit_reason=REASON_EXIT_GIVEBACK),
         TierConfig(name="sell_flee",  entry=sell_flee, defense_rules=sell_flee_spec.long_defense,
-                   exit=giveback, initial_period=3),
+                   exit=giveback, exit_reason=REASON_EXIT_GIVEBACK, initial_period=3),
         TierConfig(name="buy",        entry=buy,       defense_rules=buy_spec.long_defense),
     ]
 
