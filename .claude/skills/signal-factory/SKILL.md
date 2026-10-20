@@ -186,6 +186,16 @@ python -m signal_backtest --signals {target},unified_long,unified_short \
 - **MUST** 把 6 訊號 trades 串接後算 net PF 當總體指標
 - Per-signal Δ 只是診斷，不是決策依據
 
+**unified 同步（2026-10-20 使用者裁定）**：線上持倉來自 unified_long／unified_short，不是 6 訊號。tier 的防守規則取自各訊號 spec 的 `*_defense`，會自動同步；以下寫在個別訊號 factory 的東西，unified **不會**自動吃到：
+- 出場 OR（如 v352 give-back）→ 對應 `TierConfig.exit`
+- `*_initial_period`、`*_flood_tight_init` → 對應 `TierConfig.initial_period`／`flood_tight_init`
+- factory 本體另加的進場過濾（unified 從 `_conditions` 自己重算進場）→ 要改 `factories/unified.py` 的進場
+- `*_floor_period`（unified 是整份 spec 一個值，TierConfig 沒有這欄）→ 不能逐 tier 同步，要另外裁定
+
+動作：
+- 報告 **MUST** 列 unified_long／unified_short 的 Δ
+- 改動碰到上列任一項時（**看改了什麼，不看 unified 輸出有沒有變**：同時改了防守規則時 unified 也會變，缺的那項會被掩蓋），**MUST** 點名「線上未同步：<哪一項>」，並問使用者是否同步到 unified
+
 ## 5. Flee 訊號 force-exit 設計與評估
 
 `buy_flee` / `sell_flee` 是整個 signal-factory 最特殊的訊號類別 — 4 個子段集中討論。

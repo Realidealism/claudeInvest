@@ -17,7 +17,13 @@ State machine while holding (engine.run_side_backtest_tiered):
   - current_tier_idx ratchets toward looser; never downgrades
   - When stricter tier signal fires during holding, temp_strict overrides
     for 5 bars then expires and reverts to current_tier
-  - Exit is single signal (long: buy_flee, short: sell_flee), tier-agnostic
+  - Exit is single signal (long: buy_flee, short: sell_flee), tier-agnostic,
+    plus each tier's own exit while that tier is active (temp_strict or
+    current): pick and sell_flee carry the v352 transient give-back
+  - Initial defense follows the entering tier: sell_flee 3 bars, buy_flee
+    3 bars with flood-day tight init (v201); the others the default 5
+  (the tier settings mirror those the signals' own factories adopted;
+  user ruling 2026-10-20)
 """
 
 from __future__ import annotations
@@ -30,6 +36,7 @@ from signal_backtest.signal import (
     DefenseRule, SignalSet, SignalSpec, TierConfig,
 )
 from signal_backtest.factories._conditions import (
+    _transient_giveback_exit,
     buy_condition,
     buy_flee_signal,
     pick_condition,
@@ -56,6 +63,7 @@ def unified_long_factory(data: "StockData") -> SignalSpec:
     buy = buy_condition(data) & not_dead_fish
     sell_flee = sell_flee_signal(data) & not_dead_fish
     long_exit = buy_flee_signal(data)
+    giveback = _transient_giveback_exit(data)
 
     pick_spec = pick_signal(data)
     buy_spec = buy_signal(data)
@@ -63,8 +71,10 @@ def unified_long_factory(data: "StockData") -> SignalSpec:
 
     # Tier ordering: list[0] = strictest, list[-1] = loosest
     long_tiers = [
-        TierConfig(name="pick",       entry=pick,      defense_rules=pick_spec.long_defense),
-        TierConfig(name="sell_flee",  entry=sell_flee, defense_rules=sell_flee_spec.long_defense),
+        TierConfig(name="pick",       entry=pick,      defense_rules=pick_spec.long_defense,
+                   exit=giveback),
+        TierConfig(name="sell_flee",  entry=sell_flee, defense_rules=sell_flee_spec.long_defense,
+                   exit=giveback, initial_period=3),
         TierConfig(name="buy",        entry=buy,       defense_rules=buy_spec.long_defense),
     ]
 
@@ -99,7 +109,8 @@ def unified_short_factory(data: "StockData") -> SignalSpec:
     buy_flee_spec = buy_flee_factory(data)
 
     short_tiers = [
-        TierConfig(name="buy_flee", entry=buy_flee, defense_rules=buy_flee_spec.short_defense),
+        TierConfig(name="buy_flee", entry=buy_flee, defense_rules=buy_flee_spec.short_defense,
+                   initial_period=3, flood_tight_init=True),
         TierConfig(name="touch",    entry=touch,    defense_rules=touch_spec.short_defense),
         TierConfig(name="sell",     entry=sell,     defense_rules=sell_spec.short_defense),
     ]

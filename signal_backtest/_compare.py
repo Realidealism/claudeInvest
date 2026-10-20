@@ -84,8 +84,10 @@ def compute_stats(df: pd.DataFrame) -> dict | None:
     win = (pnl_raw > 0).sum()
     win_pct = win / n * 100
 
-    # Chronological order for drawdown
-    df_sorted = df.sort_values("出場日期")
+    # Chronological order for drawdown; ties broken by stock and entry so the
+    # drawdown does not depend on the order the rows arrived in
+    keys = [c for c in ("出場日期", "股票代號", "進場日期") if c in df.columns]
+    df_sorted = df.sort_values(keys, kind="mergesort")
     pnl_chrono = df_sorted["報酬率"].values.astype(np.float64)
     pnl_chrono_net = pnl_chrono - COST_PCT
     mdd_raw = _max_drawdown(pnl_chrono) * 100

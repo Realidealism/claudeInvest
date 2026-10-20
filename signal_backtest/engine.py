@@ -393,7 +393,13 @@ def run_side_backtest_tiered(
         and that tier's defense rules are active for temp_strict_days bars,
         then it expires and rules revert to current_tier_idx's rules.
 
-    Exit (exit_) is global, applies regardless of active tier.
+    Exit (exit_) is global, applies regardless of active tier. A tier's own
+    exit (TierConfig.exit) counts while that tier is the active one --
+    temp_strict if set, else current -- as its defense rules do, except
+    that a looser tier also firing on the entry bar counts as reached for
+    the exit (the entry itself takes the strictest firing tier). A tier's
+    initial_period / flood_tight_init set the initial defense of the
+    positions it enters; None falls back to this function's arguments.
     """
     if side not in ("long", "short"):
         raise ValueError(f"side must be 'long' or 'short', got {side!r}")
@@ -411,12 +417,16 @@ def run_side_backtest_tiered(
     is_long = side == "long"
 
     last_boundary = _compute_last_boundary(data.close)
-    if is_long:
-        initial_arr = rolling_lowest_safe(data.low, initial_period, last_boundary)
-        floor_arr = rolling_lowest_safe(data.low, floor_period, last_boundary)
-    else:
-        initial_arr = rolling_highest_safe(data.high, initial_period, last_boundary)
-        floor_arr = rolling_highest_safe(data.high, floor_period, last_boundary)
+    rolling_extreme = rolling_lowest_safe if is_long else rolling_highest_safe
+    extreme_src = data.low if is_long else data.high
+    floor_arr = rolling_extreme(extreme_src, floor_period, last_boundary)
+    # Initial-defense arrays per tier: the tier's period, else initial_period
+    tier_periods = [initial_period if t.initial_period is None else t.initial_period
+                    for t in tiers]
+    initial_by_period = {p: rolling_extreme(extreme_src, p, last_boundary)
+                         for p in set(tier_periods)}
+    tier_flood = [flood_tight_init if t.flood_tight_init is None else t.flood_tight_init
+                  for t in tiers]
 
     trades: list[Trade] = []
 
@@ -426,6 +436,7 @@ def run_side_backtest_tiered(
     pos_defense_price = float("nan")
     pos_defense_events: list[DefenseEvent] = []
     current_tier_idx = -1       # -1 = flat
+    entry_loosest_idx = -1      # loosest tier firing on the entry bar (exits only)
     temp_strict_idx = -1        # -1 = no temporary strict
     temp_strict_until = -1      # bar index when temp expires
 
@@ -509,7 +520,17 @@ def run_side_backtest_tiered(
                 elif (not is_long) and price > pos_defense_price:
                     exit_reason = REASON_EXIT_DEFENSE
 
-            if exit_reason is None and bool(exit_[i]):
+            # Active tier: temp_strict overrides current, for both its exit
+            # and its defense rules. For the exit only, a looser tier that
+            # fired on the entry bar counts as reached (user ruling
+            # 2026-10-20: a position buy also entered keeps buy's exits).
+            active_idx = temp_strict_idx if temp_strict_idx >= 0 else current_tier_idx
+            active_tier = tiers[active_idx]
+            exit_tier = tiers[temp_strict_idx if temp_strict_idx >= 0
+                              else max(current_tier_idx, entry_loosest_idx)]
+            if exit_reason is None and (
+                    bool(exit_[i])
+                    or (exit_tier.exit is not None and bool(exit_tier.exit[i]))):
                 exit_reason = REASON_EXIT_SIGNAL
 
             if exit_reason is not None:
@@ -538,9 +559,7 @@ def run_side_backtest_tiered(
                     pos_defense_price = new_def
                     pos_defense_events.append(ev)
 
-                # Pick active tier's defense rules: temp_strict overrides current
-                active_idx = temp_strict_idx if temp_strict_idx >= 0 else current_tier_idx
-                active_tier = tiers[active_idx]
+                # Active tier's defense rules
                 if active_tier.defense_rules:
                     for rule in active_tier.defense_rules:
                         if not bool(rule.trigger[i]):
@@ -571,10 +590,11 @@ def run_side_backtest_tiered(
                     pos_entry_index = i
                     current_tier_idx = idx
                     temp_strict_idx = -1
-                    if flood_tight_init and bool(data.volume_result.flood[i]):
+                    entry_loosest_idx = max(k for k, t in enumerate(tiers) if bool(t.entry[i]))
+                    if tier_flood[idx] and bool(data.volume_result.flood[i]):
                         initial_def = float(data.low[i] if is_long else data.high[i])
                     else:
-                        initial_def = float(initial_arr[i])
+                        initial_def = float(initial_by_period[tier_periods[idx]][i])
                     pos_defense_price = initial_def
                     pos_defense_events = [DefenseEvent(
                         date=data.dates[i],

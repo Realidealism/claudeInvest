@@ -81,12 +81,21 @@ class TierConfig:
         stricter tier's defense rules become active for `temp_strict_days`
         bars, then revert to current_tier's rules.
 
-    Exit is NOT tier-specific — set on SignalSet.long_exit/short_exit and
-    applies regardless of active tier.
+    The global exit -- SignalSet.long_exit/short_exit -- applies whatever
+    the active tier. A tier may add its own exit, which counts only while
+    that tier is the active one (temp_strict if set, else current), the
+    same tier whose defense rules apply -- except that for the exit a
+    looser tier firing on the entry bar counts as reached (the entry
+    itself takes the strictest firing tier, so current_tier_idx starts
+    there). A tier may also set the initial defense of positions it
+    enters; None leaves the engine's argument.
     """
     name: str           # "pick", "buy", "sell_flee", etc.
     entry: BoolArray
     defense_rules: list[DefenseRule] | None = None
+    exit: BoolArray | None = None
+    initial_period: int | None = None
+    flood_tight_init: bool | None = None
 
 
 @dataclass
