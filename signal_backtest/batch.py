@@ -31,6 +31,10 @@ from signal_backtest.trade import Trade, SideResult
 # Written at the top of an output dir that kept the holdout (--include-holdout);
 # _versions add refuses such a dir.
 HOLDOUT_MARKER = "HOLDOUT_INCLUDED"
+# A --short-constraints run's output dir, holding the mode; such a run is an
+# experiment arm until the user adopts one (2026-10-20)
+SHORT_CONSTRAINTS_MARKER = "SHORT_CONSTRAINTS"
+SHORT_CONSTRAINT_MODES = ("off", "margin", "margin_futures")
 
 
 def fetch_listed_stocks() -> list[tuple[str, str]]:
@@ -71,6 +75,8 @@ def _process_one_stock(
     factory_names: list[str],
     start_index: int,
     use_cache: bool = False,
+    short_events: list | None = None,
+    futures_days: set | None = None,
 ) -> tuple[
     str,
     dict[str, list[Trade]],
@@ -101,6 +107,18 @@ def _process_one_stock(
             skipped_by_sig[n].append((sid, f"資料不足 ({data.n} 天)"))
         return sid, trades_by_sig, sides_by_sig, skipped_by_sig
 
+    # Margin constraints apply to the short side only; None = unconstrained.
+    # Where stock futures were usable a short goes through them instead.
+    short_masks = (None, None, None)
+    if short_events is not None:
+        from signal_backtest.short_constraints import futures_exempt, masks
+        force_exit, entry_block = masks(data.dates, short_events)
+        exempt = None
+        if futures_days is not None:
+            exempt = futures_exempt(data.dates, futures_days)
+            entry_block = entry_block & ~exempt
+        short_masks = (force_exit, entry_block, exempt)
+
     for name in factory_names:
         factory = SIGNAL_FACTORIES[name]
         try:
@@ -127,6 +145,8 @@ def _process_one_stock(
              spec.short_initial_period,
              spec.short_flood_tight_init),
         ):
+            force_exit, entry_block, cover_exempt = (short_masks if side == "short"
+                                                     else (None, None, None))
             try:
                 if tiers is not None:
                     result = run_side_backtest_tiered(
@@ -136,6 +156,9 @@ def _process_one_stock(
                         floor_period=floor_period,
                         initial_period=init_period,
                         flood_tight_init=flood_ti,
+                        force_exit=force_exit,
+                        entry_block=entry_block,
+                        cover_exempt=cover_exempt,
                     )
                 else:
                     result = run_side_backtest(
@@ -144,6 +167,9 @@ def _process_one_stock(
                         floor_period=floor_period,
                         initial_period=init_period,
                         flood_tight_init=flood_ti,
+                        force_exit=force_exit,
+                        entry_block=entry_block,
+                        cover_exempt=cover_exempt,
                     )
             except InsufficientDataError as e:
                 skipped_by_sig[name].append((sid, str(e)))
@@ -169,6 +195,7 @@ def run_batch_multi(
     workers: int = 1,
     use_cache: bool = False,
     include_holdout: bool = False,
+    short_constraints: str = "off",
 ) -> dict[str, tuple[Path, Path]]:
     """Multi-signal batch runner — share one StockData instance across signals.
 
@@ -182,10 +209,28 @@ def run_batch_multi(
     full-universe runs; results are merged in arrival order which is fine
     because aggregation sorts internally.
 
+    ``short_constraints="margin"`` puts every short on margin: forced cover on
+    the 融券最後回補日 and no entry while 停券 (signal_backtest.short_constraints);
+    ``"margin_futures"`` does so only where stock futures were not usable.
+
     Returns ``{name: (trades_path, sides_path)}``.
     """
     if not factories:
         raise ValueError("factories must be non-empty")
+    if short_constraints not in SHORT_CONSTRAINT_MODES:
+        raise ValueError(f"short_constraints must be one of {SHORT_CONSTRAINT_MODES}, "
+                         f"got {short_constraints!r}")
+    calendar = futures = None
+    if short_constraints != "off":
+        from signal_backtest.short_constraints import load_calendar, load_futures_availability
+        calendar = load_calendar()
+        if short_constraints == "margin_futures":
+            futures = load_futures_availability()
+
+    def short_args(sid):
+        if calendar is None:
+            return None, None
+        return calendar.get(sid, []), None if futures is None else futures.get(sid, set())
 
     sub_dirs: dict[str, Path] = {}
     for name in factories:
@@ -202,7 +247,8 @@ def run_batch_multi(
 
     print(
         f"股票池：{len(stocks)} 檔，訊號：{', '.join(factories)}，"
-        f"workers={workers}, cache={'on' if use_cache else 'off'}",
+        f"workers={workers}, cache={'on' if use_cache else 'off'}, "
+        f"short_constraints={short_constraints}",
         file=sys.stderr,
     )
 
@@ -215,12 +261,12 @@ def run_batch_multi(
 
     if workers <= 1:
         results_iter = (
-            _process_one_stock(sid, factory_names, start_index, use_cache)
+            _process_one_stock(sid, factory_names, start_index, use_cache, *short_args(sid))
             for sid, _name in stocks
         )
     else:
         args_iter = [
-            (sid, factory_names, start_index, use_cache)
+            (sid, factory_names, start_index, use_cache, *short_args(sid))
             for sid, _name in stocks
         ]
         # chunksize=4: stocks vary in length but per-stock cost is roughly

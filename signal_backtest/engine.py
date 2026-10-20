@@ -37,6 +37,7 @@ from signal_backtest.trade import (
     REASON_EXIT_DEFENSE,
     REASON_EXIT_END,
     REASON_EXIT_GAP,
+    REASON_EXIT_FORCED_COVER,
 )
 
 
@@ -167,8 +168,16 @@ def run_side_backtest(
     floor_period: int = 13,
     initial_period: int = 5,
     flood_tight_init: bool = False,
+    force_exit: BoolArray | None = None,
+    entry_block: BoolArray | None = None,
+    cover_exempt: BoolArray | None = None,
 ) -> SideResult:
-    """Run one side of a signal backtest on a single stock."""
+    """Run one side of a signal backtest on a single stock.
+
+    force_exit closes an open position at that bar's close when nothing else
+    does (reason REASON_EXIT_FORCED_COVER), unless the position opened on a
+    cover_exempt bar; entry_block bars open nothing. All None leave the run
+    as it was (see short_constraints)."""
     if side not in ("long", "short"):
         raise ValueError(f"side must be 'long' or 'short', got {side!r}")
 
@@ -279,6 +288,9 @@ def run_side_backtest(
             # ── 2. Signal exit ─────────────────────────────────────────
             if exit_reason is None and bool(exit_[i]):
                 exit_reason = REASON_EXIT_SIGNAL
+            if exit_reason is None and force_exit is not None and bool(force_exit[i]) and not (
+                    cover_exempt is not None and bool(cover_exempt[pos_entry_index])):
+                exit_reason = REASON_EXIT_FORCED_COVER
 
             if exit_reason is not None:
                 trades.append(_make_trade(
@@ -326,7 +338,8 @@ def run_side_backtest(
                         pos_defense_events.append(ev)
 
         # ── 4. Entry check (if flat) ───────────────────────────────────
-        if pos_entry_date is None and bool(entry[i]):
+        if pos_entry_date is None and bool(entry[i]) and not (
+                entry_block is not None and bool(entry_block[i])):
             pos_entry_date = data.dates[i]
             pos_entry_price = price
             pos_entry_index = i
@@ -381,6 +394,9 @@ def run_side_backtest_tiered(
     temp_strict_days: int = 5,
     initial_period: int = 5,
     flood_tight_init: bool = False,
+    force_exit: BoolArray | None = None,
+    entry_block: BoolArray | None = None,
+    cover_exempt: BoolArray | None = None,
 ) -> SideResult:
     """Dynamic-tier backtest with strict→loose ordering.
 
@@ -401,6 +417,9 @@ def run_side_backtest_tiered(
     the exit (the entry itself takes the strictest firing tier). A tier's
     initial_period / flood_tight_init set the initial defense of the
     positions it enters; None falls back to this function's arguments.
+
+    force_exit / entry_block / cover_exempt as in run_side_backtest;
+    entry_block stops a new position only, not tier changes while holding.
     """
     if side not in ("long", "short"):
         raise ValueError(f"side must be 'long' or 'short', got {side!r}")
@@ -534,6 +553,9 @@ def run_side_backtest_tiered(
                     exit_reason = REASON_EXIT_SIGNAL
                 elif exit_tier.exit is not None and bool(exit_tier.exit[i]):
                     exit_reason = exit_tier.exit_reason
+                elif force_exit is not None and bool(force_exit[i]) and not (
+                        cover_exempt is not None and bool(cover_exempt[pos_entry_index])):
+                    exit_reason = REASON_EXIT_FORCED_COVER
 
             if exit_reason is not None:
                 trades.append(_make_trade(
@@ -584,7 +606,7 @@ def run_side_backtest_tiered(
                             pos_defense_events.append(ev)
 
         # Entry check — first firing tier (strict→loose order = list[0] first)
-        if pos_entry_date is None:
+        if pos_entry_date is None and not (entry_block is not None and bool(entry_block[i])):
             for idx, tier in enumerate(tiers):
                 if bool(tier.entry[i]):
                     pos_entry_date = data.dates[i]

@@ -23,7 +23,8 @@ if sys.stdout.encoding and sys.stdout.encoding.lower() != "utf-8":
 import pandas as pd
 
 from signal_backtest.signal import SIGNAL_FACTORIES
-from signal_backtest.batch import HOLDOUT_MARKER, run_batch, run_batch_multi
+from signal_backtest.batch import (HOLDOUT_MARKER, SHORT_CONSTRAINT_MODES,
+                                   SHORT_CONSTRAINTS_MARKER, run_batch, run_batch_multi)
 from signal_backtest.engine import HOLDOUT_START
 from signal_backtest.aggregate import aggregate
 from signal_backtest.report import format_report
@@ -94,7 +95,28 @@ def parse_args() -> argparse.Namespace:
              f"For the monthly reconciliation only, never for tuning; the "
              f"output dir is marked and _versions add refuses it.",
     )
+    p.add_argument(
+        "--short-constraints",
+        choices=SHORT_CONSTRAINT_MODES,
+        default="off",
+        help="margin: every short is on margin -- forced cover on the "
+             "融券最後回補日 and no entry while 停券; margin_futures: the same "
+             "except where stock futures were usable (--signals only). "
+             "The output dir is marked with the mode.",
+    )
     return p.parse_args()
+
+
+def _mark_short_constraints(output_dir: Path, mode: str) -> None:
+    """Record a constrained run in its output dir; an unconstrained run
+    clears a mark an earlier run left there."""
+    mark = output_dir / SHORT_CONSTRAINTS_MARKER
+    if mode == "off":
+        mark.unlink(missing_ok=True)
+        return
+    output_dir.mkdir(parents=True, exist_ok=True)
+    mark.write_text(f"{mode}\n", encoding="utf-8")
+    print(f"做空限制：{mode}", file=sys.stderr)
 
 
 def _mark_holdout(output_dir: Path, include: bool) -> None:
@@ -138,6 +160,7 @@ def main() -> None:
         factories = {n: SIGNAL_FACTORIES[n] for n in names}
         output_dir = args.output or Path("tmp/signal_backtest")
         _mark_holdout(output_dir, args.include_holdout)
+        _mark_short_constraints(output_dir, args.short_constraints)
 
         results = run_batch_multi(
             factories=factories,
@@ -147,6 +170,7 @@ def main() -> None:
             workers=args.workers,
             use_cache=args.cache,
             include_holdout=args.include_holdout,
+            short_constraints=args.short_constraints,
         )
         for name, (trades_path, sides_path) in results.items():
             print(f"\n=== [{name}] ===")
@@ -164,6 +188,10 @@ def main() -> None:
     if args.signal not in SIGNAL_FACTORIES:
         print(f"未知訊號：{args.signal}", file=sys.stderr)
         print(f"可用訊號：{', '.join(SIGNAL_FACTORIES)}", file=sys.stderr)
+        sys.exit(1)
+
+    if args.short_constraints != "off":
+        print("--short-constraints 只支援 --signals", file=sys.stderr)
         sys.exit(1)
 
     factory = SIGNAL_FACTORIES[args.signal]

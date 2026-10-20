@@ -51,7 +51,7 @@ def test_sides_count_what_was_written(tmp_path):
 def test_multi_run_honours_the_flag(tmp_path, monkeypatch, include, n):
     monkeypatch.setattr(batch, "fetch_listed_stocks", lambda: [("1101", "x")])
     side = SideResult("1101", "1101", "做多", BEFORE, AFTER, list(TRADES))
-    monkeypatch.setattr(batch, "_process_one_stock", lambda sid, names, si, cache: (
+    monkeypatch.setattr(batch, "_process_one_stock", lambda sid, names, si, cache, short_events, futures_days: (
         sid, {"pick": list(TRADES)}, {"pick": [side]}, {"pick": []}))
     batch.run_batch_multi({"pick": object()}, tmp_path, workers=1, include_holdout=include)
     assert len(pd.read_parquet(tmp_path / "pick" / "trades.parquet")) == n

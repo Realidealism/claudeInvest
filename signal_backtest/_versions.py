@@ -32,7 +32,7 @@ from pathlib import Path
 import pandas as pd
 
 from signal_backtest._compare import compute_pool, compute_stats, SIGNALS, COST_PCT
-from signal_backtest.batch import HOLDOUT_MARKER
+from signal_backtest.batch import HOLDOUT_MARKER, SHORT_CONSTRAINTS_MARKER
 
 # UTF-8 on Windows console
 if sys.stdout.encoding and sys.stdout.encoding.lower() != "utf-8":
@@ -154,6 +154,9 @@ def cmd_add(args: argparse.Namespace) -> None:
         sys.exit(1)
     if _holdout_marked(scan_dir):
         print(f"{scan_dir} 含 holdout 交易（--include-holdout），不可登錄為版本", file=sys.stderr)
+        sys.exit(1)
+    if (scan_dir / SHORT_CONSTRAINTS_MARKER).exists():
+        print(f"{scan_dir} 是做空限制的實驗臂（--short-constraints），不可登錄為版本", file=sys.stderr)
         sys.exit(1)
 
     conn = _connect()

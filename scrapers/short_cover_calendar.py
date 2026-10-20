@@ -21,12 +21,16 @@ import re
 from datetime import date
 
 from db.connection import get_cursor
-from utils.format_shift import (ScrapeResult, failed_legs, openapi_rows, parsed_state,
-                                twse_rwd_rows)
+from utils.format_shift import (EMPTY, NO_RESPONSE, OK, UNREADABLE, ScrapeResult,
+                                failed_legs, openapi_rows, parsed_state, twse_rwd_rows)
 from utils.http_client import fetch_json_retry
 
 TWSE_URL = "https://www.twse.com.tw/rwd/zh/marginTrading/BFI84U"
 TPEX_URL = "https://www.tpex.org.tw/openapi/v1/tpex_margin_trading_term"
+# History: the same board for past 停券起日 ranges (TWSE from 2010-11-08,
+# TPEx from 2015-03; probed 2026-10-20). The boards above ignore dates.
+TWSE_HIST_URL = "https://www.twse.com.tw/rwd/zh/marginTrading/BFI84U2"
+TPEX_HIST_URL = "https://www.tpex.org.tw/www/zh-tw/margin/term"
 
 
 def _roc_to_date(roc_str) -> date | None:
@@ -52,7 +56,7 @@ def _norm_reason(val) -> str:
         return "減資"
     if "增資" in s or "現增" in s:
         return "現增"
-    if "除權息" in s:
+    if "除權息" in s or ("除權" in s and "息" in s):    # TPEx history writes 除權、息
         return "除權息"
     if "除權" in s:
         return "除權"
@@ -107,6 +111,61 @@ def _fetch_tpex() -> tuple[list[dict], str]:
         except (AttributeError, ValueError, TypeError):
             continue
     return results, parsed_state(state, results)
+
+
+def _hist_records(rows, market: str, source: str) -> list[dict]:
+    """[代號, 名稱, 停券起日, 停券迄日, 原因] rows of a history board."""
+    results = []
+    for row in rows:
+        try:
+            stock_id = str(row[0]).strip()
+            if not stock_id or not stock_id[0].isdigit():
+                continue
+            results.append({
+                "stock_id": stock_id,
+                "last_cover_date": _roc_to_date(row[2]),
+                "suspension_end": _roc_to_date(row[3]),
+                "reason": _norm_reason(row[4]),
+                "raw_reason": str(row[4]).strip(),
+                "market": market,
+                "source": source,
+            })
+        except (IndexError, ValueError, TypeError):
+            continue
+    return results
+
+
+def fetch_history(start: date, end: date) -> tuple[list[dict], dict[str, str]]:
+    """Both markets' boards for 停券起日 in [start, end]; no DB access.
+    Returns the records and each leg's state."""
+    data = fetch_json_retry(
+        TWSE_HIST_URL,
+        params={"startDate": start.strftime("%Y%m%d"), "endDate": end.strftime("%Y%m%d"),
+                "response": "json"},
+        validate=lambda d: isinstance(d, dict) and d.get("stat") == "OK",
+    )
+    rows, twse_state = twse_rwd_rows(data)
+    twse = _hist_records(rows, "TWSE", "BFI84U2")
+    twse_state = parsed_state(twse_state, twse)
+
+    data = fetch_json_retry(
+        TPEX_HIST_URL,
+        params={"startDate": start.strftime("%Y/%m/%d"), "endDate": end.strftime("%Y/%m/%d"),
+                "response": "json"},
+        validate=lambda d: isinstance(d, dict) and d.get("stat") == "ok",
+    )
+    if data is None:
+        rows, tpex_state = [], NO_RESPONSE
+    elif not (isinstance(data, dict) and data.get("stat") == "ok"
+              and isinstance(data.get("tables"), list) and data["tables"]
+              and isinstance(data["tables"][0].get("data"), list)):
+        rows, tpex_state = [], UNREADABLE
+    else:
+        rows = data["tables"][0]["data"]
+        tpex_state = OK if rows else EMPTY
+    tpex = _hist_records(rows, "TPEx", "tpex_term_hist")
+    tpex_state = parsed_state(tpex_state, tpex)
+    return twse + tpex, {"TWSE": twse_state, "TPEx": tpex_state}
 
 
 _UPSERT_SQL = """
