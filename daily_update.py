@@ -93,11 +93,15 @@ SCRAPERS = [
     # TAIFEX futures/options (期貨/選擇權) — non-critical; the after-hours
     # session for the same day may be incomplete and self-corrects on the next
     # run. Futures and institutional are monitored all the same: the day
-    # session is always there by 21:30 (77-104 futures rows; institutional
+    # session is always there by 21:30 (77-104 TX/MTX/TMF rows, and about
+    # 2,000 day-session rows of stock futures since 2026-10-21; institutional
     # 69 futures + 30 options rows on every night logged and every trading day
     # in the table), and both feed the thermometer's stance. Run by hand
     # before TAIFEX publishes, they will report a failure.
     ("TAIFEX futures",          "scrapers.taifex_futures",       "scrape_date", True),
+    # Stock futures contract list (321 codes on 2026-10-20), never empty; runs
+    # after TAIFEX futures, whose rows it checks for codes it does not know.
+    ("Stock futures contracts", "scrapers.stock_futures_contracts", "scrape_date", True),
     ("TAIFEX institutional",    "scrapers.taifex_institutional", "scrape_date", True),
     # P/C ratio: one row on every trading day in the table (120 of 120), so
     # it is monitored too; a run by hand before TAIFEX publishes will report.

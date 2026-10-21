@@ -48,6 +48,9 @@ _DAILY_TABLES = [
     ("日線收盤", "tw.daily_prices", "trade_date"),
     ("市場廣度", "tw.market_breadth", "trade_date"),
     ("評分快照", "tw.score_snapshot", "snapshot_date"),
+    # stamped by scrapers.stock_futures_contracts every run; the backtest's
+    # short-sale constraint reads it (ruling 2026-10-21)
+    ("個股期對照", "tw.stock_futures_contracts", "last_listed"),
 ]
 
 # Sources that update on their own rhythm rather than every trading day, so the

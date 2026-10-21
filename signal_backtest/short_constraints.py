@@ -16,7 +16,6 @@ from __future__ import annotations
 
 from bisect import bisect_left, bisect_right
 from datetime import date
-from pathlib import Path
 
 import numpy as np
 
@@ -24,9 +23,10 @@ OFFICIAL_SOURCES = ("BFI84U", "BFI84U2", "tpex_term", "tpex_term_hist")
 NO_COVER_REASONS = ("臨時會",)
 # 停止融券賣出四日 (§76) where the board gives no 停券迄日
 DEFAULT_BLOCK_BARS = 4
-# Experiment input for the margin_futures arm (not yet a DB table)
-FUTURES_AVAILABILITY = (Path(__file__).resolve().parents[1]
-                        / "tmp/short_sale_research/futures/availability.parquet")
+# Stock futures are usable when the standard contracts traded at least this
+# many lots a day on average over the window of trading days before
+FUTURES_MIN_LOTS = 50
+FUTURES_WINDOW = 20
 
 Event = tuple[date, date | None]   # (停券起日 = 最後回補日, 停券迄日)
 
@@ -49,15 +49,58 @@ def load_calendar() -> dict[str, list[Event]]:
     return out
 
 
-def load_futures_availability(path=FUTURES_AVAILABILITY) -> dict[str, set[date]]:
-    """{stock_id: dates its stock futures were usable}: the standard contract's
-    day-session volume, all months summed, averaged >= 50 lots over the 20
-    trading days before (user ruling 2026-10-20). Built offline from TAIFEX
-    daily data (tmp/short_sale_research/futures/)."""
+def load_futures_availability() -> dict[str, set[date]]:
+    """{stock_id: dates its stock futures were usable}: the standard
+    contracts' day-session volume (spread rows out), all months summed,
+    averaged >= FUTURES_MIN_LOTS over the FUTURES_WINDOW trading days before,
+    the day itself excluded (user ruling 2026-10-20). A trading day without a
+    row counts as 0; trading days are TAIEX's and TAIFEX's together. Read-only
+    (tw.taifex_futures_daily, tw.stock_futures_contracts)."""
     import pandas as pd
-    df = pd.read_parquet(path)
-    df = df[df["avail"]]
-    return {sid: set(g["trade_date"]) for sid, g in df.groupby("stock_id")}
+    from db.connection import get_cursor
+    with get_cursor(commit=False) as cur:
+        cur.execute(
+            """SELECT c.stock_id, f.trade_date, SUM(COALESCE(f.volume, 0)) AS volume
+               FROM tw.taifex_futures_daily f
+               JOIN tw.stock_futures_contracts c ON c.contract = f.contract
+               WHERE c.kind = 'stock' AND c.standard AND f.session = '一般'
+                 AND f.contract_month NOT LIKE '%%/%%'
+               GROUP BY c.stock_id, f.trade_date""")
+        vol = pd.DataFrame(cur.fetchall(), columns=["stock_id", "trade_date", "volume"])
+        cur.execute("SELECT trade_date FROM tw.index_prices WHERE index_id = 'TAIEX'")
+        taiex = {r["trade_date"] for r in cur.fetchall()}
+        cur.execute("SELECT DISTINCT trade_date FROM tw.taifex_futures_daily WHERE session = '一般'")
+        taifex = {r["trade_date"] for r in cur.fetchall()}
+        cur.execute("SELECT MAX(trade_date) AS d FROM tw.daily_prices")
+        prices_last = cur.fetchone()["d"]
+    _check_futures_feed(set(vol["trade_date"]), taiex, prices_last)
+    return availability_from(vol, sorted(taiex | taifex))
+
+
+def _check_futures_feed(have: set[date], taiex: set[date], prices_last: date | None) -> None:
+    """A missing day reads as no futures traded, which quietly puts shorts on
+    margin; fail instead when the stock futures stop before the daily prices
+    or skip a trading day."""
+    if not have:
+        raise RuntimeError("no stock futures rows (tw.taifex_futures_daily / tw.stock_futures_contracts)")
+    first, last = min(have), max(have)
+    gaps = sorted(d for d in taiex if first <= d <= last and d not in have)
+    if gaps or (prices_last is not None and last < prices_last):
+        raise RuntimeError(f"stock futures feed incomplete: last day {last} (daily prices to {prices_last}), "
+                           f"trading days without rows {[str(d) for d in gaps[:10]]}"
+                           f"{' ...' if len(gaps) > 10 else ''}")
+
+
+def availability_from(vol, days: list[date]) -> dict[str, set[date]]:
+    """The rule of load_futures_availability on a (stock_id, trade_date,
+    volume) frame of standard day-session volume and the trading days."""
+    if vol.empty:
+        return {}
+    v = vol.pivot(index="trade_date", columns="stock_id", values="volume").astype(float)
+    v = v.reindex(days).fillna(0.0)
+    avg = v.shift(1).rolling(FUTURES_WINDOW, min_periods=FUTURES_WINDOW).mean()
+    usable = avg >= FUTURES_MIN_LOTS
+    return {sid: set(usable.index[usable[sid].to_numpy()]) for sid in usable.columns if usable[sid].any()}
 
 
 def futures_exempt(dates: list[date], futures_days: set[date]) -> np.ndarray:

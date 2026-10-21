@@ -15,6 +15,7 @@ CSV columns (19):
 
 from __future__ import annotations
 
+import re
 from datetime import date
 
 from db.connection import get_cursor
@@ -25,10 +26,19 @@ from scrapers.taifex_common import (
 
 URL = "https://www.taifex.com.tw/cht/3/futDataDown"
 
-# Only persist TAIEX index futures: TX (大台), MTX (小台), TMF (微型台指).
-# commodity_id=all still fetches every product in one request; the full feed
-# carries 300+ mostly-illiquid single-stock futures that we intentionally drop.
+# Persist the TAIEX index futures TX (大台), MTX (小台), TMF (微型台指) and every
+# three-letter code ending in F: the stock futures (whose volume decides
+# whether a backtest short goes through futures, signal_backtest.
+# short_constraints, ruling 2026-10-21) and the few index / commodity / FX
+# ones that share the pattern. Mini stock futures share it too; tw.stock_
+# futures_contracts tells all of these apart (kind, standard).
+# commodity_id=all fetches every product in one request.
 KEEP_CONTRACTS = {"TX", "MTX", "TMF"}
+_THREE_LETTER_F = re.compile(r"[A-Z]{2}F")
+
+
+def _keep(contract: str) -> bool:
+    return contract in KEEP_CONTRACTS or _THREE_LETTER_F.fullmatch(contract) is not None
 
 _SQL = """
     INSERT INTO tw.taifex_futures_daily (
@@ -69,7 +79,7 @@ def _parse(text: str) -> tuple[list[dict], int, int]:
         contract = r[1].strip()
         month = r[2].strip()
         session = r[17].strip()
-        if contract not in KEEP_CONTRACTS:
+        if not _keep(contract):
             continue
         if d is None or not month or not session:
             parse_errors += 1

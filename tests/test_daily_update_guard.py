@@ -147,7 +147,7 @@ def test_critical_labels_all_exist_in_the_registry():
 @pytest.mark.parametrize("label", [
     "TWSE daily prices", "TPEx daily prices", "Margin trading",
     "Institutional investors", "Private placements",
-    "TAIFEX futures", "TAIFEX institutional", "TAIFEX P/C ratio",
+    "TAIFEX futures", "TAIFEX institutional", "TAIFEX P/C ratio", "Stock futures contracts",
 ])
 def test_core_sources_are_monitored(label):
     """These carry a value every trading day; 0 rows means a broken scrape."""

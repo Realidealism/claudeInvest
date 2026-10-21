@@ -83,6 +83,9 @@ READERS = {
                                     "fill section reads the entry bars of backtest trades.parquet; "
                                     "report only, writes nothing"),
     "signal_backtest/engine.py": ("X", "n/a", "comment only"),
+    "signal_backtest/short_constraints.py": ("3", "unchanged",
+                                             "MAX(trade_date) only, to tell a stock futures feed "
+                                             "behind the prices; reads no prices"),
     "signals/etf_abnormal_exit.py": ("3", "excludes-U", "latest-close query excludes U"),
     "signals/etf_consecutive_reduction.py": ("3", "excludes-U", "latest-close query excludes U"),
     "signals/etf_multi_exit.py": ("3", "excludes-U", "latest-close query excludes U"),

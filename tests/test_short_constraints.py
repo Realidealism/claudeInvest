@@ -192,18 +192,67 @@ def test_versions_add_refuses_a_constrained_dir(tmp_path, monkeypatch):
     assert e.value.code == 1
 
 
-def test_availability_file_round_trip_matches_bar_dates(tmp_path):
-    # written as map_codes.py writes it; a type mismatch (Timestamp vs date)
-    # would silently exempt nothing and make the futures arm equal margin
-    import pandas as pd
-    df = pd.DataFrame({"trade_date": pd.to_datetime([DATES[3], DATES[4]]), "stock_id": ["2330", "2330"],
-                       "avail": [True, True]})
-    df["trade_date"] = df["trade_date"].dt.date
-    df.loc[2] = [DATES[5], "2330", False]
-    df.to_parquet(tmp_path / "a.parquet", index=False)
-    got = sc.load_futures_availability(tmp_path / "a.parquet")
-    assert got == {"2330": {DATES[3], DATES[4]}}
-    assert np.flatnonzero(sc.futures_exempt(DATES, got["2330"])).tolist() == [3, 4]
+def _availability(monkeypatch, vol_rows, days=DATES, prices_last=None):
+    """load_futures_availability on fake query answers: the volume rows, then
+    TAIEX's days and TAIFEX's days (both `days`), then the last daily price."""
+    seen = []
+    answers = [vol_rows, [{"trade_date": d} for d in days], [{"trade_date": d} for d in days]]
+
+    class Cur:
+        def execute(self, sql, params=None):
+            seen.append(sql)
+
+        def fetchall(self):
+            return answers[len(seen) - 1]
+
+        def fetchone(self):
+            return {"d": prices_last if prices_last is not None else days[-1]}
+
+    class Ctx:
+        def __enter__(self):
+            return Cur()
+
+        def __exit__(self, *a):
+            return False
+
+    import db.connection
+    monkeypatch.setattr(db.connection, "get_cursor", lambda commit=True: Ctx())
+    return sc.load_futures_availability(), seen
+
+
+def test_availability_is_the_mean_of_the_20_days_before(monkeypatch):
+    # 60 lots on bars 0..24 and none after: the window before bar d holds
+    # 45 - d such days from bar 20 on, mean >= 50 through bar 28
+    rows = [{"stock_id": "2330", "trade_date": DATES[i], "volume": 60} for i in range(25)]
+    rows += [{"stock_id": "2317", "trade_date": DATES[i], "volume": 49} for i in range(30)]
+    got, sql = _availability(monkeypatch, rows)
+    assert got == {"2330": set(DATES[20:29])}
+    # the dates come back as the bars' own type, or nothing would be exempt
+    assert np.flatnonzero(sc.futures_exempt(DATES, got["2330"])).tolist() == list(range(20, 29))
+    assert "c.standard" in sql[0] and "session = '一般'" in sql[0] and "NOT LIKE '%%/%%'" in sql[0]
+
+
+def test_availability_counts_a_day_without_rows_as_zero(monkeypatch):
+    # 2317 trades every day, so the feed itself is whole; 2330 has no row on bar 10
+    rows = [{"stock_id": "2330", "trade_date": DATES[i], "volume": 52} for i in range(30) if i != 10]
+    rows += [{"stock_id": "2317", "trade_date": DATES[i], "volume": 1} for i in range(30)]
+    got, _ = _availability(monkeypatch, rows)
+    # bar 10 (0 lots) sits in every window up to bar 30: mean 52*19/20 = 49.4
+    assert got == {}
+    got, _ = _availability(monkeypatch, rows + [{"stock_id": "2330", "trade_date": DATES[10], "volume": 52}])
+    assert got == {"2330": set(DATES[20:30])}
+
+
+def test_availability_fails_on_a_feed_behind_the_prices_or_with_a_hole(monkeypatch):
+    import pytest
+    rows = [{"stock_id": "2330", "trade_date": DATES[i], "volume": 60} for i in range(29)]
+    with pytest.raises(RuntimeError, match="last day"):
+        _availability(monkeypatch, rows, prices_last=DATES[29])
+    hole = [r for r in rows if r["trade_date"] != DATES[12]]
+    with pytest.raises(RuntimeError, match=str(DATES[12])):
+        _availability(monkeypatch, hole, days=DATES[:29])
+    got, _ = _availability(monkeypatch, rows, days=DATES[:29])
+    assert got == {"2330": set(DATES[20:29])}
 
 
 def test_futures_exempt_marks_usable_days():
