@@ -666,11 +666,19 @@ def _make_trade(
     exit_reason: str,
     is_long: bool,
 ) -> Trade:
+    # Total return: corporate actions inside (entry, exit] (backtest.adjust
+    # cumulative factors, F[e] / F[x]) go into the return; the fills stay raw.
+    rf = getattr(data, "return_factor", None)
+    fe = fx = 1.0
+    if rf is not None and rf[entry_index] != rf[exit_index]:
+        fe, fx = float(rf[entry_index]), float(rf[exit_index])
     if entry_price > 0:
-        if is_long:
-            pnl_pct = exit_price / entry_price - 1.0
+        if fe == fx:
+            pnl_pct = exit_price / entry_price - 1.0 if is_long else entry_price / exit_price - 1.0
+        elif is_long:
+            pnl_pct = exit_price * fx / (entry_price * fe) - 1.0
         else:
-            pnl_pct = entry_price / exit_price - 1.0
+            pnl_pct = entry_price * fe / (exit_price * fx) - 1.0
     else:
         pnl_pct = 0.0
 

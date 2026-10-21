@@ -96,6 +96,12 @@ class StockData:
     # Dividend events
     dividends: list[DividendEvent]
 
+    # Back-adjustment: raw price = adjusted price / price_factor (None = raw series)
+    price_factor: F32Array | None = None
+    # Total-return accounting on raw prices: cumulative backtest.adjust price
+    # factor per bar (float64), set by the batch runner; None = raw returns
+    return_factor: NDArray[np.float64] | None = None
+
     @property
     def n(self) -> int:
         return len(self.dates)
@@ -141,13 +147,16 @@ def _get_score_fingerprint() -> str:
     return _SCORE_FP
 
 
-def _cache_path(stock_id: str, db_date: date) -> Path:
+def _cache_path(stock_id: str, db_date: date, adjusted: bool = False) -> Path:
     """Cache file is keyed by stock_id + DB latest trade_date + ScoreBoard fingerprint.
 
     Including the fingerprint means pct arrays cached on StockData (via
     _eval_pct_arrays warmup below) auto-invalidate when board cells change.
+    Adjusted series get an `_adj` tag before the fingerprint, so the cleanup
+    (which keys on the fingerprint suffix) keeps both kinds.
     """
-    return CACHE_DIR / f"{stock_id}_{db_date.isoformat()}_{_get_score_fingerprint()}.pkl"
+    tag = "_adj" if adjusted else ""
+    return CACHE_DIR / f"{stock_id}_{db_date.isoformat()}{tag}_{_get_score_fingerprint()}.pkl"
 
 
 def _cleanup_obsolete_cache() -> None:
@@ -199,9 +208,14 @@ def load_stock_data(
     start_date: date | None = None,
     end_date: date | None = None,
     use_cache: bool = False,
+    adjusted: bool = False,
 ) -> StockData:
     """
     Load stock data and run full analysis pipeline.
+
+    With ``adjusted=True`` prices are back-adjusted for ex-rights/dividends and
+    capital reductions (backtest.adjust), volume for the share count; the
+    latest bar keeps its raw values. Indices are never adjusted.
 
     If start_date is given, extra warmup days are fetched before it
     so all indicators are valid at start_date.
@@ -226,7 +240,7 @@ def load_stock_data(
     cache_file: Path | None = None
     if cache_eligible:
         _cleanup_obsolete_cache()  # runs once per process
-        cache_file = _cache_path(stock_id, _get_db_max_date())
+        cache_file = _cache_path(stock_id, _get_db_max_date(), adjusted)
         cached = _try_load_cache(cache_file)
         if cached is not None:
             return cached
@@ -239,7 +253,11 @@ def load_stock_data(
 
     dates = [r["trade_date"] for r in rows]
     dividends = fetch_dividends(stock_id, dates)
-    data = build_stock_data(stock_id, stock_name, rows, dividends)
+    price_factor = volume_factor = None
+    if adjusted:
+        from backtest.adjust import adjustment
+        price_factor, volume_factor, _ = adjustment(stock_id, rows)
+    data = build_stock_data(stock_id, stock_name, rows, dividends, price_factor, volume_factor)
 
     if cache_file is not None:
         # Warm up ScoreBoard + OverheatBoard + pre ScoreBoard pct arrays so they
@@ -289,6 +307,8 @@ def build_stock_data(
     stock_name: str,
     rows: list[dict],
     dividends: list["DividendEvent"],
+    price_factor: np.ndarray | None = None,
+    volume_factor: np.ndarray | None = None,
 ) -> StockData:
     """
     Convert raw daily_prices-shaped rows into a StockData with all 6 analysis
@@ -300,23 +320,28 @@ def build_stock_data(
 
     Realtime callers (analysis.realtime_data) reuse this with the last row
     being a forming intraday bar projected into the same shape.
+
+    price_factor / volume_factor (per bar, from backtest.adjust) multiply the
+    prices (ref included) and the volume; turnover stays raw.
     """
     if not rows:
         raise ValueError(f"build_stock_data: empty rows for {stock_id}")
 
     dates = [r["trade_date"] for r in rows]
-    close = np.array([float(r["close_price"]) for r in rows], dtype=F32)
-    high = np.array([float(r["high_price"]) for r in rows], dtype=F32)
-    low = np.array([float(r["low_price"]) for r in rows], dtype=F32)
-    open_ = np.array([float(r["open_price"]) for r in rows], dtype=F32)
-    volume = np.array([float(r["volume"]) for r in rows], dtype=F32)
+    pf = np.ones(len(rows)) if price_factor is None else price_factor
+    vf = np.ones(len(rows)) if volume_factor is None else volume_factor
+    close = np.array([float(r["close_price"]) * pf[i] for i, r in enumerate(rows)], dtype=F32)
+    high = np.array([float(r["high_price"]) * pf[i] for i, r in enumerate(rows)], dtype=F32)
+    low = np.array([float(r["low_price"]) * pf[i] for i, r in enumerate(rows)], dtype=F32)
+    open_ = np.array([float(r["open_price"]) * pf[i] for i, r in enumerate(rows)], dtype=F32)
+    volume = np.array([float(r["volume"]) * vf[i] for i, r in enumerate(rows)], dtype=F32)
     turnover = np.array([float(r["turnover"]) for r in rows], dtype=F32)
 
     # ref_price for OBV: use ref_price column, fallback to previous close
     ref_price = np.zeros(len(rows), dtype=F32)
     for i, r in enumerate(rows):
         if r["ref_price"] is not None:
-            ref_price[i] = float(r["ref_price"])
+            ref_price[i] = float(r["ref_price"]) * pf[i]
         elif i > 0:
             ref_price[i] = close[i - 1]
         else:
@@ -371,6 +396,7 @@ def build_stock_data(
         park_vol=park_vol,
         sort_forming=sort_forming,
         dividends=dividends,
+        price_factor=None if price_factor is None else np.asarray(price_factor, dtype=F32),
     )
 
 

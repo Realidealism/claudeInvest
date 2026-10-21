@@ -348,6 +348,20 @@ def test_backtest_takes_every_trade(tmp_path, monkeypatch):
     assert "--cache" not in _Popen.calls[0]       # it would be written into the worktree
 
 
+def test_backtest_runs_raw_on_a_build_with_the_baseline_defaults(tmp_path, monkeypatch):
+    # the snapshot has neither total returns nor the short-sale constraints
+    monkeypatch.setattr(lr.subprocess, "Popen", _Popen)
+    _Popen.calls.clear()
+    src = _src(tmp_path, True)
+    lr.run_backtest(src, tmp_path / "out", date(2026, 12, 1))
+    assert "--raw-return" not in _Popen.calls[0]      # an older build is raw already
+    (src / "signal_backtest" / "__main__.py").write_text(
+        'p.add_argument("--include-holdout")\np.add_argument("--raw-return")', encoding="utf-8")
+    lr.run_backtest(src, tmp_path / "out", date(2026, 12, 1))
+    cmd = _Popen.calls[1]
+    assert "--raw-return" in cmd and cmd[cmd.index("--short-constraints") + 1] == "off"
+
+
 def test_worktree_commands(monkeypatch, tmp_path):
     calls = []
     monkeypatch.setattr(lr, "WORKTREE", tmp_path / "wt")

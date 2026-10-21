@@ -120,6 +120,13 @@ def supports_holdout(src: Path) -> bool:
         encoding="utf-8")
 
 
+def has_baseline_defaults(src: Path) -> bool:
+    """From v370 the CLI defaults to total returns and the short-sale
+    constraints, which the snapshot has neither of; such a build is told to
+    run raw. An older build runs raw by default and has no such flag."""
+    return "--raw-return" in (src / "signal_backtest" / "__main__.py").read_text(encoding="utf-8")
+
+
 def run_backtest(src: Path, out: Path, today: date) -> None:
     """The 8 signals on the code in src, every trade kept. A build from before
     the holdout cut has no flag; its output is the same while no entry can
@@ -131,6 +138,8 @@ def run_backtest(src: Path, out: Path, today: date) -> None:
         cmd.append("--include-holdout")
     elif today >= HOLDOUT_START:
         raise ReconcileError("部署版本不支援 --include-holdout，回測會漏掉 holdout 交易；需重建")
+    if has_baseline_defaults(src):
+        cmd += ["--raw-return", "--short-constraints", "off"]
     shutil.rmtree(out, ignore_errors=True)
     out.mkdir(parents=True)
     env = dict(os.environ, PYTHONIOENCODING="utf-8")

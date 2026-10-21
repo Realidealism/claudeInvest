@@ -31,10 +31,17 @@ from signal_backtest.trade import Trade, SideResult
 # Written at the top of an output dir that kept the holdout (--include-holdout);
 # _versions add refuses such a dir.
 HOLDOUT_MARKER = "HOLDOUT_INCLUDED"
-# A --short-constraints run's output dir, holding the mode; such a run is an
-# experiment arm until the user adopts one (2026-10-20)
+# The baseline (v370, ruling 2026-10-21) runs total-return accounting and the
+# margin_futures short constraints; the CLI defaults to it. An output dir run
+# any other way is marked, and _versions add refuses it:
+#   SHORT_CONSTRAINTS holds a mode other than the baseline's,
+#   RAW_RETURN a run without total-return accounting,
+#   ADJUSTED_PRICES a run on back-adjusted prices (experiment, 2026-10-20).
 SHORT_CONSTRAINTS_MARKER = "SHORT_CONSTRAINTS"
 SHORT_CONSTRAINT_MODES = ("off", "margin", "margin_futures")
+BASELINE_SHORT_CONSTRAINTS = "margin_futures"
+RAW_RETURN_MARKER = "RAW_RETURN"
+ADJUSTED_PRICES_MARKER = "ADJUSTED_PRICES"
 
 
 def fetch_listed_stocks() -> list[tuple[str, str]]:
@@ -70,6 +77,56 @@ def fetch_stocks_by_id(stock_ids: list[str]) -> list[tuple[str, str]]:
     return out
 
 
+def apply_settings(sid: str, data, short_events: list | None, futures_days: set | None,
+                   total_return: bool) -> tuple:
+    """Per-stock run settings shared by the batch and sweep runners.
+
+    total_return: sets data.return_factor from the raw rows, outside the cache
+    (it moves with the event tables, which the cache key does not see); rows
+    that differ from the series fail the run, as skipping the stock would drop
+    it from this run only.
+    Returns the short side's (force_exit, entry_block, cover_exempt): margin
+    constraints from short_events, lifted where stock futures were usable
+    (futures_days); all None when short_events is None.
+    """
+    if total_return:
+        from backtest.adjust import adjustment
+        from backtest.data import _fetch_prices
+        rows = _fetch_prices(sid, None, None)
+        if [r["trade_date"] for r in rows] != list(data.dates):
+            raise RuntimeError(f"{sid}: price rows differ from the loaded series (stale cache?)")
+        data.return_factor = adjustment(sid, rows)[0]
+    if short_events is None:
+        return None, None, None
+    from signal_backtest.short_constraints import futures_exempt, masks
+    force_exit, entry_block = masks(data.dates, short_events)
+    exempt = None
+    if futures_days is not None:
+        exempt = futures_exempt(data.dates, futures_days)
+        entry_block = entry_block & ~exempt
+    return force_exit, entry_block, exempt
+
+
+def load_short_inputs(short_constraints: str) -> tuple[dict | None, dict | None]:
+    """(calendar, futures availability) for a short-constraint mode; None
+    where the mode does not use it. Read once in the parent."""
+    if short_constraints not in SHORT_CONSTRAINT_MODES:
+        raise ValueError(f"short_constraints must be one of {SHORT_CONSTRAINT_MODES}, "
+                         f"got {short_constraints!r}")
+    if short_constraints == "off":
+        return None, None
+    from signal_backtest.short_constraints import load_calendar, load_futures_availability
+    futures = load_futures_availability() if short_constraints == "margin_futures" else None
+    return load_calendar(), futures
+
+
+def short_args(calendar: dict | None, futures: dict | None, sid: str) -> tuple:
+    """A stock's (short_events, futures_days) for a worker."""
+    if calendar is None:
+        return None, None
+    return calendar.get(sid, []), None if futures is None else futures.get(sid, set())
+
+
 def _process_one_stock(
     sid: str,
     factory_names: list[str],
@@ -77,6 +134,8 @@ def _process_one_stock(
     use_cache: bool = False,
     short_events: list | None = None,
     futures_days: set | None = None,
+    adjusted: bool = False,
+    total_return: bool = False,
 ) -> tuple[
     str,
     dict[str, list[Trade]],
@@ -96,28 +155,18 @@ def _process_one_stock(
     skipped_by_sig: dict[str, list[tuple[str, str]]] = {n: [] for n in factory_names}
 
     try:
-        data = load_stock_data(sid, use_cache=use_cache)
+        data = load_stock_data(sid, use_cache=use_cache, adjusted=adjusted)
     except Exception as e:
         for n in factory_names:
             skipped_by_sig[n].append((sid, f"load: {e}"))
         return sid, trades_by_sig, sides_by_sig, skipped_by_sig
 
+    short_masks = apply_settings(sid, data, short_events, futures_days, total_return)
+
     if data.n < start_index + 1:
         for n in factory_names:
             skipped_by_sig[n].append((sid, f"資料不足 ({data.n} 天)"))
         return sid, trades_by_sig, sides_by_sig, skipped_by_sig
-
-    # Margin constraints apply to the short side only; None = unconstrained.
-    # Where stock futures were usable a short goes through them instead.
-    short_masks = (None, None, None)
-    if short_events is not None:
-        from signal_backtest.short_constraints import futures_exempt, masks
-        force_exit, entry_block = masks(data.dates, short_events)
-        exempt = None
-        if futures_days is not None:
-            exempt = futures_exempt(data.dates, futures_days)
-            entry_block = entry_block & ~exempt
-        short_masks = (force_exit, entry_block, exempt)
 
     for name in factory_names:
         factory = SIGNAL_FACTORIES[name]
@@ -196,6 +245,8 @@ def run_batch_multi(
     use_cache: bool = False,
     include_holdout: bool = False,
     short_constraints: str = "off",
+    adjusted: bool = False,
+    total_return: bool = False,
 ) -> dict[str, tuple[Path, Path]]:
     """Multi-signal batch runner — share one StockData instance across signals.
 
@@ -213,6 +264,10 @@ def run_batch_multi(
     the 融券最後回補日 and no entry while 停券 (signal_backtest.short_constraints);
     ``"margin_futures"`` does so only where stock futures were not usable.
 
+    ``adjusted=True`` runs on back-adjusted prices (backtest.adjust);
+    ``total_return=True`` keeps raw prices and puts the corporate actions held
+    through into each trade's return.
+
     Returns ``{name: (trades_path, sides_path)}``.
     """
     if not factories:
@@ -220,17 +275,9 @@ def run_batch_multi(
     if short_constraints not in SHORT_CONSTRAINT_MODES:
         raise ValueError(f"short_constraints must be one of {SHORT_CONSTRAINT_MODES}, "
                          f"got {short_constraints!r}")
-    calendar = futures = None
-    if short_constraints != "off":
-        from signal_backtest.short_constraints import load_calendar, load_futures_availability
-        calendar = load_calendar()
-        if short_constraints == "margin_futures":
-            futures = load_futures_availability()
-
-    def short_args(sid):
-        if calendar is None:
-            return None, None
-        return calendar.get(sid, []), None if futures is None else futures.get(sid, set())
+    if adjusted and total_return:
+        raise ValueError("adjusted prices already give total returns; pass one of the two")
+    calendar, futures = load_short_inputs(short_constraints)
 
     sub_dirs: dict[str, Path] = {}
     for name in factories:
@@ -248,7 +295,8 @@ def run_batch_multi(
     print(
         f"股票池：{len(stocks)} 檔，訊號：{', '.join(factories)}，"
         f"workers={workers}, cache={'on' if use_cache else 'off'}, "
-        f"short_constraints={short_constraints}",
+        f"short_constraints={short_constraints}, adjusted={'on' if adjusted else 'off'}, "
+        f"total_return={'on' if total_return else 'off'}",
         file=sys.stderr,
     )
 
@@ -261,12 +309,13 @@ def run_batch_multi(
 
     if workers <= 1:
         results_iter = (
-            _process_one_stock(sid, factory_names, start_index, use_cache, *short_args(sid))
+            _process_one_stock(sid, factory_names, start_index, use_cache, *short_args(calendar, futures, sid), adjusted,
+                               total_return)
             for sid, _name in stocks
         )
     else:
         args_iter = [
-            (sid, factory_names, start_index, use_cache, *short_args(sid))
+            (sid, factory_names, start_index, use_cache, *short_args(calendar, futures, sid), adjusted, total_return)
             for sid, _name in stocks
         ]
         # chunksize=4: stocks vary in length but per-stock cost is roughly

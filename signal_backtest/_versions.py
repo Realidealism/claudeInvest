@@ -32,7 +32,8 @@ from pathlib import Path
 import pandas as pd
 
 from signal_backtest._compare import compute_pool, compute_stats, SIGNALS, COST_PCT
-from signal_backtest.batch import HOLDOUT_MARKER, SHORT_CONSTRAINTS_MARKER
+from signal_backtest.batch import (ADJUSTED_PRICES_MARKER, HOLDOUT_MARKER, RAW_RETURN_MARKER,
+                                   SHORT_CONSTRAINTS_MARKER)
 
 # UTF-8 on Windows console
 if sys.stdout.encoding and sys.stdout.encoding.lower() != "utf-8":
@@ -155,8 +156,16 @@ def cmd_add(args: argparse.Namespace) -> None:
     if _holdout_marked(scan_dir):
         print(f"{scan_dir} 含 holdout 交易（--include-holdout），不可登錄為版本", file=sys.stderr)
         sys.exit(1)
+    # A version is a baseline run: total-return accounting and the baseline's
+    # short constraints (CLI defaults, v370); anything else is marked.
     if (scan_dir / SHORT_CONSTRAINTS_MARKER).exists():
-        print(f"{scan_dir} 是做空限制的實驗臂（--short-constraints），不可登錄為版本", file=sys.stderr)
+        print(f"{scan_dir} 的做空限制不是 baseline（--short-constraints），不可登錄為版本", file=sys.stderr)
+        sys.exit(1)
+    if (scan_dir / RAW_RETURN_MARKER).exists():
+        print(f"{scan_dir} 是原始價報酬（--raw-return 或 --signal），不可登錄為版本", file=sys.stderr)
+        sys.exit(1)
+    if (scan_dir / ADJUSTED_PRICES_MARKER).exists():
+        print(f"{scan_dir} 是還原價的實驗臂（--adjusted-prices），不可登錄為版本", file=sys.stderr)
         sys.exit(1)
 
     conn = _connect()

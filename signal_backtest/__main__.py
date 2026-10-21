@@ -23,8 +23,9 @@ if sys.stdout.encoding and sys.stdout.encoding.lower() != "utf-8":
 import pandas as pd
 
 from signal_backtest.signal import SIGNAL_FACTORIES
-from signal_backtest.batch import (HOLDOUT_MARKER, SHORT_CONSTRAINT_MODES,
-                                   SHORT_CONSTRAINTS_MARKER, run_batch, run_batch_multi)
+from signal_backtest.batch import (ADJUSTED_PRICES_MARKER, BASELINE_SHORT_CONSTRAINTS, HOLDOUT_MARKER,
+                                   RAW_RETURN_MARKER, SHORT_CONSTRAINT_MODES, SHORT_CONSTRAINTS_MARKER,
+                                   run_batch, run_batch_multi)
 from signal_backtest.engine import HOLDOUT_START
 from signal_backtest.aggregate import aggregate
 from signal_backtest.report import format_report
@@ -98,25 +99,64 @@ def parse_args() -> argparse.Namespace:
     p.add_argument(
         "--short-constraints",
         choices=SHORT_CONSTRAINT_MODES,
-        default="off",
-        help="margin: every short is on margin -- forced cover on the "
-             "融券最後回補日 and no entry while 停券; margin_futures: the same "
-             "except where stock futures were usable (--signals only). "
-             "The output dir is marked with the mode.",
+        default=None,
+        help=f"margin: every short is on margin -- forced cover on the "
+             f"融券最後回補日 and no entry while 停券; margin_futures: the same "
+             f"except where stock futures were usable; off: neither. "
+             f"--signals defaults to the baseline's {BASELINE_SHORT_CONSTRAINTS}; "
+             f"--signal runs off. Another mode marks the output dir.",
+    )
+    p.add_argument(
+        "--raw-return",
+        action="store_true",
+        help="Leave the ex-rights/dividends and capital reductions held through "
+             "out of each trade's return (the baseline puts them in, prices "
+             "staying raw; --signal always runs this way). Marks the output dir.",
+    )
+    p.add_argument(
+        "--adjusted-prices",
+        action="store_true",
+        help="Run on prices back-adjusted for ex-rights/dividends and capital "
+             "reductions (backtest.adjust; --signals only; returns are total "
+             "returns already). Marks the output dir.",
     )
     return p.parse_args()
 
 
+def _mark_adjusted(output_dir: Path, adjusted: bool) -> None:
+    """Record an adjusted-price run in its output dir; a raw run clears a
+    mark an earlier run left there."""
+    mark = output_dir / ADJUSTED_PRICES_MARKER
+    if not adjusted:
+        mark.unlink(missing_ok=True)
+        return
+    output_dir.mkdir(parents=True, exist_ok=True)
+    mark.write_text("adjusted\n", encoding="utf-8")
+    print("還原價：on", file=sys.stderr)
+
+
+def _mark_raw_return(output_dir: Path, raw: bool) -> None:
+    """Record a run without total-return accounting; a baseline run clears a
+    mark an earlier run left there."""
+    mark = output_dir / RAW_RETURN_MARKER
+    if not raw:
+        mark.unlink(missing_ok=True)
+        return
+    output_dir.mkdir(parents=True, exist_ok=True)
+    mark.write_text("raw return\n", encoding="utf-8")
+    print("報酬：原始價（不含除權息，非 baseline）", file=sys.stderr)
+
+
 def _mark_short_constraints(output_dir: Path, mode: str) -> None:
-    """Record a constrained run in its output dir; an unconstrained run
-    clears a mark an earlier run left there."""
+    """Record a run whose short constraints differ from the baseline's; a
+    baseline run clears a mark an earlier run left there."""
     mark = output_dir / SHORT_CONSTRAINTS_MARKER
-    if mode == "off":
+    if mode == BASELINE_SHORT_CONSTRAINTS:
         mark.unlink(missing_ok=True)
         return
     output_dir.mkdir(parents=True, exist_ok=True)
     mark.write_text(f"{mode}\n", encoding="utf-8")
-    print(f"做空限制：{mode}", file=sys.stderr)
+    print(f"做空限制：{mode}（非 baseline）", file=sys.stderr)
 
 
 def _mark_holdout(output_dir: Path, include: bool) -> None:
@@ -159,8 +199,15 @@ def main() -> None:
             sys.exit(1)
         factories = {n: SIGNAL_FACTORIES[n] for n in names}
         output_dir = args.output or Path("tmp/signal_backtest")
+        # before any mark is written or cleared: a refused run leaves the dir as it was
+        if args.adjusted_prices and args.raw_return:
+            print("--adjusted-prices 的報酬本來就含除權息，不可再加 --raw-return", file=sys.stderr)
+            sys.exit(1)
+        short_constraints = args.short_constraints or BASELINE_SHORT_CONSTRAINTS
         _mark_holdout(output_dir, args.include_holdout)
-        _mark_short_constraints(output_dir, args.short_constraints)
+        _mark_short_constraints(output_dir, short_constraints)
+        _mark_adjusted(output_dir, args.adjusted_prices)
+        _mark_raw_return(output_dir, args.raw_return)
 
         results = run_batch_multi(
             factories=factories,
@@ -170,7 +217,9 @@ def main() -> None:
             workers=args.workers,
             use_cache=args.cache,
             include_holdout=args.include_holdout,
-            short_constraints=args.short_constraints,
+            short_constraints=short_constraints,
+            adjusted=args.adjusted_prices,
+            total_return=not (args.raw_return or args.adjusted_prices),
         )
         for name, (trades_path, sides_path) in results.items():
             print(f"\n=== [{name}] ===")
@@ -190,13 +239,20 @@ def main() -> None:
         print(f"可用訊號：{', '.join(SIGNAL_FACTORIES)}", file=sys.stderr)
         sys.exit(1)
 
-    if args.short_constraints != "off":
+    if args.short_constraints not in (None, "off"):
         print("--short-constraints 只支援 --signals", file=sys.stderr)
         sys.exit(1)
+    if args.adjusted_prices:
+        print("--adjusted-prices 只支援 --signals", file=sys.stderr)
+        sys.exit(1)
 
+    # The single-signal runner has neither total returns nor short
+    # constraints: its dir is marked as not the baseline.
     factory = SIGNAL_FACTORIES[args.signal]
     output_dir = args.output or Path("tmp/signal_backtest") / args.signal
     _mark_holdout(output_dir, args.include_holdout)
+    _mark_short_constraints(output_dir, "off")
+    _mark_raw_return(output_dir, True)
 
     trades_path, sides_path = run_batch(
         factory=factory,

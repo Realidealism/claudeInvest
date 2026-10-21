@@ -45,7 +45,8 @@ import pandas as pd
 
 from backtest.data import load_stock_data
 from signal_backtest._compare import COST_PCT
-from signal_backtest.batch import fetch_listed_stocks
+from signal_backtest.batch import (BASELINE_SHORT_CONSTRAINTS, SHORT_CONSTRAINT_MODES, apply_settings,
+                                   fetch_listed_stocks, load_short_inputs, short_args)
 from signal_backtest.engine import (
     DEFAULT_START_INDEX,
     HOLDOUT_START,
@@ -84,20 +85,25 @@ def _init_worker(spec_path: str) -> None:
     _WORKER_SPEC = _load_spec(spec_path)
 
 
-def _process_one_stock(args: tuple[str, str, bool]) -> dict[int, list[dict]]:
-    """Load one stock once, run every grid point. Returns {grid_idx: rows}."""
-    sid, name, use_cache = args
+def _process_one_stock(args: tuple) -> dict[int, list[dict]]:
+    """Load one stock once, run every grid point. Returns {grid_idx: rows}.
+    Runs as the batch does (signal_backtest.batch.apply_settings): total
+    returns and the short side's constraints as the CLI asked."""
+    sid, name, use_cache, short_events, futures_days, total_return = args
     mod = _WORKER_SPEC
     out: dict[int, list[dict]] = {}
     try:
         data = load_stock_data(sid, use_cache=use_cache)
     except Exception:
         return out
+    force_exit, entry_block, cover_exempt = apply_settings(sid, data, short_events, futures_days, total_return)
     if data.n < DEFAULT_START_INDEX + 1:
         return out
 
     for gi, params in enumerate(mod.GRID):
         kwargs = mod.build(data, *_as_tuple(params))
+        if kwargs.get("side") == "short":
+            kwargs = dict(kwargs, force_exit=force_exit, entry_block=entry_block, cover_exempt=cover_exempt)
         try:
             result = run_side_backtest(
                 data, start_index=DEFAULT_START_INDEX, **kwargs
@@ -209,21 +215,27 @@ def _archive_to_db(mod, summary_rows: list[dict], out_dir: Path) -> int:
 
 def run_sweep(
     spec_path: str, workers: int, use_cache: bool, limit: int | None = None,
-    no_archive: bool = False,
+    no_archive: bool = False, short_constraints: str = BASELINE_SHORT_CONSTRAINTS,
+    total_return: bool = True,
 ) -> None:
+    """Defaults run as the baseline does (v370): total returns and the
+    baseline's short constraints, so GRID[0] reproduces the version."""
     mod = _load_spec(spec_path)
     grid = mod.GRID
+    calendar, futures = load_short_inputs(short_constraints)
     stocks = fetch_listed_stocks()
     if limit:
         stocks = stocks[:limit]
     print(
         f"sweep {mod.NAME} (signal={mod.SIGNAL})：股票池 {len(stocks)} 檔，"
-        f"grid {len(grid)} 點，workers={workers}, cache={'on' if use_cache else 'off'}",
+        f"grid {len(grid)} 點，workers={workers}, cache={'on' if use_cache else 'off'}, "
+        f"short_constraints={short_constraints}, total_return={'on' if total_return else 'off'}",
         file=sys.stderr,
     )
 
     rows_by_grid: dict[int, list[dict]] = {gi: [] for gi in range(len(grid))}
-    args_iter = [(sid, name, use_cache) for sid, name in stocks]
+    args_iter = [(sid, name, use_cache, *short_args(calendar, futures, sid), total_return)
+                 for sid, name in stocks]
 
     t0 = time.time()
     if workers <= 1:
@@ -370,9 +382,22 @@ def main() -> None:
     ap.add_argument("--limit", type=int, default=None, help="只跑前 N 檔（試跑用）")
     ap.add_argument("--no-archive", action="store_true",
                     help="跳過 DB 封存（試跑用）")
+    ap.add_argument("--short-constraints", choices=SHORT_CONSTRAINT_MODES, default=BASELINE_SHORT_CONSTRAINTS,
+                    help=f"做空限制（預設 baseline 的 {BASELINE_SHORT_CONSTRAINTS}）")
+    ap.add_argument("--raw-return", action="store_true",
+                    help="報酬不含持有期間的除權息／減資（baseline 會含）")
     args = ap.parse_args()
+    if not _archivable(args):
+        sys.exit("非 baseline 設定的 sweep 不可封存：加 --no-archive")
     run_sweep(args.spec, args.workers, args.cache, args.limit,
-              no_archive=args.no_archive)
+              no_archive=args.no_archive, short_constraints=args.short_constraints,
+              total_return=not args.raw_return)
+
+
+def _archivable(args) -> bool:
+    """A sweep archived next to the versions runs as the baseline does."""
+    baseline = args.short_constraints == BASELINE_SHORT_CONSTRAINTS and not args.raw_return
+    return baseline or args.no_archive
 
 
 if __name__ == "__main__":

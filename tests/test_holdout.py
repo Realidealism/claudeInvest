@@ -51,7 +51,7 @@ def test_sides_count_what_was_written(tmp_path):
 def test_multi_run_honours_the_flag(tmp_path, monkeypatch, include, n):
     monkeypatch.setattr(batch, "fetch_listed_stocks", lambda: [("1101", "x")])
     side = SideResult("1101", "1101", "做多", BEFORE, AFTER, list(TRADES))
-    monkeypatch.setattr(batch, "_process_one_stock", lambda sid, names, si, cache, short_events, futures_days: (
+    monkeypatch.setattr(batch, "_process_one_stock", lambda sid, names, si, cache, short_events, futures_days, adjusted, total_return: (
         sid, {"pick": list(TRADES)}, {"pick": [side]}, {"pick": []}))
     batch.run_batch_multi({"pick": object()}, tmp_path, workers=1, include_holdout=include)
     assert len(pd.read_parquet(tmp_path / "pick" / "trades.parquet")) == n
@@ -130,6 +130,7 @@ def test_sweep_never_sees_the_holdout(tmp_path, monkeypatch, capsys):
     monkeypatch.setattr(sweep, "_load_spec", lambda p: mod)
     monkeypatch.setattr(sweep, "_init_worker", lambda p: None)
     monkeypatch.setattr(sweep, "fetch_listed_stocks", lambda: [("1101", "x"), ("1102", "y")])
+    monkeypatch.setattr(sweep, "load_short_inputs", lambda mode: (None, None))
     old = date(2020, 1, 6)
 
     def rows(args):

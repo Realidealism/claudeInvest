@@ -174,8 +174,10 @@ def test_cli_marks_and_clears_the_dir(tmp_path, monkeypatch):
     assert seen["short_constraints"] == "margin"
     assert (tmp_path / batch.SHORT_CONSTRAINTS_MARKER).read_text(encoding="utf-8").strip() == "margin"
     seen = _cli(monkeypatch, tmp_path)
-    assert seen["short_constraints"] == "off"
+    assert seen["short_constraints"] == "margin_futures"   # the baseline: no mark
     assert not (tmp_path / batch.SHORT_CONSTRAINTS_MARKER).exists()
+    _cli(monkeypatch, tmp_path, "--short-constraints", "off")
+    assert (tmp_path / batch.SHORT_CONSTRAINTS_MARKER).read_text(encoding="utf-8").strip() == "off"
 
 
 def test_versions_add_refuses_a_constrained_dir(tmp_path, monkeypatch):
@@ -225,7 +227,7 @@ def _worker(monkeypatch, futures_days):
     from signal_backtest import batch
     from signal_backtest import signal as sig
     from signal_backtest.signal import SignalSet, SignalSpec
-    monkeypatch.setattr(batch, "load_stock_data", lambda sid, use_cache=False: _data())
+    monkeypatch.setattr(batch, "load_stock_data", lambda sid, use_cache=False, adjusted=False: _data())
     spec = SignalSpec(name="t", signals=SignalSet(long_entry=_bars(), long_exit=_bars(),
                                                   short_entry=_bars(2, 7), short_exit=_bars()))
     monkeypatch.setitem(sig.SIGNAL_FACTORIES, "t_short", lambda d: spec)
