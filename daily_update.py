@@ -114,6 +114,10 @@ SCRAPERS = [
     # Forward-looking board (除權除息預告) — feeds the morning-brief ex-dividend alert
     # Event-driven; exempt (no upcoming ex-dividend => 0 rows)
     ("Dividend calendar (除權息)", "scrapers.dividend_calendar", "scrape_date", False),
+    # The exchanges' ex-rights results of the day -> tw.dividends (total-return
+    # accounting, yields). Event-driven; exempt (most days have no ex-date),
+    # but a board that did not answer still reports.
+    ("Ex-rights results (除權息結果)", "scrapers.ex_rights_results", "scrape_date", False),
     # Forward-looking board (停券/融券最後回補日) — covering-squeeze calendar
     # Event-driven; exempt
     ("Short-cover calendar (停券)", "scrapers.short_cover_calendar", "scrape_date", False),

@@ -27,6 +27,10 @@ from psycopg2.extras import execute_batch
 from ..data.adapters.db_adapter import _connect
 from .finmind import FinMindClient
 
+# The exchanges' ex-rights results fill tw.dividends from this ex-date on
+# (backfilled 2026-10-21, daily after); FinMind rows stop the day before.
+OFFICIAL_FROM = date(2026, 4, 30)
+
 
 @dataclass(frozen=True)
 class DividendRow:
@@ -98,10 +102,16 @@ def fetch_one_ticker(
 
 
 def upsert_dividends(rows: list[DividendRow]) -> int:
-    """Replace dividend rows for any ticker present in `rows`.
+    """Replace the FinMind dividend rows for any ticker present in `rows`.
 
-    DELETE + bulk INSERT per ticker (the existing schema has no unique index).
+    DELETE + bulk INSERT per ticker, on source 'finmind' (the column's
+    default) only: the exchanges' result rows (source 'twse' / 'tpex',
+    scrapers.ex_rights_results in the main repo) stay, and a FinMind row is
+    not written for an ex-date they already hold, nor on or after
+    OFFICIAL_FROM, which they cover (a FinMind ex-date a day off theirs
+    would count the event twice).
     """
+    rows = [r for r in rows if r.ex_date < OFFICIAL_FROM]
     if not rows:
         return 0
     by_ticker: dict[str, list[DividendRow]] = {}
@@ -111,12 +121,14 @@ def upsert_dividends(rows: list[DividendRow]) -> int:
     written = 0
     with _connect() as conn, conn.cursor() as cur:
         for ticker, group in by_ticker.items():
-            cur.execute("DELETE FROM tw.dividends WHERE stock_id = %s", (ticker,))
+            cur.execute("DELETE FROM tw.dividends WHERE stock_id = %s AND source = 'finmind'", (ticker,))
             execute_batch(
                 cur,
                 "INSERT INTO tw.dividends (stock_id, ex_date, cash_dividend, stock_dividend)"
-                " VALUES (%s, %s, %s, %s)",
-                [(r.ticker, r.ex_date, r.cash_dividend, r.stock_dividend) for r in group],
+                " SELECT %s, %s, %s, %s WHERE NOT EXISTS (SELECT 1 FROM tw.dividends"
+                " WHERE stock_id = %s AND ex_date = %s AND source <> 'finmind')",
+                [(r.ticker, r.ex_date, r.cash_dividend, r.stock_dividend, r.ticker, r.ex_date)
+                 for r in group],
             )
             written += len(group)
         conn.commit()
