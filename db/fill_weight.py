@@ -51,6 +51,10 @@ because no 2026 Q2 income statement exists for any company yet.
 Shares are cleared before being rewritten, so a weight_item that stops matching
 leaves no stale number behind.
 
+It refuses to fill anything while check_industry's [mx_shared_line] reports a
+shared revenue line in a shape R020(2) does not allow, and exits non-zero so
+db.verify stops there. A refusal does not undo shares an earlier run wrote.
+
     python -m db.fill_weight --dry-run
     python -m db.fill_weight
 """
@@ -58,6 +62,7 @@ leaves no stale number behind.
 import argparse
 import sys
 
+from db.check_industry import check_mx_shared_line
 from db.connection import get_cursor
 from db.weight_status import blocks_autofill
 
@@ -83,6 +88,15 @@ def main():
     args = ap.parse_args()
 
     with get_cursor() as cur:
+        # Before anything is read or written, --dry-run included. db.verify prints only the last 25 lines of this
+        # run, so the refusal is the last line.
+        blocked = check_mx_shared_line(cur)
+        if blocked:
+            for b in blocked:
+                say(f"  - {b}")
+            say(f"REFUSING TO FILL: {len(blocked)} shared-line shape problem(s) (R020(2)-MX; "
+                "python -m db.check_industry --check mx_shared_line); nothing written")
+            return 1
         cur.execute("""
             SELECT e.id, e.stock_id, e.node_code, e.weight_item, e.evidence_kind,
                    e.weight_status,
@@ -205,4 +219,4 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())

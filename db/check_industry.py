@@ -19,6 +19,10 @@ schema cannot see:
     below       the share behind an exposure is small, which may be correct for
                 a niche node and is a question either way
     double      the same revenue line carrying a share on two nodes (R004)
+    mx_shared_line
+                one revenue line carried by two or more nodes of a company in
+                a shape R020(2) does not allow; db.fill_weight refuses to run
+                while this reports anything
     depth       an exposure hanging on a branch node rather than a leaf
     unknown     evidence recorded as pending, i.e. an admitted gap
     known       exposures with no known_date, invisible to a backtest that
@@ -69,7 +73,7 @@ import datetime
 import re
 
 from db.connection import get_cursor
-from db.weight_status import AUTOFILL_BLOCKED, COARSE
+from db.weight_status import AUTOFILL_BLOCKED, COARSE, COUNTING
 
 CHECKS = ("core", "core_overlap", "core_reason", "core_pending", "listing", "stale",
           "below", "role_numeric_consistency", "role_indirect_rationale_missing",
@@ -78,7 +82,7 @@ CHECKS = ("core", "core_overlap", "core_reason", "core_pending", "listing", "sta
           "definition_boundary", "definition_entity_reference",
           "definition_placeholder", "definition_axis_undeclared",
           "definition_boundary_overlap",
-          "double", "depth",
+          "double", "mx_shared_line", "depth",
           "unknown", "known_missing", "known_unavailable", "weight_reason",
           "weight_status_consistency", "weight_status_lifecycle", "granularity_queue",
           "revenue_rows", "provenance", "official", "rule_node_reference")
@@ -1187,7 +1191,8 @@ def check_double(cur):
 
     weight_pct IS NOT NULL is a HARD limit on scope, not a shortcut for speed. R020(2) 乙型 prescribes exactly the
     shape this check would otherwise flag: when one revenue line spans several nodes with no reliable basis to split
-    it, every node gets a Direct exposure and every weight_pct is NULL. Four current rows are that prescribed
+    it, every node the evidence supports gets an exposure (exposure_type per R018/R022/R020③), every weight_pct is
+    NULL and weight_status follows R020 ②-MX (7). Four current rows are that prescribed
     handling and not a defect -- 3030 (A2-13 / B5-02, 自動檢測設備), 3131 (A2-05 / A2-12, 機台設備產品, a regression
     sample quoted inside R020 itself), 4968 (A4-10 / A4-13, Wi-Fi 產品) and 8054 (A4-11 / A4-19). Widening the scope
     would report all four as violating the rule they comply with.
@@ -1221,6 +1226,87 @@ def check_double(cur):
         HAVING count(DISTINCT a.node_code) > 1
         ORDER BY a.stock_id
     """)
+
+
+def check_mx_shared_line(cur):
+    r"""R020 (2) / (2)-MX: one revenue line (weight_item split on " + ", whitespace removed, >= 2 characters, exact
+    match -- the tokenising of [double]) carried by two or more nodes of one company may take only two shapes:
+      S1  every row weight_pct NULL and weight_status in ws.COARSE (Too_Coarse / Granularity_Insufficient);
+      S2  no row of the group in ws.COARSE; exactly one row with weight_status NULL (the counting row, weighted or
+          not yet filled); every other row weight_pct NULL with weight_status in ws.COUNTING (Not_Applicable,
+          "already counted on another node" -- 3374 測試服務 is this shape).
+    It reads structure only: it does not read evidence and does not decide whether a row is a (2)-MX row. S1 uses
+    ws.COARSE as a structural condition because R020 (2) itself says a shared line that cannot be split is NULL on
+    every node.
+    Guaranteed: a shared line is S1 or S2; a group holding any ws.COARSE row cannot pass as "one counts, the rest
+    Not_Applicable".
+    NOT guaranteed (the DB cannot tell these apart; do not claim them closed):
+      (a) a mixed line built on one node only -- with its status left empty it looks like an ordinary line;
+      (b) an undeclared mixed line whose rows happen to read as S2;
+      (c) one line spelled differently on different rows;
+      (d) whether an S1 row is a correct (2)-MX ruling;
+      (e) a row with an empty weight_item that in fact stands for a line another row counts in full.
+    Those are carried by the drafting declaration check and by review, which reduce but do not remove the risk.
+    db.fill_weight runs this first and refuses to fill when it reports anything.
+    It overlaps [double] by design and does not replace it: a line weighted on two or more nodes is reported by
+    both -- [double] for the double count, this check for the shape of the shared line.
+    """
+    return mx_shared_line_problems(_rows(cur, r"""
+        SELECT e.id, e.stock_id, s.name, e.node_code, e.weight_item, e.weight_pct,
+               e.weight_status::text AS weight_status,
+               regexp_replace(t.token, '\s+', '', 'g') AS activity
+        FROM tw.company_industry_exposure e
+        JOIN tw.stocks s ON s.stock_id = e.stock_id
+        LEFT JOIN LATERAL unnest(string_to_array(e.weight_item, ' + ')) AS t(token) ON true
+        WHERE e.effective_to IS NULL
+        ORDER BY e.stock_id, e.node_code
+    """))
+
+
+def mx_shared_line_problems(rows):
+    """rows: one dict per (current exposure, weight_item token), as check_mx_shared_line selects them.
+
+    A line is grouped per company on its whitespace-free token of two characters or more, and the group keeps every
+    exposure row that carries it: two current rows on one node do not overwrite each other, so neither can hide the
+    other's status or share. A row naming the same token twice is still one row. A group is a shared line when its
+    rows sit on two or more nodes, and then every row of it is judged: S1, S2 or one named problem.
+    """
+    groups = {}
+    for r in rows:
+        a = r.get("activity")
+        if a and len(a) >= 2:
+            groups.setdefault((r["stock_id"], r["name"], a), {})[r["id"]] = r
+    problems = []
+    for (sid, name, act), g in groups.items():
+        rs = list(g.values())
+        if len({x["node_code"] for x in rs}) < 2:
+            continue
+        shape = _mx_shape(rs)
+        if shape not in ("S1", "S2"):
+            problems.append({"stock_id": sid, "name": name, "activity": act, "problem": shape,
+                             "rows": [(x["node_code"], x["weight_pct"], x["weight_status"]) for x in rs]})
+    return problems
+
+
+def _mx_shape(rows):
+    """One shared line's rows -> 'S1', 'S2' or the name of the shape it breaks."""
+    coarse = [r for r in rows if r["weight_status"] in COARSE]
+    if len(coarse) == len(rows) and all(r["weight_pct"] is None for r in rows):
+        return "S1"
+    if coarse:
+        return "coarse_row_in_group_not_S1"
+    counting = [r for r in rows if r["weight_status"] is None]
+    others = [r for r in rows if r["weight_status"] is not None]
+    if len(counting) == 1 and others and all(
+            r["weight_status"] in COUNTING and r["weight_pct"] is None for r in others):
+        return "S2"
+    if len(counting) > 1:
+        return "two_or_more_counting_rows"
+    if len(counting) == 1:
+        return "counting_row_beside_non_not_applicable"
+    if any(r["weight_pct"] is not None for r in rows):
+        return "weight_on_a_row_with_status"
+    return "no_counting_row"
 
 
 def check_depth(cur):
