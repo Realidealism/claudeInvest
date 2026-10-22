@@ -98,6 +98,8 @@ interface ThermoData {
   stance3_color?: string;
   stance3_reason?: string;
   exposure?: string;        // 建議部位 (持有/空手)
+  exit_reason?: string;     // 今天是防守解除日時的出口代碼; 其他日子 ""
+  defense_hint?: boolean;   // 防守剛解除但趨勢腿進場條件已成立 → 明日可能轉趨勢防守
   near_high: boolean;
   pct_from_high: number;
   hi_window: number;
@@ -226,6 +228,8 @@ interface LiveStance {
   stance3_color?: string;
   stance3_reason?: string;
   exposure?: string;
+  exit_reason?: string;
+  defense_hint?: boolean;
   short_trend: number;
 }
 
@@ -291,7 +295,7 @@ export default function ThermometerPage() {
               )}
             </div>
             <div className="text-xs text-text-secondary">
-              {stanceReason}　·　{stanceValue === "防守" ? "短期轉弱，空手" : stanceValue === "觀望" ? "先不動作，等它站住或轉攻" : "短期偏多，可進場"}
+              {stanceReason}　·　{stanceValue === "防守" ? "短期轉弱，空手" : stanceValue === "觀望" ? "先不動作，等它站住或轉攻" : src.defense_hint ? "防守剛解除，先不加碼" : "短期偏多，可進場"}
             </div>
           </div>
         </div>

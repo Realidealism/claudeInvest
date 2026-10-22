@@ -330,7 +330,7 @@ def compute_stance(short_trend, hot_wide, early_exit=None, reattack_safe=None,
                    top_reentry_win=None, swing=None, swing_exit=None,
                    trend_exit=None, block_entry_at_hi=False,
                    swing_max_hold=None, return_modes=False
-                   ) -> np.ndarray | tuple[np.ndarray, np.ndarray, np.ndarray]:
+                   ) -> np.ndarray | tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
     """攻防 stateful hysteresis → per-day defensive[] boolean array. Two ways to defend:
 
     高點防守 (top mode, needs top_vote+price): top_vote (4-orthogonal overheat >=3) within
@@ -354,8 +354,9 @@ def compute_stance(short_trend, hot_wide, early_exit=None, reattack_safe=None,
     恐慌急殺早轉攻 (panic_exit): 防守中若急殺 V (深跌+融資急殺+快殺<=-10%) → 立即轉攻接反彈,
         並 panic_hold 天抑制重新進場防閃爍. 優先於其他 exit.
 
-    return_modes=True → 額外回傳 (modes, held): 每日的防守腿別 ('top'/'trend'/'swing'/None) 與
-        段內已守天數 (進場當日=1), 供 derive_tri_state 做三態分級. 純 bookkeeping, 不影響 latch.
+    return_modes=True → 額外回傳 (modes, held, exits): 每日的防守腿別 ('top'/'trend'/'swing'/None)、
+        段內已守天數 (進場當日=1, 供 derive_tri_state 做三態分級), 與解除當根的出口代碼
+        (EXIT_TEXT 的 key; 其餘日子為 ""). 純 bookkeeping, 不影響 latch.
 
     top_vote/price None → legacy trend-only stance (bit-identical to the pre-top-defense
     behaviour); panic_exit None → no panic re-attack; top_reentry_win None → no re-latch
@@ -392,6 +393,7 @@ def compute_stance(short_trend, hot_wide, early_exit=None, reattack_safe=None,
     out = np.zeros(len(st), dtype=bool)
     modes_out = np.empty(len(st), dtype=object)   # 防守腿別 (bookkeeping for 三態)
     held_out = np.zeros(len(st), dtype=int)       # 段內已守天數 (進場當日=1)
+    exits_out = np.full(len(st), "", dtype=object)  # 解除當根的出口代碼 (bookkeeping for 文案)
     held = 0
     state = False
     supp = False   # 早退安全帶: 保護攻擊狀態不被 obv_weak 重新拉回防守
@@ -419,25 +421,30 @@ def compute_stance(short_trend, hot_wide, early_exit=None, reattack_safe=None,
         else:
             if pk[i]:
                 state = False; mode = None; pcool = panic_hold  # 恐慌急殺 V → 早轉攻 (優先)
+                exits_out[i] = "panic"
             elif ee[i]:
                 state = False; mode = None; supp = True   # 底部 → 攻擊 + 啟動安全帶
+                exits_out[i] = "early"
             elif mode == "top":
                 if mh > 0:
                     mh -= 1                                # 抗抖動寬限
                 elif px[i] > entry or trx[i]:
                     state = False; mode = None            # 漲回頂上 / 站回 13 日高 → 攻擊
                     inval = i                             # 論點證偽 → 起算重掛閘門
+                    exits_out[i] = "top_price" if px[i] > entry else "trend_hi"
             elif mode == "swing":
                 swing_held += 1
                 if swx[i] or (swing_max_hold is not None and swing_held >= swing_max_hold):
                     state = False; mode = None            # 站上 5 日高 / 續守到上限 → 攻擊
+                    exits_out[i] = "swing_hi" if swx[i] else "swing_maxhold"
             elif rec[i] or trx[i]:
                 state = False; mode = None                # 排列回多方 / 站回 13 日高 → 攻擊
+                exits_out[i] = "rec" if rec[i] else "trend_hi"
         out[i] = state
         held = (held + 1 if was else 1) if state else 0
         modes_out[i] = mode
         held_out[i] = held
-    return (out, modes_out, held_out) if return_modes else out
+    return (out, modes_out, held_out, exits_out) if return_modes else out
 
 
 def derive_tri_state(defensive, modes, held, k=STANCE_TRI_TREND_K, j=STANCE_TRI_SWING_J,
@@ -480,16 +487,49 @@ def derive_tri_state(defensive, modes, held, k=STANCE_TRI_TREND_K, j=STANCE_TRI_
 
 STANCE3_COLOR = {"攻擊": "#22c55e", "觀望": "#eab308", "防守": "#ef4444"}
 
+# compute_stance 的出口代碼 → 解除當天的說明 (放在「；」前半句: 前端與 stance_alert 只顯示前半句)
+EXIT_TEXT = {
+    "panic": "恐慌急殺 V，提早轉攻",
+    "early": "外資期貨淨部位創 60 日新高、空頭擴張放緩，防守解除",
+    "top_price": "指數漲回頂位之上，高點防守解除",
+    "trend_hi": f"指數站回 {TREND_EXIT_HI_WIN} 日高，防守解除",
+    "swing_hi": f"指數站回 {SWING_HI_WIN} 日高，波段防守解除",
+    "swing_maxhold": f"波段防守守滿 {SWING_MAX_HOLD} 天解除，指數未站回 {SWING_HI_WIN} 日高",
+    "rec": "排列回多方，防守解除",
+    "rec3": f"排列連 {STANCE_EXIT_DAYS} 天不空，防守解除",
+}
 
-def _stance3_text(lab: str, exposed: bool, st_last: int, swing_watch: bool = False) -> str:
+
+def _trend_ready(m: pd.DataFrame) -> pd.Series:
+    """趨勢腿的進場條件此刻成立 (排列翻空 AND 近 TOP_LOOKBACK 日加寬過熱). 解除當天成立 →
+    compute_stance 隔天就會掛趨勢防守 (解除那根不重判進場), 文案據此提醒."""
+    fl3 = m["hot_wide"].astype(bool).rolling(TOP_LOOKBACK, min_periods=1).max() > 0
+    return fl3 & (m["st"] < 0)
+
+
+def _defense_hint(exit_reason: str, trend_ready: bool) -> bool:
+    """解除當天提示「明日可能轉趨勢防守」: 趨勢腿進場條件已成立, 且不是恐慌轉攻 (它有
+    STANCE_PANIC_HOLD 天冷卻期, 隔天不會被趨勢腿拉回)."""
+    return bool(exit_reason) and trend_ready and exit_reason != "panic"
+
+
+def _stance3_text(lab: str, exposed: bool, st_last: int, swing_watch: bool = False,
+                  exit_reason: str = "", trend_ready: bool = False, intraday: bool = False) -> str:
     """三態的說明文字 (daily 與 intraday 共用).
 
     swing_watch=True 時的觀望來自波段層的排列降級 (SWING_WATCH_ARR / SWING_WATCH_LONG), 出場條件與趨勢腿的
     觀望完全不同 (排列一停止轉強當天就回防守), 故走另一段文案.
+    exit_reason: 當天是防守解除日時的出口代碼 (EXIT_TEXT); trend_ready: 解除當天趨勢腿進場條件已成立;
+    intraday: 盤中 forming bar 的判定, 收盤前可能翻回, 文案標「盤中」.
     """
     arr = ST_LABELS.get(st_last, "?")
     if lab == "攻擊":
-        return f"攻擊中（排列：{arr}，中性以上）"
+        if exit_reason:
+            if exit_reason == "rec" and st_last <= 0:
+                exit_reason = "rec3"                       # 由「連 N 天中性以上」解除, 排列本身未翻多
+            txt = f"攻擊（排列：{arr}）：{'盤中' if intraday else ''}{EXIT_TEXT[exit_reason]}"
+            return txt + ("；排列仍空，明日可能轉趨勢防守" if _defense_hint(exit_reason, trend_ready) else "")
+        return f"攻擊中（排列：{arr}）"
     if lab == "觀望" and swing_watch:
         return (f"觀望中（排列：{arr}）：波段停滯（過熱背景下跌破 {SWING_HI_WIN} 日高），但"
                 f"短線多方仍領先且持續轉強、長線多方排列占比同步回升，故先不加碼、"
@@ -669,7 +709,7 @@ def daily_stance_frame(cur) -> pd.DataFrame:
     # 攻防狀態 (stateful hysteresis): 高點防守 (top_vote 一亮就防守, 價格論點持有) + 向下趨勢防守
     # (加寬過熱 AND 排列翻空); 轉攻 = 漲回頂上(向上趨勢) / 排列回多 / early_reattack(底部) /
     # 恐慌急殺 V(panic_exit). 見 compute_stance.
-    _def, _modes, _held = compute_stance(m["st"].to_numpy(), m["hot_wide"].to_numpy(),
+    _def, _modes, _held, _exits = compute_stance(m["st"].to_numpy(), m["hot_wide"].to_numpy(),
                                          _early_reattack(m), _reattack_safe(m),
                                          top_vote=m["top_vote"].to_numpy(), price=m["tx"].to_numpy(),
                                          panic_exit=m["panic_exit"].to_numpy(),
@@ -685,6 +725,8 @@ def daily_stance_frame(cur) -> pd.DataFrame:
                                                    swing_watch=m["swing_watch"].to_numpy())
     m["mode"] = _modes
     m["held"] = _held
+    m["exit_reason"] = _exits
+    m["trend_ready"] = _trend_ready(m)
     return m
 
 
@@ -745,6 +787,7 @@ def build_thermometer(cur, today: date | None = None) -> dict:
     a_fresh = bool(last["fresh_low"])
     label, color, danger = _regime(last["score"], a_near, a_fresh)
     defensive = bool(last["defensive"])
+    trend_ready = bool(last["trend_ready"])
     return {
         "as_of": last["d"].date().isoformat(),
         "score": round(last["score"], 1),
@@ -755,12 +798,16 @@ def build_thermometer(cur, today: date | None = None) -> dict:
         # 三態下「防守」的第一天是觀望·續抱, 此時 legacy stance 會說防守而 exposure 說持有.
         "stance": "防守" if defensive else "攻擊",
         "stance_color": "#ef4444" if defensive else "#22c55e",
-        "stance_reason": _stance3_text("防守" if defensive else "攻擊", not defensive, int(last["st"])),
+        "stance_reason": _stance3_text("防守" if defensive else "攻擊", not defensive, int(last["st"]),
+                                       exit_reason=last["exit_reason"], trend_ready=trend_ready),
         "stance3": last["stance3"],
         "stance3_color": STANCE3_COLOR[last["stance3"]],
         "stance3_reason": _stance3_text(last["stance3"], bool(last["exposure"]), int(last["st"]),
-                                        swing_watch=bool(last["swing_watch"]) and last["mode"] == "swing"),
+                                        swing_watch=bool(last["swing_watch"]) and last["mode"] == "swing",
+                                        exit_reason=last["exit_reason"], trend_ready=trend_ready),
         "exposure": "持有" if last["exposure"] else "空手",
+        "exit_reason": last["exit_reason"],                 # 今天是防守解除日時的出口代碼 (EXIT_TEXT)
+        "defense_hint": _defense_hint(last["exit_reason"], trend_ready),   # 明日可能轉趨勢防守
         "swing": bool(last["swing"]),
         "near_high": a_near,
         "pct_from_high": round(float(pfh), 1),
@@ -821,10 +868,11 @@ def build_thermometer(cur, today: date | None = None) -> dict:
     }
 
 
-def _intraday_short_trend_total() -> tuple[int, float, str] | None:
+def _intraday_short_trend_total() -> tuple[int, float, str, float, float] | None:
     """Live short-scope 排列 (total base) from the breadth sidecar that
-    intraday_snapshot writes each pass. Returns (TREND_CODE, 空頭排列占比%, sidecar_date)
-    or None. 空頭排列占比 feeds the 升速放緩 early-reattack test on the forming bar."""
+    intraday_snapshot writes each pass. Returns (TREND_CODE, 空頭排列占比%, sidecar_date,
+    short 空-多 價差 pp, long 多頭排列占比%) or None. 空頭排列占比 feeds the 升速放緩
+    early-reattack test on the forming bar; the last two feed swing_watch."""
     import json
     from pathlib import Path
     sidecar = Path(__file__).parent.parent / "data" / "breadth_intraday.json"
@@ -841,7 +889,44 @@ def _intraday_short_trend_total() -> tuple[int, float, str] | None:
     from analysis.market_breadth import classify_trend, TREND_CODE
     up = ib["short_up"] / total * 100
     dn = ib["short_down"] / total * 100
-    return TREND_CODE[classify_trend(up, dn, 100 - up - dn)], dn, str(ib.get("trade_date"))
+    long_up = ib["long_up"] / total * 100 if ib.get("long_up") is not None else np.nan
+    return (TREND_CODE[classify_trend(up, dn, 100 - up - dn)], dn, str(ib.get("trade_date")),
+            dn - up, long_up)
+
+
+INTRADAY_TAIEX_MAX_AGE_MIN = 15   # 即時加權指數的最新 bucket 超過這麼久 → 視為斷線, 退回昨收
+
+
+def _intraday_taiex(cur, now: datetime) -> float | None:
+    """Live TAIEX (玉山 IX0001) for today from tw.intraday_value_profile, which the sweeper
+    writes every 5-minute bucket. Buckets after the 13:30 close hold the official close
+    (IX0001 == tw.index_prices close), so they stay valid for the rest of the day. Returns
+    None — and warns — when today has no row or the latest bucket is stale."""
+    from intraday.session import SESSION_CLOSE, TPE_TZ
+    if now.tzinfo is not None:
+        now = now.astimezone(TPE_TZ)
+    try:
+        cur.execute("""SELECT time_bucket, taiex_close FROM tw.intraday_value_profile
+                       WHERE trade_date = %s AND taiex_close IS NOT NULL
+                       ORDER BY time_bucket DESC LIMIT 1""", (now.date(),))
+        r = cur.fetchone()
+        if r:
+            hh, mm = (int(x) for x in r["time_bucket"].split(":"))
+            bucket = now.replace(hour=hh, minute=mm, second=0, microsecond=0)
+            close = float(r["taiex_close"])
+    except Exception as e:
+        print(f"[THERMO] [WARN] live TAIEX query failed ({e!r}); intraday stance uses prev close")
+        return None
+    if not r:
+        print(f"[THERMO] [WARN] no live TAIEX for {now.date()}; intraday stance uses prev close")
+        return None
+    age_min = (now - bucket).total_seconds() / 60
+    # bucket 標籤是 5 分鐘向上取整: "13:30" 存的是 13:25-13:29 的盤中值, 只有之後的 bucket 才是收盤價
+    if bucket.time() <= SESSION_CLOSE and age_min > INTRADAY_TAIEX_MAX_AGE_MIN:
+        print(f"[THERMO] [WARN] live TAIEX stale (bucket {r['time_bucket']}, {age_min:.0f} min old); "
+              f"intraday stance uses prev close")
+        return None
+    return close
 
 
 def _tx_forming_bar(volume_scale: float, now: datetime) -> tuple | None:
@@ -875,6 +960,8 @@ def build_intraday_stance(cur, volume_scale: float, now: datetime) -> dict | Non
     sc = _intraday_short_trend_total()
     forming = _tx_forming_bar(volume_scale, now)
     grafted = forming is not None and ts not in set(m["d"])   # 真的接了 forming bar 才算盤中
+    live_tx = _intraday_taiex(cur, now) if grafted else None
+    sc_today = sc is not None and sc[2] == today.isoformat()
     if grafted:
         o, h, l, c, v = forming
         row = {col: np.nan for col in m.columns}
@@ -882,12 +969,15 @@ def build_intraday_stance(cur, volume_scale: float, now: datetime) -> dict | Non
         row["o"], row["h"], row["l"], row["c"], row["v"] = o, h, l, c, v
         row["ref"] = m["c"].iloc[-1]                       # prev front-month close
         row["noi"] = m["noi"].iloc[-1]                     # stale (foreign net_oi is close-only)
-        row["tx"] = m["tx"].iloc[-1]                        # stale TAIEX close for the 高點防守 price gate
+        # 即時加權指數 (IX0001) 驅動價格類判斷; 拿不到時退回昨收 (下方會沿用收盤 latch)
+        row["tx"] = live_tx if live_tx is not None else m["tx"].iloc[-1]
         # opt_bull / mgn / lim stay NaN on the forming bar (close-only) → B/D/E voters False;
         # top_vote latches from recent closes via TOP_LOOKBACK, so 高點防守 holds live.
-        if sc is not None and sc[2] == today.isoformat():
+        # pct_from_high stays NaN too → panic_exit (needs 融資, close-only) is False intraday.
+        if sc_today:
             row["st"] = sc[0]
             row["sd_pct"] = sc[1]                           # live 空頭排列占比 for 升速放緩
+            row["arr_spread"], row["long_up_pct"] = sc[3], sc[4]   # live swing_watch inputs
         else:
             row["st"] = int(m["st"].iloc[-1])              # sd_pct stays NaN -> no live early exit
         m = pd.concat([m, pd.DataFrame([row])], ignore_index=True)
@@ -917,9 +1007,9 @@ def build_intraday_stance(cur, volume_scale: float, now: datetime) -> dict | Non
     _ret10 = m["tx"].pct_change(PANIC_SPEED_WIN) * 100
     m["panic_exit"] = ((m["pct_from_high"] <= PANIC_PFH) & (_mchg5 <= PANIC_MARGIN_CHG)
                        & (_ret10 <= STANCE_PANIC_EXIT_SPEED)).fillna(False)
-    # 波段停滯防守 (同 daily). Forming bar 的 tx 是前一日收盤 (盤中拿不到即時指數), 它會讓 5 日高
-    # 視窗少一個相異收盤 → 判定與收盤不一致 (實測 swing_exit 有 4% 的日子翻面). 故 forming bar 直接
-    # 沿用前一收盤日的 swing/swing_exit, 讓盤中就是把收盤的 latch 帶著走.
+    # 波段停滯防守 (同 daily). Forming bar 的 tx 是即時加權指數 (IX0001); 拿不到即時值時才是前一日
+    # 收盤, 那會讓 5 日高視窗少一個相異收盤 → 判定與收盤不一致 (實測 swing_exit 有 4% 的日子翻面),
+    # 故只在退回昨收時沿用前一收盤日的判定 (見下方).
     _tvn = (m["fut_vote"].astype(int) + m["opt_bearish"].astype(int)
             + m["limitup_vote"].fillna(False).astype(int) + m["margin_overheat"].fillna(False).astype(int))
     _hi5 = m["tx"].rolling(SWING_HI_WIN, min_periods=1).max()
@@ -930,12 +1020,17 @@ def build_intraday_stance(cur, volume_scale: float, now: datetime) -> dict | Non
     m["trend_exit"] = m["tx"] >= m["tx"].rolling(TREND_EXIT_HI_WIN, min_periods=1).max()
     m["tri_upgrade"] = m["tx"] < _hi5 * (1 - STANCE_TRI_UPGRADE_DROP / 100)
     if grafted and len(m) >= 2:
-        # 這幾條都是拿 tx 做 rolling, 而 forming bar 的 tx 是前一日收盤 (盤中拿不到即時指數)
-        # swing_watch 跟著 swing 一起沿用收盤值: 波段層的判定整組來自收盤 latch, 半組即時
-        # 半組沿用會讓「該不該降級」與「有沒有波段防守」對不上同一天.
-        for _c in ("swing", "swing_watch", "swing_exit", "trend_exit", "tri_upgrade"):
+        # 退回昨收時, 這幾條拿 tx 做 rolling 的判定改沿用前一收盤日. swing_watch 跟著 swing 一起
+        # 沿用: 波段層的判定整組來自收盤 latch, 半組即時半組沿用會讓「該不該降級」與「有沒有
+        # 波段防守」對不上同一天. 有即時指數但沒有當日排列 sidecar 時, st 本身也是昨日值, 排列
+        # 輸入整組都是昨天的, 故 swing_watch 照樣沿用.
+        if live_tx is None:
+            carry = ("swing", "swing_watch", "swing_exit", "trend_exit", "tri_upgrade")
+        else:
+            carry = () if sc_today else ("swing_watch",)
+        for _c in carry:
             m.loc[m.index[-1], _c] = bool(m[_c].iloc[-2])
-    defensive, _modes, _held = compute_stance(m["st"].to_numpy(), m["hot_wide"].to_numpy(),
+    defensive, _modes, _held, _exits = compute_stance(m["st"].to_numpy(), m["hot_wide"].to_numpy(),
                                               _early_reattack(m), _reattack_safe(m),
                                               top_vote=m["top_vote"].to_numpy(), price=m["tx"].to_numpy(),
                                               panic_exit=m["panic_exit"].to_numpy(),
@@ -954,19 +1049,26 @@ def build_intraday_stance(cur, volume_scale: float, now: datetime) -> dict | Non
     lab3 = _labels[-1]
     exposed = bool(_expo[-1])
     st_last = int(last["st"])
+    trend_ready = bool(_trend_ready(m).iloc[-1])
     return {
         "as_of": last["d"].date().isoformat(),
         "snapshot_time": now.isoformat(),
         "is_today": bool(last["d"].date() == today),
         "stance": "防守" if is_def else "攻擊",          # legacy 二元 (deprecated, 見 build_thermometer)
         "stance_color": "#ef4444" if is_def else "#22c55e",
-        "stance_reason": _stance3_text("防守" if is_def else "攻擊", not is_def, st_last),
+        "stance_reason": _stance3_text("防守" if is_def else "攻擊", not is_def, st_last,
+                                       exit_reason=_exits[-1], trend_ready=trend_ready, intraday=grafted),
         "stance3": lab3,
         "stance3_color": STANCE3_COLOR[lab3],
         "stance3_reason": _stance3_text(lab3, exposed, st_last,
-                                        swing_watch=bool(last["swing_watch"]) and _modes[-1] == "swing"),
+                                        swing_watch=bool(last["swing_watch"]) and _modes[-1] == "swing",
+                                        exit_reason=_exits[-1], trend_ready=trend_ready, intraday=grafted),
         "exposure": "持有" if exposed else "空手",
         "short_trend": st_last,
+        "exit_reason": _exits[-1],
+        "defense_hint": _defense_hint(_exits[-1], trend_ready),
+        "tx": round(float(last["tx"]), 2),
+        "tx_source": "live" if live_tx is not None else ("prev_close" if grafted else "close"),
     }
 
 
