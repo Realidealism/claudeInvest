@@ -8,7 +8,10 @@ every 40-80 minutes.
 Three transitions push, everything else stays silent:
   • not-defensive → 防守   : 攻防轉防守, listing today's fresh 波段多 entries
   • 防守 (still) + new 波段多 : 防守中新進波段多, one push per ticker
-  • 防守 → not-defensive   : 攻防解除
+  • 防守 → not-defensive   : 攻防解除 (with the exit named)
+
+Crossing the 防守 boundary must hold for CONFIRM_CHECKS consecutive checks
+before it pushes, so a live index hovering at a threshold doesn't flap.
 
 觀望 is not a warning state (攻擊 ↔ 觀望 flapping would be noisy). Today's long
 entries come from positions_intraday.json; only entry_tier=buy is listed in full
@@ -38,6 +41,9 @@ logger = logging.getLogger(__name__)
 # ── Tunables ──────────────────────────────────────────────────────────────
 
 PERIOD_S = 300              # job cadence
+# 進出防守要連續這麼多次檢查都成立才推播: 盤中攻防用即時加權指數, 指數在 5 日高附近
+# 來回時會反覆跨過防守邊界 (2026-08~10 重播 43 天有 7 次), 等一輪確認再推.
+CONFIRM_CHECKS = 2
 
 DEFENSIVE = "防守"
 
@@ -170,8 +176,8 @@ def _stance_line(kind: str, stance: str, prev: str | None, exposure: str | None)
 
 
 def _reason_line(stance_data: dict) -> list[str]:
-    """Keep only the 'why it is defensive' half; the text after 「；」 lists the
-    conditions that would flip it back and doubles the message length."""
+    """Keep only the 'why' half (why it turned defensive, or which exit released
+    it); the text after 「；」 lists follow-up conditions and doubles the length."""
     reason = (stance_data.get("stance3_reason") or stance_data.get("stance_reason") or "")
     head = reason.split("；")[0].strip()
     return [head] if head else []
@@ -185,7 +191,7 @@ def _build_message(kind: str, now: datetime, stance: str, prev: str | None,
              "exit": "攻防解除"}[kind]
     lines = [f"[{title}] {now:%H:%M}",
              _stance_line(kind, stance, prev, stance_data.get("exposure"))]
-    if kind == "enter":
+    if kind in ("enter", "exit"):
         # Only on the flip: the reason text is identical on every later push.
         lines += _reason_line(stance_data)
     if kind != "exit":
@@ -219,6 +225,18 @@ def _run_check(*, respect_gates: bool, dry_run: bool = False) -> tuple[str | Non
     state = _load_state(today)
     prev = state.get("stance")
     pushed: list[str] = list(state.get("pushed") or [])
+
+    # Debounce crossings of the 防守 boundary: count consecutive checks on the new side.
+    side = stance == DEFENSIVE
+    if side != (prev == DEFENSIVE):
+        seen = state.get("pending_n", 0) + 1 if state.get("pending") == side else 1
+        if seen < CONFIRM_CHECKS and not dry_run:
+            _save_state({**state, "pending": side, "pending_n": seen})
+            return None, f"pending ({stance}, {seen}/{CONFIRM_CHECKS})"
+    elif state.get("pending") is not None and not dry_run:
+        state = {**state, "pending": None, "pending_n": 0}      # flipped back: drop it
+        _save_state(state)
+
     buys, others = _todays_longs()
 
     if stance == DEFENSIVE and prev != DEFENSIVE:
