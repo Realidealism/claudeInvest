@@ -1029,19 +1029,15 @@
     "label": "半導體 VXSMH",
     "source": "Cboe (SMH ETF)",
     "latest": {
-      "close": 40.54,
-      "rating": "low"
+      "close": 46.75,
+      "rating": "elevated"
     },
     "thresholds": {
       "p20": 36.79,
-      "p50": 42.32,
+      "p50": 42.33,
       "p80": 50.24
     },
     "series": [
-      {
-        "date": "2025-10-21",
-        "close": 41.03
-      },
       {
         "date": "2025-10-22",
         "close": 41.65
@@ -2045,6 +2041,10 @@
       {
         "date": "2026-10-21",
         "close": 40.54
+      },
+      {
+        "date": "2026-10-22",
+        "close": 46.75
       }
     ]
   },
@@ -2053,9 +2053,9 @@
     "label": "台指 VIX",
     "source": "TAIFEX",
     "latest": {
-      "close": 30.25,
+      "close": 30.31,
       "rating": "low",
-      "intraday_time": "134015"
+      "intraday_time": null
     },
     "thresholds": {
       "p20": 27.52,
@@ -2705,7 +2705,7 @@
       },
       {
         "date": "2026-10-22",
-        "close": 30.25
+        "close": 30.31
       }
     ]
   }
