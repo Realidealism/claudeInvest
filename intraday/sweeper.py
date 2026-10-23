@@ -141,6 +141,26 @@ def _finalize_day_or_purge(trade_date):
           f"({sample}); purged {deleted} rows from intraday_value_profile")
 
 
+def _zero_stale_turnover(records: list[dict], today) -> int:
+    """Zero total_value/total_volume on quotes whose last trade predates today.
+
+    Around the open E.Sun can still serve a stock's previous-session snapshot
+    until it first trades, so its cumulative turnover is yesterday's whole
+    day. Summed into the 09:05 bucket that inflated h(t) there to ~29% (true
+    ~14%). Zero, not None: upsert_quotes COALESCEs None back to the old value.
+    Quotes without a timestamp (SinoPac fallback) are left as they are.
+    Returns how many quotes were zeroed.
+    """
+    n = 0
+    for r in records:
+        t = r.get("last_trade_at")
+        if t is not None and t.astimezone(_TPE_TZ).date() < today:
+            r["total_value"] = 0
+            r["total_volume"] = 0
+            n += 1
+    return n
+
+
 def classify_session(records: list[dict], now: datetime) -> str:
     """'open', 'closed' or 'undecided' for today, from one snapshot sweep.
 
@@ -308,6 +328,8 @@ def run(stop_event: threading.Event, sdk, interval_sec: int = 20, force: bool = 
                 if not force and verdict != "open":
                     verdict = _advance_verdict(verdict, tse + otc, now)
                 if force or verdict in ("open", "fallback"):
+                    if not force:
+                        _zero_stale_turnover(tse + otc, today)
                     n_tse = store.upsert_quotes(tse, market="TSE", trade_date=today)
                     n_otc = store.upsert_quotes(otc, market="OTC", trade_date=today)
                     _record_value_profile(tse + otc, today, now, sdk)
