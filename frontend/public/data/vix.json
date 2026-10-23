@@ -5,19 +5,15 @@
     "label": "美股 VIX",
     "source": "Cboe",
     "latest": {
-      "close": 16.68,
-      "rating": "low"
+      "close": 19.03,
+      "rating": "elevated"
     },
     "thresholds": {
       "p20": 15.45,
-      "p50": 17.09,
+      "p50": 17.13,
       "p80": 19.54
     },
     "series": [
-      {
-        "date": "2025-10-30",
-        "close": 16.91
-      },
       {
         "date": "2025-10-31",
         "close": 17.44
@@ -1021,6 +1017,10 @@
       {
         "date": "2026-10-21",
         "close": 16.68
+      },
+      {
+        "date": "2026-10-22",
+        "close": 19.03
       }
     ]
   },
