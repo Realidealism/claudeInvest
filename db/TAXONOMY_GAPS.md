@@ -665,3 +665,15 @@ and is not allowed to decide it.
 3. only then give Gate 1 whatever vocabulary follows from the ruling. The parser
    implements the taxonomy; it does not get to shape it by being easier to write
    one way than another
+
+## G21 · 設備廠自售零配件與耗材（machine makers' own spare parts and consumables）
+
+| | |
+|---|---|
+| **gap_type** | `population_pending` — two observed makers; whether a machine maker's own spare parts have a cell has not been put to the R025 test |
+| observed candidates | 2: **1528 恩德** — 零配件 inside the undivided 機械 73.15% line (「曲面磨床及相關刀具、零配件」); **4744 皇將** — 其他零件 22.91% as a line of its own (「主係應用於包裝設備之售後服務備用與更換用之零組件及耗材」, and the same wording for its softgel machines) |
+| evidence coverage | FY2025 annual-report product tables, read 2026-10-23 |
+| current candidate nodes | none holds them. G5, G6-02 and G6-04 take machines delivered whole (G5: 「G4 是零組件、G5 與 G6 都是整機」; G6-02／G6-04: 「以整機或整線形式交付」). G4 is the component branch, but its leaves are functions — G4-01 transmission and linear motion, G4-02 flow control, G4-03 cutting and grinding tools — and neither filing says what the parts do. G4's own Definition lists 「其他工業機械零組件」 as a candidate L3 that has not been built |
+| reason no node | the parts are sold by the machine's maker for machines it sold, so two answers are open: they follow the machine's node, or they belong on a G4 component leaf that does not exist yet. R020 ②-MX (10) MX-INC excuses only installation, commissioning, warranty and repair services, not parts, so it does not settle this |
+| population status | 1528: 零配件 recorded as MX-SKIP-UNDECIDED (no cell) on the 機械 line, which therefore carries `Granularity_Insufficient` on G5, B5-01, B5-02 and G4-03. 4744: 其他零件 has no row |
+| next audit | none scheduled. While this row is open, 1528's four rows stay `Granularity_Insufficient`, the state R020 ②-MX (7) gives the known nodes of a line that holds a component with no cell. Only once this row closes, whichever way, does every component of the 機械 line name a node; the line is then MX-FULL and the rows converge to `Too_Coarse` under the same clause (「未定組成日後裁定，依 ①-S 收斂條件轉為 TOO_COARSE 或 WEIGHTED」). Closing it is a separate ruling and write, not part of any current one. "Follow the machine" would also put 4744's 其他零件 on G6-02 and G6-04 as one mixed line |
