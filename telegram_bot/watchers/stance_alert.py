@@ -34,6 +34,7 @@ from datetime import date, datetime, time as dtime, timedelta, timezone
 from pathlib import Path
 
 from db.connection import get_cursor
+from intraday.store import is_market_closed
 from telegram_bot.notify import send_sync
 
 logger = logging.getLogger(__name__)
@@ -209,6 +210,9 @@ def _run_check(*, respect_gates: bool, dry_run: bool = False) -> tuple[str | Non
 
     if respect_gates and not _in_trading_hours(now):
         return None, "skipped: outside trading hours"
+
+    if respect_gates and is_market_closed(today):
+        return None, "skipped: market closed today"
 
     try:
         stance_data = _live_stance(now)

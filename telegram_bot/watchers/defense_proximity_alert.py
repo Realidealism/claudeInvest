@@ -26,6 +26,7 @@ from datetime import date, datetime, time as dtime, timedelta, timezone
 from pathlib import Path
 
 from db.connection import get_cursor
+from intraday.store import is_market_closed
 from intraday.watchlist import load_tw_watchlist
 from telegram_bot.notify import send_sync
 
@@ -143,8 +144,10 @@ def _load_active_positions() -> list[dict]:
     return out
 
 
-def _load_last_prices(tickers: list[str]) -> dict[str, float]:
-    """Latest intraday_quotes.last_price keyed by stock_id."""
+def _load_last_prices(tickers: list[str], trade_date: date) -> dict[str, float]:
+    """Latest intraday_quotes.last_price keyed by stock_id, for rows swept on
+    trade_date only: the table keeps one row per stock, so a day the sweeper
+    did not write still holds the previous session's prices."""
     if not tickers:
         return {}
     with get_cursor(commit=False) as cur:
@@ -152,10 +155,10 @@ def _load_last_prices(tickers: list[str]) -> dict[str, float]:
             """
             SELECT DISTINCT ON (stock_id) stock_id, last_price
             FROM tw.intraday_quotes
-            WHERE stock_id = ANY(%s)
+            WHERE stock_id = ANY(%s) AND trade_date = %s
             ORDER BY stock_id, updated_at DESC
             """,
-            (tickers,),
+            (tickers, trade_date),
         )
         return {
             r["stock_id"]: float(r["last_price"])
@@ -223,6 +226,9 @@ def _run_check(*, respect_gates: bool) -> tuple[list[Hit], str]:
     if respect_gates and not _in_trading_hours(now_tpe):
         return [], "skipped: outside trading hours"
 
+    if respect_gates and is_market_closed(today):
+        return [], "skipped: market closed today"
+
     _purge_old_cooldown(today)
 
     watchlist = set(load_tw_watchlist(include_etf=True))
@@ -238,7 +244,7 @@ def _run_check(*, respect_gates: bool) -> tuple[list[Hit], str]:
     if not wl_positions:
         return [], "skipped: no watchlist position overlap"
 
-    prices = _load_last_prices([p["ticker"] for p in wl_positions])
+    prices = _load_last_prices([p["ticker"] for p in wl_positions], today)
     if not prices:
         return [], "skipped: no intraday_quotes for watchlist positions"
 

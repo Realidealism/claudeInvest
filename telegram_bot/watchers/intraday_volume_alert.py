@@ -17,6 +17,7 @@ from typing import Iterable
 
 from db.connection import get_cursor
 from intraday.estimate import get_h_curve, _get_h
+from intraday.store import is_market_closed
 from intraday.watchlist import load_tw_watchlist
 from telegram_bot.notify import send_sync
 
@@ -101,9 +102,10 @@ def _build_message(now_tpe: datetime, h: float, hits: list[Hit]) -> str:
 # ── DB access ─────────────────────────────────────────────────────────────
 
 
-def _load_watchlist_quotes(symbols: list[str]) -> dict[str, dict]:
+def _load_watchlist_quotes(symbols: list[str], trade_date: date) -> dict[str, dict]:
     """Return {stock_id: {total_value, total_volume, last_price, name}} for
-    symbols that currently have an intraday_quotes row."""
+    symbols with an intraday_quotes row swept on trade_date (the table keeps
+    one row per stock, so older rows are the previous session's)."""
     if not symbols:
         return {}
     with get_cursor(commit=False) as cur:
@@ -115,9 +117,10 @@ def _load_watchlist_quotes(symbols: list[str]) -> dict[str, dict]:
             FROM tw.intraday_quotes iq
             LEFT JOIN tw.stocks s ON s.stock_id = iq.stock_id
             WHERE iq.stock_id = ANY(%s)
+              AND iq.trade_date = %s
               AND iq.total_value IS NOT NULL
             """,
-            (symbols,),
+            (symbols, trade_date),
         )
         return {r["stock_id"]: dict(r) for r in cur.fetchall()}
 
@@ -204,6 +207,9 @@ def _run_check(*, respect_gates: bool) -> tuple[list[Hit], str]:
     if respect_gates and not _in_trading_hours(now_tpe):
         return [], "skipped: outside trading hours"
 
+    if respect_gates and is_market_closed(today):
+        return [], "skipped: market closed today"
+
     _purge_old_cooldown(today)
 
     h_curve = get_h_curve()
@@ -217,7 +223,7 @@ def _run_check(*, respect_gates: bool) -> tuple[list[Hit], str]:
     if not symbols:
         return [], "skipped: watchlist empty"
 
-    quotes = _load_watchlist_quotes(symbols)
+    quotes = _load_watchlist_quotes(symbols, today)
     if not quotes:
         return [], "skipped: no intraday quotes for watchlist"
 

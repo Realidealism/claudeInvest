@@ -18,6 +18,9 @@ a = Analysis(
         'config.settings',
         'utils.classifier',
         'esun_marketdata',
+        # Closure alerts are sent in-process from a function-level import.
+        'telegram_bot.cron_alert',
+        'telegram_bot.notify',
     ],
     hookspath=[],
     hooksconfig={},

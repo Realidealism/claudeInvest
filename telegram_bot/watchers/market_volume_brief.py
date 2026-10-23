@@ -49,6 +49,7 @@ from statistics import median
 
 from db.connection import get_cursor
 from intraday.estimate import get_h_curve
+from intraday.store import is_market_closed
 from telegram_bot.notify import send_sync
 
 logger = logging.getLogger(__name__)
@@ -495,6 +496,9 @@ def _run_check(respect_gates: bool = True) -> tuple[str | None, str]:
 
     if respect_gates and not _is_trading_day(today):
         return None, "not a trading day; skipped"
+
+    if respect_gates and is_market_closed(today):
+        return None, "market closed today; skipped"
 
     p, status = compute_projection(now)
     if p is None:

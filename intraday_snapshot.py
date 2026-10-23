@@ -224,7 +224,7 @@ def _run_loop(stop_event: threading.Event) -> None:
         now_tpe,
         seconds_until_next_open,
     )
-    from intraday.store import post_close_bucket_count
+    from intraday.store import is_market_closed, post_close_bucket_count
 
     # >=3 post-close buckets ('13:35', '13:40', '13:45') means the sweeper
     # has run at least 3 iterations after the 13:30 closing auction match.
@@ -243,12 +243,26 @@ def _run_loop(stop_event: threading.Event) -> None:
         now = now_tpe()
         today = now.date()
 
+        # A weekday the exchange did not open (tw.market_holidays, including
+        # the sweeper's own no-trades verdict) is no session at all.
+        closed = False
+        if in_snapshot_session(now) or in_post_close_window(now):
+            try:
+                with _deadline(STEP_WATCHDOG_SECONDS):
+                    closed = is_market_closed(today)
+            except Exception:
+                # The pass itself would hit the same DB; let it absorb the
+                # outage as it did before this check existed.
+                print("[LOOP] [WARN] closure lookup failed:")
+                traceback.print_exc()
+
         # Outside the trading window AND today's final pass is already
         # done (or it's not a trading day) → sleep until tomorrow 09:00.
-        if not in_snapshot_session(now) and not in_post_close_window(now):
+        if closed or (not in_snapshot_session(now) and not in_post_close_window(now)):
             final_done_for = None
             sleep_for = min(seconds_until_next_open(now), 300.0)
-            print(f"[LOOP] outside session, sleeping {sleep_for:.0f}s "
+            reason = "market closed today" if closed else "outside session"
+            print(f"[LOOP] {reason}, sleeping {sleep_for:.0f}s "
                   f"(now {now:%Y-%m-%d %H:%M:%S} TPE)")
             if stop_event.wait(sleep_for):
                 break

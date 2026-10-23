@@ -53,6 +53,24 @@ def _msg_microtaiex_report_failed(extra: str) -> str:
     return f"微台當沖{session}結算推播失敗"
 
 
+def _msg_market_closed_detected(extra: str) -> str:
+    # extra = "<quotes>|<latest trade>" from intraday.sweeper.
+    count, _, latest = (extra or "?|?").partition("|")
+    return (f"今日判定休市：開盤後 {count} 檔報價沒有任何今天的成交"
+            f"（最新一筆 {latest or '?'}），盤中寫入、快照與告警暫停")
+
+
+def _msg_market_closure_undetermined(extra: str) -> str:
+    # extra = "<HH:MM>|<quotes>|<timestamped>" from intraday.sweeper.
+    at, quotes, stamped = ((extra or "").split("|") + ["?", "?", "?"])[:3]
+    return (f"{at} 仍無法判定今天是否開盤（{quotes} 檔報價，{stamped} 檔有成交時間），"
+            f"盤中照常寫入；請確認玉山報價的成交時間欄位")
+
+
+def _msg_market_closed_revoked(extra: str) -> str:
+    return f"撤銷休市判定：{extra or '?'} 出現今天的成交，盤中恢復寫入"
+
+
 def _msg_live_reconcile_failed(extra: str) -> str:
     exit_code = extra or "?"
     return f"月對帳失敗（exit {exit_code}），見 logs\\live_reconcile.log"
@@ -67,6 +85,9 @@ _EVENTS = {
     "microtaiex_report_failed": _msg_microtaiex_report_failed,
     "financials_sweep_failed": _msg_financials_sweep_failed,
     "live_reconcile_failed": _msg_live_reconcile_failed,
+    "market_closed_detected": _msg_market_closed_detected,
+    "market_closed_revoked": _msg_market_closed_revoked,
+    "market_closure_undetermined": _msg_market_closure_undetermined,
 }
 
 

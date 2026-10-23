@@ -36,6 +36,7 @@ from pathlib import Path
 
 from db.connection import get_cursor
 from intraday.session import TPE_TZ, in_session, in_snapshot_session, now_tpe
+from intraday.store import is_market_closed, market_closure_source
 from telegram_bot.notify import send_sync
 
 _TAG = "健康檢查"
@@ -304,6 +305,15 @@ def _taiex_days(first: date, last: date) -> set[date]:
         return {r["trade_date"] for r in cur.fetchall()}
 
 
+def _closure_source(d: date) -> str | None:
+    """Source of d's closure row; None also before migration 121 adds the
+    column (this module runs from source and may get there first)."""
+    try:
+        return market_closure_source(d)
+    except Exception:
+        return None
+
+
 def _closed_days_that_traded(today: date) -> list[date]:
     with get_cursor(commit=False) as cur:
         cur.execute(
@@ -345,8 +355,13 @@ def _calendar_gap(today: date, latest: date) -> tuple[list[str], date]:
         if lost and lost[-1] > latest:
             want = lost[-1]
         for d in _closed_days_that_traded(today):
-            lines.append(f"休市日曆把 {d:%m-%d} 標為休市，但當天有大盤指數"
-                         f"（日曆解析規則可能失效）")
+            if _closure_source(d) == "intraday_detected":
+                lines.append(f"盤中偵測把 {d:%m-%d} 判為休市，但當天有大盤指數（誤判），刪除："
+                             f"DELETE FROM tw.market_holidays WHERE holiday_date = '{d}' "
+                             f"AND source = 'intraday_detected';")
+            else:
+                lines.append(f"休市日曆把 {d:%m-%d} 標為休市，但當天有大盤指數"
+                             f"（日曆解析規則可能失效）")
         return lines, want
     except Exception as exc:
         return [f"交易日曆檢查本身失敗：{type(exc).__name__}: {exc}"], latest
@@ -896,6 +911,10 @@ def run_intraday() -> int:
         return 0
 
     today = now.date()
+    if is_market_closed(today):
+        # Nothing is swept or snapshotted on a closed weekday; the sweeper
+        # already alerted when it judged the closure.
+        return 0
     rc = _check_sweeper(now, today)
     if in_snapshot_session(now):
         # The snapshot daemon stops mid-session passes at 13:30 and idles

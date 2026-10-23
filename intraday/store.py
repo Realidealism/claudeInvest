@@ -367,6 +367,63 @@ def upsert_stock_halts(codes: list[str], trade_date) -> int:
         return written
 
 
+def market_closure_source(trade_date) -> str | None:
+    """Source of the tw.market_holidays row that closes trade_date, or None
+    when nothing closes it. Sources: 'twse_calendar' (exchange schedule),
+    'intraday_detected' (the sweeper saw no trades today), 'manual'."""
+    with get_cursor(commit=False) as cur:
+        cur.execute(
+            "SELECT source FROM tw.market_holidays "
+            "WHERE holiday_date = %s AND is_closed",
+            (trade_date,),
+        )
+        row = cur.fetchone()
+        return row["source"] if row else None
+
+
+def is_market_closed(trade_date) -> bool:
+    """True when tw.market_holidays closes trade_date, whatever the source.
+    Every intraday consumer checks this on top of its own time window: a
+    weekday closure (holiday, typhoon) otherwise looks like a session.
+
+    Reads no source column on purpose: the bot and health checks run from
+    source and may restart before migration 121 adds it."""
+    with get_cursor(commit=False) as cur:
+        cur.execute(
+            "SELECT 1 FROM tw.market_holidays "
+            "WHERE holiday_date = %s AND is_closed",
+            (trade_date,),
+        )
+        return cur.fetchone() is not None
+
+
+def mark_detected_closure(trade_date, evidence: str) -> None:
+    """Record that the sweeper found no trades today. Never overwrites a row
+    from another source: the exchange calendar or a manual entry wins."""
+    with get_cursor() as cur:
+        cur.execute(
+            """
+            INSERT INTO tw.market_holidays
+                (holiday_date, name, description, is_closed, source)
+            VALUES (%s, '盤中偵測：未開盤', %s, TRUE, 'intraday_detected')
+            ON CONFLICT (holiday_date) DO NOTHING
+            """,
+            (trade_date, evidence),
+        )
+
+
+def clear_detected_closure(trade_date) -> int:
+    """Withdraw the sweeper's own closure row once trades appear. Rows from
+    other sources are left alone. Returns deleted row count."""
+    with get_cursor() as cur:
+        cur.execute(
+            "DELETE FROM tw.market_holidays "
+            "WHERE holiday_date = %s AND source = 'intraday_detected'",
+            (trade_date,),
+        )
+        return cur.rowcount
+
+
 def has_close_bucket(trade_date) -> bool:
     """Return True when the 13:30 bucket is already written for trade_date.
 

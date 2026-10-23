@@ -288,6 +288,30 @@ def _holiday_rows(year: int) -> dict[date, bool]:
         return {r["holiday_date"]: r["is_closed"] for r in cur.fetchall()}
 
 
+def _closure_source(trade_date: date) -> str | None:
+    """Source of trade_date's closure row in tw.market_holidays."""
+    from intraday.store import market_closure_source
+    return market_closure_source(trade_date)
+
+
+def _note_detected_closure(trade_date: date) -> None:
+    """A closure the intraday sweeper detected (no trades by 09:05) is not
+    the exchange's word, and here it skips a night that also has no TAIEX
+    row. Say so, with the way back, so a misjudged trading day is not lost
+    in silence. Calendar and manual closures need no message."""
+    try:
+        if _closure_source(trade_date) != "intraday_detected":
+            return
+        send_sync(
+            f"[每日更新] {trade_date} 依盤中偵測判定休市，已跳過。"
+            f"若當天其實有開盤，刪除這一列後重跑：\n"
+            f"DELETE FROM tw.market_holidays WHERE holiday_date = '{trade_date}' "
+            f"AND source = 'intraday_detected';\n"
+            f"C:\\Claude\\Invest\\dist\\daily_update.exe {trade_date} {trade_date}")
+    except Exception:
+        traceback.print_exc()
+
+
 def _is_scheduled_closure(rows: dict[date, bool], trade_date: date) -> bool | None:
     """True when the calendar closes the date, False when it covers the year
     and does not, None when it has nothing for that year (rows is empty).
@@ -413,6 +437,7 @@ def _trading_day_gate(trade_date: date) -> tuple[str, bool, str | None]:
     if closure:
         print(f"\n[HOLIDAY] {trade_date} is closed on the exchange calendar "
               f"— skipping remaining scrapers.")
+        _note_detected_closure(trade_date)
         return "holiday", gate_ok, gate_trace
 
     try:

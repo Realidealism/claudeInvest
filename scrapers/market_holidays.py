@@ -77,12 +77,13 @@ def parse(rows: list[dict], near_year: int | None = None) -> tuple[dict[date, di
 
 
 _UPSERT_SQL = """
-    INSERT INTO tw.market_holidays (holiday_date, name, description, is_closed)
-    VALUES (%s, %s, %s, %s)
+    INSERT INTO tw.market_holidays (holiday_date, name, description, is_closed, source)
+    VALUES (%s, %s, %s, %s, 'twse_calendar')
     ON CONFLICT (holiday_date) DO UPDATE SET
         name        = EXCLUDED.name,
         description = EXCLUDED.description,
         is_closed   = EXCLUDED.is_closed,
+        source      = EXCLUDED.source,
         updated_at  = NOW()
 """
 

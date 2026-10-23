@@ -13,7 +13,7 @@ Runs in its own thread. Graceful shutdown via a threading.Event.
 
 import threading
 import traceback
-from datetime import datetime
+from datetime import datetime, time as dtime
 
 from intraday import esun_rest, session as _session, sinopac_snapshot, store
 
@@ -36,6 +36,19 @@ _MAX_CONSECUTIVE_EMPTY = 3
 
 # 5-minute bucket boundaries for the value profile curve
 _BUCKET_MINUTES = 5
+
+# Closure detection: no trade stamped today by the first bucket boundary, on a
+# sweep carrying at least this many timestamped quotes (a full sweep is ~2200),
+# means the exchange did not open.
+_CLOSURE_DECISION_TIME = dtime(9, 5)
+_CLOSURE_MIN_RECORDS = 1000
+# Trades stamped today needed to call the day open (or withdraw a closure), so
+# a stray stamp on a closed day cannot reopen it; a real open has thousands.
+_OPEN_MIN_TRADES = 20
+# Still undecided on a non-empty sweep by then: the timestamps themselves are
+# unusable, so alert and write as before detection existed rather than lose a
+# trading day to a broken field.
+_UNDECIDED_GIVE_UP_TIME = dtime(9, 10)
 
 # Indices recorded alongside each bucket: (symbol, value_col, close_col, pct_col).
 # IX0001 = 發行量加權股價指數 (TWSE), IX0043 = 櫃買指數 (TPEx). Each quote carries
@@ -128,6 +141,85 @@ def _finalize_day_or_purge(trade_date):
           f"({sample}); purged {deleted} rows from intraday_value_profile")
 
 
+def classify_session(records: list[dict], now: datetime) -> str:
+    """'open', 'closed' or 'undecided' for today, from one snapshot sweep.
+
+    On a weekday closure (typhoon, holiday) E.Sun keeps serving the previous
+    session's quotes, so every last_trade_at is older than today. Trades
+    stamped today (at least _OPEN_MIN_TRADES) mean the market is open. 'closed' needs a full-looking
+    sweep after the first bucket with no trade from today; anything thinner
+    (empty response, fallback rows without timestamps) is a source problem,
+    not a closure, and stays 'undecided'.
+    """
+    today = now.date()
+    stamps = [r["last_trade_at"] for r in records if r.get("last_trade_at")]
+    n_today = sum(1 for t in stamps if t.astimezone(_TPE_TZ).date() == today)
+    if n_today >= _OPEN_MIN_TRADES:
+        return "open"
+    if (n_today == 0 and now.time() >= _CLOSURE_DECISION_TIME
+            and len(stamps) >= _CLOSURE_MIN_RECORDS):
+        return "closed"
+    return "undecided"
+
+
+def _closure_alert(event: str, extra: str) -> None:
+    """In-process cron_alert call (the sweeper runs as a PyInstaller exe, so a
+    '-m' subprocess would start another sweeper). Non-fatal."""
+    try:
+        from telegram_bot.cron_alert import main as cron_alert_main
+        rc = cron_alert_main([event, extra])
+        if rc != 0:
+            print(f"[SWEEP] [WARN] {event} alert returned {rc}")
+    except Exception:
+        print(f"[SWEEP] [WARN] {event} alert failed:")
+        traceback.print_exc()
+
+
+def _advance_verdict(verdict: str, records: list[dict], now: datetime) -> str:
+    """Move today's verdict forward with one sweep. 'open' is final; a sweep
+    showing today's trades overturns 'closed' and 'fallback'; 'fallback'
+    (write without a verdict) is where an undecided day ends up after
+    _UNDECIDED_GIVE_UP_TIME; an inconclusive sweep never downgrades a verdict.
+
+    The closure row is a convenience for the other consumers: a DB error
+    writing or withdrawing it is logged and the in-memory verdict stands."""
+    new = classify_session(records, now)
+    today = now.date()
+    if new == "open":
+        if verdict == "closed":
+            try:
+                deleted = store.clear_detected_closure(today)
+            except Exception:
+                deleted = "?"
+                traceback.print_exc()
+            print(f"[SWEEP] [WARN] trades seen after closure verdict for {today}; "
+                  f"withdrawn ({deleted} row)")
+            _closure_alert("market_closed_revoked", f"{now:%H:%M}")
+        else:
+            print(f"[SWEEP] {today} open: trades stamped today")
+        return "open"
+    stamps = [r["last_trade_at"] for r in records if r.get("last_trade_at")]
+    if new == "closed" and verdict == "undecided":
+        latest = max(stamps).astimezone(_TPE_TZ)
+        evidence = (f"{now:%H:%M} sweep: {len(stamps)} quotes, none traded today; "
+                    f"latest trade {latest:%Y-%m-%d %H:%M}")
+        try:
+            store.mark_detected_closure(today, evidence)
+        except Exception:
+            print("[SWEEP] [WARN] closure row not written:")
+            traceback.print_exc()
+        print(f"[SWEEP] [WARN] {today} judged closed — {evidence}")
+        _closure_alert("market_closed_detected", f"{len(stamps)}|{latest:%Y-%m-%d %H:%M}")
+        return "closed"
+    if verdict == "undecided" and records and now.time() >= _UNDECIDED_GIVE_UP_TIME:
+        print(f"[SWEEP] [WARN] {today} still undecided at {now:%H:%M} "
+              f"({len(records)} quotes, {len(stamps)} timestamped); writing anyway")
+        _closure_alert("market_closure_undetermined",
+                       f"{now:%H:%M}|{len(records)}|{len(stamps)}")
+        return "fallback"
+    return verdict
+
+
 def _seconds_until_next_open(now: datetime) -> float:
     return _session.seconds_until_next_open(now)
 
@@ -156,10 +248,29 @@ def run(stop_event: threading.Event, sdk, interval_sec: int = 20, force: bool = 
     # Tracks the date for which today's session has been marked complete
     # (either the 13:30 bucket landed, or the 13:50 safety cutoff fired).
     session_done_date = None
+    # Whether today traded at all: 'undecided', 'open', 'closed' or 'fallback'.
+    # Nothing is written while it is 'undecided' or 'closed'.
+    verdict_date = None
+    verdict = "undecided"
 
     while not stop_event.is_set():
         now = _now_tpe()
         today = now.date()
+        if not force and verdict_date != today and _in_session(now):
+            verdict_date, verdict = today, "undecided"
+            try:
+                source = store.market_closure_source(today)
+            except Exception:
+                # Detection below still runs; only the calendar shortcut is lost.
+                print("[SWEEP] [WARN] closure lookup failed; detecting from quotes:")
+                traceback.print_exc()
+                source = None
+            if source == "intraday_detected":
+                # Restarted after today's own verdict: keep watching for trades.
+                verdict = "closed"
+            elif source is not None:
+                print(f"[SWEEP] {today} closed per tw.market_holidays ({source})")
+                session_done_date = today
         session_done = (session_done_date == today)
 
         # Day rollover — refresh the SDK token before today's first sweep.
@@ -174,9 +285,12 @@ def run(stop_event: threading.Event, sdk, interval_sec: int = 20, force: bool = 
             if (session_done_date != today
                     and now.weekday() < 5
                     and now.time() > _SESSION_CLOSE):
-                if not store.has_close_bucket(today):
-                    print(f"[SWEEP] [WARN] 13:30 bucket not received by 13:50 for {today}")
-                _finalize_day_or_purge(today)
+                if verdict_date == today and verdict == "closed":
+                    print(f"[SWEEP] {today} closed; nothing to finalize")
+                else:
+                    if not store.has_close_bucket(today):
+                        print(f"[SWEEP] [WARN] 13:30 bucket not received by 13:50 for {today}")
+                    _finalize_day_or_purge(today)
                 session_done_date = today
 
             sleep_for = min(_seconds_until_next_open(now), 300.0)
@@ -191,10 +305,16 @@ def run(stop_event: threading.Event, sdk, interval_sec: int = 20, force: bool = 
                 tse = esun_rest.fetch_snapshot_quotes(sdk, "TSE")
                 otc = esun_rest.fetch_snapshot_quotes(sdk, "OTC")
 
-                n_tse = store.upsert_quotes(tse, market="TSE", trade_date=today)
-                n_otc = store.upsert_quotes(otc, market="OTC", trade_date=today)
-                _record_value_profile(tse + otc, today, now, sdk)
-                print(f"[SWEEP] {now:%H:%M:%S} TSE={n_tse} OTC={n_otc}")
+                if not force and verdict != "open":
+                    verdict = _advance_verdict(verdict, tse + otc, now)
+                if force or verdict in ("open", "fallback"):
+                    n_tse = store.upsert_quotes(tse, market="TSE", trade_date=today)
+                    n_otc = store.upsert_quotes(otc, market="OTC", trade_date=today)
+                    _record_value_profile(tse + otc, today, now, sdk)
+                    print(f"[SWEEP] {now:%H:%M:%S} TSE={n_tse} OTC={n_otc}")
+                else:
+                    print(f"[SWEEP] {now:%H:%M:%S} {verdict}, not written "
+                          f"(TSE={len(tse)} OTC={len(otc)})")
 
                 # Empty 200-OK responses are the silent-stale-token symptom.
                 # Force a relogin once the count crosses the threshold.
@@ -227,14 +347,20 @@ def run(stop_event: threading.Event, sdk, interval_sec: int = 20, force: bool = 
                 tse = sinopac_snapshot.fetch_snapshot_quotes(sinopac_api, sinopac_contracts["TSE"])
                 otc = sinopac_snapshot.fetch_snapshot_quotes(sinopac_api, sinopac_contracts["OTC"])
 
-                n_tse = store.upsert_quotes(tse, market="TSE", trade_date=today)
-                n_otc = store.upsert_quotes(otc, market="OTC", trade_date=today)
-                # sdk is deliberately omitted: we only reach the fallback after
-                # E.Sun failed repeatedly, so index lookups against it would just
-                # burn a timeout per sweep. The profile row still lands; the
-                # brief degrades to ratios-only for those buckets.
-                _record_value_profile(tse + otc, today, now)
-                print(f"[SWEEP] {now:%H:%M:%S} TSE={n_tse} OTC={n_otc} (SinoPac fallback)")
+                # SinoPac rows carry no trade timestamp, so they cannot open
+                # the day; they still land unless E.Sun already judged it
+                # closed, as they did before closure detection existed.
+                if not force and verdict == "closed":
+                    print(f"[SWEEP] {now:%H:%M:%S} closed, not written (SinoPac fallback)")
+                else:
+                    n_tse = store.upsert_quotes(tse, market="TSE", trade_date=today)
+                    n_otc = store.upsert_quotes(otc, market="OTC", trade_date=today)
+                    # sdk is deliberately omitted: we only reach the fallback after
+                    # E.Sun failed repeatedly, so index lookups against it would just
+                    # burn a timeout per sweep. The profile row still lands; the
+                    # brief degrades to ratios-only for those buckets.
+                    _record_value_profile(tse + otc, today, now)
+                    print(f"[SWEEP] {now:%H:%M:%S} TSE={n_tse} OTC={n_otc} (SinoPac fallback)")
 
             except Exception:
                 print("[SWEEP] [ERROR] SinoPac fallback also failed:")

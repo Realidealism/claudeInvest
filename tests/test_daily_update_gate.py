@@ -51,7 +51,7 @@ class _Gate:
     """Stand-ins for everything the gate touches, with a record of calls."""
 
     def __init__(self, monkeypatch, *, has_taiex=False, rows=CALENDAR_2026,
-                 gate_ok=True, send_ok=True, month=None):
+                 gate_ok=True, send_ok=True, month=None, closure_source="twse_calendar"):
         self.sent = []
         self.scraped = []
         self.rows = rows
@@ -78,6 +78,7 @@ class _Gate:
             return send_ok
 
         monkeypatch.setattr(du, "run_scraper", run_scraper)
+        monkeypatch.setattr(du, "_closure_source", lambda d: closure_source)
         monkeypatch.setattr(du, "_has_taiex", lambda d: has_taiex)
         monkeypatch.setattr(du, "_holiday_rows", holiday_rows)
         monkeypatch.setattr(du, "_exchange_month", exchange_month)
@@ -127,6 +128,14 @@ def test_calendar_holiday_is_skipped_quietly(monkeypatch):
     g = _Gate(monkeypatch)
     assert _decide(HOLIDAY) == "holiday"
     assert g.sent == []
+
+
+def test_detected_closure_is_skipped_with_a_note(monkeypatch):
+    # intraday.sweeper judged the day closed: not the exchange's word, so the
+    # skip is announced with the way back.
+    g = _Gate(monkeypatch, closure_source="intraday_detected")
+    assert _decide(HOLIDAY) == "holiday"
+    assert len(g.sent) == 1 and "依盤中偵測判定休市" in g.sent[0]
 
 
 def test_calendar_holiday_is_quiet_even_when_the_scraper_failed(monkeypatch):

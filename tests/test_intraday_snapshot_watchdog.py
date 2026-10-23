@@ -141,6 +141,7 @@ def _fake_intraday(monkeypatch, rec, *, in_session, bucket_count=3):
         return bucket_count
 
     store.post_close_bucket_count = bucket_count_fn
+    store.is_market_closed = lambda today: False
     estimate = types.ModuleType("intraday.estimate")
     estimate.HCurveNotReadyError = type("HCurveNotReadyError", (Exception,), {})
     monkeypatch.setitem(sys.modules, "intraday.session", session)
