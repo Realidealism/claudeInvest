@@ -356,6 +356,7 @@ with the vision unit's own products in the same figure.
 | population status | 2483 百容 unclassified on this line by ruling; its other three exposures are unaffected |
 | **see also** | **G15 (CLOSED)** — the C29 三分 reading was tested and rejected 2026-09-08. ★Also note the same audit found **G4-01 is not empty for want of a role** but for want of mapping (five companies matching its declared list) — so "G4's axis has four functions and three cells" is weaker evidence than it looked. **Do not add G4-04 to tidy the axis** |
 | next audit | sweep 馬達／motor／驅動器／drive on revenue items, splitting 車用（H5-01）from 工業 from 家電 |
+| observed 2026-10-24 | **4576 大銀微系統** — 精密運動及控制元件 46.56%（「控制器、驅動器、線性馬達、直驅馬達、真空馬達、」「力矩馬達、伺服馬達、線性致動器、位置量測系統」, line break in the filing）: NO_NODE, no row. Linear actuators and controllers inside the line may have partial homes (G4-01, G2); not shown item by item |
 
 ## G13 · 跨製程真空鍍膜與電漿設備（cross-process coating & plasma equipment）
 
@@ -677,3 +678,47 @@ and is not allowed to decide it.
 | reason no node | the parts are sold by the machine's maker for machines it sold, so two answers are open: they follow the machine's node, or they belong on a G4 component leaf that does not exist yet. R020 ②-MX (10) MX-INC excuses only installation, commissioning, warranty and repair services, not parts, so it does not settle this |
 | population status | 1528: 零配件 recorded as MX-SKIP-UNDECIDED (no cell) on the 機械 line, which therefore carries `Granularity_Insufficient` on G5, B5-01, B5-02 and G4-03. 4744: 其他零件 has no row |
 | next audit | none scheduled. While this row is open, 1528's four rows stay `Granularity_Insufficient`, the state R020 ②-MX (7) gives the known nodes of a line that holds a component with no cell. Only once this row closes, whichever way, does every component of the 機械 line name a node; the line is then MX-FULL and the rows converge to `Too_Coarse` under the same clause (「未定組成日後裁定，依 ①-S 收斂條件轉為 TOO_COARSE 或 WEIGHTED」). Closing it is a separate ruling and write, not part of any current one. "Follow the machine" would also put 4744's 其他零件 on G6-02 and G6-04 as one mixed line |
+
+## G22 · 真空微波管與真空電子元件（magnetrons, travelling-wave tubes and other vacuum microwave tubes）
+
+| | |
+|---|---|
+| **gap_type** | `taxonomy_node_candidate` — a component maker's product with no cell; two observed sightings, one of them the subsidiary of the other |
+| observed candidates | 2: **6895 宏碩系統** — 軍用真空微波管 5.08% (「應用於國防之磁控管或行波管」), and 商用真空微波管 7.94%, whose UV-curing tubes are 「方面其是半導體製程中紫外線固化設備裡的重要零組件」; **6698 旭暉應材** — the same tubes inside its line 「(4)《AI液冷零組件暨真空微波管與半導體設備零組件》詳本公司子公司-宏碩系統(股票代碼:」, which is 6895's revenue |
+| evidence coverage | FY2025 annual reports, read 2026-10-24 (P4 C-group batch 1) |
+| current candidate nodes | none for the military tubes: S3-02 takes radar and electronic-warfare systems, not the tubes inside them, and S3-01's 軍用電子 names no vacuum electron device. The commercial UV-curing tubes have one candidate, A2-10, unproven: the filing calls them consumables, also sells them for solar, and does not name the customer |
+| population status | 6895: 軍用 NO_NODE, 商用 UNCERTAIN_FIT (candidate A2-10), and the 商用 line makes 6895's A2-10 row an unproven-line row (R020 ②-MX (7)(iii), Granularity_Insufficient). 6698: MX-SKIP-UNDECIDED (a) on the 73.55% line, which is therefore MX-OPEN |
+| next audit | sweep 微波管／磁控管／行波管／magnetron on revenue items and business prose |
+
+## G23 · OLED 蒸鍍用精密金屬遮罩（fine metal masks for OLED evaporation）
+
+| | |
+|---|---|
+| **gap_type** | `taxonomy_node_candidate` — one observed maker |
+| observed candidates | 1: **6698 旭暉應材** — 金屬遮罩 13.77% (「主要應用於OLED面板發光染料色素蒸鍍製程使用之金屬遮罩,需要」) |
+| evidence coverage | FY2025 annual report, read 2026-10-24 |
+| current candidate nodes | none: A1-10 takes semiconductor photomasks, E7 takes panel equipment delivered whole, E2-02 takes backlight optical films |
+| population status | 6698: NO_NODE, no row |
+| next audit | sweep 金屬遮罩／FMM／蒸鍍遮罩 |
+
+## G24 · 製鞋機械（footwear-making machinery）
+
+| | |
+|---|---|
+| **gap_type** | `taxonomy_node_candidate` — one observed maker |
+| observed candidates | 1: **8383 千附** — 機械收入 7.2%, its own-brand line (「以”全鋒Chenfeng”自有品牌生產及銷售製鞋產業相關機械,包含結幫機、壓底機、」) |
+| evidence coverage | FY2025 annual report, read 2026-10-24 |
+| current candidate nodes | none: G5 takes machines with a machine-tool identity; G6-01 to G6-04 take plastics and rubber, packaging, food and pharmaceutical machinery |
+| population status | 8383: NO_NODE, no row |
+| next audit | sweep 鞋機／製鞋機械 |
+
+## G25 · 模具與治具（moulds and fixtures for semiconductor packaging and test）
+
+| | |
+|---|---|
+| **gap_type** | `population_pending` — the family is already open as a case (`tmp/rejudge/rejudge73/n4_r023r_jig_family.md`, 7769／3178 治具, OPEN since 2026-09-18); this row records it in the gap register and adds the mould sighting |
+| observed candidates | 3: **8092 建暐** — 精密模具 9% (「本公司及子公司之部分模具產品係屬半導體構裝及測試製程之用,而半」); **3178 公準** — IC 封裝工模夾治具 inside 半導體類 62.27%; **7769 鴻勁** — 治具及各類模組 16.68% (case file) |
+| evidence coverage | FY2025 annual reports, read 2026-09-18 (case file) and 2026-10-24 |
+| current candidate nodes | A2-10 only, and only by delivery: its definition says moulds, fixtures and test-interface products are not drawn in merely because they go to an OSAT or serve back-end equipment. No cell takes moulds as such |
+| population status | 8092: NO_NODE, no row (its A2-10 row is on HOLD for a separate reason). 3178: MX-SKIP-UNDECIDED (b), candidate A2-10, on an MX-OPEN line. 7769: per the case file |
+| next audit | with the case file; sweep 模具／治具 on revenue items |
