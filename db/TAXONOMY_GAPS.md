@@ -722,3 +722,25 @@ and is not allowed to decide it.
 | current candidate nodes | A2-10 only, and only by delivery: its definition says moulds, fixtures and test-interface products are not drawn in merely because they go to an OSAT or serve back-end equipment. No cell takes moulds as such |
 | population status | 8092: NO_NODE, no row (its A2-10 row is on HOLD for a separate reason). 3178: MX-SKIP-UNDECIDED (b), candidate A2-10, on an MX-OPEN line. 7769: per the case file |
 | next audit | with the case file; sweep 模具／治具 on revenue items |
+
+## G26 · 電聲元件與揚聲器（electroacoustic components and loudspeakers）
+
+| | |
+|---|---|
+| **gap_type** | `taxonomy_node_candidate` — one maker read, five more seen by revenue-line name only; no cell takes loudspeakers or their parts |
+| observed candidates | read: **3032 偉訓** — 音圈、音膜及其週邊 20% (「核心產品涵蓋揚聲器電聲換能系統關鍵零件,包括驅」 voice coils, diaphragms, cones and spiders). Revenue-line names only, not read: 2439 美律 音響及揚聲器 24.67%; 2477 美隆電 其他揚聲器 35.26%, 牆壁揚聲器 22.68%, 單體揚聲器 7.56%, 汽車揚聲器 4.52%; 3465 進泰電子 牆壁式揚聲器 2.16%; 5225 東科-KY 喇叭單體 2.84%; 3114 好德 連接器、軟排線、電聲商品等 97.68% (a mixed line; 電聲商品 is one of its named components) |
+| evidence coverage | 3032: FY2025 annual report, read 2026-10-25 (P4 C-group step 2). The others: FY2025 revenue-line names in tw.product_revenue_share, 2026-10-25 |
+| current candidate nodes | none: A4-14 takes audio ICs only, and no leaf names loudspeakers, drivers, voice coils or diaphragms. 3060 銘異's 音圈馬達 is a camera-module actuator, not a speaker part |
+| population status | 3032: 音圈、音膜及其週邊 NO_NODE, no row. The five name sightings are unclassified; this row is not an authorisation to add exposure to any of them |
+| next audit | read the five sightings' annual reports; sweep 揚聲器／喇叭／音圈／音膜／鼓紙／彈波／電聲 on revenue items and business prose; then decide whether finished loudspeakers and speaker parts are one cell or two |
+
+## G27 · 機櫃框架、機櫃零組件與機櫃系統（rack frames, rack components and rack systems）
+
+| | |
+|---|---|
+| **gap_type** | `taxonomy_node_candidate` — the cells exist (C12 Rack / Rack Integration, C12-01 機櫃整合) but carry no definition, so nothing can be placed on them; since 2026-10-25 C4-01 excludes racks by name |
+| observed candidates | revenue lines: **3543 州巧** 其他(註) 2% (「註: (AI)伺服器用機櫃和周邊零配件。」); **7893 睿信** 機櫃模組 13.71%; **6933 AMAX-KY** 液冷整機櫃解決方案 30.28%. Product items without a line mapping: **3349 寶德** 伺服器機櫃; **3013 晟銘電** 液冷機櫃 (「伺服器機殼及個人電腦機殼及液冷機櫃之設計、製造與銷售。」). Clues only — plans or series names, not evidence of revenue: 8210 勤誠, 3032 偉訓 (EIA & ORV3 機櫃, planned), 5284 jpp-KY (「(H)AI DATA CENTER RACK & SERVER Chassis 系列」) |
+| evidence coverage | FY2025 annual reports read 2026-10-25 for 3543, 3013, 8210, 3032 and 5284; 7893, 6933 and 3349 by revenue-line name and the C4-01 scan's prose hits only |
+| current candidate nodes | C12-01, undefined. C4-01 (definition of 2026-10-25): 「機櫃框架、機櫃零組件與機櫃系統不屬本節點；機櫃相關分類見 C12，C12-01 定義補齊前不掛入該節點。」 Liquid cooling inside a rack: C6-01. Rack-level integration by server ODMs: C2-01 (R031 gate) |
+| population status | 3543: 其他(註) NO_NODE, no row. 3013: clue only; its line stays MX-FULL on C4-01 and F4-01. 7893, 6933, 3349, 8210, 3032, 5284: no rack row. This row is not an authorisation to add exposure |
+| next audit | write the C12 / C12-01 definitions — rack frames and components versus integrated rack systems — with the boundaries to C4-01, C6-01, C9-01 and C2-01; then re-run the three revenue-line cases |
