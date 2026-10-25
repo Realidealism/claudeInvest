@@ -744,3 +744,25 @@ and is not allowed to decide it.
 | current candidate nodes | C12-01, undefined. C4-01 (definition of 2026-10-25): 「機櫃框架、機櫃零組件與機櫃系統不屬本節點；機櫃相關分類見 C12，C12-01 定義補齊前不掛入該節點。」 Liquid cooling inside a rack: C6-01. Rack-level integration by server ODMs: C2-01 (R031 gate) |
 | population status | 3543: 其他(註) NO_NODE, no row. 3013: clue only; its line stays MX-FULL on C4-01 and F4-01. 7893, 6933, 3349, 8210, 3032, 5284: no rack row. This row is not an authorisation to add exposure |
 | next audit | write the C12 / C12-01 definitions — rack frames and components versus integrated rack systems — with the boundaries to C4-01, C6-01, C9-01 and C2-01; then re-run the three revenue-line cases |
+
+## G28 · 智慧建築系統與機弱電整合（building automation systems and building M&E integration）
+
+| | |
+|---|---|
+| **gap_type** | `population_pending` — four sightings by revenue-line name, two of them the same revenue (parent and subsidiary); no cell takes building automation |
+| observed candidates | read: **6412 群電** — 智慧建築系統服務 6.11% (「Q. 智慧建築系統:提供智慧建築整合管理平台與主機、智慧運算邏輯控制器、DDC」, plus building M&E integration works); **2385 群光** — 智慧建築服務 2.20%, the same 2,103,703 thousand as 6412's line (6412 is its subsidiary). Revenue-line names only, not read: 2390 云辰 智慧建築 10.23%; 4503 金雨 智慧建築 16.70% |
+| evidence coverage | 6412 and 2385: FY2025 annual reports, read 2026-10-25 (P4 C-group step 3). 2390 and 4503: FY2025 revenue-line names in tw.product_revenue_share, 2026-10-25 |
+| current candidate nodes | none. C15-01 機房基礎設施 takes 機電、消防、監控、機房建置 for machine rooms only; G2 excludes building applications by name and its negative test names 2390 (「樓宇、安防與節能自動化不屬本支」) |
+| population status | 6412, 2385: UNDRAFTABLE in this batch (their Core lines are undisclosed); the smart-building lines are recorded NO_NODE. 2390, 4503: not read. This row is not an authorisation to add exposure |
+| next audit | read 2390 and 4503; sweep 智慧建築／樓宇自動化／建築自動化／BAS／機弱電 on revenue items and business prose; then decide whether building-automation hardware and building M&E integration works are one cell or two |
+
+## G29 · 再生能源電廠：開發建置、維運與售電（renewable power plants: development, O&M and electricity sales）
+
+| | |
+|---|---|
+| **gap_type** | `cross-role decomposition` — the label covers three activities (building a plant, servicing it, selling its power) that need not share a cell; electricity sales already sit on Z1 by precedent, plant development and O&M have no cell |
+| observed candidates | read: **3027 盛達** — 再生能源(含售電) 78.85%, whose product items run from plant monitoring, inverters and storage systems to plant O&M, none mapped to the line. Precedent on Z1: **2481 強茂** 太陽能 1.53% (「太陽能電站電力之銷售」) and **3490 單井** 光電太陽能類 32.00% (「維運屋頂型太陽能光伏發電系統,售電給供電局」). Revenue-line names only, not read: 售電 lines at 7897 禾迅綠電 100%, 7842 天能綠電 99.66%, 6946 三地能源 83.52%, 6987 寶晶能源* 81.26%, 6477 安集 67.38%, 3713 新晶投控 52.31%, 7911 阿波羅電力 49.50%, 4529 淳紳 45.00%, 7590 怡和國際 43.38%, 6803 崑鼎 32.35%, 6869 雲豹能源 31.87% and fifteen more between 0.05% and 26.17%; 太陽能發電 lines at 8422 可寧衛* 12.66% and 4716 大立 2.21%; plant works at 2406 國碩 售電及電廠工程 5.53%, 3520 華盈 電廠工程收入 2.95%, 7911 阿波羅電力 太陽能電站開發與維運 0.18% |
+| evidence coverage | 3027: FY2025 annual report, read 2026-10-25 (P4 C-group step 3). 2481 and 3490: their written Z1 rows. The rest: FY2025 revenue-line names in tw.product_revenue_share, 2026-10-25 |
+| current candidate nodes | Z1 電力公用事業, whose whole definition is 「台電概念、發電/輸電/配電公用事業」 — it neither says it takes private renewable generators nor that it does not, yet 2481 and 3490 sit on it for electricity sales. I1-01 太陽能 lists equipment only (Silicon wafer、Cell、Module、Inverter); I3-01 儲能系統 takes storage systems. No cell takes plant development (EPC) or O&M services |
+| population status | 3027: UNDRAFTABLE in this batch (its line's components are not mapped to it). The sightings are unclassified; this row is not an authorisation to add exposure to any of them |
+| next audit | decide whether Z1 takes private renewable generation and sales, and write that into its definition; decide whether plant development and O&M need a cell, and where; then read the sightings above |
