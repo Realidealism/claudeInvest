@@ -12,8 +12,12 @@ deployed build says for the same nights. Two questions, one report:
       backtest and sweep outputs leave out so no tuning sees them, against
       the in-sample per-year range from the same run.
 
-The backtest runs on the deployed commit (dist/BUILD_INFO.json), checked out
-in a worktree under tmp/, so experiments in the working tree do not leak in.
+Two backtests run on the deployed commit (dist/BUILD_INFO.json), checked out
+in a worktree under tmp/, so experiments in the working tree do not leak in:
+(a) raw, as the snapshot records positions, and (b) on the baseline's
+accounting (total returns and the short-sale constraints, the CLI defaults
+from v370), as the adopted versions are measured. A build from before v370
+has no such defaults; (b) then reads the raw run and says so.
 Reads the database only; writes the report under logs/reconcile/ and sends a
 summary through the bot. Run monthly by live_reconcile.bat.
 
@@ -64,6 +68,10 @@ SIDES = {"long": ("unified_long", "做多"), "short": ("unified_short", "做空"
 # (a) classes, and the causes of everything not consistent
 CLASSES = ("一致", "同筆不同結果", "只在線上", "只在回測")
 CAUSES = ("已記改寫", "母體外", "版本不同", "版本未知", "未解釋")
+
+# (b)'s accounting
+BASIS_BASELINE = "總報酬＋做空限制"
+BASIS_RAW = "原始口徑：未計股利、無做空限制"
 
 
 class ReconcileError(Exception):
@@ -127,10 +135,11 @@ def has_baseline_defaults(src: Path) -> bool:
     return "--raw-return" in (src / "signal_backtest" / "__main__.py").read_text(encoding="utf-8")
 
 
-def run_backtest(src: Path, out: Path, today: date) -> None:
-    """The 8 signals on the code in src, every trade kept. A build from before
-    the holdout cut has no flag; its output is the same while no entry can
-    yet fall on or after HOLDOUT_START, and wrong after that."""
+def run_backtest(src: Path, out: Path, today: date, *, raw: bool) -> None:
+    """The 8 signals on the code in src, every trade kept: raw, or on the
+    build's defaults (raw=False, only for a build that has_baseline_defaults).
+    A build from before the holdout cut has no flag; its output is the same
+    while no entry can yet fall on or after HOLDOUT_START, and wrong after that."""
     # No --cache: the cache would live in the worktree, cold and then deleted.
     cmd = [sys.executable, "-m", "signal_backtest", "--signals", BACKTEST_SIGNALS,
            "--output", str(out), "--workers", "16"]
@@ -138,7 +147,7 @@ def run_backtest(src: Path, out: Path, today: date) -> None:
         cmd.append("--include-holdout")
     elif today >= HOLDOUT_START:
         raise ReconcileError("部署版本不支援 --include-holdout，回測會漏掉 holdout 交易；需重建")
-    if has_baseline_defaults(src):
+    if raw and has_baseline_defaults(src):
         cmd += ["--raw-return", "--short-constraints", "off"]
     shutil.rmtree(out, ignore_errors=True)
     out.mkdir(parents=True)
@@ -424,7 +433,7 @@ def _year_range(years: dict) -> str:
 
 
 def summary_text(month: str, start, end, commit: str, flags: list[str], res: pd.DataFrame,
-                 n_live: int, n_bt: int, hold: dict, report: Path) -> str:
+                 n_live: int, n_bt: int, hold: dict, report: Path, *, basis: str) -> str:
     cls = res["cls"].value_counts()
     cause = res["cause"].value_counts()
     lines = [f"【月對帳】{month}（夜間快照 {start or '起'} 之後～{end}，部署 {commit[:8]}）"]
@@ -434,9 +443,9 @@ def summary_text(month: str, start, end, commit: str, flags: list[str], res: pd.
     if cause.sum():
         lines.append("  成因：" + "、".join(f"{c} {int(cause[c])}" for c in CAUSES if c in cause))
     if end < HOLDOUT_START:
-        lines.append(f"樣本外（{HOLDOUT_START} 起進場）：尚未開始")
+        lines.append(f"樣本外（{HOLDOUT_START} 起進場；{basis}）：尚未開始")
     else:
-        lines.append(f"樣本外（{HOLDOUT_START} 起進場，累計至 {end}）：")
+        lines.append(f"樣本外（{HOLDOUT_START} 起進場，累計至 {end}；{basis}）：")
         for name, g in hold.items():
             h = g["holdout"]
             got = (f"{h['n']} 筆 PF {_pf(h['pf'])} 勝率 {h['win']:.1f}% 賺賠比 {_pf(h['payoff'])}"
@@ -447,7 +456,7 @@ def summary_text(month: str, start, end, commit: str, flags: list[str], res: pd.
     return "\n".join(lines)
 
 
-def report_text(summary: str, res: pd.DataFrame, hold: dict) -> str:
+def report_text(summary: str, res: pd.DataFrame, hold: dict, *, basis: str) -> str:
     lines = ["# 月對帳", "", "```", summary, "```", "", "## (a) 逐筆一致性", "",
              "成因的意思：",
              "- 已記改寫：快照自己在 tw.position_revisions 記下了這筆被重算改掉。",
@@ -476,7 +485,10 @@ def report_text(summary: str, res: pd.DataFrame, hold: dict) -> str:
         lines.append(f"| {r.stock_id} | {SIDES[r.side][1]} | {r.entry_date} | {r.cls} | {r.cause} | "
                      f"{side_txt(r.live_state, r.live_exit, r.live_pnl)} | "
                      f"{side_txt(r.bt_state, r.bt_exit, r.bt_pnl)} |")
-    lines += ["", "## (b) 樣本外", ""]
+    why = ("(b) 要和版本採用時的數字同一把尺，所以另跑一次部署版的預設設定。"
+           if basis == BASIS_BASELINE else "部署版早於 v370、沒有這組預設，(b) 只能沿用 (a) 的回測。")
+    lines += ["", "## (b) 樣本外", "",
+              f"口徑：{basis}。(a) 用原始口徑，因為夜間快照的持倉與損益不計股利、也沒有做空限制；{why}", ""]
     for name, g in hold.items():
         h = g["holdout"]
         lines.append(f"### {name}")
@@ -504,11 +516,18 @@ def reconcile(month: str, *, today: date, do_send: bool) -> int:
     commit = info["commit"]
     flags = [f"部署含未提交改動：{p}" for p in _relevant(info.get("uncommitted_sources"))]
     bt_dir = OUT_ROOT / month / "bt"
+    base_dir = OUT_ROOT / month / "bt_baseline"
     key = ["stock_id", "side", "entry_date"]
     try:
         try:
             src = prepare_worktree(commit)
-            run_backtest(src, bt_dir, today)
+            run_backtest(src, bt_dir, today, raw=True)
+            if has_baseline_defaults(src):
+                run_backtest(src, base_dir, today, raw=False)
+                hold_dir, basis = base_dir, BASIS_BASELINE
+            else:
+                hold_dir, basis = bt_dir, BASIS_RAW
+                flags.append(f"部署版早於 v370，樣本外為{BASIS_RAW}")
         finally:
             remove_worktree()
 
@@ -525,18 +544,19 @@ def reconcile(month: str, *, today: date, do_send: bool) -> int:
                 for r in only_bt.itertuples(index=False)])
             version_of = make_version_of(cur, info, end)
             res = classify(live, bt, revised=revised, low_level=low, version_of=version_of)
-        hold = holdout_section(bt_dir, end)
+        hold = holdout_section(hold_dir, end)
     finally:
-        # The output holds the holdout's trades; nothing else may read it.
+        # The outputs hold the holdout's trades; nothing else may read them.
         shutil.rmtree(bt_dir, ignore_errors=True)
+        shutil.rmtree(base_dir, ignore_errors=True)
     if repeats:
         flags.append(f"重複出場列 {repeats} 筆（無 K 棒的夜晚重寫了前一根的出場，只取第一列）")
 
     REPORT_DIR.mkdir(parents=True, exist_ok=True)
     report = REPORT_DIR / f"{month}.md"
     summary = summary_text(month, start, end, commit, flags, res, len(live), len(bt), hold,
-                           report)
-    report.write_text(report_text(summary, res, hold), encoding="utf-8")
+                           report, basis=basis)
+    report.write_text(report_text(summary, res, hold, basis=basis), encoding="utf-8")
     print(summary)
     if do_send and not send(summary):
         print("summary not delivered", file=sys.stderr)

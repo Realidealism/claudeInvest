@@ -3,7 +3,8 @@ REM Monthly reconciliation of the nightly snapshot against the backtest of the
 REM deployed build, plus the out-of-sample (holdout) figures. Reads the
 REM database only; writes logs\reconcile\YYYY-MM.md and sends a summary.
 REM Runs on system Python from source, not inside an exe: it checks out the
-REM deployed commit in tmp\reconcile_wt and runs the 8-signal backtest there.
+REM deployed commit in tmp\reconcile_wt and runs the 8-signal backtest there
+REM twice, raw for the snapshot check and on the baseline for the holdout.
 REM
 REM Scheduled as \Invest\LiveReconcileMonthly (day 1, 15:00, run when missed;
 REM after the intraday snapshot, whose 8 workers it would compete with):

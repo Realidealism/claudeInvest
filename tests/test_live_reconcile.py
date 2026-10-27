@@ -342,7 +342,7 @@ def _src(tmp_path, flag):
 def test_backtest_takes_every_trade(tmp_path, monkeypatch):
     monkeypatch.setattr(lr.subprocess, "Popen", _Popen)
     _Popen.calls.clear()
-    lr.run_backtest(_src(tmp_path, True), tmp_path / "out", date(2026, 12, 1))
+    lr.run_backtest(_src(tmp_path, True), tmp_path / "out", date(2026, 12, 1), raw=True)
     assert "--include-holdout" in _Popen.calls[0]
     assert "unified_long" in _Popen.calls[0][_Popen.calls[0].index("--signals") + 1]
     assert "--cache" not in _Popen.calls[0]       # it would be written into the worktree
@@ -353,13 +353,27 @@ def test_backtest_runs_raw_on_a_build_with_the_baseline_defaults(tmp_path, monke
     monkeypatch.setattr(lr.subprocess, "Popen", _Popen)
     _Popen.calls.clear()
     src = _src(tmp_path, True)
-    lr.run_backtest(src, tmp_path / "out", date(2026, 12, 1))
+    lr.run_backtest(src, tmp_path / "out", date(2026, 12, 1), raw=True)
     assert "--raw-return" not in _Popen.calls[0]      # an older build is raw already
     (src / "signal_backtest" / "__main__.py").write_text(
         'p.add_argument("--include-holdout")\np.add_argument("--raw-return")', encoding="utf-8")
-    lr.run_backtest(src, tmp_path / "out", date(2026, 12, 1))
+    lr.run_backtest(src, tmp_path / "out", date(2026, 12, 1), raw=True)
     cmd = _Popen.calls[1]
     assert "--raw-return" in cmd and cmd[cmd.index("--short-constraints") + 1] == "off"
+
+
+def test_baseline_backtest_runs_on_the_build_defaults(tmp_path, monkeypatch):
+    # the holdout is measured as the adopted versions are: total returns and
+    # the short-sale constraints, which a v370+ build runs by default
+    monkeypatch.setattr(lr.subprocess, "Popen", _Popen)
+    _Popen.calls.clear()
+    src = _src(tmp_path, True)
+    (src / "signal_backtest" / "__main__.py").write_text(
+        'p.add_argument("--include-holdout")\np.add_argument("--raw-return")', encoding="utf-8")
+    lr.run_backtest(src, tmp_path / "out", date(2026, 12, 1), raw=False)
+    cmd = _Popen.calls[0]
+    assert "--include-holdout" in cmd
+    assert "--raw-return" not in cmd and "--short-constraints" not in cmd
 
 
 def test_worktree_commands(monkeypatch, tmp_path):
@@ -375,7 +389,7 @@ def test_worktree_commands(monkeypatch, tmp_path):
 def test_build_without_the_flag_before_the_cut(tmp_path, monkeypatch):
     monkeypatch.setattr(lr.subprocess, "Popen", _Popen)
     _Popen.calls.clear()
-    lr.run_backtest(_src(tmp_path, False), tmp_path / "out", date(2026, 11, 1))
+    lr.run_backtest(_src(tmp_path, False), tmp_path / "out", date(2026, 11, 1), raw=True)
     assert "--include-holdout" not in _Popen.calls[0]
 
 
@@ -383,7 +397,7 @@ def test_build_without_the_flag_after_the_cut(tmp_path, monkeypatch):
     monkeypatch.setattr(lr.subprocess, "Popen", _Popen)
     _Popen.calls.clear()
     with pytest.raises(lr.ReconcileError, match="需重建"):
-        lr.run_backtest(_src(tmp_path, False), tmp_path / "out", HOLDOUT_START)
+        lr.run_backtest(_src(tmp_path, False), tmp_path / "out", HOLDOUT_START, raw=True)
     assert _Popen.calls == []
 
 
@@ -393,13 +407,14 @@ def test_backtest_failure(tmp_path, monkeypatch):
             return 3
     monkeypatch.setattr(lr.subprocess, "Popen", Bad)
     with pytest.raises(lr.ReconcileError, match="exit 3"):
-        lr.run_backtest(_src(tmp_path, True), tmp_path / "out", date(2026, 12, 1))
+        lr.run_backtest(_src(tmp_path, True), tmp_path / "out", date(2026, 12, 1), raw=True)
 
 
 # ── the whole run ────────────────────────────────────────────────────────────
 
 
-def _run(tmp_path, monkeypatch, *, backtest=None, sent=True, info=None, events=None):
+def _run(tmp_path, monkeypatch, *, backtest=None, sent=True, info=None, events=None,
+         baseline=True, holdout_dirs=None):
     events = [] if events is None else events
     monkeypatch.setattr(lr, "OUT_ROOT", tmp_path / "out")
     monkeypatch.setattr(lr, "REPORT_DIR", tmp_path / "reports")
@@ -407,15 +422,23 @@ def _run(tmp_path, monkeypatch, *, backtest=None, sent=True, info=None, events=N
     monkeypatch.setattr(lr, "deployed_build", lambda: info or {"commit": "abc123", "uncommitted_sources": []})
     monkeypatch.setattr(lr, "prepare_worktree", lambda c: events.append(("add", c)) or tmp_path)
     monkeypatch.setattr(lr, "remove_worktree", lambda: events.append(("remove",)))
+    monkeypatch.setattr(lr, "has_baseline_defaults", lambda src: baseline)
 
-    def fake_backtest(src, out, today):
-        events.append(("backtest",))
+    def fake_backtest(src, out, today, *, raw):
+        events.append(("backtest", raw))
         if backtest:
-            backtest()
-        _write(out, {"unified_long": [_trade("1101", E, X, 0.05)],
+            backtest(raw)
+        # The baseline run books 1101 differently: read for (a), it would
+        # turn the consistent position into a different result.
+        pnl = 0.05 if raw else 0.07
+        _write(out, {"unified_long": [_trade("1101", E, X, pnl)],
                      "unified_short": [_trade("2603", E, D, 0.0, REASON_EXIT_END, side="做空")],
-                     "pick": [_trade("1101", E, X, 0.05)]})
+                     "pick": [_trade("1101", E, X, pnl)]})
     monkeypatch.setattr(lr, "run_backtest", fake_backtest)
+    if holdout_dirs is not None:
+        orig = lr.holdout_section
+        monkeypatch.setattr(lr, "holdout_section",
+                            lambda d, end: holdout_dirs.append(d) or orig(d, end))
     cur = _Cur({"MAX(snapshot_date) AS d FROM tw.open_positions WHERE snapshot_date BETWEEN":
                 [{"d": D}],
                 "MAX(snapshot_date) AS d FROM tw.open_positions WHERE snapshot_date <": [{"d": S}],
@@ -441,23 +464,43 @@ def _run(tmp_path, monkeypatch, *, backtest=None, sent=True, info=None, events=N
 
 
 def test_reconcile_end_to_end(tmp_path, monkeypatch):
-    rc, events, cur = _run(tmp_path, monkeypatch)
+    holdout_dirs = []
+    rc, events, cur = _run(tmp_path, monkeypatch, holdout_dirs=holdout_dirs)
     assert rc == 0
-    assert [e[0] for e in events] == ["add", "backtest", "remove", "send"]
+    # (a) on the raw run, (b) on the baseline run, both in the one worktree
+    assert events[:-1] == [("add", "abc123"), ("backtest", True), ("backtest", False), ("remove",)]
+    assert holdout_dirs == [tmp_path / "out" / "2026-10" / "bt_baseline"]
     text = events[-1][1]
     assert "【月對帳】2026-10" in text and "部署 abc123" in text
     assert "線上 2 筆、回測 2 筆" in text
     assert "一致 1｜同筆不同結果 0｜只在線上 1｜只在回測 1" in text
     assert "版本不同" not in text and "未解釋 2" in text
     assert "尚未開始" in text and "重複出場列" not in text
+    assert f"樣本外（{HOLDOUT_START} 起進場；總報酬＋做空限制）：尚未開始" in text
+    assert "早於 v370" not in text
     report = (tmp_path / "reports" / "2026-10.md").read_text(encoding="utf-8")
     assert "| 2330 | 做空 |" in report and "| 2603 | 做空 |" in report
+    assert "口徑：總報酬＋做空限制。" in report
     # The backtest-only position, held to the month's last night, is checked
     # for every night from its entry to that night.
     assert [p for s, p in cur.sql if "unnest" in s] == [(["2603"], ["short"], [E], [D], 4)]
     assert not any(s.lstrip().upper().startswith(("INSERT", "UPDATE", "DELETE")) for s, _ in cur.sql)
-    # The backtest output holds the holdout's trades: gone once read.
+    # The backtest outputs hold the holdout's trades: gone once read.
     assert not (tmp_path / "out" / "2026-10" / "bt").exists()
+    assert not (tmp_path / "out" / "2026-10" / "bt_baseline").exists()
+
+
+def test_build_before_v370_reads_the_holdout_raw(tmp_path, monkeypatch):
+    holdout_dirs = []
+    rc, events, _ = _run(tmp_path, monkeypatch, baseline=False, holdout_dirs=holdout_dirs)
+    assert rc == 0
+    assert [e for e in events if e[0] == "backtest"] == [("backtest", True)]
+    assert holdout_dirs == [tmp_path / "out" / "2026-10" / "bt"]
+    text = events[-1][1]
+    assert "⚠ 部署版早於 v370，樣本外為原始口徑：未計股利、無做空限制" in text
+    assert "；原始口徑：未計股利、無做空限制）：尚未開始" in text
+    report = (tmp_path / "reports" / "2026-10.md").read_text(encoding="utf-8")
+    assert "只能沿用 (a) 的回測" in report
 
 
 def test_backtest_output_removed_when_reading_fails(tmp_path, monkeypatch):
@@ -465,16 +508,33 @@ def test_backtest_output_removed_when_reading_fails(tmp_path, monkeypatch):
     with pytest.raises(RuntimeError):
         _run(tmp_path, monkeypatch)
     assert not (tmp_path / "out" / "2026-10" / "bt").exists()
+    assert not (tmp_path / "out" / "2026-10" / "bt_baseline").exists()
 
 
 def test_worktree_removed_when_the_backtest_fails(tmp_path, monkeypatch):
     events = []
 
-    def boom():
+    def boom(raw):
         raise lr.ReconcileError("backtest exit 1")
     with pytest.raises(lr.ReconcileError):
         _run(tmp_path, monkeypatch, backtest=boom, events=events)
     assert [e[0] for e in events] == ["add", "backtest", "remove"]
+
+
+def test_baseline_backtest_failure_fails_the_run(tmp_path, monkeypatch):
+    # no report with (a) alone: the run fails and the bat alerts
+    events = []
+
+    def boom(raw):
+        if raw:
+            return
+        raise lr.ReconcileError("backtest exit 1")
+    with pytest.raises(lr.ReconcileError):
+        _run(tmp_path, monkeypatch, backtest=boom, events=events)
+    assert events == [("add", "abc123"), ("backtest", True), ("backtest", False), ("remove",)]
+    assert not (tmp_path / "out" / "2026-10" / "bt").exists()
+    assert not (tmp_path / "out" / "2026-10" / "bt_baseline").exists()
+    assert not (tmp_path / "reports" / "2026-10.md").exists()
 
 
 def test_undelivered_summary_fails(tmp_path, monkeypatch):
@@ -512,6 +572,7 @@ def test_summary_after_the_cut():
     hold = {"合池": {"holdout": {"n": 3, "pf": 1.5, "win": 40.0, "payoff": 2.0}, "holdout_open": 1,
                     "years": {2024: {"pf": 1.2}, 2025: {"pf": 2.0}, 2023: {"pf": 0.9}}}}
     text = lr.summary_text("2026-11", S, date(2026, 11, 30), "abc12345", [], res, 0, 0, hold,
-                           lr.REPO / "logs" / "reconcile" / "2026-11.md")
+                           lr.REPO / "logs" / "reconcile" / "2026-11.md", basis=lr.BASIS_BASELINE)
+    assert f"樣本外（{HOLDOUT_START} 起進場，累計至 2026-11-30；總報酬＋做空限制）：" in text
     assert "合池：3 筆 PF 1.50 勝率 40.0% 賺賠比 2.00，持有中 1（樣本內逐年 PF 0.90～2.00，中位 1.20）" in text
     assert "尚未開始" not in text
