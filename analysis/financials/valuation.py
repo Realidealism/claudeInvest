@@ -4,7 +4,8 @@ Valuation analysis — 估值與本益比河流圖 (PE Band Chart).
 Metrics:
   - pe_ttm   = close_price / TTM_EPS (trailing 4-quarter EPS)
   - pb       = close_price / book_value_per_share
-  - dividend_yield = annual_cash_dividend / close_price
+  - dividend_yield = cash dividends ex-dated in the trailing year / close_price
+    (a wider window counts an annual payer twice when its ex-date moves earlier)
   - peg      = pe_ttm / eps_growth_pct (TTM EPS YoY growth)
 
 PE Band Chart (本益比河流圖):
@@ -171,7 +172,7 @@ def get_valuation_summary(stock_id: str) -> dict:
         cur.execute(
             "SELECT COALESCE(SUM(cash_dividend), 0) AS cash "
             "FROM tw.dividends WHERE stock_id = %s "
-            "AND ex_date >= CURRENT_DATE - INTERVAL '400 days'",
+            "AND ex_date > CURRENT_DATE - INTERVAL '1 year'",
             (stock_id,),
         )
         div = cur.fetchone()
