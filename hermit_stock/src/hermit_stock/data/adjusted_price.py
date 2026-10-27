@@ -3,7 +3,8 @@
 Inputs:
     prices: ascending list[DailyPrice] (unadjusted close)
     dividends: list of (ex_date, cash_dividend, stock_dividend)
-                cash in NTD/share, stock as fraction-of-share (0.05 = 5% bonus)
+                cash in NTD/share, stock in NTD of NT$10 par per share as
+                tw.dividends stores it (0.5 = 0.05 shares per share = 5% bonus)
     reductions: list of (effective_date, ratio)
                 ratio = close_pre / close_post (pre-computed by scraper)
 
@@ -13,7 +14,7 @@ Forward-adjustment convention:
 
 Per-event factors:
     cash dividend D on date d:    factor = (close_prev - D) / close_prev
-    stock dividend R on date d:   factor = 1 / (1 + R)
+    stock dividend S NTD on d:    factor = 1 / (1 + S / 10)
     reduction on date d:          factor = ratio  (already < 1 for share-cancellation)
 
 When multiple events fall on the same ex_date (e.g. both cash and stock),
@@ -77,7 +78,8 @@ def build_events(
             if f_cash > 0:
                 _multiply(ex_date, f_cash)
         if stock > 0:
-            f_stock = 1.0 / (1.0 + float(stock))
+            # stock is NTD of NT$10 par per share: 0.5 NTD = 0.05 shares per share
+            f_stock = 1.0 / (1.0 + float(stock) / 10.0)
             _multiply(ex_date, f_stock)
 
     for eff_date, ratio in reductions:

@@ -44,19 +44,31 @@ def test_single_cash_dividend_scales_pre_dates() -> None:
 
 def test_stock_dividend_scales_pre_dates() -> None:
     prices = _make_prices(date(2024, 1, 1), 10, base=100.0)
-    # 10% stock dividend (R = 0.10)
+    # 10% stock dividend: 1 NTD of NT$10 par per share, as tw.dividends stores it
     ex = date(2024, 1, 6)
-    s = adjusted_close_series(prices, [(ex, Decimal(0), Decimal("0.10"))], [])
-    # factor = 1 / (1 + 0.10) ≈ 0.9091; pre 100 → 90.909..
+    s = adjusted_close_series(prices, [(ex, Decimal(0), Decimal("1.0"))], [])
+    # factor = 1 / (1 + 1.0 / 10) ≈ 0.9091; pre 100 → 90.909..
     assert abs(s.loc[date(2024, 1, 5)] - 100.0 / 1.10) < 1e-9
     assert s.loc[date(2024, 1, 9)] == 100.0
+
+
+def test_stock_dividend_matches_exchange_reference_price() -> None:
+    # 5314 on 2026-08-14 (TPEx): previous close 61.3, 31.5703 NTD of stock
+    # dividend per share (3.157 shares), no cash; the exchange's reference
+    # price was 14.75
+    prices = [
+        DailyPrice(ticker="5314", trade_date=date(2026, 8, 13), source="db", close=Decimal("61.3")),
+        DailyPrice(ticker="5314", trade_date=date(2026, 8, 14), source="db", close=Decimal("14.75")),
+    ]
+    s = adjusted_close_series(prices, [(date(2026, 8, 14), Decimal(0), Decimal("31.5703"))], [])
+    assert abs(s.loc[date(2026, 8, 13)] / 14.75 - 1) < 0.001
 
 
 def test_combined_cash_and_stock_on_same_ex_date() -> None:
     prices = _make_prices(date(2024, 1, 1), 10, base=100.0)
     ex = date(2024, 1, 6)
-    # cash 5 + stock 0.10
-    s = adjusted_close_series(prices, [(ex, Decimal(5), Decimal("0.10"))], [])
+    # cash 5 + stock 1 NTD (0.10 shares)
+    s = adjusted_close_series(prices, [(ex, Decimal(5), Decimal("1.0"))], [])
     expected_factor = (95.0 / 100.0) * (1.0 / 1.10)
     assert abs(s.loc[date(2024, 1, 5)] - 100.0 * expected_factor) < 1e-9
 

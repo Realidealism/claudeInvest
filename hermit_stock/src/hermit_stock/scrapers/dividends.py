@@ -5,8 +5,8 @@ FinMind row schema (relevant fields):
   StockExDividendTradingDate   -- ex-date for stock dividend (str, '' if none)
   CashEarningsDistribution     -- cash dividend from retained earnings (NTD/share)
   CashStatutorySurplus         -- cash dividend from capital reserve (NTD/share)
-  StockEarningsDistribution    -- stock dividend from retained earnings (shares/share)
-  StockStatutorySurplus        -- stock dividend from capital reserve (shares/share)
+  StockEarningsDistribution    -- stock dividend from retained earnings (NTD of par/share)
+  StockStatutorySurplus        -- stock dividend from capital reserve (NTD of par/share)
 
 We sum the two cash sources into one cash_dividend, two stock sources into one
 stock_dividend. When cash and stock ex-dates differ, we write two rows (one
@@ -37,7 +37,7 @@ class DividendRow:
     ticker: str
     ex_date: date
     cash_dividend: Decimal  # NTD per share
-    stock_dividend: Decimal  # shares per share (e.g. 0.05 = 5%)
+    stock_dividend: Decimal  # NTD of NT$10 par per share (e.g. 0.5 = 0.05 shares = 5%)
 
 
 def _to_dec(v: Any) -> Decimal:
