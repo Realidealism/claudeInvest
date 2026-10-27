@@ -1,7 +1,7 @@
 {
   "latest_date": "2026-10-27",
   "latest": {
-    "score": 27.08,
+    "score": 29.14,
     "rating": "fear",
     "sub": {
       "momentum": {
@@ -9,16 +9,16 @@
         "rating": null
       },
       "strength": {
-        "score": null,
-        "rating": null
+        "score": -5.5172,
+        "rating": "extreme fear"
       },
       "breadth": {
-        "score": null,
-        "rating": null
+        "score": 457.6372,
+        "rating": "extreme greed"
       },
       "put_call": {
-        "score": null,
-        "rating": null
+        "score": 0.802,
+        "rating": "extreme fear"
       },
       "safe_haven": {
         "score": null,
@@ -29,8 +29,8 @@
         "rating": "extreme fear"
       },
       "volatility": {
-        "score": null,
-        "rating": null
+        "score": 17.87,
+        "rating": "extreme fear"
       }
     }
   },
@@ -1429,11 +1429,11 @@
     },
     {
       "date": "2026-10-26",
-      "score": 27.08
+      "score": 29.14
     },
     {
       "date": "2026-10-27",
-      "score": 27.08
+      "score": 29.14
     }
   ]
 }
