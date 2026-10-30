@@ -1,6 +1,6 @@
 {
-  "as_of": "2026-10-29",
-  "score": 84.1,
+  "as_of": "2026-10-30",
+  "score": 82.2,
   "bucket": "無頂部訊號",
   "bucket_color": "#8a8a9a",
   "danger": false,
@@ -15,7 +15,7 @@
   "defense_hint": false,
   "swing": false,
   "near_high": false,
-  "pct_from_high": -6.9,
+  "pct_from_high": -9.3,
   "hi_window": 55,
   "alert": false,
   "alert_conditions": [
@@ -27,21 +27,21 @@
   "margin_alert": false,
   "margin_alert_conditions": [
     {
-      "name": "融資/成交金額 布林 z ≥ +1.5σ（現 +1.1σ）",
+      "name": "融資/成交金額 布林 z ≥ +1.5σ（現 +0.9σ）",
       "met": false
     }
   ],
   "limitup_alert": false,
   "limitup_alert_conditions": [
     {
-      "name": "漲停佔比 90 日乖離 z ≥ +1.0σ（現 -0.8σ、漲停 0.6%）",
+      "name": "漲停佔比 90 日乖離 z ≥ +1.0σ（現 -0.9σ、漲停 0.4%）",
       "met": false
     }
   ],
   "limitup_bear_alert": false,
   "limitup_bear_conditions": [
     {
-      "name": "漲停過熱（漲停佔比 90 日乖離 z ≥ +1.0σ，現 -0.8σ）",
+      "name": "漲停過熱（漲停佔比 90 日乖離 z ≥ +1.0σ，現 -0.9σ）",
       "met": false
     },
     {
@@ -50,19 +50,19 @@
     }
   ],
   "top_vote": false,
-  "top_vote_n": 0,
+  "top_vote_n": 1,
   "top_vote_k": 3,
   "top_vote_conditions": [
     {
       "name": "外資期貨淨空（55 日乖離 z ≤ −1.6σ，投票用去趨勢，與紅燈的「創 78 日新低」不同尺）",
+      "met": true
+    },
+    {
+      "name": "外資選擇權避險偏空（買賣權淨OI 252 日百分位 ≤ 33%，現 69%）",
       "met": false
     },
     {
-      "name": "外資選擇權避險偏空（買賣權淨OI 252 日百分位 ≤ 33%，現 63%）",
-      "met": false
-    },
-    {
-      "name": "漲停過熱（90 日乖離 z ≥ +1.5σ，投票用門檻比漲停燈的 +1.0σ 嚴；現 -0.8σ）",
+      "name": "漲停過熱（90 日乖離 z ≥ +1.5σ，投票用門檻比漲停燈的 +1.0σ 嚴；現 -0.9σ）",
       "met": false
     },
     {
@@ -81,62 +81,40 @@
       "met": false
     },
     {
-      "name": "short 空頭排列 3 日急升 ≥ +6pp（現 +0.8pp）",
-      "met": false
+      "name": "short 空頭排列 3 日急升 ≥ +6pp（現 +6.5pp）",
+      "met": true
     }
   ],
-  "panic": false,
+  "panic": true,
   "panic_conditions": [
     {
       "name": "深跌（距 55 日高 ≤ -8%）",
-      "met": false
+      "met": true
     },
     {
       "name": "融資 5 日急殺（≤ -2%）",
-      "met": false
+      "met": true
     },
     {
       "name": "快殺（指數 10 日跌 ≤ -6%）",
-      "met": false
+      "met": true
     }
   ],
   "components": [
     {
       "key": "futures",
       "name": "外資期貨定位",
-      "hot": 92.3,
-      "detail": "外資臺股期貨淨未平倉 -89,522 口（78日百分位越低越淨空＝越熱）"
+      "hot": 96.2,
+      "detail": "外資臺股期貨淨未平倉 -92,241 口（78日百分位越低越淨空＝越熱）"
     },
     {
       "key": "margin",
       "name": "融資水位",
-      "hot": 75.9,
-      "detail": "融資餘額金額 6,339億（距 55 日均 +1.04σ；+2σ=過熱）"
+      "hot": 68.2,
+      "detail": "融資餘額金額 6,235億（距 55 日均 +0.73σ；+2σ=過熱）"
     }
   ],
   "history": [
-    {
-      "date": "2025-10-16",
-      "score": 56.0,
-      "tx": 27648,
-      "label": "無頂部訊號",
-      "color": "#8a8a9a",
-      "stance": "攻擊",
-      "s3": "攻擊",
-      "x": true,
-      "panic": false,
-      "m_alert": false,
-      "l_alert": false,
-      "lb_alert": false,
-      "tv_alert": false,
-      "tv_n": 0,
-      "warn": false,
-      "swing": false,
-      "c": {
-        "futures": 23.1,
-        "margin": 88.9
-      }
-    },
     {
       "date": "2025-10-17",
       "score": 61.1,
@@ -5613,6 +5591,28 @@
       "c": {
         "futures": 92.3,
         "margin": 75.9
+      }
+    },
+    {
+      "date": "2026-10-30",
+      "score": 82.2,
+      "tx": 45212,
+      "label": "無頂部訊號",
+      "color": "#8a8a9a",
+      "stance": "防守",
+      "s3": "防守",
+      "x": false,
+      "panic": true,
+      "m_alert": false,
+      "l_alert": false,
+      "lb_alert": false,
+      "tv_alert": false,
+      "tv_n": 1,
+      "warn": false,
+      "swing": false,
+      "c": {
+        "futures": 96.2,
+        "margin": 68.2
       }
     }
   ]
