@@ -151,12 +151,18 @@ def save(rows: list[dict]) -> int:
     return saved
 
 
+# What a deck can start with: PDF, an Office Open XML zip (.pptx), or the
+# legacy OLE2 compound file (.ppt), which some companies still upload. Anything
+# else (an HTML error page) is not a deck.
+_DECK_MAGIC = (b"%PDF", b"PK\x03\x04", b"\xd0\xcf\x11\xe0")
+
+
 def download(file_name: str, out_dir: str) -> str | None:
     """Fetch one deck; returns the local path or None."""
     content = _post(FILE_URL, {"step": "9", "functionName": "t100sb02_1",
                                "filePath": "/home/html/nas/STR/",
                                "fileName": file_name}, binary=True)
-    if not content or content[:4] not in (b"%PDF", b"PK\x03\x04"):
+    if not content or content[:4] not in _DECK_MAGIC:
         return None
     os.makedirs(out_dir, exist_ok=True)
     path = os.path.join(out_dir, file_name)

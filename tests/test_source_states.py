@@ -434,6 +434,23 @@ def test_conference_index_query_without_an_answer_is_reported(monkeypatch):
     assert ic.scrape_date(T).failed_sources == ("法說會索引 上市 115/11（沒有回應）",)
 
 
+@pytest.mark.parametrize("name, content, kept", [
+    ("a.pdf", b"%PDF-1.7 ...", True),
+    ("a.pptx", b"PK\x03\x04 ...", True),
+    # 8424 2026-09-30: a legacy PowerPoint (OLE2), rejected every night
+    # until its window ran out
+    ("842420260930M002.ppt", b"\xd0\xcf\x11\xe0\xa1\xb1\x1a\xe1 ...", True),
+    ("a.pdf", b"<html>error</html>", False),
+    ("a.pdf", b"", False),
+])
+def test_deck_download_keeps_decks_only(tmp_path, monkeypatch, name, content, kept):
+    monkeypatch.setattr(ic, "_post", lambda url, data, binary=False: content)
+    path = ic.download(name, str(tmp_path))
+    assert (path is not None) == kept
+    if kept:
+        assert open(path, "rb").read() == content
+
+
 @pytest.mark.parametrize("day, closed, expected", [
     (date(2026, 10, 16), [], date(2026, 10, 19)),                     # Friday -> Monday
     (date(2026, 10, 16), [date(2026, 10, 19)], date(2026, 10, 20)),   # Monday closed
