@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-10-30T21:54:23",
+  "updated_at": "2026-11-02T21:56:48",
   "events": [
     {
       "type": "transfer",
@@ -648,35 +648,11 @@
       "shares": null,
       "security_kind": "普通股",
       "period": null
-    },
-    {
-      "type": "transfer",
-      "stock_id": "9949",
-      "company_name": "琉園",
-      "date": "2026-08-03",
-      "insider_role": "經理人配偶",
-      "insider_name": "張文玲之配偶",
-      "method": "洽特定人",
-      "shares": 3917971,
-      "security_kind": null,
-      "period": "115/08/03\r\n~\r\n115/08/05"
-    },
-    {
-      "type": "transfer",
-      "stock_id": "9949",
-      "company_name": "琉園",
-      "date": "2026-08-03",
-      "insider_role": "經理人本人",
-      "insider_name": "王小樨",
-      "method": "洽特定人",
-      "shares": 3648883,
-      "security_kind": null,
-      "period": "115/08/03\r\n~\r\n115/08/05"
     }
   ],
   "stats": {
     "transfer_events_30d": 24,
     "transfer_stocks_30d": 9,
-    "placement_events_30d": 3
+    "placement_events_30d": 2
   }
 }
