@@ -114,10 +114,10 @@ def test_an_expired_pause_adds_nothing_when_the_source_is_healthy_again(daily, m
 def test_a_pause_does_not_hide_another_stale_source(daily, monkeypatch):
     sent, ages = daily
     ages[REVENUE_TABLE] = 22
-    ages["tw.investor_conferences"] = 5
+    ages["tw.company_affiliations"] = 201
     monkeypatch.setattr(hc, "_KNOWN_PAUSES", [_entry()])
     assert hc.run_daily() == 1
-    assert sent == [("[健康檢查] 盤後 pipeline 異常（應更新至 10-05）：\n- 法說會索引 已 5 天未更新（容許 3 天）", {})]
+    assert sent == [("[健康檢查] 盤後 pipeline 異常（應更新至 10-05）：\n- 轉投資關係 已 201 天未更新（容許 200 天）", {})]
 
 
 def test_an_empty_table_is_covered_by_the_pause_and_reported_after_it(daily, monkeypatch):

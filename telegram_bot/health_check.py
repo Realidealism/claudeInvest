@@ -57,13 +57,11 @@ _DAILY_TABLES = [
 # Sources that update on their own rhythm rather than every trading day, so the
 # "must equal the latest trading day" rule above would cry wolf. Each carries the
 # longest gap that is still normal for it:
-#   - the conference index refreshes daily inside daily_update
 #   - the annual-report sweep re-checks unfiled companies weekly out of season
 #   - affiliations come from quarterly financials and are refreshed by hand today,
 #     so only a gap wide enough to mean "nobody ran it for two quarters" is worth
 #     reporting
 _PERIODIC_TABLES = [
-    ("法說會索引", "tw.investor_conferences", "updated_at", 3),
     ("年報產品別營收", "tw.product_revenue_status", "updated_at", 9),
     ("轉投資關係", "tw.company_affiliations", "updated_at", 200),
 ]
@@ -103,8 +101,17 @@ _KNOWN_PAUSES = [
 # The tolerance here only has to catch _save_signal_fires breaking on its
 # own: fires have never been absent two sessions running, so a gap this
 # wide is a real anomaly rather than a quiet market.
+#
+# The conference index is here for the other half of that reason: it is
+# refreshed only by the trading-night run, so its age is counted in sessions.
+# A calendar-day limit (3 days until 2026-11-02) cried wolf on 2026-10-27,
+# after a typhoon closure, a weekend and a make-up holiday left four calendar
+# days without a trading night. Its timestamp is read as a Taipei date, the
+# night it was written.
 _SPARSE_DAILY_TABLES = [
     ("訊號快照", "tw.signal_snapshot", "snapshot_date", 5),
+    ("法說會索引", "tw.investor_conferences",
+     "(updated_at AT TIME ZONE 'Asia/Taipei')::date", 0),
 ]
 
 # Database backup freshness. Looks at the archives themselves, never at the
