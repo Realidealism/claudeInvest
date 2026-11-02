@@ -1,36 +1,44 @@
 {
-  "snapshot_date": "2026-10-30",
-  "snapshot_time": "2026-10-30T05:40:33.425137+00:00",
+  "snapshot_date": "2026-11-02",
+  "snapshot_time": "2026-11-02T01:14:13.337400+00:00",
   "signals": {
-    "pick": [],
+    "pick": [
+      {
+        "ticker": "2395",
+        "name": "研華",
+        "market": "TWSE",
+        "turnover": 2732523264.0,
+        "streak": 1
+      }
+    ],
     "touch": [],
     "buy": [
       {
-        "ticker": "2603",
-        "name": "長榮",
-        "market": "TWSE",
-        "turnover": 6058015744.0,
-        "streak": 1
-      },
-      {
-        "ticker": "2412",
-        "name": "中華電",
-        "market": "TWSE",
-        "turnover": 2595001600.0,
-        "streak": 1
-      },
-      {
-        "ticker": "2466",
-        "name": "冠西電",
-        "market": "TWSE",
-        "turnover": 366519008.0,
-        "streak": 1
-      },
-      {
-        "ticker": "7704",
-        "name": "明遠精密",
+        "ticker": "6233",
+        "name": "旺玖",
         "market": "TPEx",
-        "turnover": 219210304.0,
+        "turnover": 746988224.0,
+        "streak": 1
+      },
+      {
+        "ticker": "6697",
+        "name": "東捷資訊",
+        "market": "TPEx",
+        "turnover": 708146048.0,
+        "streak": 2
+      },
+      {
+        "ticker": "5013",
+        "name": "強新",
+        "market": "TPEx",
+        "turnover": 614317248.0,
+        "streak": 2
+      },
+      {
+        "ticker": "6870",
+        "name": "騰雲",
+        "market": "TPEx",
+        "turnover": 167521792.0,
         "streak": 1
       }
     ],
