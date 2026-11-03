@@ -133,6 +133,8 @@ def _run_pass(*, final_pass: bool = False) -> int:
         _maybe_scrape_vix()
 
         summary = run_snapshot(final_pass=final_pass)
+        global _last_live_breadth_error
+        _last_live_breadth_error = summary.get("live_breadth_error")
         print()
         export_intraday()
         print()
@@ -170,6 +172,35 @@ def _push_final() -> None:
 # way until the code is fixed, so one alert a day is enough; the log has
 # each pass. Kept in memory: a restarted daemon may alert once more.
 _per_stock_alerted_on = None
+_last_live_breadth_error = None
+_live_breadth_alerted_on = None
+
+
+def _alert_live_breadth_failed() -> None:
+    """Alert, at most once a day, that the last pass scored its 大盤 cells as 0
+    because the live breadth failed (analysis.intraday_snapshot.run). Runs
+    under its own step deadline, outside the pass deadline (there is only one
+    faulthandler timer)."""
+    global _live_breadth_alerted_on
+    if _last_live_breadth_error is None:
+        return
+    from intraday.session import now_tpe
+    today = now_tpe().date()   # the loop's own clock, not the host's
+    if _live_breadth_alerted_on == today:
+        return
+    try:
+        with _deadline(STEP_WATCHDOG_SECONDS):
+            # In-process call: in the PyInstaller exe sys.executable is this
+            # daemon itself (see _push_final).
+            from telegram_bot.cron_alert import main as cron_alert_main
+            arc = cron_alert_main(["live_breadth_failed", _last_live_breadth_error])
+        if arc != 0:
+            print(f"[LOOP] [WARN] live-breadth alert returned {arc}")
+        else:
+            _live_breadth_alerted_on = today
+    except Exception:
+        print("[LOOP] [WARN] live-breadth alert failed:")
+        traceback.print_exc()
 
 
 def _alert_per_stock_errors(err) -> None:
@@ -301,6 +332,7 @@ def _run_loop(stop_event: threading.Event) -> None:
                 final_done_for = today
                 tag = " (degraded)" if degraded else ""
                 print(f"[LOOP] final pass for {today} complete{tag}")
+                _alert_live_breadth_failed()
                 # Deliver close-aligned fires + push the complete-close data
                 # now rather than on the next publish tick.
                 with _deadline(STEP_WATCHDOG_SECONDS):
@@ -336,6 +368,7 @@ def _run_loop(stop_event: threading.Event) -> None:
             continue
         elapsed = time.time() - t0
         print(f"[LOOP] pass done in {elapsed:.1f}s")
+        _alert_live_breadth_failed()
         with _deadline(STEP_WATCHDOG_SECONDS):
             _push_signals()
         # Yield briefly so signal handlers and stop_event can interrupt

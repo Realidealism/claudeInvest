@@ -667,6 +667,21 @@ BREADTH_SCOPES = (
     ("medium", "medium_trend"),
 )
 
+# Live (intraday) breadth trends, keyed by date. tw.market_breadth gets today's
+# row only after the close, so the intraday pass feeds the trends it computed
+# from the forming bars here. Looked up at evaluate time (not build time) so
+# every board in the process sees it, including the ones the signal factories
+# build per call. A DB row for the same date always wins. The nightly snapshot
+# and backtests never set it. Scope is the ScoreBoard only: MarketState's
+# *_trend gates still forward-fill yesterday's row intraday.
+_LIVE_BREADTH: dict[date, dict[str, int]] = {}
+
+
+def set_live_breadth(day: date, trends: dict[str, int]) -> None:
+    """Replace the live breadth trends with `trends` for `day` only."""
+    _LIVE_BREADTH.clear()
+    _LIVE_BREADTH[day] = dict(trends)
+
 
 def _load_breadth_trends() -> dict[date, dict[str, int]]:
     """Load market breadth trends from DB, keyed by date."""
@@ -715,6 +730,8 @@ def _add_breadth_item(
     def _check(data, i, _tc=trend_col, _sc=scope, _ss=sort_state, _codes=trend_codes):
         day = data.dates[i]
         bt = breadth.get(day)
+        if bt is None:
+            bt = _LIVE_BREADTH.get(day)
         if bt is None:
             return False
         if bt[_tc] not in _codes:

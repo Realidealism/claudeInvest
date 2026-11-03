@@ -544,6 +544,33 @@ LIVE_COUNT_KEYS = (
     "long_up", "long_down",
 )
 
+# Normal-only (sort_normal, no forming) counts: the basis of short_trend /
+# medium_trend / long_trend, which the ScoreBoard's 大盤 cells read. Kept apart
+# from LIVE_COUNT_KEYS so the sidecar keeps its *_total semantics.
+LIVE_NORMAL_KEYS = (
+    "short_up_normal", "short_down_normal",
+    "medium_up_normal", "medium_down_normal",
+    "long_up_normal", "long_down_normal",
+)
+
+
+def live_trend_codes(counts: dict[str, int]) -> dict[str, int]:
+    """short/medium/long trend codes from live normal-only counts — the live
+    counterpart of BreadthDay.short_trend / medium_trend / long_trend
+    (denominator = non-dead-fish stocks)."""
+    total = counts["total"]
+
+    def pct(n: int) -> float:
+        return n / total * 100 if total else 0
+
+    codes = {}
+    for scope in ("short", "medium", "long"):
+        up = counts[f"{scope}_up_normal"]
+        down = counts[f"{scope}_down_normal"]
+        trend = classify_trend(pct(up), pct(down), pct(total - up - down))
+        codes[f"{scope}_trend"] = TREND_CODE[trend]
+    return codes
+
 
 def _live_start_date(win: int = LIVE_HISTORY_DAYS) -> date:
     """Oldest trade_date of the most recent `win` trading days."""
@@ -628,7 +655,7 @@ def live_breadth_chunk(args: tuple[list[str], date, date, float, bool]) -> dict[
     history = _fetch_live_history(stock_ids, start)
     quotes = _fetch_live_quotes(stock_ids) if use_quotes else {}
 
-    counts = {k: 0 for k in LIVE_COUNT_KEYS}
+    counts = {k: 0 for k in LIVE_COUNT_KEYS + LIVE_NORMAL_KEYS}
     for stock_id in stock_ids:
         rows = history.get(stock_id)
         if not rows:
@@ -664,6 +691,10 @@ def live_breadth_chunk(args: tuple[list[str], date, date, float, bool]) -> dict[
                 counts[f"{scope}_up"] += 1
             elif down:
                 counts[f"{scope}_down"] += 1
+            if sn[scope].up[i]:
+                counts[f"{scope}_up_normal"] += 1
+            elif sn[scope].down[i]:
+                counts[f"{scope}_down_normal"] += 1
 
     return counts
 
@@ -687,8 +718,9 @@ def compute_live_breadth(volume_scale: float, ref_date: date, *, mapper=None,
     results = map(live_breadth_chunk, chunks) if mapper is None \
         else mapper(live_breadth_chunk, chunks)
 
-    counts = {k: 0 for k in LIVE_COUNT_KEYS}
+    keys = LIVE_COUNT_KEYS + LIVE_NORMAL_KEYS
+    counts = {k: 0 for k in keys}
     for part in results:
-        for k in LIVE_COUNT_KEYS:
+        for k in keys:
             counts[k] += part[k]
     return counts

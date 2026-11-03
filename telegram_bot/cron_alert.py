@@ -76,10 +76,15 @@ def _msg_live_reconcile_failed(extra: str) -> str:
     return f"月對帳失敗（exit {exit_code}），見 logs\\live_reconcile.log"
 
 
+def _msg_live_breadth_failed(extra: str) -> str:
+    return f"盤中即時大盤寬度計算失敗，本輪大盤分數以 0 計：{extra or '?'}"
+
+
 _EVENTS = {
     "snapshot_failed": _msg_snapshot_failed,
     "git_push_failed": _msg_git_push_failed,
     "snapshot_exceptions": _msg_snapshot_exceptions,
+    "live_breadth_failed": _msg_live_breadth_failed,
     "backfill_financials_failed": _msg_backfill_financials_failed,
     "backfill_hermit_failed": _msg_backfill_hermit_failed,
     "microtaiex_report_failed": _msg_microtaiex_report_failed,

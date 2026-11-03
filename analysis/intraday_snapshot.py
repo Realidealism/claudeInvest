@@ -24,14 +24,15 @@ import re
 import sys
 import time
 from datetime import date, datetime, timezone, timedelta
+from functools import partial
 
 from psycopg2.extras import execute_batch
 
 from db.connection import get_cursor, get_connection
 from db.price_availability import PriceUnavailable
 from analysis.realtime_data import load_stock_data_intraday
-from analysis.market_breadth import compute_live_breadth
-from analysis.score import build_scoreboard
+from analysis.market_breadth import LIVE_COUNT_KEYS, compute_live_breadth, live_trend_codes
+from analysis.score import build_scoreboard, set_live_breadth
 from analysis.snapshot_runs import save_run
 from analysis.daily_snapshot import load_held_stock_ids
 from analysis.snapshot_errors import PerStockErrors, describe, log_lines
@@ -153,11 +154,18 @@ def _extract_position(result, side: str, last_trade_date) -> dict | None:
     }
 
 
-def _eval_stock(stock_id: str) -> tuple[dict | None, list]:
+def _eval_stock(stock_id: str,
+                live_breadth: tuple[date, dict[str, int]] | None = None,
+                ) -> tuple[dict | None, list]:
     """Per-stock worker. Returns (flat dict (cheap pickle) or None, or
     {"_unavailable": stock_id} when the price is unavailable (emerging board);
     the exceptions it swallowed as (site, stock_id, message)). A stock with
-    under 60 bars, or an unavailable price, is skipped, not an error."""
+    under 60 bars, or an unavailable price, is skipped, not an error.
+
+    live_breadth = (day, trend codes) from this pass's live breadth; it feeds
+    the 大盤 cells for the forming bar. None leaves them at 0 (no DB row yet)."""
+    if live_breadth is not None:
+        set_live_breadth(*live_breadth)
     errors: list[tuple[str, str, str]] = []
 
     def note(site):
@@ -525,8 +533,32 @@ def run(*, final_pass: bool = False) -> dict:
     errors: list[tuple[str, str, str]] = []
     # Codes skipped for an unavailable price; see daily_snapshot.run.
     unavailable: list[str] = []
+    breadth_counts = None
+    live_breadth_error = None
     with Pool(N_WORKERS, initializer=_init_worker, initargs=(scale,)) as pool:
-        for r, errs in pool.imap_unordered(_eval_stock, stock_ids, chunksize=20):
+        # Breadth runs on the close's universe (all active stocks minus
+        # dead_fish), which is wider than the money_level >= 4 scoring
+        # universe below — hence its own lean pass over the same Pool. It runs
+        # first so its trend codes can feed the 大盤 cells; on failure those
+        # cells stay at 0 for this pass and the daemon alerts.
+        t_br = time.time()
+        try:
+            breadth_counts = compute_live_breadth(scale, snapshot_date, mapper=pool.imap_unordered)
+            live = live_trend_codes(breadth_counts)
+            print(f"  breadth {breadth_counts['total']} alive in {time.time() - t_br:.1f}s  "
+                  f"trend short/medium/long = {live['short_trend']}/"
+                  f"{live['medium_trend']}/{live['long_trend']}")
+        except Exception as e:
+            breadth_counts = None
+            live = None
+            live_breadth_error = describe(e)
+            print(f"  [WARN] live breadth failed, 大盤 cells score 0 this pass: "
+                  f"{live_breadth_error}")
+
+        t_sc = time.time()
+        worker = partial(_eval_stock,
+                         live_breadth=None if live is None else (snapshot_date, live))
+        for r, errs in pool.imap_unordered(worker, stock_ids, chunksize=20):
             errors.extend(errs)
             if r is not None and "_unavailable" in r:
                 unavailable.append(r["_unavailable"])
@@ -534,17 +566,10 @@ def run(*, final_pass: bool = False) -> dict:
                 results.append(r)
                 if len(results) % 200 == 0:
                     print(f"  evaluated {len(results)} ...", file=sys.stderr)
-        print(f"  scored {len(results)} stocks in {time.time() - t0:.1f}s")
+        print(f"  scored {len(results)} stocks in {time.time() - t_sc:.1f}s")
         if unavailable:
             print(f"  [WARN] {len(unavailable)} stocks skipped: price unavailable "
                   f"(emerging board): {', '.join(sorted(unavailable))}")
-
-        # Breadth runs on the close's universe (all active stocks minus
-        # dead_fish), which is wider than the money_level >= 4 scoring
-        # universe above — hence its own lean pass over the same Pool.
-        if not errors:
-            t_br = time.time()
-            breadth_counts = compute_live_breadth(scale, snapshot_date, mapper=pool.imap_unordered)
     # Nothing of this pass is written when any stock's evaluation raised: a
     # step broken for every stock would otherwise publish "no signal, no
     # position". The previous pass stays in place; the daemon alerts.
@@ -552,7 +577,6 @@ def run(*, final_pass: bool = False) -> dict:
         for line in log_lines(errors):
             print(line)
         raise PerStockErrors(errors)
-    print(f"  breadth {breadth_counts['total']} alive in {time.time() - t_br:.1f}s")
 
     # The run record goes first: if it cannot be written nothing of the pass
     # is, and the stale-snapshot health check sees it. No history window: the
@@ -575,10 +599,13 @@ def run(*, final_pass: bool = False) -> dict:
     print(f"  Open positions long: {pos_counts['long']} / short: {pos_counts['short']}")
     print(f"  Exited intraday  long: {pos_counts['exited_long']} / short: {pos_counts['exited_short']}")
 
-    _save_breadth_sidecar(snapshot_date, now, breadth_counts)
-    print(f"  Breadth  short: {breadth_counts['short_up']}↑/{breadth_counts['short_down']}↓  "
-          f"medium: {breadth_counts['medium_up']}↑/{breadth_counts['medium_down']}↓  "
-          f"long: {breadth_counts['long_up']}↑/{breadth_counts['long_down']}↓")
+    # A failed live breadth leaves the previous pass's sidecar in place.
+    if breadth_counts is not None:
+        _save_breadth_sidecar(snapshot_date, now,
+                              {k: breadth_counts[k] for k in LIVE_COUNT_KEYS})
+        print(f"  Breadth  short: {breadth_counts['short_up']}↑/{breadth_counts['short_down']}↓  "
+              f"medium: {breadth_counts['medium_up']}↑/{breadth_counts['medium_down']}↓  "
+              f"long: {breadth_counts['long_up']}↑/{breadth_counts['long_down']}↓")
 
     # 大台期貨統一狀態 (forming intraday bar from cnyes TXF). Non-fatal.
     from analysis.tx_status import compute_and_save_tx_status
@@ -589,17 +616,22 @@ def run(*, final_pass: bool = False) -> dict:
     # 攻防狀態 (intraday live 溫度計 stance) — same history + hysteresis as the
     # daily gauge but with a forming last bar (short_trend_total from the breadth
     # sidecar, obv_weak from a forming TXF bar). Only the stance updates intraday;
-    # the rest of the 溫度計 stays close-only. Non-fatal.
-    try:
-        from analysis.market_thermometer import build_intraday_stance
-        with get_cursor(commit=False) as cur:
-            stance = build_intraday_stance(cur, scale, now)
-        if stance is not None:
-            _save_stance_sidecar(stance)
-            print(f"  Intraday stance: {stance['stance']} "
-                  f"(short_trend={stance['short_trend']}, today={stance['is_today']})")
-    except Exception as e:
-        print(f"  [WARN] intraday stance failed (non-fatal): {e}")
+    # the rest of the 溫度計 stays close-only. Non-fatal. Skipped when the live
+    # breadth failed: the sidecar still holds the previous pass's counts, and a
+    # stance built on them would carry this pass's time.
+    if breadth_counts is None:
+        print("  [WARN] intraday stance skipped: no live breadth this pass")
+    else:
+        try:
+            from analysis.market_thermometer import build_intraday_stance
+            with get_cursor(commit=False) as cur:
+                stance = build_intraday_stance(cur, scale, now)
+            if stance is not None:
+                _save_stance_sidecar(stance)
+                print(f"  Intraday stance: {stance['stance']} "
+                      f"(short_trend={stance['short_trend']}, today={stance['is_today']})")
+        except Exception as e:
+            print(f"  [WARN] intraday stance failed (non-fatal): {e}")
 
     print(f"  Total wall time: {time.time() - t0:.1f}s")
     return {
@@ -611,4 +643,5 @@ def run(*, final_pass: bool = False) -> dict:
         "score_short": short_n,
         "signal_counts": counts,
         "position_counts": pos_counts,
+        "live_breadth_error": live_breadth_error,
     }

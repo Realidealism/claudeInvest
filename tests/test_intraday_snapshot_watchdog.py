@@ -400,3 +400,93 @@ def test_other_pass_failures_do_not_send_the_per_stock_alert(monkeypatch):
 def test_cron_alert_composes_the_per_stock_message():
     assert cron_alert._EVENTS["snapshot_exceptions"]("逐檔例外 1 處") == \
         "盤中快照逐檔例外，這一輪沒有寫入：逐檔例外 1 處"
+
+
+# ── live breadth failures ──────────────────────────────────────────────────
+
+def _fake_live_breadth_alert(monkeypatch, rec, rc=0, error="RuntimeError: x"):
+    sent = _fake_alert(monkeypatch, rec, rc=rc)
+    monkeypatch.setattr(m, "_live_breadth_alerted_on", None)
+    monkeypatch.setattr(m, "_last_live_breadth_error", error)
+    return sent
+
+
+def test_live_breadth_failure_alerts_once_a_day_under_the_step_deadline(monkeypatch):
+    rec = _Recorder()
+    monkeypatch.setattr(m, "_deadline", rec.deadline)
+    sent = _fake_live_breadth_alert(monkeypatch, rec)
+    m._alert_live_breadth_failed()
+    m._alert_live_breadth_failed()
+    assert rec.calls == [("alert", [450])]
+    assert sent == [["live_breadth_failed", "RuntimeError: x"]]
+    monkeypatch.setattr(m, "_live_breadth_alerted_on", datetime(2000, 1, 1).date())
+    m._alert_live_breadth_failed()
+    assert len(sent) == 2
+
+
+def test_no_live_breadth_alert_without_a_failure(monkeypatch):
+    rec = _Recorder()
+    monkeypatch.setattr(m, "_deadline", rec.deadline)
+    sent = _fake_live_breadth_alert(monkeypatch, rec, error=None)
+    m._alert_live_breadth_failed()
+    assert sent == [] and rec.calls == []
+
+
+def test_undelivered_live_breadth_alert_is_tried_again(monkeypatch, capsys):
+    rec = _Recorder()
+    monkeypatch.setattr(m, "_deadline", rec.deadline)
+    sent = _fake_live_breadth_alert(monkeypatch, rec, rc=1)
+    m._alert_live_breadth_failed()
+    m._alert_live_breadth_failed()
+    assert len(sent) == 2 and "alert returned 1" in capsys.readouterr().out
+
+
+def test_live_breadth_alert_that_raises_is_logged(monkeypatch, capsys):
+    rec = _Recorder()
+    monkeypatch.setattr(m, "_deadline", rec.deadline)
+    _fake_live_breadth_alert(monkeypatch, rec)
+
+    def boom(argv):
+        raise RuntimeError("telegram down")
+    sys.modules["telegram_bot.cron_alert"].main = boom
+    m._alert_live_breadth_failed()
+    assert "live-breadth alert failed" in capsys.readouterr().out
+    assert m._live_breadth_alerted_on is None
+
+
+def test_pass_with_failed_live_breadth_alerts_after_the_pass_deadline(monkeypatch):
+    # The real _run_pass records the pass's error; the loop alerts once the
+    # pass deadline is gone (there is only one faulthandler timer).
+    rec = _Recorder()
+    stop = _Stop(rec)
+    _fake_intraday(monkeypatch, rec, in_session=True)
+    monkeypatch.setattr(m, "_deadline", rec.deadline)
+    monkeypatch.setattr(m, "_maybe_scrape_vix", lambda: rec.note("vix"))
+    monkeypatch.setattr(m, "_push_signals", lambda: rec.note("push"))
+    sent = _fake_live_breadth_alert(monkeypatch, rec, error=None)
+    snap = types.ModuleType("analysis.intraday_snapshot")
+
+    def run(final_pass=False):
+        rec.note("snapshot")
+        return {"stocks_evaluated": 2, "live_breadth_error": "RuntimeError: locked"}
+    snap.run = run
+    gen = types.ModuleType("export.generate")
+    gen.export_intraday = lambda: rec.note("export")
+    monkeypatch.setitem(sys.modules, "analysis.intraday_snapshot", snap)
+    monkeypatch.setitem(sys.modules, "export.generate", gen)
+
+    def wait(timeout=None):
+        rec.note("sleep")
+        stop.set()
+        return True
+    monkeypatch.setattr(stop, "wait", wait)
+    m._run_loop(stop)
+    calls = [c for c in rec.calls if c[0] != "bucket_poll"]
+    assert calls == [("vix", [1200]), ("snapshot", [1200]), ("export", [1200]),
+                     ("alert", [450]), ("push", [450]), ("sleep", [])]
+    assert sent == [["live_breadth_failed", "RuntimeError: locked"]]
+
+
+def test_cron_alert_composes_the_live_breadth_message():
+    assert cron_alert._EVENTS["live_breadth_failed"]("RuntimeError: x") == \
+        "盤中即時大盤寬度計算失敗，本輪大盤分數以 0 計：RuntimeError: x"

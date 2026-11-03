@@ -18,6 +18,7 @@ import pytest
 
 import analysis.daily_snapshot as ds
 import analysis.intraday_snapshot as isn
+from analysis.market_breadth import LIVE_NORMAL_KEYS
 import daily_update as du
 from daily_update_guards import no_side_effects  # noqa: F401
 from signal_backtest.trade import REASON_EXIT_END
@@ -56,7 +57,7 @@ def _stand_ins(monkeypatch, mod, *, active, held):
     import multiprocessing
     monkeypatch.setattr(multiprocessing, "Pool", _SyncPool)
 
-    def worker(item):
+    def worker(item, **_):
         got["items"].append(item)
         return _result(item[0] if isinstance(item, tuple) else item), []
     monkeypatch.setattr(mod, "_eval_stock", worker)
@@ -90,8 +91,7 @@ def _stand_ins(monkeypatch, mod, *, active, held):
         import analysis.market_thermometer as mt
         monkeypatch.setattr(isn, "_compute_volume_scale", lambda now, final_pass=False: 1.0)
         monkeypatch.setattr(isn, "compute_live_breadth", lambda *a, **k: {
-            k: 0 for k in ("total", "short_up", "short_down", "medium_up", "medium_down",
-                           "long_up", "long_down")})
+            k: 0 for k in isn.LIVE_COUNT_KEYS + LIVE_NORMAL_KEYS})
         monkeypatch.setattr(isn, "_save_breadth_sidecar", lambda *a: None)
 
         @contextmanager

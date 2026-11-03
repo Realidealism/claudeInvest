@@ -17,6 +17,7 @@ import pytest
 
 import analysis.daily_snapshot as ds
 import analysis.intraday_snapshot as isn
+from analysis.market_breadth import LIVE_NORMAL_KEYS
 from analysis.snapshot_errors import PerStockErrors, summarize
 from daily_update_guards import no_side_effects  # noqa: F401
 
@@ -171,8 +172,7 @@ def _run_stand_ins(monkeypatch, mod, worker):
     else:
         monkeypatch.setattr(isn, "_compute_volume_scale", lambda now, final_pass=False: 1.0)
         monkeypatch.setattr(isn, "compute_live_breadth", lambda *a, **k: saves.append("breadth") or {
-            k: 0 for k in ("total", "short_up", "short_down", "medium_up", "medium_down",
-                           "long_up", "long_down")})
+            k: 0 for k in isn.LIVE_COUNT_KEYS + LIVE_NORMAL_KEYS})
         monkeypatch.setattr(isn, "_save_breadth_sidecar", lambda *a: saves.append("sidecar"))
     return saves
 
@@ -190,14 +190,16 @@ def _call_run(mod):
 
 @pytest.mark.parametrize("mod", [ds, isn], ids=["daily", "intraday"])
 def test_run_with_a_failed_stock_writes_nothing(monkeypatch, mod):
-    def worker(item):
+    def worker(item, **_):
         sid = item[0] if isinstance(item, tuple) else item
         return (_result(sid), [("signal buy", sid, "ValueError: boom")] if sid == "2330" else [])
 
     saves = _run_stand_ins(monkeypatch, mod, worker)
     with pytest.raises(PerStockErrors) as raised:
         _call_run(mod)
-    assert saves == []
+    # The intraday live breadth is computed before scoring (it feeds the 大盤
+    # cells), but nothing is written.
+    assert saves == ([] if mod is ds else ["breadth"])
     assert raised.value.errors == [("signal buy", "2330", "ValueError: boom")]
     assert "signal buy 1 檔" in str(raised.value)
 
@@ -207,7 +209,7 @@ def test_run_with_unavailable_stocks_still_writes_the_rest(monkeypatch, mod):
     from contextlib import contextmanager
     import analysis.market_thermometer as mt
 
-    def worker(item):
+    def worker(item, **_):
         sid = item[0] if isinstance(item, tuple) else item
         return ({"_unavailable": sid}, []) if sid == "2330" else (_result(sid), [])
 
@@ -242,7 +244,7 @@ def test_daily_run_without_errors_writes(monkeypatch):
 def test_run_record_that_cannot_be_written_stops_the_run(monkeypatch, mod):
     # Written first, so a failed record leaves the previous rows in place
     # rather than new rows nobody can trace to a build.
-    saves = _run_stand_ins(monkeypatch, mod, lambda item: (
+    saves = _run_stand_ins(monkeypatch, mod, lambda item, **_: (
         _result(item[0] if isinstance(item, tuple) else item), []))
 
     def broken(*a):
@@ -256,7 +258,7 @@ def test_run_record_that_cannot_be_written_stops_the_run(monkeypatch, mod):
 def test_intraday_run_without_errors_writes(monkeypatch):
     from contextlib import contextmanager
     import analysis.market_thermometer as mt
-    saves = _run_stand_ins(monkeypatch, isn, lambda sid: (_result(sid), []))
+    saves = _run_stand_ins(monkeypatch, isn, lambda sid, **_: (_result(sid), []))
 
     @contextmanager
     def get_cursor(commit=True):
@@ -274,7 +276,7 @@ def test_intraday_run_without_errors_writes(monkeypatch):
 
 def test_log_of_a_step_broken_for_every_stock_is_bounded(monkeypatch, capsys):
     # A step broken for every stock prints a bounded log, not a line per stock.
-    def worker(item):
+    def worker(item, **_):
         sid = item[0] if isinstance(item, tuple) else item
         return None, [("load", sid, "ValueError: x")]
 
@@ -312,3 +314,69 @@ def test_the_error_survives_pickling():
     err = PerStockErrors([("load", "2330", "ValueError: x")])
     back = pickle.loads(pickle.dumps(err))
     assert back.errors == err.errors and str(back) == str(err)
+
+
+# ── run(): the live breadth feeds the 大盤 cells ────────────────────────────
+
+def _intraday_stance_stand_ins(monkeypatch):
+    from contextlib import contextmanager
+    import analysis.market_thermometer as mt
+
+    @contextmanager
+    def get_cursor(commit=True):
+        yield object()
+    monkeypatch.setattr(isn, "get_cursor", get_cursor)
+    monkeypatch.setattr(mt, "build_intraday_stance", lambda cur, scale, now: None)
+
+
+def test_intraday_run_hands_the_live_trends_to_every_worker(monkeypatch):
+    got = []
+    saves = _run_stand_ins(monkeypatch, isn, lambda sid, live_breadth=None: (
+        got.append(live_breadth) or (_result(sid), [])))
+    counts = dict.fromkeys(isn.LIVE_COUNT_KEYS + LIVE_NORMAL_KEYS, 0)
+    counts.update(total=100, medium_up_normal=60, medium_down_normal=10)
+    monkeypatch.setattr(isn, "compute_live_breadth", lambda *a, **k: counts)
+    _intraday_stance_stand_ins(monkeypatch)
+    import analysis.market_thermometer as mt
+    stances = []
+    monkeypatch.setattr(mt, "build_intraday_stance", lambda *a: stances.append(a))
+    summary = isn.run()
+    assert summary["live_breadth_error"] is None
+    assert len(stances) == 1
+    day = summary["snapshot_date"]
+    trends = {"short_trend": 0, "medium_trend": 2, "long_trend": 0}
+    assert got == [(day, trends), (day, trends)]
+    assert "sidecar" in saves
+
+
+def test_intraday_run_scores_without_the_live_breadth_when_it_fails(monkeypatch):
+    got = []
+    sidecars = []
+    saves = _run_stand_ins(monkeypatch, isn, lambda sid, live_breadth=None: (
+        got.append(live_breadth) or (_result(sid), [])))
+
+    def broken(*a, **k):
+        raise RuntimeError("quotes table locked")
+    monkeypatch.setattr(isn, "compute_live_breadth", broken)
+    monkeypatch.setattr(isn, "_save_breadth_sidecar", lambda *a: sidecars.append(a))
+    _intraday_stance_stand_ins(monkeypatch)
+    import analysis.market_thermometer as mt
+    stances = []
+    monkeypatch.setattr(mt, "build_intraday_stance", lambda *a: stances.append(a))
+    summary = isn.run()
+    assert summary["stocks_evaluated"] == 2
+    assert summary["live_breadth_error"] == "RuntimeError: quotes table locked"
+    assert got == [None, None]
+    # The previous pass's breadth and stance sidecars stay in place: a stance
+    # built on the stale counts would carry this pass's time.
+    assert sidecars == [] and stances == []
+    assert "_save_score_side" in saves
+
+
+def test_intraday_sidecar_keeps_its_total_keys(monkeypatch):
+    sidecars = []
+    _run_stand_ins(monkeypatch, isn, lambda sid, **_: (_result(sid), []))
+    monkeypatch.setattr(isn, "_save_breadth_sidecar", lambda d, t, c: sidecars.append(c))
+    _intraday_stance_stand_ins(monkeypatch)
+    isn.run()
+    assert [set(c) for c in sidecars] == [set(isn.LIVE_COUNT_KEYS)]
