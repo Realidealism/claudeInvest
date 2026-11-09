@@ -1,6 +1,18 @@
 {
-  "updated_at": "2026-11-06T21:57:17",
+  "updated_at": "2026-11-09T22:02:06",
   "events": [
+    {
+      "type": "placement",
+      "stock_id": "3540",
+      "company_name": "曜越",
+      "date": "2026-11-09",
+      "insider_role": null,
+      "insider_name": null,
+      "method": null,
+      "shares": null,
+      "security_kind": "普通股",
+      "period": null
+    },
     {
       "type": "placement",
       "stock_id": "2491",
@@ -636,23 +648,11 @@
       "shares": null,
       "security_kind": "普通股",
       "period": null
-    },
-    {
-      "type": "transfer",
-      "stock_id": "3167",
-      "company_name": "大量",
-      "date": "2026-08-10",
-      "insider_role": "董事本人",
-      "insider_name": "王作京",
-      "method": "洽特定人",
-      "shares": 7294483,
-      "security_kind": null,
-      "period": "115/08/10\r\n~\r\n115/08/12"
     }
   ],
   "stats": {
-    "transfer_events_30d": 17,
-    "transfer_stocks_30d": 7,
-    "placement_events_30d": 4
+    "transfer_events_30d": 13,
+    "transfer_stocks_30d": 6,
+    "placement_events_30d": 5
   }
 }
