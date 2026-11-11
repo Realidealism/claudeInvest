@@ -1,104 +1,116 @@
 # Claude Code Rules
 
-## Language
+## 語言
 - 所有回應使用繁體中文
 - Code comments must be written in English
 - Commit messages must be written in English
 
-## 路由：何時讀哪個檔（讀了再動手，不要憑印象）
-| 觸發情境 | 先讀 |
-|---|---|
-| 要派 subagent / 選模型 / 預計讀 >3 檔或 >500 行 / 長輸出指令 | `.claude/rules/01_dispatch.md` |
-| 卡關想重試、不確定「算不算完成」、猶豫要不要問使用者、提案涉及訊號/防守/出場邏輯 | `.claude/rules/02_judgment.md` |
-| 要出計畫請求批准 / 進 plan mode | `.claude/rules/01_dispatch.md` §0 |
-| 要寫派工 prompt（搜尋/實作/重構/研究/審查） | `.claude/rules/03_templates.md` |
-| 要修改 CLAUDE.md、rules 檔、memory 制度 | `.claude/rules/04_maintenance.md` |
-| 新 session 接手大型/跨對話任務 | `.claude/rules/05_letter.md` |
-| 寫或改常駐服務／排程長迴圈 | `.claude/rules/06_service_safety.md` |
-| 使用者說「回測」或要改 signal_backtest/factories | skill `signal-factory` |
-| ScoreBoard cell ablation / 權重調整 | skill `cross-sectional-scoring` |
-| 改 `analysis/market_thermometer.py` 攻防（stance）判準/參數（或它讀的上游，如 `analysis/obv.py`、`analysis/market_breadth.py`），或評估溫度計變動 | skill `signal-factory` §6b（stance 是 buy 的 live 相依，改了訊號工廠就變） |
+## 你若是被派出的 subagent
 
-這些規則的成因見 `.claude/rules/00_diagnosis.md`。
+subagent 也會載入本檔。判斷方式：任務來自一份派工 prompt，而且你的工具清單裡沒有 AskUserQuestion＝你是 subagent（有 AskUserQuestion 就是主對話，照常跑 Grill-Me）。若是 subagent：派工 prompt 就是已取得的共識，**直接親自執行**。不跑 Grill-Me、不進 plan mode、不再轉派；疑問與做不到的事寫進回報的「不確定處」。下面的「Grill-Me」「Subagent 授權」與 01_dispatch §1 只適用主對話。
+
+## 制度檔地圖
+
+**常駐（已在你的 context 裡，不必再 Read）**：本檔、`.claude/rules/01_dispatch.md`（派工）、`.claude/rules/02_judgment.md`（判斷 Rubric 1–12）、`MEMORY.md`（記憶索引）。
+
+**按需（命中觸發就先 Read，讀了再動手，不要憑印象）**：
+
+| 觸發情境 | 先 Read |
+|---|---|
+| 要寫派工 prompt（搜尋／實作／重構／研究／審查） | `.claude/ref/03_templates.md` |
+| 命中 02_judgment 標 ★ 的 Rubric（5、8、9、10、11）且要動手 | `.claude/ref/02_cases.md` 同編號節 |
+| 要修改本檔、`.claude/rules/`、`.claude/ref/`、MEMORY.md 或 memory 制度 | `.claude/rules/04_maintenance.md` |
+| 寫或改常駐服務／排程長迴圈／.bat | `.claude/rules/06_service_safety.md` |
+| 新 session 接手大型或跨對話任務；想知道制度的待辦與已知弱點 | `.claude/ref/05_letter.md` |
+| 懷疑某條規則已不需要、想知道它的成因 | `.claude/ref/00_diagnosis.md` |
+| 使用者說「回測」，或要改 `signal_backtest/factories` | skill `signal-factory` |
+| ScoreBoard cell ablation／權重調整 | skill `cross-sectional-scoring` |
+| 改 `analysis/market_thermometer.py` 攻防判準或參數，或它讀的上游（`analysis/obv.py`、`analysis/market_breadth.py`），或評估溫度計變動 | skill `signal-factory` §6b（stance 是 buy 的 live 相依） |
+
+`04_maintenance.md` 與 `06_service_safety.md` 設了路徑條件，碰到對應檔案時 harness 會自動載入；沒看到它出現在 context 裡，就自己 Read。舊文件若寫 `.claude/rules/00_diagnosis.md`／`03_templates.md`／`05_letter.md`，現在是 `.claude/ref/` 下的同名檔。
+
+## 每個任務的骨架
+
+1. **探勘**：能從 codebase／memory／git 查到的先自己查。預計讀 >3 檔或 >500 行 → 派 `Explore`（01_dispatch §1）。
+2. **掃封存**：提案涉及訊號／防守／出場／進場過濾 → 先對 MEMORY.md 的「勿重試／MUST NOT」條目，命中即停（Rubric 4）。
+3. **逼問**：走下方 Grill-Me 協議。
+4. **計畫**：非瑣碎任務用 plan mode 出計畫，每個步驟附驗證方式，取得批准。
+5. **執行**：只改與任務直接相關的東西。任何持久寫入先過 Rubric 10（有沒有寫入權）與 Rubric 11（會不會意外寫入）。
+6. **驗收**：證據在手才算完成（Rubric 2）；做的人不驗自己的成果（01_dispatch §6）。
+7. **回報與寫回**：結果先講。踩到坑當下就依 `04_maintenance.md` 寫回，不等任務結束。
+
+規則是底線，不是全部。沒有規則覆蓋的情境用你自己的判斷並說出理由；判斷不了就明說（02_judgment 誠實條款）。
 
 ## Subagent 授權（覆蓋 harness 預設）
-harness 預設「除非使用者要求，否則不要 spawn subagent」。本專案依任務性質分類授權，**唯讀類覆蓋該預設**：
+
+harness 預設「除非使用者要求，否則不要 spawn subagent」。本專案依任務性質授權，**唯讀類覆蓋該預設**：
 
 | 類型 | 授權 |
 |---|---|
-| 唯讀探勘（`Explore`）、驗收 read-back、fresh-context 對抗審查（唯讀、不改檔） | 自動派工，不必先問 |
-| 回測/build 等長輸出背景指令 | 自動派工，不必先問 |
-| `general-purpose`（會改檔、跑指令、對外查網頁） | 先說明要派什麼、做什麼，得使用者同意才派 |
+| 唯讀探勘（`Explore`）、驗收 read-back、fresh-context 對抗審查（唯讀、不改檔、不跑專案程式） | 自動派工，不必先問 |
+| 回測／build 等長輸出背景指令 | 自動派工，不必先問 |
+| 會改檔、跑會寫入的指令（含可能寫入的測試／實跑，判準見 Rubric 11）、對外查網頁的 agent（不論型別） | 先說明要派什麼、做什麼，得使用者同意才派 |
 
-理由：`.claude/rules/01_dispatch.md` §1 的存在是為了保護主對話 context（成因見 `.claude/rules/00_diagnosis.md` 問題 2），這個風險不因換模型而消失；但會動手的 agent 屬不可逆風險，維持先問。細則與工具清單見 `.claude/rules/01_dispatch.md` §0/§1。
-
-**授權 ≠ 免除 Grill-Me 阻塞確認**：本節只決定「派工這個動作本身要不要另外請示」。任務該不該開跑，仍走 Grill-Me（含空樹阻塞確認）；使用者已明確下令的單一動作不必再為「派工」二次請示。
-
-## Task Continuity
-- 僅在預期任務較大、可能跨對話時，才將計畫和關鍵進度記錄到記憶系統（memory/）
-- 任務完成後應清理相關的進度記錄，避免記憶膨脹
+分界線是任務性質（唯讀 vs 會動手），不是 agent 的型別名稱：`general-purpose` 做唯讀審查屬自動，做改檔屬先問。本節只決定「派工這個動作要不要另外請示」；任務該不該開跑仍走 Grill-Me。使用者已明確下令的單一動作，不必再為派工二次請示。
 
 ## Grill-Me 規劃協議（預設，所有任務適用）
-觸發：收到任何任務，動手前一律先跑逼問流程。
 
-1. 先探勘後逼問：能從 codebase / memory / git / 既有規則查到的分支，先自己查（依 `.claude/rules/01_dispatch.md` 派 Explore），不拿去問使用者。
-2. 逐決策樹一次一題：剩下查不到、且屬使用者偏好/目標/取捨的分支，沿依賴順序一次只問一題（後題常依賴前答）。
-3. 每題附建議答案：用 AskUserQuestion，建議選項排第一標 (Recommended) 並給理由。
-4. 逼到共識才收手：不在第一個答案就停，續解下一分支，直到所有影響實作的決策都解掉、無懸而未決 branch。
-5. 空樹阻塞確認：即使探勘後無實質待解分支（純查詢/單點可逆修改），仍用 AskUserQuestion 陳述「我的理解+做法」，選項「直接開始 (Recommended) / 我有想法」，一定等使用者回才動手——不直接執行。
-6. 計畫批准走 plan mode：逼問樹解完後，非瑣碎任務用 EnterPlanMode/ExitPlanMode 出計畫並取得批准，再開始實作（瑣碎/單點修改不必）。
+收到任何任務，動手前先跑：
 
-優先序：
-- 本協議取代舊「Response Style/規劃階段」描述，為所有任務的預設姿態。
-- 「When In Doubt, Ask」的不必問清單（見 `.claude/rules/02_judgment.md` Rubric 3）＝本協議入樹過濾器：這些不進逼問樹，自己決定。
-- 「Suggestion Batching」max-3 只適用執行後的修正建議清單；規劃逼問走「一次一題」。
+1. **先探勘後逼問**：查得到的分支自己查，不拿去問使用者。
+2. **一次一題**：剩下查不到、且屬使用者偏好／目標／取捨的分支，沿依賴順序一次只問一題。
+3. **每題附建議答案**：用 AskUserQuestion，建議選項排第一、標 (Recommended)、給理由。
+4. **逼到共識才收手**：不在第一個答案就停，直到所有影響實作的決策都解掉。
+5. **空樹也要阻塞確認**：探勘後沒有待解分支（純查詢、單點可逆修改），仍用 AskUserQuestion 陳述「我的理解＋做法」，選項「直接開始 (Recommended)／我有想法」，等使用者回才動手。
+6. **計畫批准走 plan mode**：非瑣碎任務用 EnterPlanMode／ExitPlanMode；瑣碎或單點修改不必。非瑣碎＝改 ≥2 檔，或有任何會觸發 Rubric 10 的持久寫入。
 
-## When In Doubt, Ask
-- 實作前應主動列出關鍵假設，若假設不確定則先與使用者確認再動手
-- 遇到不懂或沒把握的部分，明確說出不確定，不要假裝理解後硬做
-- 若發現需求不合理或有更好的替代方案，應主動提出並說明理由（附 tradeoff：利弊、成本、風險），而非照單全收
-- 遇到不確定的技術決策（套件選擇、架構方向、實作方式）時，先詢問使用者再繼續
-- 若找不到明確的 API 端點或資料來源，先詢問使用者是否有已知來源；自行搜尋三次未果就停止並詢問
-- 「該問 vs 自己決定」的具體判準見 `.claude/rules/02_judgment.md` Rubric 3
+哪些分支進逼問樹：Rubric 3 的「必問」類進樹，「不必問」類自己決定、不進樹。
 
-## Suggestion Batching
-- 當使用者要求修正或改良方案時，若項目超過三個，一次只先提出前三個，剩餘項目等當前批次處理完後再接續提出
-- 例外：若項目之間有互相影響或依賴關係（例如 A 的實作會影響 B 的設計），可一次提出超過三個，以便整體評估
-- 此規則僅適用於修正建議，不適用於任務規劃的步驟列舉
+## 該提出來的事
 
-## Response Style
-### 規劃階段
-- 依「Grill-Me 規劃協議」逐決策樹逼問到共識；逼問樹解完後，非瑣碎任務出計畫與使用者確認再開始實作
+- 實作前列出關鍵假設；不確定的假設先確認再動手。
+- 不懂或沒把握就明說，不要假裝理解後硬做。
+- 需求不合理或有更好的替代方案 → 主動提出，附 tradeoff（利弊、成本、風險），不照單全收。
+- 找不到 API 端點或資料來源 → 先問使用者有沒有已知來源；自己搜三次未果就停下來問。
 
-### 執行階段
-- 結果先講；不要開場白，結尾不重複總結
-- 回報狀態，不回報操作過程；不為每次工具呼叫播報。主動回報至少涵蓋以下節點（不限制其他必要溝通，例如發現任務範圍外的風險）：
-  1. 開始長任務：一句話說要先查/做什麼、之後依什麼決定
+## 修正建議分批
+
+使用者要求修正或改良方案時，項目超過三個 → 一次先提前三個，處理完再接續。項目之間互相依賴時可一次提出。本條只適用執行後的修正建議；規劃逼問走「一次一題」，任務步驟列舉不受限。
+
+## 回報風格
+
+- 結果先講；不要開場白，結尾不重複總結。
+- 回報狀態，不回報操作過程。至少在這四個節點主動回報：
+  1. 開始長任務：一句話說先查／做什麼、之後依什麼決定
   2. 里程碑：已確認什麼、還剩什麼
-  3. 異常/阻塞：哪裡與預期不符、先停在哪裡
-  4. 需要使用者裁決或確認：列出選項；Grill-Me 逼問、實作前的關鍵假設、更好的替代方案都屬此類
-- 回報內容是已確認的事實（「已確認 4 個呼叫點，1 個不符規格，尚未修改」），不是操作流水帳（「搜了 17 個檔、grep 43 次」）；驗收用的實際輸出不算流水帳，要依 `.claude/rules/02_judgment.md` Rubric 2 附上；輸出太長時照 `.claude/rules/01_dispatch.md` §4 落檔傳路徑，回報裡仍要貼出判定通過與否的那幾行（含所有 fail／skip／error 行）
-- 程式碼和資料維持完整精確，只壓縮自然語言
+  3. 異常或阻塞：哪裡與預期不符、先停在哪裡
+  4. 需要使用者裁決或確認：列出選項（關鍵假設、更好的替代方案也屬此類）
+- 回報的是已確認的事實（「已確認 4 個呼叫點，1 個不符規格，尚未修改」），不是流水帳（「搜了 17 個檔」）。
+- 驗收用的實際輸出不算流水帳，要附上。輸出太長就落檔傳路徑，但回報裡仍要貼出判定通過與否的那幾行（含所有 fail／skip／error 行）。
+- 程式碼和資料維持完整精確，只壓縮自然語言。
 
-## Minimal & Surgical Changes
-- 只修改與任務直接相關的程式碼，不順手「改善」周邊的程式碼、註解或格式
-- 不重構沒壞的東西，遵循既有風格
-- 若自己的修改導致某些 import / 變數 / 函式變成無用，應一併清除；但不主動刪除原本就存在的 dead code
-- 不加沒被要求的功能、不建不必要的抽象層、不為假設性的未來需求預做設計
-- 一次性 / 拋棄式程式不要做抽象，直接寫死即可
-- 不為不可能發生的情境加錯誤處理
-- 若寫出的程式碼明顯可以更精簡，應主動簡化；本次任務本來就要修改的函式，若既有實作臃腫（例如同一段邏輯重複、可用現有 helper 取代），可在該函式範圍內整段重寫成更短版本（不限於小幅修改）。任務範圍外的臃腫只提建議，不動手
+## 改動原則
 
-## Goal-Driven Execution
-- 收到模糊任務時，先將其轉換為可驗證的具體目標再動手；計畫中每個步驟附驗證方式
-- 驗證標準越明確，越能獨立完成；標準不明確時應先向使用者確認
-- 「算不算真的完成」的判準見 `.claude/rules/02_judgment.md` Rubric 2
+- 只改與任務直接相關的程式碼，不順手改善周邊的程式碼、註解、格式；不重構沒壞的東西；遵循既有風格。
+- 自己寫出的程式碼明顯可以更精簡 → 主動簡化。
+- 自己的修改讓某些 import／變數／函式變成無用 → 一併清除。原本就存在的 dead code 不主動刪。
+- 不加沒被要求的功能、不建不必要的抽象層、不為假設性的未來需求預做設計、不為不可能發生的情境加錯誤處理。一次性程式直接寫死。
+- 本次任務本來就要改的函式若臃腫（邏輯重複、可用現有 helper 取代），可在該函式範圍內整段重寫成更短版本。任務範圍外的臃腫只提建議。
 
-## Execution Modes
-- 預設：依 Goal-Driven Execution 規則（具體目標 + 驗證方式）
-- 「TDD 模式」：使用者說「TDD」或「TDD 跑」時，將需求轉為失敗測試 → 寫程式讓它通過 → 必要時重構，測試全綠時停止這個寫碼迴圈。全綠是迴圈的停止條件，不是完成的證明：交付前仍要過整個 `.claude/rules/02_judgment.md` Rubric 2，尤其是「綠燈／零錯誤計數本身也要被驗」
-- 「探索模式」：使用者說「探索」或「先看看」時，允許先寫一次性 script 觀察數據／印中間結果，不需事先定義完整驗證標準；產出的 script 視為拋棄式，不做抽象
-- 「回測模式」：使用者說「回測」時，依 skill `signal-factory` 執行（6 訊號 + 歸檔 + SQLite 記錄 + diff 解讀，不主動 commit）
+## 執行模式
 
-## Commands
-- 提示使用者執行的指令必須是完整、可直接複製貼上執行的成品，不可省略參數或用 placeholder
+- 預設：模糊任務先轉成可驗證的具體目標再動手；驗證標準不明確就先問。
+- 「TDD」：需求 → 失敗測試 → 寫到通過 → 必要時重構，全綠時停止寫碼迴圈。全綠只是迴圈的停止條件，交付前仍要過整個 Rubric 2。
+- 「探索」「先看看」：可先寫一次性 script 觀察數據，不必事先定義完整驗證標準；script 視為拋棄式。
+- 「回測」：依 skill `signal-factory` 執行（6 訊號＋歸檔＋SQLite 記錄＋diff 解讀），不主動 commit。
+
+## 指令
+
+提示使用者執行的指令必須是完整、可直接複製貼上的成品，不可省略參數或用 placeholder。
+
+## 記憶與跨對話任務
+
+- 只有預期較大、可能跨對話的任務，才把計畫與關鍵進度記到 memory/；任務完成後清理進度紀錄。
+- 進度寫在該專案自己的 memory 檔。MEMORY.md 每行只寫「這是什麼＋什麼情況要讀」，單行 ≤450 bytes（約 150 個中文字），不記逐日進度（細則見 `04_maintenance.md`）。
+- 新的訊號工廠 baseline 上位時：前一版那行併入「版本正史」行，標 `**(當前)**` 的只留 1 行。
+- 改完 MEMORY.md 或任何制度檔，跑 `python c:\Claude\Invest\.claude\ref\check_budget.py`；有 FAIL 就還沒完成。

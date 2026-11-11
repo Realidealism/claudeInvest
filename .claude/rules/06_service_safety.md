@@ -1,3 +1,16 @@
+---
+paths:
+  - "intraday_snapshot.py"
+  - "intraday_sweep_update.py"
+  - "intraday/sweeper.py"
+  - "telegram_bot/__main__.py"
+  - "telegram_bot/app.py"
+  - "telegram_bot/watchers/**"
+  - "**/*.bat"
+  - "microtaiex-daytrade/run_live.py"
+  - "microtaiex-daytrade/src/broker/**"
+---
+
 # 06 常駐服務安全
 
 適用範圍：寫或改任何常駐、服務化的長迴圈（NSSM 服務、排程 daemon）。本檔只收「服務活著但不工作」這類 liveness 規則；其他工程規範不要往這裡塞。
