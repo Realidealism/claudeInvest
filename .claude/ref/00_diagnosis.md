@@ -44,9 +44,9 @@
 
 **修法**：
 - §0 的工具清單標快照日期，並寫明「與當下 tool schema 不一致時以 schema 為準，並依 04_maintenance 修正」。模型層級用相對寫法（「與主模型同級或更高」），不寫死型號。
-- 同型踩坑累積到 2 條就折進對應 Rubric 的核心條文（v2 已把上述 7 條折進 Rubric 2／4／10／11）。
+- 同型踩坑累積到 2 條，就必須向使用者提出升格提案，經同意才折進對應 Rubric 的核心條文（04_maintenance「升格」節）。v2 重整時在使用者授權的範圍內，已把上述 7 條折進 Rubric 2／4／10／11。
 - v1 修法不變：動訊號／防守／出場邏輯前先掃 MEMORY.md 失敗封存（Rubric 4）；驗收不自驗（01_dispatch §6）。
-- 靠自律的規則對弱模型最不可靠。能由 harness 強制的閘門（hook）比文字規則穩；v2 寫了提案但**未啟用**，見 [05_letter.md](05_letter.md)「待使用者裁決」。
+- 靠自律的規則對弱模型最不可靠。能由 harness 強制的閘門（hook）比文字規則穩；v2 寫了提案但**未啟用**，裁定與現況見 [05_letter.md](05_letter.md)「2026-11-11 使用者裁定」。
 
 ## v1 診斷（2026-07-05）仍然有效的部分
 
@@ -75,7 +75,7 @@ memory/ 裡每條「勿重試／MUST NOT」背後都是數小時白跑的回測�
 | `paths:` 條件載入機制 | **生效**。五種寫法都驗過：`*.bat`、`**/*.bat`、單一檔名、`目錄/檔名`、`目錄/**` | 實測：五個內容全新的臨時探針檔，fresh agent 逐一 Read 對應檔案，每次只附帶載入對應的那一個探針（探針已刪） |
 | `04_maintenance.md` 隨制度檔載入 | **生效** | 實測：fresh agent Read `.claude/ref/` 下的檔之後，新版 04 以 system-reminder 附帶出現 |
 | `06_service_safety.md` 隨服務檔載入 | **本 session 未能驗到** | 實測兩次都沒有附帶出現。推測原因：它的本文與 session 開場已載入的舊版完全相同，被 harness 去重。pattern 寫法與上面通過的探針同型。**新 session 第一次碰 `.bat` 或 `intraday_snapshot.py` 時確認一次**；沒出現就自己 Read，並在踩坑紀錄記一行 |
-| `.claude/ref/` 不自動載入 | **本 session 無法驗** | 只有官方文件依據（文件只列 CLAUDE.md 與 `.claude/rules/` 為自動載入來源）。本 session 派出的 agent 拿到的是 session 開場的規則快照，看不出差別。**新 session 開場確認：context 裡不應出現「03 派工 Prompt 模板」「05 給未來 session 的信」的內文** |
+| `.claude/ref/` 不自動載入 | **本 session 無法驗** | 只有官方文件依據（文件只列 CLAUDE.md 與 `.claude/rules/` 為自動載入來源）。本 session 派出的 agent 拿到的是 session 開場的規則快照，看不出差別。**新 session 開場確認：整個 `.claude/ref/` 的正文都不應出現在 context 裡**（逐項核對方式見 05_letter「新 session 必做的三項載入驗收」第 1 項） |
 | subagent 載入什麼 | `general-purpose` 會載入 CLAUDE.md、常駐 rules、MEMORY.md，而且是 **session 開場時的版本** | 實測：兩個 fresh agent 回報 context 裡有重整前的舊版規則全文與 MEMORY.md。這與官方文件「subagent 不載入 auto memory」的說法不一致，以實測為準 |
 | MEMORY.md 25KB／200 行截斷 | **未確認** | 官方文件有此上限；但本 session 開場時 MEMORY.md 為 30KB，context 裡仍看得到最後一行。預算仍照 25KB 保守設定 |
 | `check_budget.py` 會不會漏報 | 能辨識失敗 | 實測：對刻意弄壞的複本（常駐檔超標、rules/ 多出檔案、拿掉 frontmatter、打錯一個 glob、超長的新踩坑條目）各自在預期的檢查項上 FAIL，exit code 1 |

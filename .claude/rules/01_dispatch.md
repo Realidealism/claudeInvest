@@ -13,7 +13,7 @@ Agent tool 的 `subagent_type`：
 | `Explore` | 唯讀搜索：掃 repo、找定義、摸慣例 | **不會載入 CLAUDE.md 與 rules**，也只讀片段。prompt 要自帶全部背景；要它讀完整檔就明寫「完整讀完」 |
 | `Plan` | 出實作計畫 | 同上，不載入 CLAUDE.md |
 | `general-purpose`、`claude` | 多步驟執行：改檔、跑指令 | 會載入 CLAUDE.md、常駐 rules 與 MEMORY.md（2026-11-11 實測），看不到對話歷史。**載入的是 session 開始時的版本**：本 session 改過的制度檔，要在 prompt 裡叫它從磁碟 Read |
-| `claude-code-guide` | 查 Claude Code／Claude API 官方文件 | 唯讀＋上網 |
+| `claude-code-guide` | 查 Claude Code 官方文件 | 唯讀＋上網。自動授權只及於查閱 Claude Code 官方文件（§1）；拿它查 Claude API 文件或其他網頁屬先問 |
 | `web-fetch` | 讀一個公開網頁 | 你自己的工具清單（含 deferred）有 WebFetch 就直接用，沒有才派它 |
 | `fork` | 複製你自己（含完整對話） | **不是 fresh context**，不可用於驗收或第二意見 |
 
@@ -41,7 +41,8 @@ Agent tool 的參數：
 | 預計讀 >3 個檔，或單檔 >500 行，或要「掃一遍」某目錄／慣例／命名 | `Explore` | 自動 |
 | 驗收 read-back、fresh-context 對抗審查（§6） | `Explore` 或 `general-purpose`，prompt 明寫「唯讀，不得改檔、不得跑會寫入的指令」 | 自動，但只限**不跑專案程式**的驗收。要跑測試或實跑的，先自己過 Rubric 11；可能寫入共用狀態的屬「先問」 |
 | 回測、build、長輸出指令 | `run_in_background`，或輸出重導到檔案，主對話只讀摘要 | 自動 |
-| 查網頁、讀外部文件、做研究 | `general-purpose`、`web-fetch`；查 Claude Code／API 官方文件用 `claude-code-guide`（回報附來源 URL；prompt 不得含使用者個資） | 先問 |
+| 核對 harness 事實：查閱 Claude Code 官方文件 | `claude-code-guide`，prompt 明寫「只查 Claude Code 官方文件、唯讀檢索與整理、不執行任何指令」 | 自動。只授權查閱：照文件去執行指令、安裝、改設定、改 repo 都要另外取得授權 |
+| 查其他網頁（含第三方網站、GitHub 討論）、讀外部文件、做研究 | `general-purpose`、`web-fetch`（回報附來源 URL；prompt 不得含使用者個資） | 先問 |
 | 批次機械改檔（同一 pattern，檔數或改動點**任一 ≥4**） | 自己先改 1 處確立 pattern，再派 agent 套其餘 | 先問 |
 
 **可以自己來**：已知確切檔案＋行號的單點讀寫；≤3 檔且 <4 個改動點的小改；與使用者討論；讀 subagent 回報；內容已在 context 裡、而且本 session 沒被改過的檔（常駐檔不必重讀）。「先問」被使用者否決 → 自己做，但先聲明 context 風險，長輸出一律落檔只讀摘要。
