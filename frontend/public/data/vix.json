@@ -5,19 +5,15 @@
     "label": "美股 VIX",
     "source": "Cboe",
     "latest": {
-      "close": 19.46,
+      "close": 17.49,
       "rating": "elevated"
     },
     "thresholds": {
       "p20": 15.45,
       "p50": 17.09,
-      "p80": 19.61
+      "p80": 19.54
     },
     "series": [
-      {
-        "date": "2025-11-19",
-        "close": 23.66
-      },
       {
         "date": "2025-11-20",
         "close": 26.42
@@ -1021,6 +1017,10 @@
       {
         "date": "2026-11-10",
         "close": 19.46
+      },
+      {
+        "date": "2026-11-11",
+        "close": 17.49
       }
     ]
   },
@@ -2053,9 +2053,9 @@
     "label": "台指 VIX",
     "source": "TAIFEX",
     "latest": {
-      "close": 36.78,
+      "close": 36.92,
       "rating": "elevated",
-      "intraday_time": "104845"
+      "intraday_time": "105830"
     },
     "thresholds": {
       "p20": 27.78,
@@ -2757,7 +2757,7 @@
       },
       {
         "date": "2026-11-12",
-        "close": 36.78
+        "close": 36.92
       }
     ]
   }
