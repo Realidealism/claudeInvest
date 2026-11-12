@@ -1,29 +1,37 @@
 {
   "snapshot_date": "2026-11-12",
-  "snapshot_time": "2026-11-12T03:25:49.027433+00:00",
+  "snapshot_time": "2026-11-12T03:37:32.201999+00:00",
   "signals": {
     "pick": [],
-    "touch": [],
+    "touch": [
+      {
+        "ticker": "4961",
+        "name": "天鈺",
+        "market": "TWSE",
+        "turnover": 178705376.0,
+        "streak": 1
+      }
+    ],
     "buy": [
       {
         "ticker": "4526",
         "name": "東台",
         "market": "TWSE",
-        "turnover": 3351113728.0,
+        "turnover": 3622576384.0,
         "streak": 1
       },
       {
         "ticker": "8099",
         "name": "大世科",
         "market": "TPEx",
-        "turnover": 594932096.0,
+        "turnover": 573873600.0,
         "streak": 1
       },
       {
         "ticker": "6609",
         "name": "瀧澤科",
         "market": "TPEx",
-        "turnover": 62557116.0,
+        "turnover": 61148460.0,
         "streak": 2
       }
     ],
