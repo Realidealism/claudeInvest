@@ -1,6 +1,30 @@
 {
-  "updated_at": "2026-11-12T22:26:50",
+  "updated_at": "2026-11-13T22:13:30",
   "events": [
+    {
+      "type": "placement",
+      "stock_id": "6217",
+      "company_name": "中探針",
+      "date": "2026-11-13",
+      "insider_role": null,
+      "insider_name": null,
+      "method": null,
+      "shares": null,
+      "security_kind": "普通股",
+      "period": null
+    },
+    {
+      "type": "placement",
+      "stock_id": "6762",
+      "company_name": "達亞",
+      "date": "2026-11-12",
+      "insider_role": null,
+      "insider_name": null,
+      "method": null,
+      "shares": null,
+      "security_kind": "普通股",
+      "period": null
+    },
     {
       "type": "placement",
       "stock_id": "1310",
@@ -905,6 +929,6 @@
   "stats": {
     "transfer_events_30d": 34,
     "transfer_stocks_30d": 7,
-    "placement_events_30d": 6
+    "placement_events_30d": 8
   }
 }
