@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-11-13T22:13:30",
+  "updated_at": "2026-11-16T22:21:26",
   "events": [
     {
       "type": "placement",
@@ -46,6 +46,18 @@
       "insider_name": "旭日東升投資股份有限公司",
       "method": "洽特定人",
       "shares": 6252500,
+      "security_kind": null,
+      "period": "115/11/10\r\n~\r\n115/11/12"
+    },
+    {
+      "type": "transfer",
+      "stock_id": "6214",
+      "company_name": "精誠",
+      "date": "2026-11-10",
+      "insider_role": "經理人本人",
+      "insider_name": "陳國禎",
+      "method": "洽特定人",
+      "shares": 100000,
       "security_kind": null,
       "period": "115/11/10\r\n~\r\n115/11/12"
     },
@@ -235,18 +247,6 @@
       "company_name": "精誠",
       "date": "2026-11-10",
       "insider_role": "經理人本人",
-      "insider_name": "蔡俊雄",
-      "method": "洽特定人",
-      "shares": 60000,
-      "security_kind": null,
-      "period": "115/11/10\r\n~\r\n115/11/12"
-    },
-    {
-      "type": "transfer",
-      "stock_id": "6214",
-      "company_name": "精誠",
-      "date": "2026-11-10",
-      "insider_role": "經理人本人",
       "insider_name": "程元毅",
       "method": "洽特定人",
       "shares": 9144,
@@ -295,9 +295,9 @@
       "company_name": "精誠",
       "date": "2026-11-10",
       "insider_role": "經理人本人",
-      "insider_name": "陳國禎",
+      "insider_name": "蔡俊雄",
       "method": "洽特定人",
-      "shares": 100000,
+      "shares": 60000,
       "security_kind": null,
       "period": "115/11/10\r\n~\r\n115/11/12"
     },
@@ -912,23 +912,11 @@
       "shares": 1026000,
       "security_kind": null,
       "period": "115/08/24\r\n~\r\n115/08/26"
-    },
-    {
-      "type": "transfer",
-      "stock_id": "5202",
-      "company_name": "力新",
-      "date": "2026-08-17",
-      "insider_role": "大股東本人",
-      "insider_name": "大立化妝品股份有限公司",
-      "method": "洽特定人",
-      "shares": 15001000,
-      "security_kind": null,
-      "period": "115/08/17\r\n~\r\n115/08/19"
     }
   ],
   "stats": {
-    "transfer_events_30d": 34,
-    "transfer_stocks_30d": 7,
-    "placement_events_30d": 8
+    "transfer_events_30d": 26,
+    "transfer_stocks_30d": 5,
+    "placement_events_30d": 6
   }
 }
