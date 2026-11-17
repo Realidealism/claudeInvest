@@ -1,6 +1,6 @@
 {
-  "as_of": "2026-11-16",
-  "score": 44.9,
+  "as_of": "2026-11-17",
+  "score": 45.5,
   "bucket": "無頂部訊號",
   "bucket_color": "#8a8a9a",
   "danger": false,
@@ -15,7 +15,7 @@
   "defense_hint": false,
   "swing": false,
   "near_high": false,
-  "pct_from_high": -17.6,
+  "pct_from_high": -19.5,
   "hi_window": 55,
   "alert": false,
   "alert_conditions": [
@@ -27,21 +27,21 @@
   "margin_alert": false,
   "margin_alert_conditions": [
     {
-      "name": "融資/成交金額 布林 z ≥ +1.5σ（現 -1.1σ）",
+      "name": "融資/成交金額 布林 z ≥ +1.5σ（現 -1.4σ）",
       "met": false
     }
   ],
   "limitup_alert": false,
   "limitup_alert_conditions": [
     {
-      "name": "漲停佔比 90 日乖離 z ≥ +1.0σ（現 -0.6σ、漲停 0.7%）",
+      "name": "漲停佔比 90 日乖離 z ≥ +1.0σ（現 -0.7σ、漲停 0.6%）",
       "met": false
     }
   ],
   "limitup_bear_alert": false,
   "limitup_bear_conditions": [
     {
-      "name": "漲停過熱（漲停佔比 90 日乖離 z ≥ +1.0σ，現 -0.6σ）",
+      "name": "漲停過熱（漲停佔比 90 日乖離 z ≥ +1.0σ，現 -0.7σ）",
       "met": false
     },
     {
@@ -58,11 +58,11 @@
       "met": false
     },
     {
-      "name": "外資選擇權避險偏空（買賣權淨OI 252 日百分位 ≤ 33%，現 65%）",
+      "name": "外資選擇權避險偏空（買賣權淨OI 252 日百分位 ≤ 33%，現 76%）",
       "met": false
     },
     {
-      "name": "漲停過熱（90 日乖離 z ≥ +1.5σ，投票用門檻比漲停燈的 +1.0σ 嚴；現 -0.6σ）",
+      "name": "漲停過熱（90 日乖離 z ≥ +1.5σ，投票用門檻比漲停燈的 +1.0σ 嚴；現 -0.7σ）",
       "met": false
     },
     {
@@ -81,8 +81,8 @@
       "met": false
     },
     {
-      "name": "short 空頭排列 3 日急升 ≥ +6pp（現 -16.1pp）",
-      "met": false
+      "name": "short 空頭排列 3 日急升 ≥ +6pp（現 +22.2pp）",
+      "met": true
     }
   ],
   "panic": true,
@@ -104,39 +104,17 @@
     {
       "key": "futures",
       "name": "外資期貨定位",
-      "hot": 89.7,
-      "detail": "外資臺股期貨淨未平倉 -96,787 口（78日百分位越低越淨空＝越熱）"
+      "hot": 91.0,
+      "detail": "外資臺股期貨淨未平倉 -97,896 口（78日百分位越低越淨空＝越熱）"
     },
     {
       "key": "margin",
       "name": "融資水位",
       "hot": 0.0,
-      "detail": "融資餘額金額 5,245億（距 55 日均 -2.03σ；+2σ=過熱）"
+      "detail": "融資餘額金額 5,087億（距 55 日均 -2.35σ；+2σ=過熱）"
     }
   ],
   "history": [
-    {
-      "date": "2025-11-04",
-      "score": 74.7,
-      "tx": 28117,
-      "label": "無頂部訊號",
-      "color": "#8a8a9a",
-      "stance": "防守",
-      "s3": "觀望",
-      "x": true,
-      "panic": false,
-      "m_alert": false,
-      "l_alert": false,
-      "lb_alert": false,
-      "tv_alert": false,
-      "tv_n": 0,
-      "warn": false,
-      "swing": false,
-      "c": {
-        "futures": 56.4,
-        "margin": 93.0
-      }
-    },
     {
       "date": "2025-11-05",
       "score": 79.7,
@@ -5612,6 +5590,28 @@
       "swing": false,
       "c": {
         "futures": 89.7,
+        "margin": 0.0
+      }
+    },
+    {
+      "date": "2026-11-17",
+      "score": 45.5,
+      "tx": 40092,
+      "label": "無頂部訊號",
+      "color": "#8a8a9a",
+      "stance": "防守",
+      "s3": "防守",
+      "x": false,
+      "panic": true,
+      "m_alert": false,
+      "l_alert": false,
+      "lb_alert": false,
+      "tv_alert": false,
+      "tv_n": 0,
+      "warn": false,
+      "swing": false,
+      "c": {
+        "futures": 91.0,
         "margin": 0.0
       }
     }
