@@ -4,7 +4,7 @@
 person to read a filing and tell a product body from the market it is sold into.
 No SQL check in `db/check_industry.py` can do it, and writing one that always
 passes would be worse than writing none — see the "儀式化驗證" failure mode in
-`.claude/rules/05_letter.md`. The purpose here is that a future taxonomy review
+`.claude/ref/05_letter.md`. The purpose here is that a future taxonomy review
 recognises the shape before repeating the mistake.
 
 ## How it presented

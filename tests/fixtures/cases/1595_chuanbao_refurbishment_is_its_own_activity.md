@@ -4,7 +4,7 @@
 business are the same economic activity is a judgement made by reading a
 filing. No SQL check in `db/check_industry.py` can make it, and one that always
 passed would be worse than none — see the 儀式化驗證 failure mode in
-`.claude/rules/05_letter.md`. This records the shape so the next review
+`.claude/ref/05_letter.md`. This records the shape so the next review
 recognises it.
 
 ## How it presented

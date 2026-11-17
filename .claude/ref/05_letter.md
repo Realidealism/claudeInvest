@@ -58,7 +58,7 @@ v1 列的退化方式裡，**第二項（規則只增不減）真的發生了**�
 | 1 | `claude-code-guide` 自動授權 | **限縮核可**：只限唯讀查閱 Claude Code 官方文件。不得依文件內容執行指令、安裝、改設定、改 repo；第三方網站與 GitHub 討論不在內 | 已寫入 CLAUDE.md「Subagent 授權」與 01_dispatch §1 |
 | 2 | 兩個閘門做成 hook（migration 寫入提醒、開場預算檢查） | **原則核可，設計先行**。hook 只能提醒與檢查：不自動修復、不改 MEMORY 或制度檔、不代表取得 DB 寫入授權；正常時安靜，只有 FAIL 或檢查無法執行才出聲；migration 提醒要涵蓋新增與修改 | 兩個 hook 已接入 `.claude/settings.json`（2026-11-11，未 commit）。Migration Hook：本輪驗收通過，附已知限制。SessionStart Hook：接線驗收通過，附未測範圍。整套 Hooks 部署驗收：通過，附已知限制。commit：未授權。細節與禁止事項見 memory `project_hooks_deploy.md`。**未經進一步授權不得改 `.claude/settings.json` 或兩支 hook** |
 | 3 | MEMORY 第二層索引 `memory/INDEX_closed.md` | **核可**，三限制：只移已結案的純歷史進度；「勿重試／MUST NOT／失敗封存」與仍有效的行為約束不得移走（不能只看「結案」兩個字）；MEMORY.md 要留回查路徑。維護目標約 20KB（目標，不是新的硬上限） | 候選清單已交使用者逐行確認，**尚未搬移任何一行**（2026-11-12 的裁定見 memory `project_rules_institution.md`「MEMORY.md 第二層索引：已裁定不採用」一節） |
-| 4 | 清理備份 | **暫緩**。先唯讀盤點，取得後續授權前不得刪 | 盤點完成：全 repo 94 份 `.bak`，其中 42 份的內容不在 git 歷史裡（`.claude/rules_bak/` 43 份中 22 份獨有，含 02_judgment 的 20 個中間版本與 MEMORY.md 壓縮前備份）。「git 有追蹤原檔」不等於「備份沒有獨有內容」。未刪任何檔 |
+| 4 | 清理備份 | **暫緩**。先唯讀盤點，取得後續授權前不得刪 | 盤點完成：全 repo 94 份 `.bak`，其中 42 份的內容不在 git 歷史裡（`.claude/rules_bak/` 43 份中 22 份獨有，含 02_judgment 的 20 個中間版本與 MEMORY.md 壓縮前備份）。「git 有追蹤原檔」不等於「備份沒有獨有內容」。未刪任何檔〔2026-11-18 使用者重開，只針對 memory 目錄：36 份 .bak 刪 34、留 2（MEMORY.md.bak-20260705、-20261008），清單與 sha256 在 `tmp/rules_trim/dclass/`。repo 其他 .bak（含 `.claude/rules_bak/`）仍照本項裁定暫緩。〕 |
 | 5 | Rubric 自主升格 | **不核可**，維持提議制 | 04_maintenance「升格」節已改回：同型第 2 條必須提出提案，正式修改要先取得授權 |
 | 6 | Rubric 2 標 ★ | **先檢查，符合條件才改**；不為形式而標 | 對照完成：不需要標 ★（細節檔主要是事故背景）。核心缺一條必要條件，補強草案已交使用者，**尚未寫入** |
 
