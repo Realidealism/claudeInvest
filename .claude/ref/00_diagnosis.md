@@ -6,7 +6,7 @@
 名詞（全制度共用）：
 
 - **常駐檔**：每個 session 開頭自動載入的檔＝`CLAUDE.md`、`.claude/rules/` 下沒有 `paths:` frontmatter 的 `.md`（現為 01、02）、`MEMORY.md`。
-- **路徑條件檔**：`.claude/rules/` 下有 `paths:` frontmatter 的 `.md`（現為 04、06），模型讀寫符合路徑的檔案時才載入。
+- **路徑條件檔**：`.claude/rules/` 下有 `paths:` frontmatter 的 `.md`（現為 04、06、07），模型讀寫符合路徑的檔案時才載入。
 - **細節檔**：`.claude/ref/*.md`，不自動載入，要用時才 Read。
 - **memory/**、**MEMORY.md**：一律指 `C:\Users\Real\.claude\projects\c--Claude-Invest\memory\`（不在 repo 內，repo 根目錄沒有這兩者）。
 
@@ -20,7 +20,7 @@
 
 **修法**：
 - 兩層：常駐只留「觸發→動作」核心（`rules/01_dispatch.md`、`rules/02_judgment.md`），事故敘述、長表格、模板、維護協議搬到 `.claude/ref/`。
-- 預算改用位元組，用腳本量，不用目測：`python c:\Claude\Invest\.claude\ref\check_budget.py`（預算數字在 [04_maintenance.md](../rules/04_maintenance.md)）。
+- 預算改用位元組，用腳本量，不用目測：`python c:/Claude/Invest/.claude/ref/check_budget.py`（預算數字在 [04_maintenance.md](../rules/04_maintenance.md)）。
 - 新教訓一律先進細節檔的踩坑紀錄，不直接加進常駐檔。
 
 ### 問題 2（最容易失焦）：規則本身變成噪音
@@ -74,10 +74,10 @@ memory/ 裡每條「勿重試／MUST NOT」背後都是數小時白跑的回測�
 |---|---|---|
 | `paths:` 條件載入機制 | **生效**。五種寫法都驗過：`*.bat`、`**/*.bat`、單一檔名、`目錄/檔名`、`目錄/**` | 實測：五個內容全新的臨時探針檔，fresh agent 逐一 Read 對應檔案，每次只附帶載入對應的那一個探針（探針已刪） |
 | `04_maintenance.md` 隨制度檔載入 | **生效** | 實測：fresh agent Read `.claude/ref/` 下的檔之後，新版 04 以 system-reminder 附帶出現 |
-| `06_service_safety.md` 隨服務檔載入 | **本 session 未能驗到** | 實測兩次都沒有附帶出現。推測原因：它的本文與 session 開場已載入的舊版完全相同，被 harness 去重。pattern 寫法與上面通過的探針同型。**新 session 第一次碰 `.bat` 或 `intraday_snapshot.py` 時確認一次**；沒出現就自己 Read，並在踩坑紀錄記一行 |
-| `.claude/ref/` 不自動載入 | **本 session 無法驗** | 只有官方文件依據（文件只列 CLAUDE.md 與 `.claude/rules/` 為自動載入來源）。本 session 派出的 agent 拿到的是 session 開場的規則快照，看不出差別。**新 session 開場確認：整個 `.claude/ref/` 的正文都不應出現在 context 裡**（逐項核對方式見 05_letter「新 session 必做的三項載入驗收」第 1 項） |
+| `06_service_safety.md` 隨服務檔載入 | **生效**（2026-11-17 新 session 實測；11-11 當時本 session 未能驗到） | 實測兩次都沒有附帶出現。推測原因：它的本文與 session 開場已載入的舊版完全相同，被 harness 去重。pattern 寫法與上面通過的探針同型。**新 session 第一次碰 `.bat` 或 `intraday_snapshot.py` 時確認一次**；沒出現就自己 Read，並在踩坑紀錄記一行〔2026-11-17 實測（紀錄檔 8e693dd0）：本 session 先前沒讀過 06 或任何 .bat；Read health_check.bat（第 978 筆）後，06 全文立刻以 attachment 附帶出現（第 980 筆），是 06 的 attachment 第一次出現。〕 |
+| `.claude/ref/` 不自動載入 | **生效**（2026-11-17 新 session 實測；11-11 當時本 session 無法驗） | 只有官方文件依據（文件只列 CLAUDE.md 與 `.claude/rules/` 為自動載入來源）。本 session 派出的 agent 拿到的是 session 開場的規則快照，看不出差別。**新 session 開場確認：整個 `.claude/ref/` 的正文都不應出現在 context 裡**（逐項核對方式見 05_letter「新 session 必做的三項載入驗收」第 1 項）〔2026-11-17 新 session 實測（紀錄檔 8e693dd0）：開場 context 只有 CLAUDE.md、01、02、MEMORY.md，05_letter 第 1 項列的四個 ref 標題與 04、06、07 都不在其中。機械查證：紀錄檔裡對照組 CLAUDE.md（第 4 筆）與 01、02、MEMORY.md（第 14 筆）都早於第一次工具呼叫（第 48 筆），可見開場內容有被記錄；四個 ref 標題與 04、06、07 都在其後才第一次出現，其中 04 是碰到 `.claude/` 檔之後依路徑條件載入，06 與 02_cases 正文到這段寫入時都沒有載入。限制：只有一個 session（VSCode 擴充、Opus 5.5），是事後查紀錄檔，不是開場當下逐項核對。〕 |
 | subagent 載入什麼 | `general-purpose` 會載入 CLAUDE.md、常駐 rules、MEMORY.md，而且是 **session 開場時的版本** | 實測：兩個 fresh agent 回報 context 裡有重整前的舊版規則全文與 MEMORY.md。這與官方文件「subagent 不載入 auto memory」的說法不一致，以實測為準 |
-| MEMORY.md 25KB／200 行截斷 | **未確認** | 官方文件有此上限；但本 session 開場時 MEMORY.md 為 30KB，context 裡仍看得到最後一行。預算仍照 25KB 保守設定 |
+| MEMORY.md 25KB／200 行截斷 | **未確認** | 官方文件有此上限；但本 session 開場時 MEMORY.md 為 30KB，context 裡仍看得到最後一行。預算仍照 25KB 保守設定〔2026-11-17 新 session（紀錄檔 8e693dd0）：開場時 15,882 bytes／9,292 字元／63 行，開場紀錄（第 14 筆）含最後一行，沒有截斷提示字樣；低於上限，記為「未觸發，截斷位置未知」。〕 |
 | `check_budget.py` 會不會漏報 | 能辨識失敗 | 實測：對刻意弄壞的複本（常駐檔超標、rules/ 多出檔案、拿掉 frontmatter、打錯一個 glob、超長的新踩坑條目）各自在預期的檢查項上 FAIL，exit code 1 |
 | MEMORY.md 壓縮沒有遺失內容 | 通過 | 腳本逐行比對＋fresh agent 複核：被改短的 19 行，原文都逐字存在於各自連結的 memory 檔；封存關鍵字行數 16 → 16 |
 | 對抗審查 | 5 項會導致錯誤行為、11 項會誤導、12 項可改進；已處理 | fresh-context opus。清單原文在 `tmp/institution_v2/review_findings.md`（tmp 不進版控） |

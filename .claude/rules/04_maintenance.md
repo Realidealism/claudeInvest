@@ -7,7 +7,7 @@ paths:
 
 # 04 制度檔維護協議
 
-適用對象：`CLAUDE.md`、`.claude/rules/*.md`、`.claude/ref/*`、memory/（路徑見 `.claude/ref/00_diagnosis.md` 名詞節）。目的：讓制度能安全演化，而不是只增不減。v1 就是只增不減：`02_judgment.md` 四個月從 15KB 長到 41KB。
+適用對象：`CLAUDE.md`、`.claude/rules/*.md`、`.claude/ref/*`、memory/（路徑見 `.claude/ref/00_diagnosis.md` 名詞節）。目的：讓制度能安全演化，而不是只增不減。
 
 ## 兩層結構與預算
 
@@ -18,9 +18,10 @@ paths:
 | `.claude/rules/02_judgment.md` | 每個 session | ≤ 16,000 |
 | `MEMORY.md` | 每個 session | ≤ 23,000，且單行 ≤ 450 |
 | `.claude/rules/04_maintenance.md`、`06_service_safety.md` | 碰到 `paths:` 所列檔案時 | 各 ≤ 9,000 |
+| `.claude/rules/07_signal_memory.md` | 碰到 `paths:` 所列檔案時 | ≤ 3,000 |
 | `.claude/ref/*.md` | 你自己 Read 時 | 單檔 ≤ 60,000 |
 
-- **量法**：`python c:\Claude\Invest\.claude\ref\check_budget.py`。改完任何制度檔或 MEMORY.md 後必跑；輸出有 `FAIL` 就還沒完成。不要用目測或行數判斷（行可以無限長，v1 的行數門檻因此從沒觸發）。
+- **量法**：`python c:/Claude/Invest/.claude/ref/check_budget.py`。改完任何制度檔或 MEMORY.md 後必跑；輸出有 `FAIL` 就還沒完成。不要用目測或行數判斷。
 - MEMORY.md 的上限是硬的：依官方文件，harness 只載入它的前 200 行或前 25KB（腳本以 180 行、23,000 bytes 把關），超過的部分之後的 session 看不到，而新條目正好都加在檔尾。
 - `.claude/rules/` 下任何 `.md`（含子目錄）只要沒有 `paths:` frontmatter 就會每個 session 全量載入。**不要在 `.claude/rules/` 新增檔案**；按需讀的內容放 `.claude/ref/`。真的需要新的路徑條件檔 → 屬「必須先問」，並同步改 `check_budget.py` 的 `ALLOWED_RULES`。
 - **你 context 裡的制度檔是 session 開始時的版本**（subagent 拿到的也是）。本 session 改過的檔，以磁碟上的為準；派驗收 agent 時叫它從磁碟 Read。
@@ -47,7 +48,7 @@ paths:
 3. **衝突**：新規則與既有規則衝突時，不能只加新的。要嘛改舊的（先問），要嘛在新規則寫明誰優先。
 4. **編號固定**：Rubric 1–12、01_dispatch 的 §0–§6 被 memory 與 skill 用編號引用，不可重排、不可重用。新 Rubric 用下一個號碼（13）。
 5. **核心與細節同步**：改了 `rules/02_judgment.md` 的 Rubric N → 讀 `ref/02_cases.md` 同節，確認沒有變成互相矛盾。任何時候發現核心與細節互相矛盾（不論是誰造成的）→ 暫停與該 Rubric 相關的操作，把兩邊原文並列回報使用者；不自行挑一份當權威，也不自行改掉其中一邊。
-6. **改完驗收**：(a) `python c:\Claude\Invest\.claude\ref\check_budget.py` 全 PASS；(b) `git status --short` 確認只動到打算動的檔（`.claude/` 被 gitignore，新增的 ref 檔要 `git add -f` 才會進版控）；(c) 派 fresh agent read-back（`01_dispatch.md` §6）。
+6. **改完驗收**：(a) `python c:/Claude/Invest/.claude/ref/check_budget.py` 全 PASS；(b) `git status --short` 確認只動到打算動的檔（`.claude/` 被 gitignore，新增的 ref 檔要 `git add -f` 才會進版控）；(c) 派 fresh agent read-back（`01_dispatch.md` §6）。
 7. `rules_bak/` 內超過 30 天的備份可提議清理（提議，不自行刪）。
 
 ## 教訓寫回哪裡
@@ -89,10 +90,10 @@ paths:
 - **不可以放索引行**：commit hash、逐日進度、批次編號、裁定編號、檔案路徑清單。這些寫進該 memory 檔。
 - **進行中專案**：索引行寫「（進行中）做什麼；現況讀檔末」。之後每次更新進度都改那個 memory 檔，不改索引行。
 - **baseline**：任何時刻只允許 1 行標粗體 `**(當前)**`（腳本以粗體計數；其他行提到這個詞時不要加粗）。新 baseline 上位時，同時把前一版併入「訊號工廠版本正史」那一行。
-- **失敗封存條目不壓縮、不合併**，逐條保留。
+- **失敗封存條目不壓縮、不合併**，逐條保留。訊號工廠、評分、攻防主題的條目逐條留在 memory 的 `INDEX_signal_factory.md`；MEMORY.md 只留一行指標。
+- **訊號工廠主題的新記憶**：索引行加在 `INDEX_signal_factory.md`；使用者的工作偏好仍加在 MEMORY.md。
 
 正例：`- [447 家分類重判（進行中）](project_industry_rejudge.md) — 逐家 membership 裁定，分批進行；開批前讀檔末現況`
-反例：同一行寫到「batch 1–8 完成（96/273）…已於 10-08 提交（90fcff3b…）」——下個 session 讀到的是過期進度。
 
 ## 精簡門檻
 

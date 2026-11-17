@@ -12,6 +12,7 @@ description: 6 訊號工廠（pick/touch/buy/sell/buy_flee/sell_flee）改良、
 觸發詞：「回測」「跑一下」「看效果」「測一下」明確要求 → 啟動。**MUST NOT** 自動觸發於每次 code edit。
 
 ```bash
+# Step 0: 本 session 還沒讀過訊號工廠主題索引（§12）→ 先 Read 全文；這次的改動命中禁止條目就停，不跑
 # Step 1: 查目前最大版本號
 python -m signal_backtest._versions list  # → 抓最大 v{N}，下一版 v{N+1}
 
@@ -409,8 +410,8 @@ Known Go 欄位類別（命名規律）：
 ### 11b. Proxy vs real backtest
 
 10 日前向收益 proxy（offline forward-return）有用但有限：
-- ✓ **相對排序可信**（哪個閾值較佳）
-- ✗ **絕對 PF 不可信**（系統性低估，因為沒考慮 defense rules / force exits / 動態出場）
+- △ **相對排序只能用來挑候選**（哪個閾值較佳），不保證與 real 一致：margin 線的 dtc 門檻案例，proxy 說 t2 最好、real 說 t2 最差（`project_margin_defense_failed.md` L40）
+- ✗ **絕對 PF 不可信**：proxy 可能未納入 defense rules／force exits／動態出場／出場後再進場等真實交易機制；偏誤方向依 proxy 類型與改動性質而定，不是一律低估或一律高估（主題索引 §6-C）
 - ✗ 若訊號搭配 strong defense（如 v264 touch tier gate），proxy 預測可能跟 real 偏差大（touch sp 閾值案例：proxy 說 sp ≥ -5/-10 較佳，real 卻是 sp ≥ 0 與 sp ≥ -5 持平甚至退步）
 
 **MUST**：用 proxy 找 top 2-3 候選 → 用 real backtest 驗證 → 不可只看 proxy 就採用。
@@ -427,15 +428,15 @@ Known Go 欄位類別（命名規律）：
 
 ### 11b-2. 兩個 close-based 回測資料陷阱（2026-07-20 起）
 
-- **無還原價**：專案引擎 `build_stock_data` 用**原始 close_price**（連 v358 亦然），**沒有還原價序列**。任何 close-based proxy/回測 **MUST 剔除窗口內單日 >±40% 的移動**（台股單日限 ±10% → >40% 必是未還原分割/減資）。範例：先前誤判為「-92.7% 內行放空崩塌」的那筆其實是 5314 世紀分割假象，非真虧；剔後 W=6 股東會軋空結果不變＝edge 非假象膨脹。
-- **存量 vs 流量 + 分母污染**：探籌碼變數 **MUST 先分存量（餘額/水位）vs 流量（當日量/事件）**——2026-07 探索中融券**餘額**七輪全死、融券**賣出流量**才有料。比值型變數要查**分母污染**：券資比＝融券/融資的暴衝多來自**融資**塌陷（崩跌股融資被斷頭），不是融券變多；乾淨版用隔離分子的指標（days-to-cover＝融券/量）。
+- **還原價**：專案引擎 `build_stock_data` 的價格與指標用**原始 close_price**；v370 起報酬改為總報酬記帳（持有期間除權息／減資記進報酬，價格仍原始），另有 `--adjusted-prices`（指標也吃還原價）路徑，預設關、已證偽勿重提（`project_v370_baseline.md`）。任何 close-based proxy/回測 **MUST 剔除窗口內單日 >±40% 的移動**（台股單日限 ±10% → >40% 必是未還原分割/減資）。範例：先前誤判為「-92.7% 內行放空崩塌」的那筆其實是 5314 世紀分割假象，非真虧；剔後 W=6 股東會軋空結果不變＝edge 非假象膨脹。
+- **存量 vs 流量 + 分母污染**：探籌碼變數 **MUST 先分存量（餘額/水位）vs 流量（當日量/事件）**——2026-07 探索中融券**存量**全死、融券**賣出流量**才有料（`project_margin_defense_failed.md` L48：「前面全是融券餘額(存量)/dtc」「存量全死流量有料」）。比值型變數要查**分母污染**：券資比＝融券/融資的暴衝多來自**融資**塌陷（崩跌股融資被斷頭），不是融券變多；乾淨版用隔離分子的指標（days-to-cover＝融券/量）。
 
 ### 11c. 統一 sweep runner 與封存（2026-07-06 起）
 
 跑參數掃描一律用 `signal_backtest/sweep.py`，不再手寫 ad-hoc 迴圈腳本：
 
 ```bash
-# 掃之前 MUST 先查此參數區間是否已掃過（命中相同區間且結論負向 → 停，除非使用者明示重開）
+# 掃之前 MUST 先 Read 訊號工廠主題索引全文（§12），再查此參數區間是否已掃過（命中相同區間且結論負向 → 停，除非使用者明示重開）
 python -m signal_backtest._versions sweeps list --signal {signal}
 
 # spec 檔（拋棄式，放 tmp/）合約：NAME、SIGNAL（必填）、GRID（GRID[0] MUST 為當前 baseline 參數）、
@@ -451,18 +452,13 @@ python -m signal_backtest._versions sweeps conclude {id} "結論一句話"
 - 落檔 `tmp/sweeps/{NAME}/`（summary.csv + 各點 trades parquet）
 - 封存的意義：跨 session 防重掃已死參數區間（momentum_override 連做 11 版的教訓，下沉到參數粒度）
 
-## 12. 永久封存失敗模式（MUST NOT 重試）
+## 12. 失敗封存與研究結論（指標）
 
-每條一行 + memory 指針，避免重蹈：
+本節不再列清單，也不具獨立的禁止效力（2026-11-12 使用者裁定）。失敗封存、已採用結論與各條的強度，以訊號工廠主題索引為準：
 
-- **Go 槓桿值狀態機**規則移植：Go 有 state machine，我們是 SMA 硬條件，部分規則永遠不觸發 → [project_go_rule_porting_pitfalls.md](C:\Users\Real\.claude\projects\c--Claude-Invest\memory\project_go_rule_porting_pitfalls.md)
-- **扣抵 state 當 trailing stop trigger**：v44-v47 全失敗，pick 進場特別衝突；需 event-based 而非 state-based → [project_turn_defense_failed.md](C:\Users\Real\.claude\projects\c--Claude-Invest\memory\project_turn_defense_failed.md)
-- **blow-off top 出場/防守對多方（封存完全）**：凍結型 v48-v53 六變種 + 暫態型 v353 皆失敗；根因=紅棒+洪量是 runner 燃料，賣強勢棒必砍右尾（maxG 841→244）；多方早出場只准賣走弱（give-back 型）→ [project_blow_off_top_defense_failed.md](C:\Users\Real\.claude\projects\c--Claude-Invest\memory\project_blow_off_top_defense_failed.md)
-- **MA 共振 filter 鏡像對稱**：sell+buy_flee 大成功 +0.043，但 v60 touch / v61 sell_flee 鏡像 destructive 失敗 → [project_ma_confluence_asymmetry.md](C:\Users\Real\.claude\projects\c--Claude-Invest\memory\project_ma_confluence_asymmetry.md)
-- **buy_flee 改 score-based**：v85-v95 多次驗證 pattern 已優，改 score 必崩 PF 0.94-2.17 < baseline 2.98 → [project_signals_v94_high_volume.md](C:\Users\Real\.claude\projects\c--Claude-Invest\memory\project_signals_v94_high_volume.md)
-- **bait_flip 鏡像**：bait_flip_up 對 sell_flee 有效 (+0.17)，bait_flip_down 對 buy_flee 失敗 (-1.45)。Go 原版只給 sell_flee 加 v36 子句正確 → 同上
-- **Flee knot scope 單獨**：v146/v147 單 scope (long_knot or medium_knot) 都傷；v148 long+medium 並集 +0.0064 採用 → [project_flee_knot_scope_union.md](C:\Users\Real\.claude\projects\c--Claude-Invest\memory\project_flee_knot_scope_union.md)
-- **OBV trend (latched)**：三度測試（含 ~dead universe）全失敗，event 形式才採用 → [project_obv_multi_period.md](C:\Users\Real\.claude\projects\c--Claude-Invest\memory\project_obv_multi_period.md)
+`C:\Users\Real\.claude\projects\c--Claude-Invest\memory\INDEX_signal_factory.md`
+
+提出或實作任何訊號、防守、出場、進場過濾、評分、溫度計攻防的改動前，先 Read 該索引全文；讀不到就停下回報。各條強度不同，照條目寫的範圍執行。
 
 ## 13. Tool 索引
 
@@ -491,16 +487,16 @@ python -m signal_backtest._versions sweeps conclude {id} "結論一句話"
 - **MUST NOT** 跳過任何 §1 第 7 步報告項目（per-signal、unified、diff、合池、三大目標、**受害股**、關聯記憶、結論）
 
 ### 改動 / 設計
-- **MUST NOT** 對既有失敗路線換 cosmetic 變體重試（trend form、扣抵 state、blow-off 等）（§12）
+- **MUST NOT** 對既有失敗路線換 cosmetic 變體重試；哪些路線算封存、範圍多大，以訊號工廠主題索引為準（§12）
 - **MUST NOT** 直接複製 Go 規則：Go state machine ≠ 我們 SMA 條件；先 dry-run（§9）
 - **MUST NOT** 信 Go struct 註解（如 CD2B 寫「高價2」實際用 Close）— port 時 grep calculation site（§9）
 - **MUST NOT** 把 `data.low / data.high`（日內）跟 `bs.close_s / bs.close_b`（收盤）混比 — metric mismatch 是 entry 條件鬆/緊偏差的常見 bug（§7）
 - **MUST NOT** 自己手刻 `(high - close) / hl` 當「長上影線」— 對大陰線會錯把整根 candle 當影線；用 `_hammer_upper_shadow` 或 `data.candle_result.shadow.upper`（§8）
 - **MUST NOT** 提出參數改動或開 sweep 而未附提案卡四問（為何這個參數 / 為何這個值域 / 為何這個步長 / 預期方向與可證偽點）（§11-0）
 - **MUST NOT** 直接沿用他處（別的序列、別的子系統）的最佳參數當本序列的中心點 — 借來的參數不算參數，MUST 在本序列重掃（§11-0）
-- **MUST NOT** 改溫度計攻防（stance）而不算差異日、不跑工廠受控對照 — stance 是 buy 的 live 相依，改了工廠就變（§6b）
+- **MUST NOT** 改溫度計攻防（stance）而不算差異日、不跑工廠受控對照 — stance 是 buy 與 sell 的 live 相依，改了工廠就變（§6b）
 - **MUST NOT** 同時改 2+ 閾值然後猜哪個有效 — 用 4-plan A/B/C/D grid 隔離（§11a）
-- **MUST NOT** 只看 proxy（offline forward-return）就採用閾值改動 — 系統性低估 real PF，**MUST** real backtest 驗證（§11b）
+- **MUST NOT** 只看 proxy（offline forward-return）就採用閾值改動 — proxy 與 real 的偏誤方向不固定（§11b），**MUST** real backtest 驗證
 
 ### 流程 / 維運
 - **MUST NOT** 改 dataclass schema 後忘記 `rm -rf data/stock_cache/` — 舊 pickle 反序列化 AttributeError（§1b）

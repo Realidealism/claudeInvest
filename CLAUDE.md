@@ -18,21 +18,22 @@ subagent 也會載入本檔。判斷方式：任務來自一份派工 prompt，�
 | 觸發情境 | 先 Read |
 |---|---|
 | 要寫派工 prompt（搜尋／實作／重構／研究／審查） | `.claude/ref/03_templates.md` |
-| 命中 02_judgment 標 ★ 的 Rubric（5、8、9、10、11）且要動手 | `.claude/ref/02_cases.md` 同編號節 |
 | 要修改本檔、`.claude/rules/`、`.claude/ref/`、MEMORY.md 或 memory 制度 | `.claude/rules/04_maintenance.md` |
 | 寫或改常駐服務／排程長迴圈／.bat | `.claude/rules/06_service_safety.md` |
 | 新 session 接手大型或跨對話任務；想知道制度的待辦與已知弱點 | `.claude/ref/05_letter.md` |
 | 懷疑某條規則已不需要、想知道它的成因 | `.claude/ref/00_diagnosis.md` |
 | 使用者說「回測」，或要改 `signal_backtest/factories` | skill `signal-factory` |
 | ScoreBoard cell ablation／權重調整 | skill `cross-sectional-scoring` |
-| 改 `analysis/market_thermometer.py` 攻防判準或參數，或它讀的上游（`analysis/obv.py`、`analysis/market_breadth.py`），或評估溫度計變動 | skill `signal-factory` §6b（stance 是 buy 的 live 相依） |
+| 改 `analysis/market_thermometer.py` 攻防判準或參數，或它讀的上游（`analysis/obv.py`、`analysis/market_breadth.py`），或評估溫度計變動 | skill `signal-factory` §6b（stance 是 buy 與 sell 的 live 相依） |
+| 提出或實作訊號／防守／出場／進場過濾／評分／溫度計攻防的改動（含討論） | memory 的 `INDEX_signal_factory.md` 全文 |
+| 開始非瑣碎任務、計畫被新事實推翻、宣告完成之前 | skill `fable-playbook` |
 
-`04_maintenance.md` 與 `06_service_safety.md` 設了路徑條件，碰到對應檔案時 harness 會自動載入；沒看到它出現在 context 裡，就自己 Read。舊文件若寫 `.claude/rules/00_diagnosis.md`／`03_templates.md`／`05_letter.md`，現在是 `.claude/ref/` 下的同名檔。
+`04_maintenance.md`、`06_service_safety.md`、`07_signal_memory.md` 設了路徑條件，碰到對應檔案時 harness 會自動載入；沒看到它出現在 context 裡，就自己 Read。
 
 ## 每個任務的骨架
 
 1. **探勘**：能從 codebase／memory／git 查到的先自己查。預計讀 >3 檔或 >500 行 → 派 `Explore`（01_dispatch §1）。
-2. **掃封存**：提案涉及訊號／防守／出場／進場過濾 → 先對 MEMORY.md 的「勿重試／MUST NOT」條目，命中即停（Rubric 4）。
+2. **掃封存**：提案涉及訊號／防守／出場／進場過濾／評分／溫度計攻防（含只是討論），或要跑訊號工廠相關回測、sweep → 先對 MEMORY.md 的「勿重試／MUST NOT」條目，並先 Read 訊號工廠主題索引全文（見 MEMORY.md 的指標行）；讀不到就停下回報。命中即停（Rubric 4）。
 3. **逼問**：走下方 Grill-Me 協議。
 4. **計畫**：非瑣碎任務用 plan mode 出計畫，每個步驟附驗證方式，取得批准。
 5. **執行**：只改與任務直接相關的東西。任何持久寫入先過 Rubric 10（有沒有寫入權）與 Rubric 11（會不會意外寫入）。
@@ -48,9 +49,9 @@ harness 預設「除非使用者要求，否則不要 spawn subagent」。本專
 | 類型 | 授權 |
 |---|---|
 | 唯讀探勘（`Explore`）、驗收 read-back、fresh-context 對抗審查（唯讀、不改檔、不跑專案程式） | 自動派工，不必先問 |
-| 回測／build 等長輸出背景指令 | 自動派工，不必先問 |
+| 主對話自己用 `run_in_background` 跑的回測／build 等長輸出指令 | 自動，不必先問 |
 | `claude-code-guide` 唯讀查閱 **Claude Code 官方文件**並整理內容 | 自動派工。只授權「查閱」：文件裡建議的指令、安裝、設定或 repo 修改，不因此取得授權；第三方網站、GitHub 討論、其他網頁不在此列（屬下一列） |
-| 會改檔、跑會寫入的指令（含可能寫入的測試／實跑，判準見 Rubric 11）、對外查網頁的 agent（不論型別） | 先說明要派什麼、做什麼，得使用者同意才派 |
+| 會改檔、跑專案程式（測試／實跑，不論會不會寫入）、跑會寫入的指令（判準見 Rubric 11）、對外查網頁的 agent（不論型別） | 先說明要派什麼、做什麼，得使用者同意才派 |
 
 分界線是任務性質（唯讀 vs 會動手），不是 agent 的型別名稱：`general-purpose` 做唯讀審查屬自動，做改檔屬先問。本節只決定「派工這個動作要不要另外請示」；任務該不該開跑仍走 Grill-Me。使用者已明確下令的單一動作，不必再為派工二次請示。
 
@@ -72,7 +73,7 @@ harness 預設「除非使用者要求，否則不要 spawn subagent」。本專
 - 實作前列出關鍵假設；不確定的假設先確認再動手。
 - 不懂或沒把握就明說，不要假裝理解後硬做。
 - 需求不合理或有更好的替代方案 → 主動提出，附 tradeoff（利弊、成本、風險），不照單全收。
-- 找不到 API 端點或資料來源 → 先問使用者有沒有已知來源；自己搜三次未果就停下來問。
+- 找不到 API 端點或資料來源 → 先問使用者有沒有已知來源。
 
 ## 修正建議分批
 
@@ -103,7 +104,6 @@ harness 預設「除非使用者要求，否則不要 spawn subagent」。本專
 - 預設：模糊任務先轉成可驗證的具體目標再動手；驗證標準不明確就先問。
 - 「TDD」：需求 → 失敗測試 → 寫到通過 → 必要時重構，全綠時停止寫碼迴圈。全綠只是迴圈的停止條件，交付前仍要過整個 Rubric 2。
 - 「探索」「先看看」：可先寫一次性 script 觀察數據，不必事先定義完整驗證標準；script 視為拋棄式。
-- 「回測」：依 skill `signal-factory` 執行（6 訊號＋歸檔＋SQLite 記錄＋diff 解讀），不主動 commit。
 
 ## 指令
 
@@ -113,5 +113,4 @@ harness 預設「除非使用者要求，否則不要 spawn subagent」。本專
 
 - 只有預期較大、可能跨對話的任務，才把計畫與關鍵進度記到 memory/；任務完成後清理進度紀錄。
 - 進度寫在該專案自己的 memory 檔。MEMORY.md 每行只寫「這是什麼＋什麼情況要讀」，單行 ≤450 bytes（約 150 個中文字），不記逐日進度（細則見 `04_maintenance.md`）。
-- 新的訊號工廠 baseline 上位時：前一版那行併入「版本正史」行，標 `**(當前)**` 的只留 1 行。
-- 改完 MEMORY.md 或任何制度檔，跑 `python c:\Claude\Invest\.claude\ref\check_budget.py`；有 FAIL 就還沒完成。
+- 改完 MEMORY.md 或任何制度檔，跑 `python c:/Claude/Invest/.claude/ref/check_budget.py`；有 FAIL 就還沒完成。

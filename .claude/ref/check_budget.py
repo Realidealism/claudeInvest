@@ -21,6 +21,7 @@ FILE_BUDGETS = [
     (".claude/rules/02_judgment.md", 16000),
     (".claude/rules/04_maintenance.md", 9000),
     (".claude/rules/06_service_safety.md", 9000),
+    (".claude/rules/07_signal_memory.md", 3000),
 ]
 REF_BUDGET = 60000
 MEMORY_BUDGET = 23000
@@ -34,7 +35,28 @@ ALLOWED_RULES = {
     "02_judgment.md": False,
     "04_maintenance.md": True,
     "06_service_safety.md": True,
+    "07_signal_memory.md": True,
 }
+# Signal-factory topic index: entries moved out of MEMORY.md live here.
+TOPIC_INDEX = os.path.join(os.path.dirname(MEMORY), "INDEX_signal_factory.md")
+TOPIC_POINTER = "(INDEX_signal_factory.md)"
+# Section titles of the signal-factory topic index, in order. Changing a title in the
+# index means changing it here too; that is deliberate.
+INDEX_SECTIONS = [
+    "失敗封存",
+    "已採用的結論、不對稱性、架構",
+    "上游相依、評估方法、資料修正",
+    "規則參考",
+    "歷史結論（v94 時期）",
+    "跨條目衝突（來源之間沒有調和；讀到相關條目時一併讀）",
+    "待查與證據限制",
+]
+# The reading rule states the entry and section counts on exactly one line of this form.
+INDEX_STATEMENT_KEY = "讀完全文的判準："
+INDEX_STATEMENT_RE = (
+    r"- 讀完全文的判準：本索引共 (\d+) 條、(\d+) 節，節標題依序是「([^」]*)」。"
+    r"最後一行是以「=== 索引結束：」開頭的結尾標記，它寫的條數、節數與這裡相同。"
+)
 
 failed = False
 
@@ -170,6 +192,49 @@ else:
     current = [i + 1 for i, ln in enumerate(lines) if "**(當前)**" in ln]
     report(len(current) == 1, "MEMORY.md baseline",
            f"{len(current)} line(s) carry the bold current-baseline marker, expected 1")
+    # MEMORY.md must point at the topic index, and the index must exist and be non-empty.
+    pointers = sum(1 for ln in lines if TOPIC_POINTER in ln)
+    report(pointers == 1, "MEMORY.md topic pointer",
+           f"{pointers} line(s) link INDEX_signal_factory.md, expected 1")
+    index_size = os.path.getsize(TOPIC_INDEX) if os.path.isfile(TOPIC_INDEX) else 0
+    report(index_size > 0, "INDEX_signal_factory.md",
+           f"{index_size} bytes" if index_size else f"missing or empty at {TOPIC_INDEX}")
+    # The topic index must be verifiably complete. Three places have to agree: the
+    # statement in the reading rule, the closing marker, and the entries and sections present.
+    if index_size:
+        with open(TOPIC_INDEX, encoding="utf-8") as fh:
+            index_text = fh.read().replace("\r\n", "\n")
+        # The marker is the last line: at most one terminating newline may follow it.
+        body = index_text[:-1] if index_text.endswith("\n") else index_text
+        index_lines = body.split("\n")
+        end = re.fullmatch(r"=== 索引結束：共 (\d+) 條、(\d+) 節 ===", index_lines[-1])
+        report(bool(end), "INDEX end marker",
+               "closing marker is the last line" if end else "closing marker missing or not the last line")
+        entries = [int(m.group(1)) for m in (re.match(r"\*\*(\d+)\. \[", ln) for ln in index_lines) if m]
+        heads = [m for m in (re.fullmatch(r"## (\d+)\. (.+)", ln) for ln in index_lines) if m]
+        sections_ok = ([int(m.group(1)) for m in heads] == list(range(1, len(INDEX_SECTIONS) + 1))
+                       and [m.group(2) for m in heads] == INDEX_SECTIONS)
+        report(sections_ok, "INDEX sections",
+               f"{len(heads)} section heading(s); numbers, titles and order "
+               + ("match" if sections_ok else "differ from") + " INDEX_SECTIONS")
+        # Exactly one line may carry the statement, and that line must parse in full.
+        candidates = [ln for ln in index_lines if INDEX_STATEMENT_KEY in ln]
+        report(len(candidates) == 1, "INDEX header statement count",
+               f"{len(candidates)} line(s) contain the reading-rule statement, expected 1")
+        stated = re.fullmatch(INDEX_STATEMENT_RE, candidates[0]) if len(candidates) == 1 else None
+        if len(candidates) == 1:
+            report(bool(stated), "INDEX header statement format",
+                   "statement line parses in full" if stated else "statement line does not match the fixed form")
+        if end and stated:
+            n_entries, n_sections = int(end.group(1)), int(end.group(2))
+            report(entries == list(range(1, n_entries + 1)), "INDEX entries",
+                   f"{len(entries)} numbered entries, marker says {n_entries}")
+            counts_ok = ((int(stated.group(1)), int(stated.group(2))) == (n_entries, n_sections)
+                         and n_sections == len(INDEX_SECTIONS))
+            report(counts_ok, "INDEX counts",
+                   "header statement, marker and INDEX_SECTIONS " + ("agree" if counts_ok else "disagree"))
+            report(stated.group(3).split("｜") == INDEX_SECTIONS, "INDEX declared section titles",
+                   "titles listed in the reading rule compared with INDEX_SECTIONS")
 
 always = sum(
     os.path.getsize(os.path.join(REPO, rel))
