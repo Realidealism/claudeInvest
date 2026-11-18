@@ -1,11 +1,11 @@
 ---
 name: signal-factory
-description: 6 訊號工廠（pick/touch/buy/sell/buy_flee/sell_flee）改良、回測、版本管理協議。Use when editing signal_backtest/factories/*.py, tuning v## thresholds, discussing PF/win-rate/portfolio evaluation, or when user says「回測」「跑一下」「看效果」. 涵蓋 7 步回測流程、6 訊號 invariants、合池 PF 評估、force-exit 連動、metric/命名慣例（LL/HH vs bs.close）、K 棒 helpers、Go port protocol、bug-fix re-sweep、sweep 方法論、受害股報告、永久封存失敗清單。
+description: 6 訊號工廠（pick/touch/buy/sell/buy_flee/sell_flee）改良、回測、版本管理協議。Use when editing signal_backtest/factories/*.py, tuning v## thresholds, discussing PF/win-rate/portfolio evaluation, or when user says「回測」「跑一下」「看效果」. 涵蓋 7 步回測流程、6 訊號 invariants、合池 PF 評估、force-exit 連動、metric/命名慣例（LL/HH vs bs.close）、K 棒 helpers、Go port protocol、bug-fix re-sweep、sweep 方法論、受害股報告、失敗封存與研究結論的指標（清單在 memory 的 INDEX_signal_factory.md）。
 ---
 
 # 訊號工廠改良協議
 
-針對 `signal_backtest/factories/` 6 訊號工廠的改良方法論。包含固定回測流程、不可違反的 invariants、評估標準與已知失敗模式索引。
+針對 `signal_backtest/factories/` 6 訊號工廠的改良方法論。包含固定回測流程、不可違反的 invariants、評估標準，以及失敗封存與研究結論的指標（清單在 memory 的 INDEX_signal_factory.md）。
 
 ## 1. 標準回測流程（用戶說「回測」立即執行 1-7 步）
 
@@ -199,7 +199,7 @@ python -m signal_backtest --signals {target},unified_long,unified_short \
 
 ## 5. Flee 訊號 force-exit 設計與評估
 
-`buy_flee` / `sell_flee` 是整個 signal-factory 最特殊的訊號類別 — 4 個子段集中討論。
+`buy_flee` / `sell_flee` 是整個 signal-factory 最特殊的訊號類別 — 4 個子段集中討論。〔2026-11-18：本節以 flee 的 force-exit 角色為前提；`project_flee_force_exit_revival_failed.md`（2026-07-02 以 v351 實測）與本節多處不一致，依主題索引 §6-E 以該檔為準（索引第 8 條）。〕
 
 ### 5a. 雙重角色架構
 
