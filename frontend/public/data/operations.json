@@ -1,48 +1,19 @@
 {
-  "snapshot_date": "2026-11-17",
+  "snapshot_date": "2026-11-18",
   "signals": {
     "pick": [],
-    "touch": [
-      {
-        "ticker": "3035",
-        "name": "智原",
-        "market": "TWSE",
-        "turnover": 2417797120.0,
-        "streak": 1
-      },
-      {
-        "ticker": "2912",
-        "name": "統一超",
-        "market": "TWSE",
-        "turnover": 375277568.0,
-        "streak": 1
-      },
-      {
-        "ticker": "2504",
-        "name": "國產",
-        "market": "TWSE",
-        "turnover": 62315372.0,
-        "streak": 1
-      },
-      {
-        "ticker": "6146",
-        "name": "耕興",
-        "market": "TPEx",
-        "turnover": 56716760.0,
-        "streak": 1
-      }
-    ],
+    "touch": [],
     "buy": [],
-    "sell": [
+    "sell": [],
+    "buy_flee": [],
+    "sell_flee": [
       {
-        "ticker": "6830",
-        "name": "汎銓",
-        "market": "TWSE",
-        "turnover": 527377280.0,
+        "ticker": "3219",
+        "name": "倚強科",
+        "market": "TPEx",
+        "turnover": 160791536.0,
         "streak": 1
       }
-    ],
-    "buy_flee": [],
-    "sell_flee": []
+    ]
   }
 }
