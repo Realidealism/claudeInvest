@@ -1,10 +1,26 @@
 {
   "snapshot_date": "2026-11-18",
-  "snapshot_time": "2026-11-18T01:26:38.942635+00:00",
+  "snapshot_time": "2026-11-18T01:36:53.855470+00:00",
   "signals": {
     "pick": [],
-    "touch": [],
-    "buy": [],
+    "touch": [
+      {
+        "ticker": "2501",
+        "name": "國建",
+        "market": "TWSE",
+        "turnover": 30677154.0,
+        "streak": 1
+      }
+    ],
+    "buy": [
+      {
+        "ticker": "6199",
+        "name": "天品",
+        "market": "TPEx",
+        "turnover": 1017540928.0,
+        "streak": 1
+      }
+    ],
     "sell": [],
     "buy_flee": [],
     "sell_flee": [
@@ -12,7 +28,7 @@
         "ticker": "3219",
         "name": "倚強科",
         "market": "TPEx",
-        "turnover": 79906440.0,
+        "turnover": 69733096.0,
         "streak": 1
       }
     ]
