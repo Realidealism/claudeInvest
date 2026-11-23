@@ -1,6 +1,18 @@
 {
-  "updated_at": "2026-11-20T22:02:02",
+  "updated_at": "2026-11-23T22:08:50",
   "events": [
+    {
+      "type": "transfer",
+      "stock_id": "2308",
+      "company_name": "台達電",
+      "date": "2026-11-23",
+      "insider_role": "董事本人",
+      "insider_name": "鄭平",
+      "method": "洽特定人",
+      "shares": 55640093,
+      "security_kind": null,
+      "period": "115/11/23\r\n~\r\n115/11/25"
+    },
     {
       "type": "placement",
       "stock_id": "6217",
@@ -46,18 +58,6 @@
       "insider_name": "旭日東升投資股份有限公司",
       "method": "洽特定人",
       "shares": 6252500,
-      "security_kind": null,
-      "period": "115/11/10\r\n~\r\n115/11/12"
-    },
-    {
-      "type": "transfer",
-      "stock_id": "6214",
-      "company_name": "精誠",
-      "date": "2026-11-10",
-      "insider_role": "經理人本人",
-      "insider_name": "陳國禎",
-      "method": "洽特定人",
-      "shares": 100000,
       "security_kind": null,
       "period": "115/11/10\r\n~\r\n115/11/12"
     },
@@ -235,9 +235,9 @@
       "company_name": "精誠",
       "date": "2026-11-10",
       "insider_role": "經理人本人",
-      "insider_name": "張皇裕",
+      "insider_name": "蔡俊雄",
       "method": "洽特定人",
-      "shares": 99312,
+      "shares": 60000,
       "security_kind": null,
       "period": "115/11/10\r\n~\r\n115/11/12"
     },
@@ -295,9 +295,21 @@
       "company_name": "精誠",
       "date": "2026-11-10",
       "insider_role": "經理人本人",
-      "insider_name": "蔡俊雄",
+      "insider_name": "張皇裕",
       "method": "洽特定人",
-      "shares": 60000,
+      "shares": 99312,
+      "security_kind": null,
+      "period": "115/11/10\r\n~\r\n115/11/12"
+    },
+    {
+      "type": "transfer",
+      "stock_id": "6214",
+      "company_name": "精誠",
+      "date": "2026-11-10",
+      "insider_role": "經理人本人",
+      "insider_name": "陳國禎",
+      "method": "洽特定人",
+      "shares": 100000,
       "security_kind": null,
       "period": "115/11/10\r\n~\r\n115/11/12"
     },
@@ -828,95 +840,11 @@
       "shares": 208147,
       "security_kind": null,
       "period": "115/09/08\r\n~\r\n115/09/10"
-    },
-    {
-      "type": "transfer",
-      "stock_id": "3489",
-      "company_name": "森寶",
-      "date": "2026-08-24",
-      "insider_role": "董事本人",
-      "insider_name": "達容發投資有限公司",
-      "method": "洽特定人",
-      "shares": 9392000,
-      "security_kind": null,
-      "period": "115/08/24\r\n~\r\n115/08/26"
-    },
-    {
-      "type": "transfer",
-      "stock_id": "3489",
-      "company_name": "森寶",
-      "date": "2026-08-24",
-      "insider_role": "董事本人",
-      "insider_name": "禾潤投資股份有限公司",
-      "method": "洽特定人",
-      "shares": 12533000,
-      "security_kind": null,
-      "period": "115/08/24\r\n~\r\n115/08/26"
-    },
-    {
-      "type": "transfer",
-      "stock_id": "3489",
-      "company_name": "森寶",
-      "date": "2026-08-24",
-      "insider_role": "董事本人",
-      "insider_name": "民瑋投資股份有限公司",
-      "method": "洽特定人",
-      "shares": 12533000,
-      "security_kind": null,
-      "period": "115/08/24\r\n~\r\n115/08/26"
-    },
-    {
-      "type": "transfer",
-      "stock_id": "3489",
-      "company_name": "森寶",
-      "date": "2026-08-24",
-      "insider_role": "董事本人",
-      "insider_name": "春宇投資有限公司",
-      "method": "洽特定人",
-      "shares": 9310000,
-      "security_kind": null,
-      "period": "115/08/24\r\n~\r\n115/08/26"
-    },
-    {
-      "type": "transfer",
-      "stock_id": "3489",
-      "company_name": "森寶",
-      "date": "2026-08-24",
-      "insider_role": "董事本人",
-      "insider_name": "正義投資有限公司",
-      "method": "洽特定人",
-      "shares": 12533000,
-      "security_kind": null,
-      "period": "115/08/24\r\n~\r\n115/08/26"
-    },
-    {
-      "type": "transfer",
-      "stock_id": "3489",
-      "company_name": "森寶",
-      "date": "2026-08-24",
-      "insider_role": "法人董事代表人本人",
-      "insider_name": "魏成達",
-      "method": "洽特定人",
-      "shares": 650000,
-      "security_kind": null,
-      "period": "115/08/24\r\n~\r\n115/08/26"
-    },
-    {
-      "type": "transfer",
-      "stock_id": "3489",
-      "company_name": "森寶",
-      "date": "2026-08-24",
-      "insider_role": "法人董事代表人本人",
-      "insider_name": "簡文潔",
-      "method": "洽特定人",
-      "shares": 1026000,
-      "security_kind": null,
-      "period": "115/08/24\r\n~\r\n115/08/26"
     }
   ],
   "stats": {
-    "transfer_events_30d": 26,
-    "transfer_stocks_30d": 5,
+    "transfer_events_30d": 24,
+    "transfer_stocks_30d": 4,
     "placement_events_30d": 6
   }
 }
