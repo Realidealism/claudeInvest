@@ -2053,14 +2053,14 @@
     "label": "台指 VIX",
     "source": "TAIFEX",
     "latest": {
-      "close": 38.55,
-      "rating": "elevated",
-      "intraday_time": "112915"
+      "close": 38.84,
+      "rating": "panic",
+      "intraday_time": "113745"
     },
     "thresholds": {
       "p20": 28.16,
       "p50": 35.46,
-      "p80": 38.65
+      "p80": 38.76
     },
     "series": [
       {
@@ -2789,7 +2789,7 @@
       },
       {
         "date": "2026-11-24",
-        "close": 38.55
+        "close": 38.84
       }
     ]
   }
