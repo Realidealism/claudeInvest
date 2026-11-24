@@ -1,20 +1,56 @@
 {
-  "snapshot_date": "2026-11-23",
-  "snapshot_time": "2026-11-23T03:46:19.160493+00:00",
+  "snapshot_date": "2026-11-24",
+  "snapshot_time": "2026-11-24T01:16:09.936219+00:00",
   "signals": {
-    "pick": [
+    "pick": [],
+    "touch": [],
+    "buy": [
       {
-        "ticker": "8099",
-        "name": "大世科",
+        "ticker": "2412",
+        "name": "中華電",
+        "market": "TWSE",
+        "turnover": 8502974464.0,
+        "streak": 1
+      },
+      {
+        "ticker": "6782",
+        "name": "視陽",
+        "market": "TWSE",
+        "turnover": 726037248.0,
+        "streak": 1
+      },
+      {
+        "ticker": "8415",
+        "name": "大國鋼",
         "market": "TPEx",
-        "turnover": 639377280.0,
+        "turnover": 416563552.0,
         "streak": 1
       }
     ],
-    "touch": [],
-    "buy": [],
     "sell": [],
     "buy_flee": [],
-    "sell_flee": []
+    "sell_flee": [
+      {
+        "ticker": "2891",
+        "name": "中信金",
+        "market": "TWSE",
+        "turnover": 6579324928.0,
+        "streak": 1
+      },
+      {
+        "ticker": "1232",
+        "name": "大統益",
+        "market": "TWSE",
+        "turnover": 81546680.0,
+        "streak": 1
+      },
+      {
+        "ticker": "2850",
+        "name": "新產",
+        "market": "TWSE",
+        "turnover": 63437412.0,
+        "streak": 1
+      }
+    ]
   }
 }
