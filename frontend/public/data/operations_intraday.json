@@ -1,19 +1,27 @@
 {
   "snapshot_date": "2026-11-25",
-  "snapshot_time": "2026-11-25T02:25:47.925310+00:00",
+  "snapshot_time": "2026-11-25T02:36:15.586123+00:00",
   "signals": {
     "pick": [
       {
         "ticker": "2880",
         "name": "華南金",
         "market": "TWSE",
-        "turnover": 1575234176.0,
+        "turnover": 1534370816.0,
         "streak": 1
       }
     ],
     "touch": [],
     "buy": [],
-    "sell": [],
+    "sell": [
+      {
+        "ticker": "6873",
+        "name": "泓德能源",
+        "market": "TWSE",
+        "turnover": 13300097.0,
+        "streak": 1
+      }
+    ],
     "buy_flee": [],
     "sell_flee": []
   }
