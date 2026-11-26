@@ -1,6 +1,18 @@
 {
-  "updated_at": "2026-11-25T22:22:00",
+  "updated_at": "2026-11-26T22:31:49",
   "events": [
+    {
+      "type": "transfer",
+      "stock_id": "3003",
+      "company_name": "健和興",
+      "date": "2026-11-26",
+      "insider_role": "董事本人",
+      "insider_name": "鄭傑元",
+      "method": "洽特定人",
+      "shares": 3926057,
+      "security_kind": null,
+      "period": "115/11/26\r\n~\r\n115/11/28"
+    },
     {
       "type": "transfer",
       "stock_id": "2308",
@@ -58,18 +70,6 @@
       "insider_name": "旭日東升投資股份有限公司",
       "method": "洽特定人",
       "shares": 6252500,
-      "security_kind": null,
-      "period": "115/11/10\r\n~\r\n115/11/12"
-    },
-    {
-      "type": "transfer",
-      "stock_id": "6214",
-      "company_name": "精誠",
-      "date": "2026-11-10",
-      "insider_role": "經理人本人",
-      "insider_name": "吳文舜",
-      "method": "洽特定人",
-      "shares": 100000,
       "security_kind": null,
       "period": "115/11/10\r\n~\r\n115/11/12"
     },
@@ -308,6 +308,18 @@
       "date": "2026-11-10",
       "insider_role": "經理人本人",
       "insider_name": "陳國禎",
+      "method": "洽特定人",
+      "shares": 100000,
+      "security_kind": null,
+      "period": "115/11/10\r\n~\r\n115/11/12"
+    },
+    {
+      "type": "transfer",
+      "stock_id": "6214",
+      "company_name": "精誠",
+      "date": "2026-11-10",
+      "insider_role": "經理人本人",
+      "insider_name": "吳文舜",
       "method": "洽特定人",
       "shares": 100000,
       "security_kind": null,
@@ -843,8 +855,8 @@
     }
   ],
   "stats": {
-    "transfer_events_30d": 24,
-    "transfer_stocks_30d": 4,
+    "transfer_events_30d": 25,
+    "transfer_stocks_30d": 5,
     "placement_events_30d": 6
   }
 }
