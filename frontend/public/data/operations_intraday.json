@@ -1,18 +1,32 @@
 {
-  "snapshot_date": "2026-11-25",
-  "snapshot_time": "2026-11-25T05:40:11.458452+00:00",
+  "snapshot_date": "2026-11-26",
+  "snapshot_time": "2026-11-26T01:16:20.044544+00:00",
   "signals": {
-    "pick": [
+    "pick": [],
+    "touch": [],
+    "buy": [
       {
-        "ticker": "2892",
-        "name": "第一金",
+        "ticker": "2412",
+        "name": "中華電",
         "market": "TWSE",
-        "turnover": 4190789632.0,
+        "turnover": 3434065408.0,
+        "streak": 1
+      },
+      {
+        "ticker": "6782",
+        "name": "視陽",
+        "market": "TWSE",
+        "turnover": 120454296.0,
+        "streak": 1
+      },
+      {
+        "ticker": "3285",
+        "name": "微端",
+        "market": "TPEx",
+        "turnover": 78017968.0,
         "streak": 1
       }
     ],
-    "touch": [],
-    "buy": [],
     "sell": [],
     "buy_flee": [],
     "sell_flee": []
