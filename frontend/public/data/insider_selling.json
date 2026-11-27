@@ -1,6 +1,30 @@
 {
-  "updated_at": "2026-11-26T22:31:49",
+  "updated_at": "2026-11-27T21:54:06",
   "events": [
+    {
+      "type": "transfer",
+      "stock_id": "5283",
+      "company_name": "禾聯碩",
+      "date": "2026-11-27",
+      "insider_role": "大股東利用他人名義持有者",
+      "insider_name": "寶宏信股份有限公司",
+      "method": "洽特定人",
+      "shares": 5684000,
+      "security_kind": null,
+      "period": "115/11/27\r\n~\r\n115/11/29"
+    },
+    {
+      "type": "transfer",
+      "stock_id": "5283",
+      "company_name": "禾聯碩",
+      "date": "2026-11-27",
+      "insider_role": "大股東利用他人名義持有者",
+      "insider_name": "禾發企業股份有限公司",
+      "method": "洽特定人",
+      "shares": 6728000,
+      "security_kind": null,
+      "period": "115/11/27\r\n~\r\n115/11/29"
+    },
     {
       "type": "transfer",
       "stock_id": "3003",
@@ -70,30 +94,6 @@
       "insider_name": "旭日東升投資股份有限公司",
       "method": "洽特定人",
       "shares": 6252500,
-      "security_kind": null,
-      "period": "115/11/10\r\n~\r\n115/11/12"
-    },
-    {
-      "type": "transfer",
-      "stock_id": "6214",
-      "company_name": "精誠",
-      "date": "2026-11-10",
-      "insider_role": "經理人本人",
-      "insider_name": "謝明樹",
-      "method": "洽特定人",
-      "shares": 33000,
-      "security_kind": null,
-      "period": "115/11/10\r\n~\r\n115/11/12"
-    },
-    {
-      "type": "transfer",
-      "stock_id": "6214",
-      "company_name": "精誠",
-      "date": "2026-11-10",
-      "insider_role": "董事本人",
-      "insider_name": "黃祈融",
-      "method": "洽特定人",
-      "shares": 633780,
       "security_kind": null,
       "period": "115/11/10\r\n~\r\n115/11/12"
     },
@@ -223,9 +223,9 @@
       "company_name": "精誠",
       "date": "2026-11-10",
       "insider_role": "經理人本人",
-      "insider_name": "楊世忠",
+      "insider_name": "張皇裕",
       "method": "洽特定人",
-      "shares": 99425,
+      "shares": 99312,
       "security_kind": null,
       "period": "115/11/10\r\n~\r\n115/11/12"
     },
@@ -295,9 +295,9 @@
       "company_name": "精誠",
       "date": "2026-11-10",
       "insider_role": "經理人本人",
-      "insider_name": "張皇裕",
+      "insider_name": "楊世忠",
       "method": "洽特定人",
-      "shares": 99312,
+      "shares": 99425,
       "security_kind": null,
       "period": "115/11/10\r\n~\r\n115/11/12"
     },
@@ -322,6 +322,30 @@
       "insider_name": "吳文舜",
       "method": "洽特定人",
       "shares": 100000,
+      "security_kind": null,
+      "period": "115/11/10\r\n~\r\n115/11/12"
+    },
+    {
+      "type": "transfer",
+      "stock_id": "6214",
+      "company_name": "精誠",
+      "date": "2026-11-10",
+      "insider_role": "經理人本人",
+      "insider_name": "謝明樹",
+      "method": "洽特定人",
+      "shares": 33000,
+      "security_kind": null,
+      "period": "115/11/10\r\n~\r\n115/11/12"
+    },
+    {
+      "type": "transfer",
+      "stock_id": "6214",
+      "company_name": "精誠",
+      "date": "2026-11-10",
+      "insider_role": "董事本人",
+      "insider_name": "黃祈融",
+      "method": "洽特定人",
+      "shares": 633780,
       "security_kind": null,
       "period": "115/11/10\r\n~\r\n115/11/12"
     },
@@ -855,7 +879,7 @@
     }
   ],
   "stats": {
-    "transfer_events_30d": 25,
+    "transfer_events_30d": 26,
     "transfer_stocks_30d": 5,
     "placement_events_30d": 6
   }

@@ -568,13 +568,13 @@
                 },
                 {
                   "week": "2026-W48",
-                  "net_shares": 485000
+                  "net_shares": 3420000
                 }
               ],
               "streak": 2
             }
           ],
-          "total_shares": 785000
+          "total_shares": 3720000
         }
       },
       {
@@ -747,7 +747,7 @@
                 },
                 {
                   "week": "2026-W48",
-                  "net_shares": 630000
+                  "net_shares": 730000
                 }
               ],
               "streak": 3
@@ -767,7 +767,7 @@
               "streak": 2
             }
           ],
-          "total_shares": 1669000
+          "total_shares": 1769000
         }
       },
       {
@@ -1772,7 +1772,7 @@
                 },
                 {
                   "week": "2026-W48",
-                  "net_shares": 55000
+                  "net_shares": 69000
                 }
               ],
               "streak": 2
@@ -1792,7 +1792,7 @@
               "streak": 2
             }
           ],
-          "total_shares": 1036000
+          "total_shares": 1050000
         }
       },
       {
@@ -2008,6 +2008,36 @@
             }
           ],
           "total_shares": 89000
+        }
+      },
+      {
+        "ticker": "3231",
+        "ticker_name": "緯創資通",
+        "market": "TWSE",
+        "funds": [
+          "凱基台灣主動式"
+        ],
+        "trigger_date": "2026-11-27",
+        "trigger_period": "2026W48",
+        "weight_change": null,
+        "evidence": {
+          "details": [
+            {
+              "etf": "00407A",
+              "weeks": [
+                {
+                  "week": "2026-W47",
+                  "net_shares": 500000
+                },
+                {
+                  "week": "2026-W48",
+                  "net_shares": 500000
+                }
+              ],
+              "streak": 2
+            }
+          ],
+          "total_shares": 1000000
         }
       },
       {
@@ -2322,13 +2352,13 @@
                 },
                 {
                   "week": "2026-W48",
-                  "net_shares": 426000
+                  "net_shares": 560000
                 }
               ],
               "streak": 3
             }
           ],
-          "total_shares": 2277000
+          "total_shares": 2411000
         }
       },
       {
@@ -54392,31 +54422,31 @@
         "trigger_period": "2026W48",
         "weight_change": null,
         "evidence": {
-          "window": "2026-11-20 ~ 2026-11-26",
+          "window": "2026-11-23 ~ 2026-11-27",
           "details": [
             {
               "etf": "00407A",
-              "amount": 122000000,
-              "total_shares": 500000
+              "amount": 144600000,
+              "total_shares": 600000
             },
             {
               "etf": "00993A",
-              "amount": 5612000,
+              "amount": 5543000,
               "total_shares": 23000
             },
             {
               "etf": "00980A",
-              "amount": 158356000,
+              "amount": 156409000,
               "total_shares": 649000
             },
             {
               "etf": "00991A",
-              "amount": 366000000,
+              "amount": 361500000,
               "total_shares": 1500000
             }
           ],
           "etf_count": 4,
-          "total_shares": 2672000
+          "total_shares": 2772000
         }
       },
       {
@@ -54432,26 +54462,26 @@
         "trigger_period": "2026W48",
         "weight_change": null,
         "evidence": {
-          "window": "2026-11-20 ~ 2026-11-26",
+          "window": "2026-11-23 ~ 2026-11-27",
           "details": [
             {
               "etf": "00993A",
-              "amount": 3195000,
+              "amount": 3275000,
               "total_shares": 5000
             },
             {
               "etf": "00981A",
-              "amount": 127800000,
+              "amount": 131000000,
               "total_shares": 200000
             },
             {
               "etf": "00992A",
-              "amount": 324612000,
-              "total_shares": 508000
+              "amount": 719190000,
+              "total_shares": 1098000
             }
           ],
           "etf_count": 3,
-          "total_shares": 713000
+          "total_shares": 1303000
         }
       },
       {
@@ -54466,16 +54496,16 @@
         "trigger_period": "2026W48",
         "weight_change": null,
         "evidence": {
-          "window": "2026-11-20 ~ 2026-11-26",
+          "window": "2026-11-23 ~ 2026-11-27",
           "details": [
             {
               "etf": "00993A",
-              "amount": 1868800,
+              "amount": 1852800,
               "total_shares": 64000
             },
             {
               "etf": "00985A",
-              "amount": 103660000,
+              "amount": 102772500,
               "total_shares": 3550000
             }
           ],
@@ -54520,43 +54550,37 @@
           "安聯台灣主動式",
           "野村臺灣增強50",
           "群益台灣科技創新主動",
-          "群益台灣精選強棒",
           "復華台灣未來50"
         ],
         "trigger_date": "2026-11-23",
         "trigger_period": "2026W48",
         "weight_change": null,
         "evidence": {
-          "window": "2026-11-20 ~ 2026-11-26",
+          "window": "2026-11-23 ~ 2026-11-27",
           "details": [
             {
               "etf": "00993A",
-              "amount": 7155000,
+              "amount": 7025000,
               "total_shares": 1000
             },
             {
               "etf": "00985A",
-              "amount": 228960000,
+              "amount": 224800000,
               "total_shares": 32000
             },
             {
               "etf": "00992A",
-              "amount": 171720000,
+              "amount": 168600000,
               "total_shares": 24000
             },
             {
-              "etf": "00982A",
-              "amount": 35775000,
-              "total_shares": 5000
-            },
-            {
               "etf": "00991A",
-              "amount": 250425000,
+              "amount": 245875000,
               "total_shares": 35000
             }
           ],
-          "etf_count": 5,
-          "total_shares": 97000
+          "etf_count": 4,
+          "total_shares": 92000
         }
       },
       {
@@ -54572,26 +54596,26 @@
         "trigger_period": "2026W48",
         "weight_change": null,
         "evidence": {
-          "window": "2026-11-20 ~ 2026-11-26",
+          "window": "2026-11-23 ~ 2026-11-27",
           "details": [
             {
               "etf": "00981A",
-              "amount": 586880000,
+              "amount": 589500000,
               "total_shares": 524000
             },
             {
               "etf": "00991A",
-              "amount": 638400000,
+              "amount": 641250000,
               "total_shares": 570000
             },
             {
               "etf": "00985A",
-              "amount": 370720000,
-              "total_shares": 331000
+              "amount": 338625000,
+              "total_shares": 301000
             }
           ],
           "etf_count": 3,
-          "total_shares": 1425000
+          "total_shares": 1395000
         }
       },
       {
@@ -54637,26 +54661,26 @@
         "trigger_period": "2026W48",
         "weight_change": null,
         "evidence": {
-          "window": "2026-11-20 ~ 2026-11-26",
+          "window": "2026-11-23 ~ 2026-11-27",
           "details": [
             {
               "etf": "00981A",
-              "amount": 1958385000,
+              "amount": 1990340000,
               "total_shares": 913000
             },
             {
               "etf": "00403A",
-              "amount": 965250000,
+              "amount": 981000000,
               "total_shares": 450000
             },
             {
               "etf": "00407A",
-              "amount": 171600000,
+              "amount": 174400000,
               "total_shares": 80000
             },
             {
               "etf": "00991A",
-              "amount": 1866150000,
+              "amount": 1896600000,
               "total_shares": 870000
             }
           ],
@@ -54676,16 +54700,16 @@
         "trigger_period": "2026W48",
         "weight_change": null,
         "evidence": {
-          "window": "2026-11-20 ~ 2026-11-26",
+          "window": "2026-11-23 ~ 2026-11-27",
           "details": [
             {
               "etf": "00991A",
-              "amount": 453600000,
+              "amount": 435400000,
               "total_shares": 280000
             },
             {
               "etf": "00981A",
-              "amount": 1365660000,
+              "amount": 1310865000,
               "total_shares": 843000
             }
           ],
@@ -54728,7 +54752,6 @@
         "market": "TWSE",
         "funds": [
           "統一台股增長",
-          "群益台灣精選強棒",
           "復華台灣未來50",
           "統一升級50",
           "野村臺灣智慧優選",
@@ -54738,41 +54761,36 @@
         "trigger_period": "2026W48",
         "weight_change": null,
         "evidence": {
-          "window": "2026-11-20 ~ 2026-11-26",
+          "window": "2026-11-23 ~ 2026-11-27",
           "details": [
             {
               "etf": "00981A",
-              "amount": 1161165000,
+              "amount": 1084143000,
               "total_shares": 1167000
             },
             {
-              "etf": "00982A",
-              "amount": 111440000,
-              "total_shares": 112000
-            },
-            {
               "etf": "00991A",
-              "amount": 626850000,
-              "total_shares": 630000
+              "amount": 678170000,
+              "total_shares": 730000
             },
             {
               "etf": "00403A",
-              "amount": 89550000,
+              "amount": 83610000,
               "total_shares": 90000
             },
             {
               "etf": "00980A",
-              "amount": 93530000,
+              "amount": 87326000,
               "total_shares": 94000
             },
             {
               "etf": "00407A",
-              "amount": 277605000,
+              "amount": 259191000,
               "total_shares": 279000
             }
           ],
-          "etf_count": 6,
-          "total_shares": 2372000
+          "etf_count": 5,
+          "total_shares": 2360000
         }
       },
       {
@@ -54816,16 +54834,16 @@
         "trigger_period": "2026W48",
         "weight_change": null,
         "evidence": {
-          "window": "2026-11-20 ~ 2026-11-26",
+          "window": "2026-11-23 ~ 2026-11-27",
           "details": [
             {
               "etf": "00407A",
-              "amount": 5110000,
+              "amount": 5285000,
               "total_shares": 7000
             },
             {
               "etf": "00993A",
-              "amount": 1460000,
+              "amount": 1510000,
               "total_shares": 2000
             }
           ],
@@ -54841,7 +54859,6 @@
           "安聯台灣主動式",
           "野村臺灣智慧優選",
           "統一台股增長",
-          "群益台灣精選強棒",
           "野村臺灣增強50",
           "復華全球未來50",
           "凱基台灣主動式",
@@ -54851,51 +54868,46 @@
         "trigger_period": "2026W48",
         "weight_change": null,
         "evidence": {
-          "window": "2026-11-20 ~ 2026-11-26",
+          "window": "2026-11-23 ~ 2026-11-27",
           "details": [
             {
               "etf": "00993A",
-              "amount": 3660000,
+              "amount": 3605000,
               "total_shares": 1000
             },
             {
               "etf": "00980A",
-              "amount": 292800000,
+              "amount": 288400000,
               "total_shares": 80000
             },
             {
               "etf": "00981A",
-              "amount": 417240000,
+              "amount": 410970000,
               "total_shares": 114000
             },
             {
-              "etf": "00982A",
-              "amount": 113460000,
-              "total_shares": 31000
-            },
-            {
               "etf": "00985A",
-              "amount": 69540000,
+              "amount": 68495000,
               "total_shares": 19000
             },
             {
               "etf": "00409A",
-              "amount": 139080000,
+              "amount": 136990000,
               "total_shares": 38000
             },
             {
               "etf": "00407A",
-              "amount": 322080000,
+              "amount": 317240000,
               "total_shares": 88000
             },
             {
               "etf": "00991A",
-              "amount": 274500000,
+              "amount": 270375000,
               "total_shares": 75000
             }
           ],
-          "etf_count": 8,
-          "total_shares": 446000
+          "etf_count": 7,
+          "total_shares": 415000
         }
       },
       {
@@ -54910,16 +54922,16 @@
         "trigger_period": "2026W48",
         "weight_change": null,
         "evidence": {
-          "window": "2026-11-20 ~ 2026-11-26",
+          "window": "2026-11-23 ~ 2026-11-27",
           "details": [
             {
               "etf": "00993A",
-              "amount": 4712000,
+              "amount": 4808000,
               "total_shares": 8000
             },
             {
               "etf": "00991A",
-              "amount": 147250000,
+              "amount": 150250000,
               "total_shares": 250000
             }
           ],
@@ -54939,21 +54951,21 @@
         "trigger_period": "2026W48",
         "weight_change": null,
         "evidence": {
-          "window": "2026-11-20 ~ 2026-11-26",
+          "window": "2026-11-23 ~ 2026-11-27",
           "details": [
             {
               "etf": "00985A",
-              "amount": 377910000,
-              "total_shares": 1235000
+              "amount": 716100000,
+              "total_shares": 2325000
             },
             {
               "etf": "00993A",
-              "amount": 3672000,
+              "amount": 3696000,
               "total_shares": 12000
             }
           ],
           "etf_count": 2,
-          "total_shares": 1247000
+          "total_shares": 2337000
         }
       },
       {
@@ -54968,16 +54980,16 @@
         "trigger_period": "2026W48",
         "weight_change": null,
         "evidence": {
-          "window": "2026-11-20 ~ 2026-11-26",
+          "window": "2026-11-23 ~ 2026-11-27",
           "details": [
             {
               "etf": "00991A",
-              "amount": 116383500,
+              "amount": 115684500,
               "total_shares": 699000
             },
             {
               "etf": "00993A",
-              "amount": 2331000,
+              "amount": 2317000,
               "total_shares": 14000
             }
           ],
@@ -55029,31 +55041,31 @@
         "trigger_period": "2026W48",
         "weight_change": null,
         "evidence": {
-          "window": "2026-11-20 ~ 2026-11-26",
+          "window": "2026-11-23 ~ 2026-11-27",
           "details": [
             {
               "etf": "00993A",
-              "amount": 3705000,
+              "amount": 3680000,
               "total_shares": 1000
             },
             {
               "etf": "00409A",
-              "amount": 181545000,
+              "amount": 180320000,
               "total_shares": 49000
             },
             {
               "etf": "00988A",
-              "amount": 322335000,
+              "amount": 320160000,
               "total_shares": 87000
             },
             {
               "etf": "00985A",
-              "amount": 137085000,
+              "amount": 136160000,
               "total_shares": 37000
             },
             {
               "etf": "00991A",
-              "amount": 370500000,
+              "amount": 368000000,
               "total_shares": 100000
             }
           ],
@@ -55102,16 +55114,16 @@
         "trigger_period": "2026W48",
         "weight_change": null,
         "evidence": {
-          "window": "2026-11-20 ~ 2026-11-26",
+          "window": "2026-11-23 ~ 2026-11-27",
           "details": [
             {
               "etf": "00993A",
-              "amount": 6858000,
+              "amount": 6723000,
               "total_shares": 27000
             },
             {
               "etf": "00991A",
-              "amount": 683514000,
+              "amount": 670059000,
               "total_shares": 2691000
             }
           ],
@@ -55131,16 +55143,16 @@
         "trigger_period": "2026W48",
         "weight_change": null,
         "evidence": {
-          "window": "2026-11-20 ~ 2026-11-26",
+          "window": "2026-11-23 ~ 2026-11-27",
           "details": [
             {
               "etf": "00407A",
-              "amount": 17500000,
+              "amount": 17325000,
               "total_shares": 175000
             },
             {
               "etf": "00993A",
-              "amount": 3500000,
+              "amount": 3465000,
               "total_shares": 35000
             }
           ],
@@ -55154,6 +55166,7 @@
         "market": "TWSE",
         "funds": [
           "安聯台灣主動式",
+          "復華台灣未來50",
           "統一台股增長",
           "凱基台灣主動式"
         ],
@@ -55161,26 +55174,31 @@
         "trigger_period": "2026W48",
         "weight_change": null,
         "evidence": {
-          "window": "2026-11-20 ~ 2026-11-26",
+          "window": "2026-11-23 ~ 2026-11-27",
           "details": [
             {
               "etf": "00993A",
-              "amount": 1703850,
+              "amount": 1681650,
               "total_shares": 37000
             },
             {
+              "etf": "00991A",
+              "amount": 136350000,
+              "total_shares": 3000000
+            },
+            {
               "etf": "00981A",
-              "amount": 438718350,
+              "amount": 433002150,
               "total_shares": 9527000
             },
             {
               "etf": "00407A",
-              "amount": 9946800,
+              "amount": 9817200,
               "total_shares": 216000
             }
           ],
-          "etf_count": 3,
-          "total_shares": 9780000
+          "etf_count": 4,
+          "total_shares": 12780000
         }
       },
       {
@@ -55195,16 +55213,16 @@
         "trigger_period": "2026W48",
         "weight_change": null,
         "evidence": {
-          "window": "2026-11-20 ~ 2026-11-26",
+          "window": "2026-11-23 ~ 2026-11-27",
           "details": [
             {
               "etf": "00993A",
-              "amount": 2493000,
+              "amount": 2520000,
               "total_shares": 18000
             },
             {
               "etf": "00991A",
-              "amount": 435028500,
+              "amount": 439740000,
               "total_shares": 3141000
             }
           ],
@@ -55224,16 +55242,16 @@
         "trigger_period": "2026W48",
         "weight_change": null,
         "evidence": {
-          "window": "2026-11-20 ~ 2026-11-26",
+          "window": "2026-11-23 ~ 2026-11-27",
           "details": [
             {
               "etf": "00993A",
-              "amount": 3553000,
+              "amount": 3468000,
               "total_shares": 34000
             },
             {
               "etf": "00991A",
-              "amount": 448409500,
+              "amount": 437682000,
               "total_shares": 4291000
             }
           ],
@@ -55253,16 +55271,16 @@
         "trigger_period": "2026W48",
         "weight_change": null,
         "evidence": {
-          "window": "2026-11-20 ~ 2026-11-26",
+          "window": "2026-11-23 ~ 2026-11-27",
           "details": [
             {
               "etf": "00991A",
-              "amount": 446025800,
+              "amount": 441831200,
               "total_shares": 6991000
             },
             {
               "etf": "00993A",
-              "amount": 2233000,
+              "amount": 2212000,
               "total_shares": 35000
             }
           ],
@@ -55282,7 +55300,7 @@
         "trigger_period": "2026W48",
         "weight_change": null,
         "evidence": {
-          "window": "2026-11-20 ~ 2026-11-26",
+          "window": "2026-11-23 ~ 2026-11-27",
           "details": [
             {
               "etf": "00403A",
@@ -55313,31 +55331,31 @@
         "trigger_period": "2026W48",
         "weight_change": null,
         "evidence": {
-          "window": "2026-11-20 ~ 2026-11-26",
+          "window": "2026-11-23 ~ 2026-11-27",
           "details": [
             {
               "etf": "00992A",
-              "amount": 402675000,
+              "amount": 385385000,
               "total_shares": 91000
             },
             {
               "etf": "00981A",
-              "amount": 4425000,
+              "amount": 4235000,
               "total_shares": 1000
             },
             {
               "etf": "00993A",
-              "amount": 4425000,
+              "amount": 4235000,
               "total_shares": 1000
             },
             {
               "etf": "00985A",
-              "amount": 92925000,
-              "total_shares": 21000
+              "amount": 59290000,
+              "total_shares": 14000
             }
           ],
           "etf_count": 4,
-          "total_shares": 114000
+          "total_shares": 107000
         }
       },
       {
@@ -55351,58 +55369,52 @@
           "凱基台灣主動式",
           "統一升級50",
           "復華台灣未來50",
-          "群益台灣精選強棒",
           "野村臺灣智慧優選"
         ],
         "trigger_date": "2026-11-23",
         "trigger_period": "2026W48",
         "weight_change": null,
         "evidence": {
-          "window": "2026-11-20 ~ 2026-11-26",
+          "window": "2026-11-23 ~ 2026-11-27",
           "details": [
             {
               "etf": "00985A",
-              "amount": 117390000,
-              "total_shares": 42000
+              "amount": 78540000,
+              "total_shares": 28000
             },
             {
               "etf": "00409A",
-              "amount": 139750000,
+              "amount": 140250000,
               "total_shares": 50000
             },
             {
               "etf": "00981A",
-              "amount": 1296880000,
+              "amount": 1301520000,
               "total_shares": 464000
             },
             {
               "etf": "00407A",
-              "amount": 153725000,
-              "total_shares": 55000
+              "amount": 193545000,
+              "total_shares": 69000
             },
             {
               "etf": "00403A",
-              "amount": 419250000,
-              "total_shares": 150000
+              "amount": 645150000,
+              "total_shares": 230000
             },
             {
               "etf": "00991A",
-              "amount": 559000000,
+              "amount": 561000000,
               "total_shares": 200000
             },
             {
-              "etf": "00982A",
-              "amount": 187265000,
-              "total_shares": 67000
-            },
-            {
               "etf": "00980A",
-              "amount": 41925000,
+              "amount": 42075000,
               "total_shares": 15000
             }
           ],
-          "etf_count": 8,
-          "total_shares": 1043000
+          "etf_count": 7,
+          "total_shares": 1056000
         }
       },
       {
@@ -55417,16 +55429,16 @@
         "trigger_period": "2026W48",
         "weight_change": null,
         "evidence": {
-          "window": "2026-11-20 ~ 2026-11-26",
+          "window": "2026-11-23 ~ 2026-11-27",
           "details": [
             {
               "etf": "00993A",
-              "amount": 1338000,
+              "amount": 1329000,
               "total_shares": 3000
             },
             {
               "etf": "00407A",
-              "amount": 12934000,
+              "amount": 12847000,
               "total_shares": 29000
             }
           ],
@@ -55448,31 +55460,31 @@
         "trigger_period": "2026W48",
         "weight_change": null,
         "evidence": {
-          "window": "2026-11-20 ~ 2026-11-26",
+          "window": "2026-11-23 ~ 2026-11-27",
           "details": [
             {
               "etf": "00993A",
-              "amount": 1929000,
+              "amount": 1938000,
               "total_shares": 3000
             },
             {
               "etf": "00991A",
-              "amount": 192900000,
+              "amount": 193800000,
               "total_shares": 300000
             },
             {
               "etf": "00407A",
-              "amount": 58513000,
-              "total_shares": 91000
+              "amount": 97546000,
+              "total_shares": 151000
             },
             {
               "etf": "00985A",
-              "amount": 53369000,
+              "amount": 53618000,
               "total_shares": 83000
             }
           ],
           "etf_count": 4,
-          "total_shares": 477000
+          "total_shares": 537000
         }
       },
       {
@@ -55482,38 +55494,32 @@
         "funds": [
           "凱基台灣主動式",
           "野村臺灣智慧優選",
-          "安聯台灣主動式",
-          "群益台灣精選強棒"
+          "安聯台灣主動式"
         ],
         "trigger_date": "2026-11-23",
         "trigger_period": "2026W48",
         "weight_change": null,
         "evidence": {
-          "window": "2026-11-20 ~ 2026-11-26",
+          "window": "2026-11-23 ~ 2026-11-27",
           "details": [
             {
               "etf": "00407A",
-              "amount": 39263000,
+              "amount": 38196500,
               "total_shares": 79000
             },
             {
               "etf": "00980A",
-              "amount": 152082000,
+              "amount": 147951000,
               "total_shares": 306000
             },
             {
               "etf": "00993A",
-              "amount": 2485000,
+              "amount": 2417500,
               "total_shares": 5000
-            },
-            {
-              "etf": "00982A",
-              "amount": 558131000,
-              "total_shares": 1123000
             }
           ],
-          "etf_count": 4,
-          "total_shares": 1513000
+          "etf_count": 3,
+          "total_shares": 390000
         }
       },
       {
@@ -55557,16 +55563,16 @@
         "trigger_period": "2026W48",
         "weight_change": null,
         "evidence": {
-          "window": "2026-11-20 ~ 2026-11-26",
+          "window": "2026-11-23 ~ 2026-11-27",
           "details": [
             {
               "etf": "00993A",
-              "amount": 3710000,
+              "amount": 3696000,
               "total_shares": 7000
             },
             {
               "etf": "00991A",
-              "amount": 159000000,
+              "amount": 158400000,
               "total_shares": 300000
             }
           ],
@@ -55581,32 +55587,32 @@
         "funds": [
           "統一台股增長",
           "復華台灣未來50",
-          "群益台灣精選強棒"
+          "凱基台灣主動式"
         ],
         "trigger_date": "2026-11-23",
         "trigger_period": "2026W48",
         "weight_change": null,
         "evidence": {
-          "window": "2026-11-20 ~ 2026-11-26",
+          "window": "2026-11-23 ~ 2026-11-27",
           "details": [
             {
               "etf": "00981A",
-              "amount": 382597000,
+              "amount": 371142000,
               "total_shares": 2291000
             },
             {
               "etf": "00991A",
-              "amount": 83500000,
+              "amount": 81000000,
               "total_shares": 500000
             },
             {
-              "etf": "00982A",
-              "amount": 3340000,
-              "total_shares": 20000
+              "etf": "00407A",
+              "amount": 81000000,
+              "total_shares": 500000
             }
           ],
           "etf_count": 3,
-          "total_shares": 2811000
+          "total_shares": 3291000
         }
       },
       {
@@ -55621,16 +55627,16 @@
         "trigger_period": "2026W48",
         "weight_change": null,
         "evidence": {
-          "window": "2026-11-20 ~ 2026-11-26",
+          "window": "2026-11-23 ~ 2026-11-27",
           "details": [
             {
               "etf": "00991A",
-              "amount": 148960000,
+              "amount": 148390000,
               "total_shares": 190000
             },
             {
               "etf": "00407A",
-              "amount": 12544000,
+              "amount": 12496000,
               "total_shares": 16000
             }
           ],
@@ -55679,16 +55685,16 @@
         "trigger_period": "2026W48",
         "weight_change": null,
         "evidence": {
-          "window": "2026-11-20 ~ 2026-11-26",
+          "window": "2026-11-23 ~ 2026-11-27",
           "details": [
             {
               "etf": "00985A",
-              "amount": 348460000,
+              "amount": 371260000,
               "total_shares": 76000
             },
             {
               "etf": "00991A",
-              "amount": 91700000,
+              "amount": 97700000,
               "total_shares": 20000
             }
           ],
@@ -55702,33 +55708,27 @@
         "market": "TWSE",
         "funds": [
           "統一升級50",
-          "群益台灣精選強棒",
           "群益台灣科技創新主動"
         ],
         "trigger_date": "2026-11-23",
         "trigger_period": "2026W48",
         "weight_change": null,
         "evidence": {
-          "window": "2026-11-20 ~ 2026-11-26",
+          "window": "2026-11-23 ~ 2026-11-27",
           "details": [
             {
               "etf": "00403A",
-              "amount": 336150000,
+              "amount": 323550000,
               "total_shares": 90000
             },
             {
-              "etf": "00982A",
-              "amount": 41085000,
-              "total_shares": 11000
-            },
-            {
               "etf": "00992A",
-              "amount": 149400000,
+              "amount": 143800000,
               "total_shares": 40000
             }
           ],
-          "etf_count": 3,
-          "total_shares": 141000
+          "etf_count": 2,
+          "total_shares": 130000
         }
       },
       {
@@ -55744,26 +55744,26 @@
         "trigger_period": "2026W48",
         "weight_change": null,
         "evidence": {
-          "window": "2026-11-20 ~ 2026-11-26",
+          "window": "2026-11-23 ~ 2026-11-27",
           "details": [
             {
               "etf": "00988A",
-              "amount": 358000000,
+              "amount": 336000000,
               "total_shares": 200000
             },
             {
               "etf": "00991A",
-              "amount": 762540000,
-              "total_shares": 426000
+              "amount": 940800000,
+              "total_shares": 560000
             },
             {
               "etf": "00981A",
-              "amount": 2266140000,
+              "amount": 2126880000,
               "total_shares": 1266000
             }
           ],
           "etf_count": 3,
-          "total_shares": 1892000
+          "total_shares": 2026000
         }
       },
       {
@@ -55800,8 +55800,10 @@
         "ticker_name": "日月光投控",
         "market": "TWSE",
         "funds": [
+          "凱基台灣主動式",
           "統一升級50",
           "安聯台灣主動式",
+          "野村臺灣增強50",
           "復華台灣未來50",
           "野村臺灣智慧優選",
           "統一台股增長"
@@ -55810,36 +55812,46 @@
         "trigger_period": "2026W48",
         "weight_change": null,
         "evidence": {
-          "window": "2026-11-20 ~ 2026-11-26",
+          "window": "2026-11-23 ~ 2026-11-27",
           "details": [
             {
+              "etf": "00407A",
+              "amount": 25700000,
+              "total_shares": 50000
+            },
+            {
               "etf": "00403A",
-              "amount": 664300000,
+              "amount": 668200000,
               "total_shares": 1300000
             },
             {
               "etf": "00993A",
-              "amount": 3577000,
+              "amount": 3598000,
               "total_shares": 7000
             },
             {
+              "etf": "00985A",
+              "amount": 260084000,
+              "total_shares": 506000
+            },
+            {
               "etf": "00991A",
-              "amount": 306600000,
+              "amount": 308400000,
               "total_shares": 600000
             },
             {
               "etf": "00980A",
-              "amount": 56721000,
+              "amount": 57054000,
               "total_shares": 111000
             },
             {
               "etf": "00981A",
-              "amount": 2128315000,
+              "amount": 2140810000,
               "total_shares": 4165000
             }
           ],
-          "etf_count": 5,
-          "total_shares": 6183000
+          "etf_count": 7,
+          "total_shares": 6739000
         }
       },
       {
@@ -55854,21 +55866,50 @@
         "trigger_period": "2026W48",
         "weight_change": null,
         "evidence": {
-          "window": "2026-11-20 ~ 2026-11-26",
+          "window": "2026-11-23 ~ 2026-11-27",
           "details": [
             {
               "etf": "00993A",
-              "amount": 711000,
+              "amount": 693000,
               "total_shares": 2000
             },
             {
               "etf": "00991A",
-              "amount": 106650000,
+              "amount": 103950000,
               "total_shares": 300000
             }
           ],
           "etf_count": 2,
           "total_shares": 302000
+        }
+      },
+      {
+        "ticker": "5274",
+        "ticker_name": "信驊科技",
+        "market": "TPEx",
+        "funds": [
+          "復華台灣未來50",
+          "安聯台灣主動式"
+        ],
+        "trigger_date": "2026-11-27",
+        "trigger_period": "2026W48",
+        "weight_change": null,
+        "evidence": {
+          "window": "2026-11-23 ~ 2026-11-27",
+          "details": [
+            {
+              "etf": "00991A",
+              "amount": 144000000,
+              "total_shares": 15000
+            },
+            {
+              "etf": "00993A",
+              "amount": 9600000,
+              "total_shares": 1000
+            }
+          ],
+          "etf_count": 2,
+          "total_shares": 16000
         }
       },
       {
@@ -55883,16 +55924,16 @@
         "trigger_period": "2026W48",
         "weight_change": null,
         "evidence": {
-          "window": "2026-11-20 ~ 2026-11-26",
+          "window": "2026-11-23 ~ 2026-11-27",
           "details": [
             {
               "etf": "00993A",
-              "amount": 3472000,
+              "amount": 3428000,
               "total_shares": 8000
             },
             {
               "etf": "00407A",
-              "amount": 3472000,
+              "amount": 3428000,
               "total_shares": 8000
             }
           ],
@@ -55906,33 +55947,27 @@
         "market": "TWSE",
         "funds": [
           "野村臺灣智慧優選",
-          "安聯台灣主動式",
-          "群益台灣精選強棒"
+          "安聯台灣主動式"
         ],
         "trigger_date": "2026-11-23",
         "trigger_period": "2026W48",
         "weight_change": null,
         "evidence": {
-          "window": "2026-11-20 ~ 2026-11-26",
+          "window": "2026-11-23 ~ 2026-11-27",
           "details": [
             {
               "etf": "00980A",
-              "amount": 262977000,
+              "amount": 255008000,
               "total_shares": 613000
             },
             {
               "etf": "00993A",
-              "amount": 1287000,
+              "amount": 1248000,
               "total_shares": 3000
-            },
-            {
-              "etf": "00982A",
-              "amount": 30030000,
-              "total_shares": 70000
             }
           ],
-          "etf_count": 3,
-          "total_shares": 686000
+          "etf_count": 2,
+          "total_shares": 616000
         }
       },
       {
@@ -55948,21 +55983,21 @@
         "trigger_period": "2026W48",
         "weight_change": null,
         "evidence": {
-          "window": "2026-11-20 ~ 2026-11-26",
+          "window": "2026-11-23 ~ 2026-11-27",
           "details": [
             {
               "etf": "00991A",
-              "amount": 670745000,
+              "amount": 640590000,
               "total_shares": 163000
             },
             {
               "etf": "00981A",
-              "amount": 534950000,
+              "amount": 510900000,
               "total_shares": 130000
             },
             {
               "etf": "00409A",
-              "amount": 12345000,
+              "amount": 11790000,
               "total_shares": 3000
             }
           ],
@@ -56011,16 +56046,16 @@
         "trigger_period": "2026W48",
         "weight_change": null,
         "evidence": {
-          "window": "2026-11-20 ~ 2026-11-26",
+          "window": "2026-11-23 ~ 2026-11-27",
           "details": [
             {
               "etf": "00993A",
-              "amount": 3525000,
+              "amount": 3480000,
               "total_shares": 3000
             },
             {
               "etf": "00407A",
-              "amount": 7050000,
+              "amount": 6960000,
               "total_shares": 6000
             }
           ],
@@ -56042,26 +56077,26 @@
         "trigger_period": "2026W48",
         "weight_change": null,
         "evidence": {
-          "window": "2026-11-20 ~ 2026-11-26",
+          "window": "2026-11-23 ~ 2026-11-27",
           "details": [
             {
               "etf": "00981A",
-              "amount": 1257570000,
+              "amount": 1337670000,
               "total_shares": 801000
             },
             {
               "etf": "00985A",
-              "amount": 39250000,
+              "amount": 41750000,
               "total_shares": 25000
             },
             {
               "etf": "00993A",
-              "amount": 1570000,
+              "amount": 1670000,
               "total_shares": 1000
             },
             {
               "etf": "00991A",
-              "amount": 469430000,
+              "amount": 499330000,
               "total_shares": 299000
             }
           ],
@@ -56139,16 +56174,16 @@
         "trigger_period": "2026W48",
         "weight_change": null,
         "evidence": {
-          "window": "2026-11-20 ~ 2026-11-26",
+          "window": "2026-11-23 ~ 2026-11-27",
           "details": [
             {
               "etf": "00992A",
-              "amount": 513450000,
+              "amount": 497965000,
               "total_shares": 163000
             },
             {
               "etf": "00985A",
-              "amount": 176400000,
+              "amount": 171080000,
               "total_shares": 56000
             }
           ],
@@ -91709,13 +91744,13 @@
                 },
                 {
                   "week": "2026-W48",
-                  "net_shares": -500000
+                  "net_shares": -800000
                 }
               ],
               "streak": 3
             }
           ],
-          "total_shares": -5100000
+          "total_shares": -5400000
         }
       },
       {
@@ -92352,13 +92387,13 @@
                 },
                 {
                   "week": "2026-W48",
-                  "net_shares": -1095000
+                  "net_shares": -3562000
                 }
               ],
               "streak": 2
             }
           ],
-          "total_shares": -3089000
+          "total_shares": -5556000
         }
       },
       {
@@ -108135,21 +108170,21 @@
         "trigger_period": "2026W48",
         "weight_change": null,
         "evidence": {
-          "window": "2026-11-20 ~ 2026-11-26",
+          "window": "2026-11-23 ~ 2026-11-27",
           "details": [
             {
               "etf": "00982A",
-              "amount": 733650000,
+              "amount": 716900000,
               "total_shares": 670000
             },
             {
               "etf": "00992A",
-              "amount": 452235000,
+              "amount": 441910000,
               "total_shares": 413000
             },
             {
               "etf": "00991A",
-              "amount": 1095000,
+              "amount": 1070000,
               "total_shares": 1000
             }
           ],
@@ -108163,13 +108198,13 @@
         "market": "TWSE",
         "funds": [
           "野村臺灣智慧優選",
-          "群益台灣精選強棒"
+          "群益台灣科技創新主動"
         ],
         "trigger_date": "2026-11-25",
         "trigger_period": "2026W48",
         "weight_change": null,
         "evidence": {
-          "window": "2026-11-20 ~ 2026-11-26",
+          "window": "2026-11-23 ~ 2026-11-27",
           "details": [
             {
               "etf": "00980A",
@@ -108177,13 +108212,13 @@
               "total_shares": 193000
             },
             {
-              "etf": "00982A",
-              "amount": 24068000,
-              "total_shares": 88000
+              "etf": "00992A",
+              "amount": 7931500,
+              "total_shares": 29000
             }
           ],
           "etf_count": 2,
-          "total_shares": 281000
+          "total_shares": 222000
         }
       },
       {
@@ -108227,21 +108262,21 @@
         "trigger_period": "2026W48",
         "weight_change": null,
         "evidence": {
-          "window": "2026-11-20 ~ 2026-11-26",
+          "window": "2026-11-23 ~ 2026-11-27",
           "details": [
             {
               "etf": "00988A",
-              "amount": 549000000,
-              "total_shares": 150000
+              "amount": 501095000,
+              "total_shares": 139000
             },
             {
               "etf": "00409A",
-              "amount": 285480000,
-              "total_shares": 78000
+              "amount": 165830000,
+              "total_shares": 46000
             }
           ],
           "etf_count": 2,
-          "total_shares": 228000
+          "total_shares": 185000
         }
       },
       {
@@ -108275,27 +108310,27 @@
       },
       {
         "ticker": "3017",
-        "ticker_name": "奇鋐",
+        "ticker_name": "奇鋐科技",
         "market": "TWSE",
         "funds": [
-          "統一全球創新",
-          "復華全球未來50"
+          "復華全球未來50",
+          "統一全球創新"
         ],
         "trigger_date": "2026-11-24",
         "trigger_period": "2026W48",
         "weight_change": null,
         "evidence": {
-          "window": "2026-11-20 ~ 2026-11-26",
+          "window": "2026-11-23 ~ 2026-11-27",
           "details": [
             {
-              "etf": "00988A",
-              "amount": 265525000,
-              "total_shares": 95000
+              "etf": "00409A",
+              "amount": 330990000,
+              "total_shares": 118000
             },
             {
-              "etf": "00409A",
-              "amount": 329810000,
-              "total_shares": 118000
+              "etf": "00988A",
+              "amount": 266475000,
+              "total_shares": 95000
             }
           ],
           "etf_count": 2,
@@ -108314,16 +108349,16 @@
         "trigger_period": "2026W48",
         "weight_change": null,
         "evidence": {
-          "window": "2026-11-20 ~ 2026-11-26",
+          "window": "2026-11-23 ~ 2026-11-27",
           "details": [
             {
               "etf": "00982A",
-              "amount": 93878000,
+              "amount": 94316000,
               "total_shares": 146000
             },
             {
               "etf": "00988A",
-              "amount": 803750000,
+              "amount": 807500000,
               "total_shares": 1250000
             }
           ],
@@ -108372,21 +108407,21 @@
         "trigger_period": "2026W48",
         "weight_change": null,
         "evidence": {
-          "window": "2026-11-20 ~ 2026-11-26",
+          "window": "2026-11-23 ~ 2026-11-27",
           "details": [
             {
               "etf": "00409A",
-              "amount": 107800000,
+              "amount": 101800000,
               "total_shares": 20000
             },
             {
               "etf": "00991A",
-              "amount": 269500000,
-              "total_shares": 50000
+              "amount": 407200000,
+              "total_shares": 80000
             }
           ],
           "etf_count": 2,
-          "total_shares": 70000
+          "total_shares": 100000
         }
       },
       {
@@ -108488,16 +108523,16 @@
         "trigger_period": "2026W48",
         "weight_change": null,
         "evidence": {
-          "window": "2026-11-20 ~ 2026-11-26",
+          "window": "2026-11-23 ~ 2026-11-27",
           "details": [
             {
               "etf": "00403A",
-              "amount": 24500000,
+              "amount": 23650000,
               "total_shares": 25000
             },
             {
               "etf": "00980A",
-              "amount": 37240000,
+              "amount": 35948000,
               "total_shares": 38000
             }
           ],
@@ -108546,21 +108581,21 @@
         "trigger_period": "2026W48",
         "weight_change": null,
         "evidence": {
-          "window": "2026-11-20 ~ 2026-11-26",
+          "window": "2026-11-23 ~ 2026-11-27",
           "details": [
             {
               "etf": "00992A",
-              "amount": 125970000,
-              "total_shares": 38000
+              "amount": 187530000,
+              "total_shares": 57000
             },
             {
               "etf": "00980A",
-              "amount": 92820000,
+              "amount": 92120000,
               "total_shares": 28000
             }
           ],
           "etf_count": 2,
-          "total_shares": 66000
+          "total_shares": 85000
         }
       },
       {
